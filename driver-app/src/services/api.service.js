@@ -1,0 +1,70 @@
+﻿import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://192.168.1.184:5000/api';
+
+const api = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use(
+  async (config) => {
+    const token = await AsyncStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    console.error('API Error:', error.response?.status);
+    console.error('API Error Data:', error.response?.data);
+    console.error('API Error Config:', error.config?.url);
+    if (error.response?.status === 401) {
+      AsyncStorage.removeItem('token');
+      AsyncStorage.removeItem('user');
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authService = {
+  sendOTP: (phone) => api.post('/auth/send-otp', { phone }),
+  verifyOTP: (phone, otp, name = 'Driver', role = 'driver') => 
+    api.post('/auth/verify-otp', { phone, otp, name, role }),
+  getMe: () => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/profile', data),
+};
+
+export const driverService = {
+  updateLocation: (latitude, longitude) => 
+    api.put('/drivers/location', { latitude, longitude }),
+  toggleOnlineStatus: (isOnline) => 
+    api.put('/drivers/toggle-online', { isOnline }),
+  acceptRide: (rideId) => 
+    api.put(`/rides/${rideId}/accept`),
+  rejectRide: (rideId, reason) => 
+    api.put(`/rides/${rideId}/cancel`, { reason }),
+  startRide: (rideId) => 
+    api.put(`/rides/${rideId}/status`, { status: 'started' }),
+  completeRide: (rideId) => 
+    api.put(`/rides/${rideId}/status`, { status: 'completed' }),
+  getActiveRide: () => 
+    api.get('/drivers/active-ride'),
+  getEarnings: () => 
+    api.get('/drivers/earnings'),
+  getRideHistory: () => 
+    api.get('/drivers/ride-history'),
+};
+
+export default api;
