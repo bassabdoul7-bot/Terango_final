@@ -18,12 +18,29 @@ import { driverService } from '../services/api.service';
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+// Calculate distance between two points in meters
+const getDistance = (loc1, loc2) => {
+  const R = 6371e3; // Earth radius in meters
+  const lat1 = loc1.latitude * Math.PI / 180;
+  const lat2 = loc2.latitude * Math.PI / 180;
+  const deltaLat = (loc2.latitude - loc1.latitude) * Math.PI / 180;
+  const deltaLon = (loc2.longitude - loc1.longitude) * Math.PI / 180;
+
+  const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+            Math.cos(lat1) * Math.cos(lat2) *
+            Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c;
+};
+
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId, ride: passedRide } = route.params;
   
   const mapRef = useRef(null);
   const locationSubscription = useRef(null);
   const hasInitialized = useRef(false);
+  const lastFetchLocation = useRef(null);
   
   const [ride, setRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -120,6 +137,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
   // Get directions when location or status changes
   useEffect(() => {
     if (!ride || !driverLocation) return;
+
+    // Only refetch if moved significantly (50+ meters) or status changed
+    if (lastFetchLocation.current) {
+      const distance = getDistance(lastFetchLocation.current, driverLocation);
+      if (distance < 50 && ride.status === lastFetchLocation.current.status) {
+        return; // Don't refetch
+      }
+    }
 
     const destination = ride.status === 'accepted' || ride.status === 'arrived'
       ? ride.pickup.coordinates 
@@ -618,6 +643,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
