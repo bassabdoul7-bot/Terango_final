@@ -59,6 +59,8 @@ export const driverService = {
     api.put(`/rides/${rideId}/status`, { status: 'started' }),
   completeRide: (rideId) => 
     api.put(`/rides/${rideId}/status`, { status: 'completed' }),
+  updateRideStatus: (rideId, status) =>
+    api.put(`/rides/${rideId}/status`, { status }),
   getActiveRide: () => 
     api.get('/drivers/active-ride'),
   getEarnings: () => 
