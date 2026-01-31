@@ -15,6 +15,8 @@ import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import * as Speech from 'expo-speech';
+import { simplifyPolyline } from '../utils/polylineSimplifier';
+import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -44,7 +46,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     if (passedRide) {
-      console.log('✅ Initializing ride');
+      console.log('Initializing ride');
       setRide({
         _id: rideId,
         status: 'accepted',
@@ -63,7 +65,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission refusée', 'Localisation requise');
+          Alert.alert('Permission refusee', 'Localisation requise');
           setInitializing(false);
           return;
         }
@@ -146,7 +148,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
           setTotalDistance(leg.distance.text);
           setTotalDuration(leg.duration.text);
           
-          // Extract all steps for turn-by-turn
           const steps = leg.steps.map((step, index) => ({
             id: index,
             instruction: step.html_instructions.replace(/<[^>]*>/g, ''),
@@ -175,12 +176,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
             longitude: point[1],
           }));
           
-          setRouteCoordinates(coords);
+          // Simplify polyline for Waze-like straight roads
+          const simplifiedCoords = simplifyPolyline(coords, 0.00015);
+          setRouteCoordinates(simplifiedCoords);
           hasFetchedRoute.current = true;
           
           setTimeout(() => {
             if (mapRef.current && !navigationStarted) {
-              mapRef.current.fitToCoordinates(coords, {
+              mapRef.current.fitToCoordinates(simplifiedCoords, {
                 edgePadding: { top: 200, right: 50, bottom: 400, left: 50 },
                 animated: true,
               });
@@ -217,18 +220,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
       currentStep.endLocation.longitude
     );
 
-    const stepKey = step_;
+    const stepKey = `step_${currentStep.id}`;
     
     // Announce at 300m, 100m, and 50m
-    if (distance <= 300 && distance > 250 && !announcementDistances.current.has(${stepKey}_300)) {
-      announceInstruction(Dans 300 m�tres, );
-      announcementDistances.current.add(${stepKey}_300);
-    } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(${stepKey}_100)) {
-      announceInstruction(Dans 100 m�tres, );
-      announcementDistances.current.add(${stepKey}_100);
-    } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(${stepKey}_50)) {
+    if (distance <= 300 && distance > 250 && !announcementDistances.current.has(`${stepKey}_300`)) {
+      announceInstruction(`Dans 300 metres, ${currentStep.instruction}`);
+      announcementDistances.current.add(`${stepKey}_300`);
+    } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(`${stepKey}_100`)) {
+      announceInstruction(`Dans 100 metres, ${currentStep.instruction}`);
+      announcementDistances.current.add(`${stepKey}_100`);
+    } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(`${stepKey}_50`)) {
       announceInstruction(currentStep.instruction);
-      announcementDistances.current.add(${stepKey}_50);
+      announcementDistances.current.add(`${stepKey}_50`);
     }
 
     // Clear old announcements when moving to next step
@@ -236,7 +239,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       setLastAnnouncedStep(currentStep.id);
       const toDelete = [];
       announcementDistances.current.forEach(key => {
-        if (!key.startsWith(step__)) {
+        if (!key.startsWith(`step_${currentStep.id}_`)) {
           toDelete.push(key);
         }
       });
@@ -249,13 +252,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
     const newState = !voiceEnabled;
     setVoiceEnabled(newState);
     if (newState) {
-      Speech.speak("Navigation vocale activ�e", { language: 'fr-FR' });
+      Speech.speak("Navigation vocale activee", { language: 'fr-FR' });
     } else {
       Speech.stop();
     }
   }, [voiceEnabled]);
 
-    // Update current step based on driver location
+  // Update current step based on driver location
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
@@ -268,22 +271,21 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     setDistanceToStep(formatDistance(distance));
 
-    // If within 20 meters of current step, move to next
     if (distance < 50 && currentStep.id < allSteps.length - 1) {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
   }, [driverLocation, currentStep, allSteps]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3;
-    const φ1 = lat1 * Math.PI / 180;
-    const φ2 = lat2 * Math.PI / 180;
-    const Δφ = (lat2 - lat1) * Math.PI / 180;
-    const Δλ = (lon2 - lon1) * Math.PI / 180;
+    const R = 6371e3; // Earth radius in meters
+    const phi1 = lat1 * Math.PI / 180;
+    const phi2 = lat2 * Math.PI / 180;
+    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
     return R * c;
@@ -312,7 +314,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       mapRef.current.animateCamera({
         center: driverLocation,
         zoom: 18,
-        pitch: 60,
+        pitch: 30, // Reduced from 60 for flatter Waze-like view
         heading: heading,
       }, { duration: 1000 });
     }
@@ -320,8 +322,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const handleArrived = useCallback(async () => {
     Alert.alert(
-      'Arrivé',
-      'Vous êtes au point de départ?',
+      'Arrive',
+      'Vous etes au point de depart?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -346,8 +348,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const handleStartRide = useCallback(async () => {
     Alert.alert(
-      'Démarrer',
-      'Le passager est à bord?',
+      'Demarrer',
+      'Le passager est a bord?',
       [
         { text: 'Non', style: 'cancel' },
         {
@@ -360,7 +362,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               hasFetchedRoute.current = false;
               setNavigationStarted(false);
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible de démarrer');
+              Alert.alert('Erreur', 'Impossible de demarrer');
             } finally {
               setLoading(false);
             }
@@ -373,7 +375,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleCompleteRide = useCallback(async () => {
     Alert.alert(
       'Terminer',
-      'Arrivé à destination?',
+      'Arrive a destination?',
       [
         { text: 'Non', style: 'cancel' },
         {
@@ -383,7 +385,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
             try {
               await driverService.completeRide(rideId);
               Alert.alert(
-                '🎉 Terminé!',
+                'Termine!',
                 `Gains: ${ride.fare?.toLocaleString()} FCFA`,
                 [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
               );
@@ -425,27 +427,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
       case 'accepted':
         return (
           <View>
-            {/* Voice toggle button */}
-        {navigationStarted && (
-          <TouchableOpacity 
-            style={styles.voiceButton}
-            onPress={toggleVoice}
-          >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '??' : '??'}</Text>
-          </TouchableOpacity>
-        )}
-
-                {!navigationStarted && (
+            {!navigationStarted && (
               <TouchableOpacity 
                 style={styles.navButton}
                 onPress={handleStartNavigation}
               >
                 <Text style={styles.navIcon}>🧭</Text>
-                <Text style={styles.navText}>Démarrer navigation</Text>
+                <Text style={styles.navText}>Demarrer navigation</Text>
               </TouchableOpacity>
             )}
             <GlassButton
-              title="Je suis arrivé"
+              title="Je suis arrive"
               onPress={handleArrived}
               loading={loading}
             />
@@ -454,7 +446,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       case 'arrived':
         return (
           <GlassButton
-            title="Démarrer la course"
+            title="Demarrer la course"
             onPress={handleStartRide}
             loading={loading}
           />
@@ -478,12 +470,16 @@ const ActiveRideScreen = ({ route, navigation }) => {
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
+        customMapStyle={WAZE_DARK_STYLE}
         initialRegion={{
           ...driverLocation,
           latitudeDelta: 0.02,
           longitudeDelta: 0.02,
         }}
         showsUserLocation={false}
+        showsBuildings={false}
+        showsPointsOfInterest={false}
+        showsTraffic={true}
         rotateEnabled={navigationStarted}
         pitchEnabled={navigationStarted}
       >
@@ -508,13 +504,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
-            strokeColor="#4285F4"
+            strokeColor="#00D9FF"
             strokeWidth={6}
           />
         )}
       </MapView>
 
-      {/* Waze-style turn instruction */}
       {navigationStarted && currentStep && (
         <View style={styles.turnInstruction}>
           <View style={styles.turnIconContainer}>
@@ -533,7 +528,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           onPress={() => {
             Alert.alert(
               'Quitter',
-              'Course en cours. Êtes-vous sûr?',
+              'Course en cours. Etes-vous sur?',
               [
                 { text: 'Annuler', style: 'cancel' },
                 { text: 'Quitter', onPress: () => navigation.goBack() }
@@ -544,24 +539,22 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
-        {/* Voice toggle button */}
         {navigationStarted && (
           <TouchableOpacity 
             style={styles.voiceButton}
             onPress={toggleVoice}
           >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '??' : '??'}</Text>
+            <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
           </TouchableOpacity>
         )}
 
-                {!navigationStarted && (
+        {!navigationStarted && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
         )}
       </View>
 
-      {/* Waze-style bottom bar */}
       {navigationStarted && (
         <View style={styles.wazeBottomBar}>
           <View style={styles.etaContainer}>
@@ -606,7 +599,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               <View style={ride.status === 'in_progress' ? styles.redSquare : styles.greenDot} />
               <View style={styles.addressTextContainer}>
                 <Text style={styles.addressLabel}>
-                  {ride.status === 'in_progress' ? 'Destination' : 'Point de départ'}
+                  {ride.status === 'in_progress' ? 'Destination' : 'Point de depart'}
                 </Text>
                 <Text style={styles.addressText} numberOfLines={2}>
                   {ride.status === 'in_progress' 
@@ -693,6 +686,25 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: COLORS.black,
     fontWeight: 'bold',
+  },
+  voiceButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  voiceIcon: {
+    fontSize: 24,
   },
   statusBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -895,26 +907,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginRight: 8,
   },
-  voiceButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  voiceIcon: {
-    fontSize: 24,
-  },
-    navText: {
+  navText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
