@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -299,12 +299,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
   };
 
   const getManeuverIcon = (maneuver) => {
-    if (!maneuver) return '↑';
-    if (maneuver.includes('left')) return '↰';
-    if (maneuver.includes('right')) return '↱';
-    if (maneuver.includes('straight')) return '↑';
-    if (maneuver.includes('uturn')) return '↶';
-    return '↑';
+    if (!maneuver) return '←‘';
+    if (maneuver.includes('left')) return '←°';
+    if (maneuver.includes('right')) return '←±';
+    if (maneuver.includes('straight')) return '←‘';
+    if (maneuver.includes('uturn')) return '←¶';
+    return '←‘';
   };
 
   const handleStartNavigation = useCallback(() => {
@@ -505,7 +505,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <Polyline
             coordinates={routeCoordinates}
             strokeColor="#00D9FF"
-            strokeWidth={6}
+            strokeWidth={10}
           />
         )}
       </MapView>
@@ -536,7 +536,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
             );
           }}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
         {navigationStarted && (
@@ -544,7 +544,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
             style={styles.voiceButton}
             onPress={toggleVoice}
           >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
+            <Text style={styles.voiceIcon}>{voiceEnabled ? 'ðŸ”Š' : 'ðŸ”‡'}</Text>
           </TouchableOpacity>
         )}
 
@@ -573,7 +573,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               }
             }}
           >
-            <Text style={styles.stopNavText}>■</Text>
+            <Text style={styles.stopNavText}>â– </Text>
           </TouchableOpacity>
         </View>
       )}
