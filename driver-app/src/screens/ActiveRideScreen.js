@@ -209,6 +209,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
     });
   }, [voiceEnabled]);
 
+  // Recenter map to current location
+  const handleRecenter = useCallback(() => {
+    if (mapRef.current && driverLocation) {
+      mapRef.current.animateCamera({
+        center: driverLocation,
+        zoom: 18,
+        pitch: navigationStarted ? 30 : 0,
+        heading: navigationStarted ? heading : 0,
+      }, { duration: 500 });
+    }
+  }, [driverLocation, heading, navigationStarted]);
+
   // Voice announcements based on distance
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length || !voiceEnabled) return;
@@ -258,6 +270,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [voiceEnabled]);
 
+  // Recenter map to current location
   // Update current step based on driver location
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
@@ -510,6 +523,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </MapView>
 
+      {/* Recenter button - always visible */}
+      <TouchableOpacity
+        style={styles.recenterButton}
+        onPress={handleRecenter}
+      >
+        <Text style={styles.recenterIcon}>⊙</Text>
+      </TouchableOpacity>
+
       {navigationStarted && currentStep && (
         <View style={styles.turnInstruction}>
           <View style={styles.turnIconContainer}>
@@ -546,9 +567,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           >
             <Text style={styles.voiceIcon}>{voiceEnabled ? 'ðŸ”Š' : 'ðŸ”‡'}</Text>
           </TouchableOpacity>
-        )}
-
-        {!navigationStarted && (
+        )}{!navigationStarted && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
@@ -705,6 +724,27 @@ const styles = StyleSheet.create({
   },
   voiceIcon: {
     fontSize: 24,
+  },
+  recenterButton: {
+    position: 'absolute',
+    bottom: 300,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  recenterIcon: {
+    fontSize: 28,
+    color: COLORS.green,
+    fontWeight: 'bold',
   },
   statusBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
