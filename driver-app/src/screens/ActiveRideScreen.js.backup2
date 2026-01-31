@@ -14,7 +14,6 @@ import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
-import * as Speech from 'expo-speech';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -38,9 +37,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [navigationStarted, setNavigationStarted] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [lastAnnouncedStep, setLastAnnouncedStep] = useState(null);
-  const announcementDistances = useRef(new Set());
 
   useEffect(() => {
     if (passedRide) {
@@ -195,67 +191,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     fetchRoute();
   }, [ride, driverLocation]);
 
-  // Voice announcement function
-  const announceInstruction = useCallback((instruction) => {
-    if (!voiceEnabled) return;
-    
-    Speech.speak(instruction, {
-      language: 'fr-FR',
-      pitch: 1.0,
-      rate: 0.9,
-    });
-  }, [voiceEnabled]);
-
-  // Voice announcements based on distance
-  useEffect(() => {
-    if (!driverLocation || !currentStep || !allSteps.length || !voiceEnabled) return;
-
-    const distance = calculateDistance(
-      driverLocation.latitude,
-      driverLocation.longitude,
-      currentStep.endLocation.latitude,
-      currentStep.endLocation.longitude
-    );
-
-    const stepKey = step_;
-    
-    // Announce at 300m, 100m, and 50m
-    if (distance <= 300 && distance > 250 && !announcementDistances.current.has(${stepKey}_300)) {
-      announceInstruction(Dans 300 mËtres, );
-      announcementDistances.current.add(${stepKey}_300);
-    } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(${stepKey}_100)) {
-      announceInstruction(Dans 100 mËtres, );
-      announcementDistances.current.add(${stepKey}_100);
-    } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(${stepKey}_50)) {
-      announceInstruction(currentStep.instruction);
-      announcementDistances.current.add(${stepKey}_50);
-    }
-
-    // Clear old announcements when moving to next step
-    if (currentStep.id !== lastAnnouncedStep) {
-      setLastAnnouncedStep(currentStep.id);
-      const toDelete = [];
-      announcementDistances.current.forEach(key => {
-        if (!key.startsWith(step__)) {
-          toDelete.push(key);
-        }
-      });
-      toDelete.forEach(key => announcementDistances.current.delete(key));
-    }
-  }, [driverLocation, currentStep, allSteps, voiceEnabled, announceInstruction, lastAnnouncedStep]);
-
-  // Toggle voice navigation
-  const toggleVoice = useCallback(() => {
-    const newState = !voiceEnabled;
-    setVoiceEnabled(newState);
-    if (newState) {
-      Speech.speak("Navigation vocale activÈe", { language: 'fr-FR' });
-    } else {
-      Speech.stop();
-    }
-  }, [voiceEnabled]);
-
-    // Update current step based on driver location
+  // Update current step based on driver location
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
@@ -269,7 +205,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     setDistanceToStep(formatDistance(distance));
 
     // If within 20 meters of current step, move to next
-    if (distance < 50 && currentStep.id < allSteps.length - 1) {
+    if (distance < 20 && currentStep.id < allSteps.length - 1) {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
   }, [driverLocation, currentStep, allSteps]);
@@ -425,17 +361,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       case 'accepted':
         return (
           <View>
-            {/* Voice toggle button */}
-        {navigationStarted && (
-          <TouchableOpacity 
-            style={styles.voiceButton}
-            onPress={toggleVoice}
-          >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '??' : '??'}</Text>
-          </TouchableOpacity>
-        )}
-
-                {!navigationStarted && (
+            {!navigationStarted && (
               <TouchableOpacity 
                 style={styles.navButton}
                 onPress={handleStartNavigation}
@@ -544,17 +470,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <Text style={styles.backIcon}>‚Üê</Text>
         </TouchableOpacity>
 
-        {/* Voice toggle button */}
-        {navigationStarted && (
-          <TouchableOpacity 
-            style={styles.voiceButton}
-            onPress={toggleVoice}
-          >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '??' : '??'}</Text>
-          </TouchableOpacity>
-        )}
-
-                {!navigationStarted && (
+        {!navigationStarted && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
@@ -895,26 +811,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginRight: 8,
   },
-  voiceButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  voiceIcon: {
-    fontSize: 24,
-  },
-    navText: {
+  navText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
