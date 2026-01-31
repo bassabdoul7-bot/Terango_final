@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -270,7 +270,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [voiceEnabled]);
 
-  // Recenter map to current location
   // Update current step based on driver location
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
@@ -312,12 +311,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
   };
 
   const getManeuverIcon = (maneuver) => {
-    if (!maneuver) return '←‘';
-    if (maneuver.includes('left')) return '←°';
-    if (maneuver.includes('right')) return '←±';
-    if (maneuver.includes('straight')) return '←‘';
-    if (maneuver.includes('uturn')) return '←¶';
-    return '←‘';
+    if (!maneuver) return '↑';
+    if (maneuver.includes('left')) return '↰';
+    if (maneuver.includes('right')) return '↱';
+    if (maneuver.includes('straight')) return '↑';
+    if (maneuver.includes('uturn')) return '↶';
+    return '↑';
   };
 
   const handleStartNavigation = useCallback(() => {
@@ -327,7 +326,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       mapRef.current.animateCamera({
         center: driverLocation,
         zoom: 18,
-        pitch: 30, // Reduced from 60 for flatter Waze-like view
+        pitch: 30,
         heading: heading,
       }, { duration: 1000 });
     }
@@ -523,7 +522,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </MapView>
 
-      {/* Recenter button - always visible */}
       <TouchableOpacity
         style={styles.recenterButton}
         onPress={handleRecenter}
@@ -557,7 +555,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
             );
           }}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
 
         {navigationStarted && (
@@ -565,9 +563,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
             style={styles.voiceButton}
             onPress={toggleVoice}
           >
-            <Text style={styles.voiceIcon}>{voiceEnabled ? 'ðŸ”Š' : 'ðŸ”‡'}</Text>
+            <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
           </TouchableOpacity>
-        )}{!navigationStarted && (
+        )}
+
+        {!navigationStarted && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{getStatusText()}</Text>
           </View>
@@ -592,7 +592,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               }
             }}
           >
-            <Text style={styles.stopNavText}>â– </Text>
+            <Text style={styles.stopNavText}>■</Text>
           </TouchableOpacity>
         </View>
       )}
