@@ -1,49 +1,38 @@
 ﻿require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
 const http = require('http');
-const socketio = require('socket.io');
+const socketIo = require('socket.io');
+const cors = require('cors');
 const connectDB = require('./config/db');
-const errorHandler = require('./middleware/error');
 
-// Import routes
 const authRoutes = require('./routes/authRoutes');
 const rideRoutes = require('./routes/rideRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 
-// Initialize Express
 const app = express();
 const server = http.createServer(app);
-
-// Initialize Socket.io
-const io = socketio(server, {
+const io = socketIo(server, {
   cors: {
     origin: '*',
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
 });
-
-// Connect to Database
-connectDB();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Test route
+// Connect to MongoDB
+connectDB();
+
+// Health check
 app.get('/', (req, res) => {
   res.json({
-    success: true,
-    message: 'TeranGO API is running! 🚀',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/auth',
-      rides: '/api/rides',
-      drivers: '/api/drivers',
-      admin: '/api/admin'
-    }
+    status: 'success',
+    message: 'TeranGO API is running',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -57,7 +46,19 @@ app.use('/api/admin', adminRoutes);
 io.on('connection', (socket) => {
   console.log('✓ New socket connection:', socket.id);
 
-  // Driver location updates
+  // Join ride room for real-time updates
+  socket.on('join-ride-room', (rideId) => {
+    socket.join(rideId);
+    console.log(`Socket ${socket.id} joined ride room: ${rideId}`);
+  });
+
+  // Leave ride room
+  socket.on('leave-ride-room', (rideId) => {
+    socket.leave(rideId);
+    console.log(`Socket ${socket.id} left ride room: ${rideId}`);
+  });
+
+  // Driver location updates (legacy - not used anymore)
   socket.on('driver-location-update', (data) => {
     socket.broadcast.emit(`driver-location-${data.driverId}`, data);
   });
@@ -75,30 +76,36 @@ io.on('connection', (socket) => {
 // Make io accessible to routes
 app.set('io', io);
 
-// Error handler (must be last)
-app.use(errorHandler);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
-// Start server
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
 const PORT = process.env.PORT || 5000;
+
 server.listen(PORT, () => {
-  console.log('');
-  console.log('🚀 TeranGO Backend API - FULLY OPERATIONAL!');
-  console.log('📡 Port:', PORT);
-  console.log('🌍 Environment:', process.env.NODE_ENV || 'development');
-  console.log('');
-  console.log('✅ Available Endpoints:');
-  console.log('   📱 /api/auth      - Authentication & User Management');
-  console.log('   🚗 /api/rides     - Ride Booking & Management');
-  console.log('   👨‍✈️ /api/drivers   - Driver Operations & Tracking');
-  console.log('   👨‍💼 /api/admin     - Admin Dashboard & Analytics');
-  console.log('');
-  console.log('🔌 WebSocket: Real-time updates enabled');
-  console.log('');
+  console.log(`🚀 TeranGO Backend API - FULLY OPERATIONAL!`);
+  console.log(`📡 Port: ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Available Endpoints:`);
+  console.log(`   📱 /api/auth      - Authentication & User Management`);
+  console.log(`   🚗 /api/rides     - Ride Booking & Management`);
+  console.log(`   👨‍✈️ /api/drivers   - Driver Operations & Tracking`);
+  console.log(`   👨‍💼 /api/admin     - Admin Dashboard & Analytics`);
+  console.log(`🔌 WebSocket: Real-time updates enabled`);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.log('❌ Unhandled Rejection! Shutting down...');
-  console.error(err);
-  server.close(() => process.exit(1));
-});
+module.exports = { app, server, io };

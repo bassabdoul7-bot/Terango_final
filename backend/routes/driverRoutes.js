@@ -7,31 +7,28 @@ const {
   completeProfile,
   toggleOnlineStatus,
   updateLocation,
-  getMyRides,
+  getActiveRide,
   getEarnings,
-  getStats,
-  findNearbyDrivers
+  getRideHistory
 } = require('../controllers/driverController');
 
-// Complete driver profile
+// Complete profile
 router.put(
   '/complete-profile',
   protect,
   restrictTo('driver'),
   [
-    body('nationalId').notEmpty().withMessage('CNI requise'),
-    body('nationalIdPhoto').notEmpty().withMessage('Photo CNI requise'),
-    body('driverLicense').notEmpty().withMessage('Permis de conduire requis'),
-    body('driverLicensePhoto').notEmpty().withMessage('Photo permis requise'),
-    body('vehicle.make').notEmpty().withMessage('Marque du véhicule requise'),
-    body('vehicle.model').notEmpty().withMessage('Modèle du véhicule requis'),
-    body('vehicle.licensePlate').notEmpty().withMessage('Plaque d\'immatriculation requise')
+    body('driverLicenseNumber').notEmpty().withMessage('License number required'),
+    body('vehicle.make').notEmpty().withMessage('Vehicle make required'),
+    body('vehicle.model').notEmpty().withMessage('Vehicle model required'),
+    body('vehicle.year').isInt().withMessage('Valid year required'),
+    body('vehicle.licensePlate').notEmpty().withMessage('License plate required')
   ],
   validate,
   completeProfile
 );
 
-// Toggle online/offline
+// Toggle online status
 router.put('/toggle-online', protect, restrictTo('driver'), toggleOnlineStatus);
 
 // Update location
@@ -40,23 +37,20 @@ router.put(
   protect,
   restrictTo('driver'),
   [
-    body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Latitude invalide'),
-    body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Longitude invalide')
+    body('latitude').isFloat().withMessage('Valid latitude required'),
+    body('longitude').isFloat().withMessage('Valid longitude required')
   ],
   validate,
   updateLocation
 );
 
-// Get driver's rides
-router.get('/my-rides', protect, restrictTo('driver'), getMyRides);
+// Get active ride
+router.get('/active-ride', protect, restrictTo('driver'), getActiveRide);
 
 // Get earnings
 router.get('/earnings', protect, restrictTo('driver'), getEarnings);
 
-// Get statistics
-router.get('/stats', protect, restrictTo('driver'), getStats);
-
-// Find nearby drivers (internal)
-router.post('/nearby', protect, findNearbyDrivers);
+// Get ride history
+router.get('/ride-history', protect, restrictTo('driver'), getRideHistory);
 
 module.exports = router;

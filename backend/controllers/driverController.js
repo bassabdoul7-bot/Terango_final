@@ -7,13 +7,7 @@ const Ride = require('../models/Ride');
 // @access  Private (Driver only)
 exports.completeProfile = async (req, res) => {
   try {
-    const {
-      nationalId,
-      nationalIdPhoto,
-      driverLicense,
-      driverLicensePhoto,
-      vehicle
-    } = req.body;
+    const { driverLicenseNumber, driverLicensePhoto, vehicle } = req.body;
 
     const driver = await Driver.findOne({ userId: req.user._id });
 
@@ -24,10 +18,7 @@ exports.completeProfile = async (req, res) => {
       });
     }
 
-    // Update driver profile
-    driver.nationalId = nationalId;
-    driver.nationalIdPhoto = nationalIdPhoto;
-    driver.driverLicense = driverLicense;
+    driver.driverLicenseNumber = driverLicenseNumber;
     driver.driverLicensePhoto = driverLicensePhoto;
     driver.vehicle = vehicle;
     driver.verificationStatus = 'pending';
@@ -39,7 +30,6 @@ exports.completeProfile = async (req, res) => {
       message: 'Profil complété. En attente de vérification.',
       driver
     });
-
   } catch (error) {
     console.error('Complete Profile Error:', error);
     res.status(500).json({
@@ -78,7 +68,6 @@ exports.toggleOnlineStatus = async (req, res) => {
       message: driver.isOnline ? 'Vous êtes maintenant en ligne' : 'Vous êtes maintenant hors ligne',
       isOnline: driver.isOnline
     });
-
   } catch (error) {
     console.error('Toggle Online Error:', error);
     res.status(500).json({
@@ -113,17 +102,35 @@ exports.updateLocation = async (req, res) => {
 
     // Emit Socket.io event for real-time tracking
     const io = req.app.get('io');
-    io.emit(`driver-location-${driver._id}`, {
-      latitude,
-      longitude,
-      timestamp: new Date()
+    
+    // Get active ride for this driver
+    const activeRide = await Ride.findOne({ 
+      driverId: driver._id, 
+      status: { $in: ['accepted', 'in_progress', 'arrived'] }
     });
 
+    console.log('Active ride found:', activeRide._id);
+    
+    if (activeRide) {
+      console.log('Emitting driver-location-update to room:', activeRide._id.toString());
+      io.to(activeRide._id.toString()).emit('driver-location-update', {
+        driverId: driver._id,
+        location: { latitude, longitude },
+        timestamp: new Date()
+      });
+    }
+
+    if (!activeRide) {
+      console.log('No active ride found for driver');
+    }
+    
     res.status(200).json({
       success: true,
-      message: 'Localisation mise à jour'
+      currentLocation: {
+        latitude,
+        longitude
+      }
     });
-
   } catch (error) {
     console.error('Update Location Error:', error);
     res.status(500).json({
@@ -133,34 +140,39 @@ exports.updateLocation = async (req, res) => {
   }
 };
 
-// @desc    Get driver's ride history
-// @route   GET /api/drivers/my-rides
+// @desc    Get driver active ride
+// @route   GET /api/drivers/active-ride
 // @access  Private (Driver only)
-exports.getMyRides = async (req, res) => {
+exports.getActiveRide = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
 
-    const rides = await Ride.find({ driverId: driver._id })
-      .populate('riderId', 'userId')
-      .sort({ createdAt: -1 })
-      .limit(50);
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil chauffeur non trouvé'
+      });
+    }
+
+    const activeRide = await Ride.findOne({
+      driver: driver._id,
+      status: { $in: ['accepted', 'arrived', 'in_progress'] }
+    }).populate('rider', 'name phone');
 
     res.status(200).json({
       success: true,
-      count: rides.length,
-      rides
+      ride: activeRide
     });
-
   } catch (error) {
-    console.error('Get Driver Rides Error:', error);
+    console.error('Get Active Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des courses'
+      message: 'Erreur lors de la récupération de la course active'
     });
   }
 };
 
-// @desc    Get driver earnings summary
+// @desc    Get driver earnings
 // @route   GET /api/drivers/earnings
 // @access  Private (Driver only)
 exports.getEarnings = async (req, res) => {
@@ -174,34 +186,28 @@ exports.getEarnings = async (req, res) => {
       });
     }
 
-    // Get completed rides for detailed breakdown
     const completedRides = await Ride.find({
-      driverId: driver._id,
+      driver: driver._id,
       status: 'completed'
-    }).sort({ completedAt: -1 });
+    });
 
-    // Calculate today's earnings
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    const todayRides = completedRides.filter(ride => 
-      ride.completedAt >= today
-    );
-    
-    const todayEarnings = todayRides.reduce((sum, ride) => sum + ride.driverEarnings, 0);
+    const totalEarnings = completedRides.reduce((sum, ride) => sum + ride.fare, 0);
+    const todayEarnings = completedRides
+      .filter(ride => {
+        const today = new Date();
+        const rideDate = new Date(ride.completedAt);
+        return rideDate.toDateString() === today.toDateString();
+      })
+      .reduce((sum, ride) => sum + ride.fare, 0);
 
     res.status(200).json({
       success: true,
       earnings: {
+        total: totalEarnings,
         today: todayEarnings,
-        week: driver.weeklyEarnings,
-        total: driver.totalEarnings,
-        totalRides: driver.totalRides,
-        todayRides: todayRides.length
-      },
-      recentRides: completedRides.slice(0, 10)
+        totalRides: completedRides.length
+      }
     });
-
   } catch (error) {
     console.error('Get Earnings Error:', error);
     res.status(500).json({
@@ -211,12 +217,12 @@ exports.getEarnings = async (req, res) => {
   }
 };
 
-// @desc    Get driver statistics
-// @route   GET /api/drivers/stats
+// @desc    Get driver ride history
+// @route   GET /api/drivers/ride-history
 // @access  Private (Driver only)
-exports.getStats = async (req, res) => {
+exports.getRideHistory = async (req, res) => {
   try {
-    const driver = await Driver.findOne({ userId: req.user._id }).populate('userId');
+    const driver = await Driver.findOne({ userId: req.user._id });
 
     if (!driver) {
       return res.status(404).json({
@@ -225,64 +231,23 @@ exports.getStats = async (req, res) => {
       });
     }
 
-    res.status(200).json({
-      success: true,
-      stats: {
-        totalRides: driver.totalRides,
-        totalEarnings: driver.totalEarnings,
-        weeklyEarnings: driver.weeklyEarnings,
-        rating: driver.userId.rating,
-        totalRatings: driver.userId.totalRatings,
-        acceptanceRate: driver.acceptanceRate,
-        isOnline: driver.isOnline,
-        verificationStatus: driver.verificationStatus
-      }
-    });
-
-  } catch (error) {
-    console.error('Get Stats Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la récupération des statistiques'
-    });
-  }
-};
-
-// @desc    Find nearby drivers (used by ride matching)
-// @route   POST /api/drivers/nearby
-// @access  Private (Internal use)
-exports.findNearbyDrivers = async (req, res) => {
-  try {
-    const { latitude, longitude, radius = 5 } = req.body; // radius in km
-
-    // Convert km to meters for MongoDB geospatial query
-    const radiusInMeters = radius * 1000;
-
-    const drivers = await Driver.find({
-      isOnline: true,
-      verificationStatus: 'approved',
-      currentLocation: {
-        $near: {
-          $geometry: {
-            type: 'Point',
-            coordinates: [longitude, latitude]
-          },
-          $maxDistance: radiusInMeters
-        }
-      }
-    }).populate('userId', 'name phone rating');
+    const rides = await Ride.find({
+      driver: driver._id,
+      status: 'completed'
+    })
+      .populate('rider', 'name phone')
+      .sort({ completedAt: -1 })
+      .limit(50);
 
     res.status(200).json({
       success: true,
-      count: drivers.length,
-      drivers
+      rides
     });
-
   } catch (error) {
-    console.error('Find Nearby Drivers Error:', error);
+    console.error('Get Ride History Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la recherche des chauffeurs'
+      message: 'Erreur lors de la récupération de l\'historique'
     });
   }
 };

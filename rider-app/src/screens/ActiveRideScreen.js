@@ -50,8 +50,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   // Connect to Socket.IO when ride is accepted
   useEffect(() => {
-    if (ride && ride.driver && (ride.status === 'accepted' || ride.status === 'in_progress')) {
+    console.log('Checking socket connection conditions:', {
+      hasRide: !!ride,
+      hasDriver: !!ride?.driverId,
+      status: ride?.status
+    });
+    
+    if (ride && ride.driverId && (ride.status === 'accepted' || ride.status === 'in_progress')) {
+      console.log('Conditions met! Connecting to socket...');
       connectToSocket();
+    } else {
+      console.log('Conditions NOT met - not connecting to socket');
     }
 
     return () => {
@@ -79,7 +88,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     socketRef.current.on('driver-location-update', (data) => {
       console.log('Driver location update:', data);
-      if (data.driverId === ride.driver._id) {
+      if (data.driverId === ride.driverId._id) {
         setDriverLocation(data.location);
         
         // Calculate ETA and distance if rider hasn't been picked up yet
@@ -115,6 +124,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     // Rough ETA calculation (assuming average speed of 30 km/h in city)
     const etaMinutes = Math.round((distanceInMeters / 1000) * 2); // 2 min per km
+    console.log('ETA calculated:', etaMinutes, 'min, Distance:', formatDistance(distanceInMeters));
     setEta(etaMinutes);
   };
 
@@ -205,6 +215,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const getStatusMessage = () => {
     if (!ride) return '';
+    
+    console.log('getStatusMessage - status:', ride.status, 'eta:', eta, 'distance:', distance);
     
     switch (ride.status) {
       case 'pending':
@@ -298,16 +310,16 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
       {/* Bottom card with ride info */}
       <View style={styles.bottomCard}>
-        {ride.driver && (
+        {ride.driverId && ride.driverId.userId && (
           <View style={styles.driverInfo}>
             <View style={styles.driverAvatar}>
               <Text style={styles.avatarText}>
-                {ride.driver.name.charAt(0).toUpperCase()}
+                {ride.driverId.userId.name?.charAt(0).toUpperCase() || 'D'}
               </Text>
             </View>
             <View style={styles.driverDetails}>
-              <Text style={styles.driverName}>{ride.driver.name}</Text>
-              <Text style={styles.driverPhone}>{ride.driver.phone}</Text>
+              <Text style={styles.driverName}>{ride.driverId.userId.name || 'Chauffeur'}</Text>
+              <Text style={styles.driverPhone}>{ride.driverId.userId.phone || ''}</Text>
             </View>
           </View>
         )}
