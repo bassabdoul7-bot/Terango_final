@@ -10,21 +10,28 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as PolylineUtil from '@mapbox/polyline';
+import io from 'socket.io-client';
 import GlassButton from '../components/GlassButton';
-
 import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+const SOCKET_URL = 'http://192.168.1.184:5000';
 
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId } = route.params;
-  
+
   const mapRef = useRef(null);
+  const socketRef = useRef(null);
+  
   const [ride, setRide] = useState(null);
   const [loading, setLoading] = useState(true);
   const [routeCoordinates, setRouteCoordinates] = useState([]);
+  const [driverLocation, setDriverLocation] = useState(null);
+  const [eta, setEta] = useState(null);
+  const [distance, setDistance] = useState(null);
+  
   const pollInterval = useRef(null);
 
   useEffect(() => {
@@ -35,22 +42,102 @@ const ActiveRideScreen = ({ route, navigation }) => {
       if (pollInterval.current) {
         clearInterval(pollInterval.current);
       }
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, []);
+
+  // Connect to Socket.IO when ride is accepted
+  useEffect(() => {
+    if (ride && ride.driver && (ride.status === 'accepted' || ride.status === 'in_progress')) {
+      connectToSocket();
+    }
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.off('driver-location-update');
+      }
+    };
+  }, [ride]);
+
+  const connectToSocket = () => {
+    if (socketRef.current) return;
+
+    socketRef.current = io(SOCKET_URL, {
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socketRef.current.on('connect', () => {
+      console.log('Socket connected for rider');
+      // Join room to receive driver updates
+      socketRef.current.emit('join-ride-room', rideId);
+    });
+
+    socketRef.current.on('driver-location-update', (data) => {
+      console.log('Driver location update:', data);
+      if (data.driverId === ride.driver._id) {
+        setDriverLocation(data.location);
+        
+        // Calculate ETA and distance if rider hasn't been picked up yet
+        if (ride.status === 'accepted') {
+          calculateETA(data.location, ride.pickup.coordinates);
+        }
+      }
+    });
+
+    socketRef.current.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+
+    socketRef.current.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+  };
+
+  const calculateETA = (driverLoc, pickupLoc) => {
+    const R = 6371e3; // Earth radius in meters
+    const phi1 = driverLoc.latitude * Math.PI / 180;
+    const phi2 = pickupLoc.latitude * Math.PI / 180;
+    const deltaPhi = (pickupLoc.latitude - driverLoc.latitude) * Math.PI / 180;
+    const deltaLambda = (pickupLoc.longitude - driverLoc.longitude) * Math.PI / 180;
+
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    const distanceInMeters = R * c;
+    setDistance(formatDistance(distanceInMeters));
+
+    // Rough ETA calculation (assuming average speed of 30 km/h in city)
+    const etaMinutes = Math.round((distanceInMeters / 1000) * 2); // 2 min per km
+    setEta(etaMinutes);
+  };
+
+  const formatDistance = (meters) => {
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    }
+    return `${(meters / 1000).toFixed(1)} km`;
+  };
 
   const fetchRideDetails = async () => {
     try {
       const response = await rideService.getRide(rideId);
       setRide(response.ride);
-      
+
       if (response.ride.status === 'accepted' || response.ride.status === 'in_progress') {
         await getDirections(response.ride);
       }
-      
+
       setLoading(false);
     } catch (error) {
       console.error('Fetch ride error:', error);
-      Alert.alert('Erreur', 'Impossible de récupérer les détails de la course');
+      Alert.alert('Erreur', 'Impossible de recuperer les details de la course');
       navigation.goBack();
     }
   };
@@ -58,7 +145,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const startPolling = () => {
     pollInterval.current = setInterval(() => {
       fetchRideDetails();
-    }, 5000);
+    }, 10000); // Poll every 10 seconds for ride status updates
   };
 
   const getDirections = async (rideData) => {
@@ -78,6 +165,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           latitude: point[0],
           longitude: point[1],
         }));
+        
         setRouteCoordinates(coords);
         
         if (mapRef.current) {
@@ -95,7 +183,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleCancelRide = () => {
     Alert.alert(
       'Annuler la course',
-      'Êtes-vous sûr de vouloir annuler cette course?',
+      'Etes-vous sur de vouloir annuler cette course?',
       [
         { text: 'Non', style: 'cancel' },
         {
@@ -103,10 +191,9 @@ const ActiveRideScreen = ({ route, navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await rideService.cancelRide(rideId, 'Annulé par le passager');
-              Alert.alert('Course annulée', 'Votre course a été annulée', [
-                { text: 'OK', onPress: () => navigation.navigate('Home') }
-              ]);
+              await rideService.cancelRide(rideId);
+              Alert.alert('Course annulee', 'Votre course a ete annulee');
+              navigation.navigate('Home');
             } catch (error) {
               Alert.alert('Erreur', 'Impossible d\'annuler la course');
             }
@@ -114,6 +201,28 @@ const ActiveRideScreen = ({ route, navigation }) => {
         }
       ]
     );
+  };
+
+  const getStatusMessage = () => {
+    if (!ride) return '';
+    
+    switch (ride.status) {
+      case 'pending':
+        return 'Recherche d\'un chauffeur...';
+      case 'accepted':
+        if (eta) {
+          return `Le chauffeur arrive dans ${eta} min (${distance})`;
+        }
+        return 'Le chauffeur est en route';
+      case 'arrived':
+        return 'Le chauffeur est arrive';
+      case 'in_progress':
+        return 'Course en cours';
+      case 'completed':
+        return 'Course terminee';
+      default:
+        return '';
+    }
   };
 
   if (loading || !ride) {
@@ -124,39 +233,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
       </View>
     );
   }
-
-  const getStatusText = () => {
-    switch (ride.status) {
-      case 'pending':
-        return 'Recherche de chauffeur...';
-      case 'accepted':
-        return 'Chauffeur en route';
-      case 'in_progress':
-        return 'Course en cours';
-      case 'completed':
-        return 'Course terminée';
-      case 'cancelled':
-        return 'Course annulée';
-      default:
-        return 'Statut inconnu';
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (ride.status) {
-      case 'pending':
-        return COLORS.yellow;
-      case 'accepted':
-      case 'in_progress':
-        return COLORS.green;
-      case 'completed':
-        return COLORS.blue;
-      case 'cancelled':
-        return COLORS.red;
-      default:
-        return COLORS.gray;
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -170,38 +246,33 @@ const ActiveRideScreen = ({ route, navigation }) => {
           longitudeDelta: 0.05,
         }}
       >
+        {/* Pickup marker */}
         <Marker
-          coordinate={{
-            latitude: ride.pickup.coordinates.latitude,
-            longitude: ride.pickup.coordinates.longitude,
-          }}
+          coordinate={ride.pickup.coordinates}
           pinColor={COLORS.green}
-          title="Départ"
+          title="Point de depart"
         />
 
+        {/* Dropoff marker */}
         <Marker
-          coordinate={{
-            latitude: ride.dropoff.coordinates.latitude,
-            longitude: ride.dropoff.coordinates.longitude,
-          }}
+          coordinate={ride.dropoff.coordinates}
           pinColor={COLORS.red}
-          title="Arrivée"
+          title="Destination"
         />
 
-        {ride.driverId && ride.driverId.currentLocation && (
+        {/* Driver marker - real-time position */}
+        {driverLocation && (
           <Marker
-            coordinate={{
-              latitude: ride.driverId.currentLocation.coordinates[1],
-              longitude: ride.driverId.currentLocation.coordinates[0],
-            }}
-            title="Chauffeur"
+            coordinate={driverLocation}
+            anchor={{ x: 0.5, y: 0.5 }}
           >
             <View style={styles.driverMarker}>
-              <Text style={styles.driverMarkerText}>🚗</Text>
+              <Text style={styles.driverText}>🚗</Text>
             </View>
           </Marker>
         )}
 
+        {/* Route polyline */}
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
@@ -211,88 +282,62 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </MapView>
 
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
-
-      <View style={styles.statusCard}>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() }]}>
-          <Text style={styles.statusText}>{getStatusText()}</Text>
+      {/* Top status bar */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.statusBadge}>
+          <Text style={styles.statusText}>{getStatusMessage()}</Text>
         </View>
       </View>
 
-      <View style={styles.bottomSheet}>
-        {ride.status === 'pending' ? (
-          <View style={styles.pendingContainer}>
-            <ActivityIndicator size="large" color={COLORS.green} />
-            <Text style={styles.pendingTitle}>Recherche de chauffeur...</Text>
-            <Text style={styles.pendingSubtitle}>
-              Nous recherchons un chauffeur disponible près de vous
-            </Text>
-          </View>
-        ) : ride.driverId ? (
-          <View style={styles.driverContainer}>
-            <View style={styles.driverCard}>
-              <View style={styles.driverInfo}>
-                <View style={styles.driverAvatar}>
-                  <Text style={styles.driverAvatarText}>
-                    {ride.driverId.userId?.name?.charAt(0) || 'D'}
-                  </Text>
-                </View>
-                <View style={styles.driverDetails}>
-                  <Text style={styles.driverName}>{ride.driverId.userId?.name || 'Chauffeur'}</Text>
-                  <Text style={styles.driverPhone}>{ride.driverId.userId?.phone || ''}</Text>
-                  <View style={styles.ratingContainer}>
-                    <Text style={styles.ratingText}>⭐ {ride.driverId.userId?.rating?.toFixed(1) || '5.0'}</Text>
-                  </View>
-                </View>
-              </View>
+      {/* Bottom card with ride info */}
+      <View style={styles.bottomCard}>
+        {ride.driver && (
+          <View style={styles.driverInfo}>
+            <View style={styles.driverAvatar}>
+              <Text style={styles.avatarText}>
+                {ride.driver.name.charAt(0).toUpperCase()}
+              </Text>
             </View>
-
-            <View style={styles.rideDetailsCard}>
-              <View style={styles.addressRow}>
-                <View style={styles.greenDot} />
-                <Text style={styles.addressText} numberOfLines={1}>
-                  {ride.pickup.address}
-                </Text>
-              </View>
-              <View style={styles.addressRow}>
-                <View style={styles.redSquare} />
-                <Text style={styles.addressText} numberOfLines={1}>
-                  {ride.dropoff.address}
-                </Text>
-              </View>
+            <View style={styles.driverDetails}>
+              <Text style={styles.driverName}>{ride.driver.name}</Text>
+              <Text style={styles.driverPhone}>{ride.driver.phone}</Text>
             </View>
-
-            <View style={styles.fareCard}>
-              <View style={styles.fareContainer}>
-                <Text style={styles.fareLabel}>Total</Text>
-                <Text style={styles.fareAmount}>{ride.fare?.toLocaleString()} FCFA</Text>
-              </View>
-            </View>
-          </View>
-        ) : null}
-
-        {ride.status === 'pending' && (
-          <View style={styles.actionButtons}>
-            <GlassButton
-              title="Annuler la course"
-              onPress={handleCancelRide}
-              variant="outline"
-            />
           </View>
         )}
 
-        {ride.status === 'completed' && (
-          <View style={styles.actionButtons}>
-            <GlassButton
-              title="Retour à l'accueil"
-              onPress={() => navigation.navigate('Home')}
-            />
+        <View style={styles.addressSection}>
+          <View style={styles.addressRow}>
+            <View style={styles.greenDot} />
+            <Text style={styles.addressText} numberOfLines={2}>
+              {ride.pickup.address}
+            </Text>
           </View>
+          <View style={styles.addressRow}>
+            <View style={styles.redSquare} />
+            <Text style={styles.addressText} numberOfLines={2}>
+              {ride.dropoff.address}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.fareRow}>
+          <Text style={styles.fareLabel}>Prix de la course</Text>
+          <Text style={styles.fareAmount}>{ride.fare?.toLocaleString()} FCFA</Text>
+        </View>
+
+        {ride.status === 'pending' && (
+          <GlassButton
+            title="Annuler la course"
+            onPress={handleCancelRide}
+            variant="secondary"
+          />
         )}
       </View>
     </View>
@@ -302,7 +347,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
   loadingContainer: {
     flex: 1,
@@ -316,43 +360,7 @@ const styles = StyleSheet.create({
     color: COLORS.gray,
   },
   map: {
-    width,
-    height: height * 0.5,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: COLORS.black,
-  },
-  statusCard: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-  },
-  statusBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  statusText: {
-    color: COLORS.white,
-    fontSize: 14,
-    fontWeight: '600',
+    ...StyleSheet.absoluteFillObject,
   },
   driverMarker: {
     width: 40,
@@ -361,82 +369,97 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: COLORS.green,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  driverMarkerText: {
-    fontSize: 20,
+  driverText: {
+    fontSize: 24,
   },
-  bottomSheet: {
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  backButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  backIcon: {
+    fontSize: 28,
+    color: COLORS.black,
+  },
+  statusBadge: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -20,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  pendingContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  pendingTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+  statusText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: COLORS.black,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  pendingSubtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
     textAlign: 'center',
   },
-  driverContainer: {
-    flex: 1,
-  },
-  driverCard: {
-    backgroundColor: 'rgba(0, 133, 63, 0.15)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 133, 63, 0.3)',
-    marginBottom: 12,
-  },
-  rideDetailsCard: {
-    backgroundColor: 'rgba(0, 133, 63, 0.15)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 133, 63, 0.3)',
-    marginBottom: 12,
-  },
-  fareCard: {
-    backgroundColor: 'rgba(0, 133, 63, 0.15)',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 133, 63, 0.3)',
-    marginBottom: 16,
+  bottomCard: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 10,
   },
   driverInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.grayLight,
   },
   driverAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: COLORS.green,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
   },
-  driverAvatarText: {
+  avatarText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: COLORS.white,
@@ -453,19 +476,9 @@ const styles = StyleSheet.create({
   driverPhone: {
     fontSize: 14,
     color: COLORS.gray,
-    marginBottom: 4,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  ratingText: {
-    fontSize: 14,
-    color: COLORS.black,
-    fontWeight: '600',
-  },
-  rideDetailsCard: {
-    marginBottom: 12,
+  addressSection: {
+    marginBottom: 20,
   },
   addressRow: {
     flexDirection: 'row',
@@ -490,27 +503,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.black,
   },
-  fareCard: {
-    marginBottom: 16,
-  },
-  fareContainer: {
+  fareRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   fareLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.gray,
   },
   fareAmount: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.black,
-  },
-  actionButtons: {
-    marginTop: 'auto',
+    color: COLORS.green,
   },
 });
 
 export default ActiveRideScreen;
-
