@@ -7,6 +7,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  Image,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as PolylineUtil from '@mapbox/polyline';
@@ -278,9 +279,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
             coordinate={driverLocation}
             anchor={{ x: 0.5, y: 0.5 }}
           >
-            <View style={styles.driverMarker}>
-              <Text style={styles.driverText}>🚗</Text>
-            </View>
+            <Image
+              source={{ uri: 'https://img.icons8.com/ios-filled/50/000000/sedan.png' }}
+              style={{ width: 45, height: 45 }}
+              resizeMode="contain"
+            />
           </Marker>
         )}
 
