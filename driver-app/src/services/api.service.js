@@ -30,10 +30,12 @@ api.interceptors.response.use(
     console.error('API Error:', error.response?.status);
     console.error('API Error Data:', error.response?.data);
     console.error('API Error Config:', error.config?.url);
+    
     if (error.response?.status === 401) {
       AsyncStorage.removeItem('token');
       AsyncStorage.removeItem('user');
     }
+    
     return Promise.reject(error);
   }
 );
@@ -49,22 +51,34 @@ export const authService = {
 export const driverService = {
   updateLocation: (latitude, longitude) => 
     api.put('/drivers/location', { latitude, longitude }),
+  
   toggleOnlineStatus: (isOnline) => 
     api.put('/drivers/toggle-online', { isOnline }),
+  
   acceptRide: (rideId) => 
     api.put(`/rides/${rideId}/accept`),
+  
   rejectRide: (rideId, reason) => 
+    api.put(`/rides/${rideId}/reject`, { reason }),
+  
+  cancelRide: (rideId, reason) => 
     api.put(`/rides/${rideId}/cancel`, { reason }),
+  
   startRide: (rideId) => 
-    api.put(`/rides/${rideId}/status`, { status: 'started' }),
+    api.put(`/rides/${rideId}/start`),
+  
   completeRide: (rideId) => 
-    api.put(`/rides/${rideId}/status`, { status: 'completed' }),
+    api.put(`/rides/${rideId}/complete`),
+  
   updateRideStatus: (rideId, status) =>
     api.put(`/rides/${rideId}/status`, { status }),
+  
   getActiveRide: () => 
     api.get('/drivers/active-ride'),
+  
   getEarnings: () => 
     api.get('/drivers/earnings'),
+  
   getRideHistory: () => 
     api.get('/drivers/ride-history'),
 };

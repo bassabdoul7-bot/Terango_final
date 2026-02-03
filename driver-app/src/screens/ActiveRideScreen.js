@@ -7,6 +7,9 @@ import {
   Alert,
   Dimensions,
   ActivityIndicator,
+  Modal,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -20,7 +23,93 @@ import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-const ARRIVAL_THRESHOLD = 50; // meters - show button when within 50m
+const ARRIVAL_THRESHOLD = 50;
+
+const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
+  const [selectedReason, setSelectedReason] = useState(null);
+
+  const reasons = [
+    { id: 1, label: 'Ma voiture est en panne' },
+    { id: 2, label: 'Impossible de rejoindre le client' },
+    { id: 3, label: 'Client ne répond pas' },
+    { id: 4, label: 'Urgence personnelle' },
+    { id: 5, label: 'Embouteillage majeur' },
+    { id: 6, label: 'Autre raison' },
+  ];
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={cancelStyles.overlay}>
+        <View style={cancelStyles.modal}>
+          <Text style={cancelStyles.title}>Raison de l'annulation</Text>
+          <Text style={cancelStyles.subtitle}>Sélectionnez une raison</Text>
+
+          <ScrollView style={cancelStyles.reasonsList}>
+            {reasons.map((reason) => (
+              <TouchableOpacity
+                key={reason.id}
+                style={[
+                  cancelStyles.reasonItem,
+                  selectedReason === reason.id && cancelStyles.reasonItemSelected
+                ]}
+                onPress={() => setSelectedReason(reason.id)}
+              >
+                <View style={cancelStyles.radio}>
+                  {selectedReason === reason.id && (
+                    <View style={cancelStyles.radioInner} />
+                  )}
+                </View>
+                <Text style={cancelStyles.reasonText}>{reason.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={cancelStyles.actions}>
+            <TouchableOpacity
+              style={cancelStyles.supportButton}
+              onPress={onSupport}
+            >
+              <Text style={cancelStyles.supportIcon}>📞</Text>
+              <Text style={cancelStyles.supportText}>Contacter Support</Text>
+            </TouchableOpacity>
+
+            <View style={cancelStyles.mainActions}>
+              <TouchableOpacity
+                style={cancelStyles.backButton}
+                onPress={onClose}
+              >
+                <Text style={cancelStyles.backButtonText}>Retour</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  cancelStyles.confirmButton,
+                  !selectedReason && cancelStyles.confirmButtonDisabled
+                ]}
+                onPress={() => {
+                  if (selectedReason) {
+                    const reason = reasons.find(r => r.id === selectedReason);
+                    onConfirm(reason.label);
+                  }
+                }}
+                disabled={!selectedReason}
+              >
+                <Text style={cancelStyles.confirmButtonText}>
+                  Confirmer l'annulation
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId, ride: passedRide } = route.params;
@@ -44,6 +133,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [lastAnnouncedStep, setLastAnnouncedStep] = useState(null);
   const [isNearDestination, setIsNearDestination] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const announcementDistances = useRef(new Set());
 
   useEffect(() => {
@@ -178,7 +268,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
             longitude: point[1],
           }));
           
-          // Simplify polyline for Waze-like straight roads
           const simplifiedCoords = simplifyPolyline(coords, 0.00015);
           setRouteCoordinates(simplifiedCoords);
           hasFetchedRoute.current = true;
@@ -200,7 +289,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     fetchRoute();
   }, [ride, driverLocation]);
 
-  // Voice announcement function
   const announceInstruction = useCallback((instruction) => {
     if (!voiceEnabled) return;
     
@@ -211,7 +299,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     });
   }, [voiceEnabled]);
 
-  // Recenter map to current location
   const handleRecenter = useCallback(() => {
     if (mapRef.current && driverLocation) {
       mapRef.current.animateCamera({
@@ -223,7 +310,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [driverLocation, heading, navigationStarted]);
 
-  // Voice announcements based on distance
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length || !voiceEnabled) return;
 
@@ -236,7 +322,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     const stepKey = `step_${currentStep.id}`;
     
-    // Announce at 300m, 100m, and 50m
     if (distance <= 300 && distance > 250 && !announcementDistances.current.has(`${stepKey}_300`)) {
       announceInstruction(`Dans 300 metres, ${currentStep.instruction}`);
       announcementDistances.current.add(`${stepKey}_300`);
@@ -248,7 +333,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
       announcementDistances.current.add(`${stepKey}_50`);
     }
 
-    // Clear old announcements when moving to next step
     if (currentStep.id !== lastAnnouncedStep) {
       setLastAnnouncedStep(currentStep.id);
       const toDelete = [];
@@ -261,7 +345,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [driverLocation, currentStep, allSteps, voiceEnabled, announceInstruction, lastAnnouncedStep]);
 
-  // Toggle voice navigation
   const toggleVoice = useCallback(() => {
     const newState = !voiceEnabled;
     setVoiceEnabled(newState);
@@ -272,7 +355,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [voiceEnabled]);
 
-  // Update current step and check proximity to destination
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
@@ -289,7 +371,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
     
-    // Check proximity to final destination
     const destination = ride.status === 'accepted' || ride.status === 'arrived'
       ? ride.pickup.coordinates 
       : ride.dropoff.coordinates;
@@ -306,7 +387,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   }, [driverLocation, currentStep, allSteps, ride]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Earth radius in meters
+    const R = 6371e3;
     const phi1 = lat1 * Math.PI / 180;
     const phi2 = lat2 * Math.PI / 180;
     const deltaPhi = (lat2 - lat1) * Math.PI / 180;
@@ -348,6 +429,46 @@ const ActiveRideScreen = ({ route, navigation }) => {
       }, { duration: 1000 });
     }
   }, [driverLocation, heading]);
+
+  const handleCancelRide = () => {
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = async (reason) => {
+    setShowCancelModal(false);
+    setLoading(true);
+    
+    try {
+      await driverService.cancelRide(rideId, reason);
+      Alert.alert(
+        'Course annulée',
+        'La course a été annulée avec succès',
+        [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
+      );
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible d\'annuler la course');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleContactSupport = () => {
+    Alert.alert(
+      'Contacter le Support',
+      'Choisissez un moyen',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: '📞 Appeler',
+          onPress: () => Linking.openURL('tel:+221338234567')
+        },
+        {
+          text: '💬 WhatsApp',
+          onPress: () => Linking.openURL('https://wa.me/221778234567')
+        }
+      ]
+    );
+  };
 
   const handleArrived = useCallback(async () => {
     Alert.alert(
@@ -416,7 +537,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               Alert.alert(
                 'Termine!',
                 `Gains: ${ride.fare?.toLocaleString()} FCFA`,
-                [{ text: 'OK', onPress: () => navigation.navigate('Home') }]
+                [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
               );
             } catch (error) {
               Alert.alert('Erreur', 'Impossible de terminer');
@@ -578,19 +699,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
       <View style={styles.topBar}>
         <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => {
-            Alert.alert(
-              'Quitter',
-              'Course en cours. Etes-vous sur?',
-              [
-                { text: 'Annuler', style: 'cancel' },
-                { text: 'Quitter', onPress: () => navigation.goBack() }
-              ]
-            );
-          }}
+          style={styles.cancelButton}
+          onPress={handleCancelRide}
         >
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.cancelIcon}>✕</Text>
         </TouchableOpacity>
 
         {navigationStarted && (
@@ -669,6 +781,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
           </View>
         </View>
       )}
+
+      <CancelReasonModal
+        visible={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleConfirmCancel}
+        onSupport={handleContactSupport}
+      />
     </View>
   );
 };
@@ -723,11 +842,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  backButton: {
+  cancelButton: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: 'rgba(255, 59, 48, 0.95)',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -736,9 +855,9 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 8,
   },
-  backIcon: {
-    fontSize: 28,
-    color: COLORS.black,
+  cancelIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
     fontWeight: 'bold',
   },
   voiceButton: {
@@ -997,6 +1116,126 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.gray,
     textAlign: 'center',
+  },
+});
+
+const cancelStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modal: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 24,
+  },
+  reasonsList: {
+    maxHeight: 300,
+    marginBottom: 24,
+  },
+  reasonItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  reasonItemSelected: {
+    backgroundColor: 'rgba(179, 229, 206, 0.3)',
+    borderColor: COLORS.green,
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#666',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.green,
+  },
+  reasonText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000',
+  },
+  actions: {
+    gap: 12,
+  },
+  supportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.green,
+  },
+  supportIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  supportText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  mainActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  backButton: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  confirmButton: {
+    flex: 2,
+    padding: 16,
+    backgroundColor: '#FF3B30',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.4,
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
 

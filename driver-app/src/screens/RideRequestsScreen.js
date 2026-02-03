@@ -26,6 +26,7 @@ const RideRequestsScreen = ({ navigation }) => {
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   
   const slideAnim = useRef(new Animated.Value(height)).current;
+  const scanAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -43,6 +44,28 @@ const RideRequestsScreen = ({ navigation }) => {
       showRequestCard();
     } else {
       hideRequestCard();
+    }
+  }, [currentRequest]);
+
+  // Scanning animation when no active request
+  useEffect(() => {
+    if (!currentRequest) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(scanAnim, {
+            toValue: 1,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scanAnim, {
+            toValue: 0,
+            duration: 1500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      scanAnim.setValue(0);
     }
   }, [currentRequest]);
 
@@ -279,13 +302,45 @@ const RideRequestsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Menu Button */}
-      <TouchableOpacity
-        style={styles.menuButton}
-        onPress={() => navigation.navigate('Menu')}
-      >
-        <Text style={styles.menuIcon}>☰</Text>
-      </TouchableOpacity>
+      {/* Scanning Animation Bar with Menu Button - Only show when waiting */}
+      {!currentRequest && (
+        <View style={styles.scanningBar}>
+          <Animated.View
+            style={[
+              styles.scanningLine,
+              {
+                transform: [
+                  {
+                    translateX: scanAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-width, width],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => navigation.navigate('Menu')}
+          >
+            <Text style={styles.menuIcon}>☰</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Menu Button (when ride request is showing) */}
+      {currentRequest && (
+        <View style={styles.menuBarWhenRequest}>
+          <TouchableOpacity
+            style={styles.menuButton}
+            onPress={() => navigation.navigate('Menu')}
+          >
+            <Text style={styles.menuIcon}>☰</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Ride request card */}
       <Animated.View 
@@ -453,14 +508,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000',
   },
+  scanningBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: 'rgba(179, 229, 206, 0.85)',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  scanningLine: {
+    position: 'absolute',
+    width: 80,
+    height: 4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 2,
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+  },
+  menuBarWhenRequest: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 70,
+    backgroundColor: 'rgba(179, 229, 206, 0.85)',
+    justifyContent: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
+  },
   menuButton: {
     position: 'absolute',
-    bottom: 120,
     right: 20,
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FCD116',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -468,12 +556,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    borderWidth: 2,
-    borderColor: COLORS.green,
   },
   menuIcon: {
     fontSize: 28,
     color: '#000',
+    fontWeight: 'bold',
   },
   requestCard: {
     position: 'absolute',
