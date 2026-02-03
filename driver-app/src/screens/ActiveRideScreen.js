@@ -15,6 +15,7 @@ import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
+import SuccessModal from '../components/SuccessModal';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import * as Speech from 'expo-speech';
@@ -134,6 +135,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [lastAnnouncedStep, setLastAnnouncedStep] = useState(null);
   const [isNearDestination, setIsNearDestination] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const announcementDistances = useRef(new Set());
 
   useEffect(() => {
@@ -440,11 +442,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     
     try {
       await driverService.cancelRide(rideId, reason);
-      Alert.alert(
-        'Course annulée',
-        'La course a été annulée avec succès',
-        [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
-      );
+      setShowSuccessModal(true);
     } catch (error) {
       Alert.alert('Erreur', 'Impossible d\'annuler la course');
     } finally {
@@ -471,83 +469,47 @@ const ActiveRideScreen = ({ route, navigation }) => {
   };
 
   const handleArrived = useCallback(async () => {
-    Alert.alert(
-      'Arrive',
-      'Vous etes au point de depart?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Oui',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await driverService.updateRideStatus(rideId, 'arrived');
-              setRide(prev => ({ ...prev, status: 'arrived' }));
-              hasFetchedRoute.current = false;
-              setNavigationStarted(false);
-            } catch (error) {
-              Alert.alert('Erreur', error.response?.data?.message || 'Erreur');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      await driverService.updateRideStatus(rideId, 'arrived');
+      setRide(prev => ({ ...prev, status: 'arrived' }));
+      hasFetchedRoute.current = false;
+      setNavigationStarted(false);
+    } catch (error) {
+      Alert.alert('Erreur', error.response?.data?.message || 'Erreur');
+    } finally {
+      setLoading(false);
+    }
   }, [rideId]);
 
   const handleStartRide = useCallback(async () => {
-    Alert.alert(
-      'Demarrer',
-      'Le passager est a bord?',
-      [
-        { text: 'Non', style: 'cancel' },
-        {
-          text: 'Oui',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await driverService.startRide(rideId);
-              setRide(prev => ({ ...prev, status: 'in_progress' }));
-              hasFetchedRoute.current = false;
-              setNavigationStarted(false);
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de demarrer');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      await driverService.startRide(rideId);
+      setRide(prev => ({ ...prev, status: 'in_progress' }));
+      hasFetchedRoute.current = false;
+      setNavigationStarted(false);
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de demarrer');
+    } finally {
+      setLoading(false);
+    }
   }, [rideId]);
 
   const handleCompleteRide = useCallback(async () => {
-    Alert.alert(
-      'Terminer',
-      'Arrive a destination?',
-      [
-        { text: 'Non', style: 'cancel' },
-        {
-          text: 'Oui',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await driverService.completeRide(rideId);
-              Alert.alert(
-                'Termine!',
-                `Gains: ${ride.fare?.toLocaleString()} FCFA`,
-                [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
-              );
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de terminer');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      await driverService.completeRide(rideId);
+      Alert.alert(
+        'Termine!',
+        `Gains: ${ride.fare?.toLocaleString()} FCFA`,
+        [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
+      );
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de terminer');
+    } finally {
+      setLoading(false);
+    }
   }, [rideId, ride, navigation]);
 
   if (initializing || !driverLocation || !ride) {
@@ -788,6 +750,16 @@ const ActiveRideScreen = ({ route, navigation }) => {
         onConfirm={handleConfirmCancel}
         onSupport={handleContactSupport}
       />
+
+      <SuccessModal
+        visible={showSuccessModal}
+        title="Course annulée"
+        message="La course a été annulée avec succès"
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('RideRequests');
+        }}
+      />
     </View>
   );
 };
@@ -1004,21 +976,25 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(179, 229, 206, 0.95)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
   },
   etaCard: {
-    backgroundColor: 'rgba(0, 133, 63, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   etaRow: {
     flexDirection: 'row',
@@ -1031,24 +1007,26 @@ const styles = StyleSheet.create({
   etaValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.green,
+    color: '#000',
     marginBottom: 4,
   },
   etaLabel: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: '#333',
     textTransform: 'uppercase',
   },
   etaDivider: {
     width: 1,
     height: 40,
-    backgroundColor: COLORS.grayLight,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   addressCard: {
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   addressRow: {
     flexDirection: 'row',
@@ -1072,26 +1050,26 @@ const styles = StyleSheet.create({
   },
   addressLabel: {
     fontSize: 12,
-    color: COLORS.gray,
+    color: '#333',
     marginBottom: 4,
   },
   addressText: {
     fontSize: 15,
-    color: COLORS.black,
+    color: '#000',
     fontWeight: '500',
   },
   actionContainer: {
     marginTop: 8,
   },
   navButton: {
-    backgroundColor: COLORS.green,
+    backgroundColor: '#FCD116',
     borderRadius: 16,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
-    shadowColor: COLORS.green,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -1104,17 +1082,19 @@ const styles = StyleSheet.create({
   navText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: '#000',
   },
   proximityHint: {
-    backgroundColor: 'rgba(0, 133, 63, 0.1)',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
   },
   proximityText: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: '#333',
     textAlign: 'center',
   },
 });
@@ -1122,67 +1102,72 @@ const styles = StyleSheet.create({
 const cancelStyles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modal: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: 'rgba(179, 229, 206, 0.95)',
+    borderRadius: 20,
     padding: 24,
     width: '100%',
     maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 24,
+    color: '#333',
+    marginBottom: 20,
   },
   reasonsList: {
     maxHeight: 300,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   reasonItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 12,
     marginBottom: 12,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   reasonItemSelected: {
-    backgroundColor: 'rgba(179, 229, 206, 0.3)',
-    borderColor: COLORS.green,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    borderColor: '#FCD116',
+    borderWidth: 3,
   },
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#666',
+    borderColor: '#333',
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
   },
   radioInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: COLORS.green,
+    backgroundColor: '#FCD116',
   },
   reasonText: {
     flex: 1,
     fontSize: 16,
     color: '#000',
+    fontWeight: '500',
   },
   actions: {
     gap: 12,
@@ -1192,10 +1177,10 @@ const cancelStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.green,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   supportIcon: {
     fontSize: 20,
@@ -1213,14 +1198,16 @@ const cancelStyles = StyleSheet.create({
   backButton: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#333',
   },
   confirmButton: {
     flex: 2,
@@ -1228,6 +1215,11 @@ const cancelStyles = StyleSheet.create({
     backgroundColor: '#FF3B30',
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   confirmButtonDisabled: {
     opacity: 0.4,

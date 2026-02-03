@@ -13,6 +13,7 @@ import * as Location from 'expo-location';
 import io from 'socket.io-client';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
+import ConfirmModal from '../components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 const SOCKET_URL = 'http://192.168.1.184:5000';
@@ -24,6 +25,7 @@ const RideRequestsScreen = ({ navigation }) => {
   const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(false);
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -47,7 +49,6 @@ const RideRequestsScreen = ({ navigation }) => {
     }
   }, [currentRequest]);
 
-  // Scanning animation when no active request
   useEffect(() => {
     if (!currentRequest) {
       Animated.loop(
@@ -125,12 +126,6 @@ const RideRequestsScreen = ({ navigation }) => {
       if (!currentRequest) {
         setCurrentRequest(rideData);
       }
-      
-      Alert.alert(
-        '🚨 Nouvelle course!',
-        `${rideData.distance.toFixed(1)} km • ${rideData.fare.toLocaleString()} FCFA`,
-        [{ text: 'OK' }]
-      );
     });
   };
 
@@ -168,26 +163,14 @@ const RideRequestsScreen = ({ navigation }) => {
   };
 
   const handleGoOffline = async () => {
-    Alert.alert(
-      'Passer hors ligne?',
-      'Vous arrêterez de recevoir des courses',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Hors ligne',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await driverService.toggleOnlineStatus(false);
-              navigation.replace('Home');
-            } catch (error) {
-              console.error('Toggle offline error:', error);
-              navigation.replace('Home');
-            }
-          }
-        }
-      ]
-    );
+    setShowOfflineModal(false);
+    try {
+      await driverService.toggleOnlineStatus(false);
+      navigation.replace('Home');
+    } catch (error) {
+      console.error('Toggle offline error:', error);
+      Alert.alert('Erreur', 'Impossible de passer hors ligne');
+    }
   };
 
   const handleAccept = async () => {
@@ -286,7 +269,6 @@ const RideRequestsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Top Bar - Earnings + Go Offline */}
       <View style={styles.topBar}>
         <View style={styles.earningsCard}>
           <Text style={styles.earningsValue}>{earnings.today.toLocaleString()} FCFA</Text>
@@ -295,14 +277,13 @@ const RideRequestsScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.offlineButton}
-          onPress={handleGoOffline}
+          onPress={() => setShowOfflineModal(true)}
         >
           <View style={styles.onlineDot} />
           <Text style={styles.offlineText}>En ligne</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Scanning Animation Bar with Menu Button - Only show when waiting */}
       {!currentRequest && (
         <View style={styles.scanningBar}>
           <Animated.View
@@ -330,7 +311,6 @@ const RideRequestsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Menu Button (when ride request is showing) */}
       {currentRequest && (
         <View style={styles.menuBarWhenRequest}>
           <TouchableOpacity
@@ -342,7 +322,6 @@ const RideRequestsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Ride request card */}
       <Animated.View 
         style={[
           styles.requestCard,
@@ -413,6 +392,16 @@ const RideRequestsScreen = ({ navigation }) => {
           </View>
         )}
       </Animated.View>
+
+      <ConfirmModal
+        visible={showOfflineModal}
+        title="Passer hors ligne?"
+        message="Vous arrêterez de recevoir des courses"
+        cancelText="Rester en ligne"
+        confirmText="Hors ligne"
+        onCancel={() => setShowOfflineModal(false)}
+        onConfirm={handleGoOffline}
+      />
     </View>
   );
 };
@@ -567,15 +556,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(179, 229, 206, 0.95)',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.3)',
   },
   requestContent: {
     padding: 24,
@@ -594,18 +585,20 @@ const styles = StyleSheet.create({
   },
   requestSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
   },
   fareText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.green,
+    color: '#000',
   },
   addressesContainer: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
   },
   addressRow: {
     flexDirection: 'row',
@@ -628,7 +621,7 @@ const styles = StyleSheet.create({
     height: 20,
     marginLeft: 6,
     borderLeftWidth: 2,
-    borderLeftColor: '#ccc',
+    borderLeftColor: 'rgba(0, 0, 0, 0.3)',
     borderStyle: 'dashed',
     marginVertical: 4,
   },
@@ -636,6 +629,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: '#000',
+    fontWeight: '500',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -646,13 +640,14 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#666',
+    borderColor: 'rgba(255, 255, 255, 0.8)',
     alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
   },
   rejectButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#333',
   },
   acceptButton: {
     flex: 1,
@@ -660,6 +655,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: '#FCD116',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   acceptButtonDisabled: {
     opacity: 0.6,
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     fontSize: 12,
-    color: '#666',
+    color: '#333',
   },
   emptyState: {
     alignItems: 'center',
@@ -692,7 +692,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: '#333',
     textAlign: 'center',
   },
 });

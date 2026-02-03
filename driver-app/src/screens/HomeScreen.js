@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StatusBar,
   Alert,
+  Image,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -58,7 +59,6 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Full Screen Map */}
       {location ? (
         <MapView
           style={styles.map}
@@ -85,7 +85,6 @@ const HomeScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Top Bar - Menu Button */}
       <View style={styles.topBar}>
         <TouchableOpacity 
           style={styles.menuButton}
@@ -95,10 +94,19 @@ const HomeScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Offline State - Show "Go Online" Button */}
       {!isOnline && (
         <View style={styles.offlineContainer}>
           <View style={styles.offlineCard}>
+            <View style={styles.iconContainer}>
+              <View style={styles.logoImageWrapper}>
+                <Image
+                  source={require('../../assets/images/logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
+            
             <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
             <Text style={styles.offlineSubtitle}>Prêt à accepter des courses?</Text>
             
@@ -107,7 +115,6 @@ const HomeScreen = ({ navigation }) => {
               onPress={handleGoOnline}
               disabled={loading}
             >
-              <Text style={styles.goOnlineIcon}>🚗</Text>
               <Text style={styles.goOnlineText}>
                 {loading ? 'Connexion...' : 'Passer en ligne'}
               </Text>
@@ -193,8 +200,8 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
   },
   offlineCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    backgroundColor: 'rgba(179, 229, 206, 0.95)',
+    borderRadius: 20,
     padding: 32,
     marginHorizontal: 20,
     alignItems: 'center',
@@ -203,42 +210,67 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 12,
-    borderWidth: 3,
-    borderColor: COLORS.green,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  iconContainer: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  logoImageWrapper: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  logoImage: {
+    width: 80,
+    height: 80,
   },
   offlineTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 8,
+    textAlign: 'center',
   },
   offlineSubtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 32,
+    fontSize: 15,
+    color: '#333',
+    marginBottom: 28,
+    textAlign: 'center',
   },
   goOnlineButton: {
     backgroundColor: '#FCD116',
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 48,
-    paddingVertical: 20,
+    paddingVertical: 18,
     borderRadius: 16,
-    shadowColor: '#FCD116',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
     elevation: 8,
+    width: '100%',
+    alignItems: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
-  goOnlineIcon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
   goOnlineText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
   },
