@@ -27,7 +27,7 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectDB();
 
-// Initialize Ride Matching Service (UBER-LEVEL!)
+// Initialize Ride Matching Service
 const matchingService = new RideMatchingService(io);
 app.set('matchingService', matchingService);
 
@@ -64,24 +64,24 @@ io.on('connection', (socket) => {
 
   // Join ride room for real-time updates
   socket.on('join-ride-room', (rideId) => {
-    socket.join(`ride-${rideId}`);
+    socket.join(rideId);
     console.log(`Socket ${socket.id} joined ride room: ${rideId}`);
   });
 
   // Leave ride room
   socket.on('leave-ride-room', (rideId) => {
-    socket.leave(`ride-${rideId}`);
+    socket.leave(rideId);
     console.log(`Socket ${socket.id} left ride room: ${rideId}`);
   });
 
   // Driver location updates
   socket.on('driver-location-update', (data) => {
-    io.to(`ride-${data.rideId}`).emit('driver-location', data);
+    io.to(data.rideId).emit('driver-location', data);
   });
 
   // Ride updates
   socket.on('ride-update', (data) => {
-    io.to(`ride-${data.rideId}`).emit('ride-status-update', data);
+    io.to(data.rideId).emit('ride-status-update', data);
   });
 
   socket.on('disconnect', () => {

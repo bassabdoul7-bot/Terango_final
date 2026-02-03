@@ -6,7 +6,7 @@ const rideSchema = new mongoose.Schema({
     ref: 'Rider',
     required: true
   },
-  driverId: {
+  driver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Driver'
   },
@@ -57,11 +57,11 @@ const rideSchema = new mongoose.Schema({
     default: 'standard'
   },
   distance: {
-    type: Number, // in kilometers
+    type: Number,
     required: true
   },
   estimatedDuration: {
-    type: Number, // in minutes
+    type: Number,
     required: true
   },
   
@@ -129,7 +129,7 @@ const rideSchema = new mongoose.Schema({
 
 // Indexes for performance
 rideSchema.index({ riderId: 1, createdAt: -1 });
-rideSchema.index({ driverId: 1, createdAt: -1 });
+rideSchema.index({ driver: 1, createdAt: -1 });
 rideSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Ride', rideSchema);

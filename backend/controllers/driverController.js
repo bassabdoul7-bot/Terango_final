@@ -89,6 +89,7 @@ exports.toggleOnlineStatus = async (req, res) => {
     }
 
     driver.isOnline = req.body.isOnline;
+    driver.isAvailable = req.body.isOnline;
     await driver.save();
 
     res.status(200).json({
@@ -111,15 +112,19 @@ exports.toggleOnlineStatus = async (req, res) => {
 exports.updateLocation = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
+    console.log('🔵 UPDATE LOCATION CALLED:', { latitude, longitude });
 
     const driver = await Driver.findOne({ userId: req.user._id });
 
     if (!driver) {
+      console.log('❌ DRIVER NOT FOUND');
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouvé'
       });
     }
+
+    console.log('✅ Driver found:', driver._id);
 
     driver.currentLocation = {
       type: 'Point',
@@ -130,21 +135,27 @@ exports.updateLocation = async (req, res) => {
     };
 
     await driver.save();
+    console.log('✅ Location saved');
 
     const io = req.app.get('io');
     
     const activeRide = await Ride.findOne({ 
-      driverId: driver._id, 
+      driver: driver._id, 
       status: { $in: ['accepted', 'in_progress', 'arrived'] }
     });
     
+    console.log('🔍 Active ride search result:', activeRide ? activeRide._id : 'NONE FOUND');
+    
     if (activeRide) {
-      console.log('Emitting driver-location-update to room:', activeRide._id.toString());
+      console.log('📡 EMITTING to room:', activeRide._id.toString());
       io.to(activeRide._id.toString()).emit('driver-location-update', {
         driverId: driver._id,
         location: { latitude, longitude },
         timestamp: new Date()
       });
+      console.log('✅ EMITTED SUCCESSFULLY');
+    } else {
+      console.log('⚠️ NO ACTIVE RIDE - NOT EMITTING');
     }
     
     res.status(200).json({
@@ -155,7 +166,7 @@ exports.updateLocation = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update Location Error:', error);
+    console.error('❌ Update Location Error:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la localisation'
