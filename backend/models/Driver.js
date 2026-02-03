@@ -6,6 +6,7 @@ const driverSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  
   // Verification Documents
   nationalId: {
     type: String,
@@ -31,8 +32,8 @@ const driverSchema = new mongoose.Schema({
     year: Number,
     color: String,
     licensePlate: {
-        type: String,
-        required: false
+      type: String,
+      required: false
     },
     registrationPhoto: String, // Carte grise
     insurancePhoto: String
@@ -48,6 +49,12 @@ const driverSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  isAvailable: {
+    type: Boolean,
+    default: true
+  },
+  
+  // Location (Custom format - lat/lng object)
   currentLocation: {
     type: {
       type: String,
@@ -55,8 +62,14 @@ const driverSchema = new mongoose.Schema({
       default: 'Point'
     },
     coordinates: {
-      type: [Number], // [longitude, latitude]
-      default: [0, 0]
+      latitude: {
+        type: Number,
+        default: 0
+      },
+      longitude: {
+        type: Number,
+        default: 0
+      }
     }
   },
   
@@ -95,9 +108,7 @@ const driverSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Geospatial index for location queries
-driverSchema.index({ currentLocation: '2dsphere' });
+// NO geospatial index - we're using custom lat/lng format
+// Manual distance calculation in matching service
 
 module.exports = mongoose.model('Driver', driverSchema);
-
-

@@ -50,15 +50,25 @@ exports.createRide = async (req, res) => {
       status: 'pending'
     });
 
-    // TODO: Emit Socket.io event to notify nearby drivers
-    const io = req.app.get('io');
-    io.emit('new-ride-request', {
-      rideId: ride._id,
+    // Get the matching service from app
+    const matchingService = req.app.get('matchingService');
+    
+    // Start offering ride to nearby drivers (UBER-LEVEL MATCHING!)
+    const rideData = {
       pickup: ride.pickup,
       dropoff: ride.dropoff,
       fare: ride.fare,
-      distance: ride.distance
-    });
+      distance: ride.distance,
+      estimatedDuration: ride.estimatedDuration,
+      rideType: ride.rideType
+    };
+
+    // Offer to drivers asynchronously (don't wait)
+    matchingService.offerRideToDrivers(
+      ride._id,
+      pickup.coordinates,
+      rideData
+    ).catch(err => console.error('Matching error:', err));
 
     res.status(201).json({
       success: true,
@@ -141,7 +151,7 @@ exports.getMyRides = async (req, res) => {
   }
 };
 
-// @desc    Driver accepts ride
+// @desc    Driver accepts ride (NEW UBER-LEVEL VERSION)
 // @route   PUT /api/rides/:id/accept
 // @access  Private (Driver only)
 exports.acceptRide = async (req, res) => {
@@ -162,43 +172,28 @@ exports.acceptRide = async (req, res) => {
       });
     }
 
-    const ride = await Ride.findById(req.params.id);
+    // Use matching service for atomic acceptance
+    const matchingService = req.app.get('matchingService');
+    const result = await matchingService.handleDriverAcceptance(
+      req.params.id,
+      driver._id
+    );
 
-    if (!ride) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course non trouvée'
-      });
-    }
-
-    if (ride.status !== 'pending') {
+    if (!result.success) {
       return res.status(400).json({
         success: false,
-        message: 'Cette course n\'est plus disponible'
+        message: result.message
       });
     }
 
-    ride.driverId = driver._id;
-    ride.status = 'accepted';
-    ride.acceptedAt = new Date();
-    await ride.save();
-
-    // Emit Socket.io event to rider
-    const io = req.app.get('io');
-    io.emit(`ride-accepted-${ride._id}`, {
-      driverId: driver._id,
-      driver: {
-        name: req.user.name,
-        phone: req.user.phone,
-        rating: req.user.rating,
-        vehicle: driver.vehicle
-      }
-    });
+    // Update driver availability
+    driver.isAvailable = false;
+    await driver.save();
 
     res.status(200).json({
       success: true,
       message: 'Course acceptée',
-      ride
+      ride: result.ride
     });
 
   } catch (error) {
@@ -206,6 +201,39 @@ exports.acceptRide = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de l\'acceptation de la course'
+    });
+  }
+};
+
+// @desc    Driver rejects ride
+// @route   PUT /api/rides/:id/reject
+// @access  Private (Driver only)
+exports.rejectRide = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const driver = await Driver.findOne({ userId: req.user._id });
+    
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil chauffeur non trouvé'
+      });
+    }
+
+    // Use matching service to handle rejection
+    const matchingService = req.app.get('matchingService');
+    await matchingService.handleDriverRejection(req.params.id, driver._id.toString());
+
+    res.status(200).json({
+      success: true,
+      message: 'Course rejetée'
+    });
+
+  } catch (error) {
+    console.error('Reject Ride Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du rejet de la course'
     });
   }
 };
@@ -239,7 +267,7 @@ exports.updateRideStatus = async (req, res) => {
     
     if (status === 'arrived') {
       ride.arrivedAt = new Date();
-    } else if (status === 'started') {
+    } else if (status === 'in_progress') {
       ride.startedAt = new Date();
     } else if (status === 'completed') {
       ride.completedAt = new Date();
@@ -249,6 +277,7 @@ exports.updateRideStatus = async (req, res) => {
       driver.totalEarnings += ride.driverEarnings;
       driver.weeklyEarnings += ride.driverEarnings;
       driver.totalRides += 1;
+      driver.isAvailable = true; // Driver is available again
       await driver.save();
 
       // Update rider total rides
@@ -308,6 +337,15 @@ exports.cancelRide = async (req, res) => {
     ride.cancelledBy = req.user.role;
     ride.cancellationReason = reason;
     await ride.save();
+
+    // Cancel pending offers if ride was still pending
+    const matchingService = req.app.get('matchingService');
+    await matchingService.cancelRideOffers(ride._id);
+
+    // If driver was assigned, make them available again
+    if (ride.driverId) {
+      await Driver.findByIdAndUpdate(ride.driverId, { isAvailable: true });
+    }
 
     // Emit Socket.io event
     const io = req.app.get('io');

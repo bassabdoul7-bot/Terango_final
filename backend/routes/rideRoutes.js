@@ -8,6 +8,7 @@ const {
   getRide,
   getMyRides,
   acceptRide,
+  rejectRide,
   updateRideStatus,
   cancelRide,
   rateRide
@@ -41,13 +42,25 @@ router.get('/:id', protect, getRide);
 // Accept ride (Driver only)
 router.put('/:id/accept', protect, restrictTo('driver'), acceptRide);
 
+// Reject ride (Driver only)
+router.put(
+  '/:id/reject',
+  protect,
+  restrictTo('driver'),
+  [
+    body('reason').notEmpty().withMessage('Raison de rejet requise')
+  ],
+  validate,
+  rejectRide
+);
+
 // Update ride status (Driver only)
 router.put(
   '/:id/status',
   protect,
   restrictTo('driver'),
   [
-    body('status').isIn(['arrived', 'started', 'completed']).withMessage('Statut invalide')
+    body('status').isIn(['arrived', 'in_progress', 'completed']).withMessage('Statut invalide')
   ],
   validate,
   updateRideStatus

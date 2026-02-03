@@ -4,7 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const connectDB = require('./config/db');
-
+const RideMatchingService = require('./services/rideMatchingService');
 const authRoutes = require('./routes/authRoutes');
 const rideRoutes = require('./routes/rideRoutes');
 const driverRoutes = require('./routes/driverRoutes');
@@ -27,6 +27,10 @@ app.use(express.urlencoded({ extended: true }));
 // Connect to MongoDB
 connectDB();
 
+// Initialize Ride Matching Service (UBER-LEVEL!)
+const matchingService = new RideMatchingService(io);
+app.set('matchingService', matchingService);
+
 // Health check
 app.get('/', (req, res) => {
   res.json({
@@ -46,26 +50,38 @@ app.use('/api/admin', adminRoutes);
 io.on('connection', (socket) => {
   console.log('✓ New socket connection:', socket.id);
 
+  // Driver connects and joins their personal room
+  socket.on('driver-online', (driverId) => {
+    socket.join(`driver-${driverId}`);
+    console.log(`Driver ${driverId} joined their room`);
+  });
+
+  // Driver disconnects from their room
+  socket.on('driver-offline', (driverId) => {
+    socket.leave(`driver-${driverId}`);
+    console.log(`Driver ${driverId} left their room`);
+  });
+
   // Join ride room for real-time updates
   socket.on('join-ride-room', (rideId) => {
-    socket.join(rideId);
+    socket.join(`ride-${rideId}`);
     console.log(`Socket ${socket.id} joined ride room: ${rideId}`);
   });
 
   // Leave ride room
   socket.on('leave-ride-room', (rideId) => {
-    socket.leave(rideId);
+    socket.leave(`ride-${rideId}`);
     console.log(`Socket ${socket.id} left ride room: ${rideId}`);
   });
 
-  // Driver location updates (legacy - not used anymore)
+  // Driver location updates
   socket.on('driver-location-update', (data) => {
-    socket.broadcast.emit(`driver-location-${data.driverId}`, data);
+    io.to(`ride-${data.rideId}`).emit('driver-location', data);
   });
 
   // Ride updates
   socket.on('ride-update', (data) => {
-    socket.broadcast.emit(`ride-update-${data.rideId}`, data);
+    io.to(`ride-${data.rideId}`).emit('ride-status-update', data);
   });
 
   socket.on('disconnect', () => {
@@ -95,7 +111,6 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-
 server.listen(PORT, () => {
   console.log(`🚀 TeranGO Backend API - FULLY OPERATIONAL!`);
   console.log(`📡 Port: ${PORT}`);
@@ -106,6 +121,7 @@ server.listen(PORT, () => {
   console.log(`   👨‍✈️ /api/drivers   - Driver Operations & Tracking`);
   console.log(`   👨‍💼 /api/admin     - Admin Dashboard & Analytics`);
   console.log(`🔌 WebSocket: Real-time updates enabled`);
+  console.log(`🎯 UBER-LEVEL MATCHING: Proximity-based ride matching active!`);
 });
 
 module.exports = { app, server, io };

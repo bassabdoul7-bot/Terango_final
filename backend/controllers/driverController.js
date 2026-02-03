@@ -2,6 +2,34 @@
 const User = require('../models/User');
 const Ride = require('../models/Ride');
 
+// @desc    Get driver profile
+// @route   GET /api/drivers/profile
+// @access  Private (Driver only)
+exports.getProfile = async (req, res) => {
+  try {
+    const driver = await Driver.findOne({ userId: req.user._id })
+      .populate('userId', 'name phone email rating');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil chauffeur non trouvé'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      driver
+    });
+  } catch (error) {
+    console.error('Get Profile Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du profil'
+    });
+  }
+};
+
 // @desc    Complete driver profile (after registration)
 // @route   PUT /api/drivers/complete-profile
 // @access  Private (Driver only)
@@ -95,21 +123,20 @@ exports.updateLocation = async (req, res) => {
 
     driver.currentLocation = {
       type: 'Point',
-      coordinates: [longitude, latitude]
+      coordinates: {
+        latitude: latitude,
+        longitude: longitude
+      }
     };
 
     await driver.save();
 
-    // Emit Socket.io event for real-time tracking
     const io = req.app.get('io');
     
-    // Get active ride for this driver
     const activeRide = await Ride.findOne({ 
       driverId: driver._id, 
       status: { $in: ['accepted', 'in_progress', 'arrived'] }
     });
-
-    console.log('Active ride found:', activeRide._id);
     
     if (activeRide) {
       console.log('Emitting driver-location-update to room:', activeRide._id.toString());
@@ -118,10 +145,6 @@ exports.updateLocation = async (req, res) => {
         location: { latitude, longitude },
         timestamp: new Date()
       });
-    }
-
-    if (!activeRide) {
-      console.log('No active ride found for driver');
     }
     
     res.status(200).json({
