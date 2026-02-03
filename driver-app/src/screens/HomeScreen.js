@@ -4,38 +4,29 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  StatusBar,
   Alert,
-  Switch,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import GlassCard from '../components/GlassCard';
 import COLORS from '../constants/colors';
-import { useAuth } from '../context/AuthContext';
 import { driverService } from '../services/api.service';
+import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 
 const HomeScreen = ({ navigation }) => {
-  const { user, logout } = useAuth();
-  const [location, setLocation] = useState(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getLocation();
-    const interval = setInterval(() => {
-      if (isOnline) {
-        updateDriverLocation();
-      }
-    }, 10000); // Update location every 10 seconds
+    initializeLocation();
+  }, []);
 
-    return () => clearInterval(interval);
-  }, [isOnline]);
-
-  const getLocation = async () => {
+  const initializeLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission refusée', 'Nous avons besoin de votre localisation pour fonctionner');
+        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation');
         return;
       }
 
@@ -43,144 +34,87 @@ const HomeScreen = ({ navigation }) => {
       setLocation({
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
       });
     } catch (error) {
       console.error('Location error:', error);
     }
   };
 
-  const updateDriverLocation = async () => {
-    if (!location) return;
-
-    try {
-      await driverService.updateLocation(location.latitude, location.longitude);
-    } catch (error) {
-      console.error('Update location error:', error);
-    }
-  };
-
-  const handleToggleOnline = async (value) => {
+  const handleGoOnline = async () => {
     setLoading(true);
     try {
-      await driverService.toggleOnlineStatus(value);
-      setIsOnline(value);
-      
-      if (value) {
-        Alert.alert('En ligne', 'Vous êtes maintenant en ligne et pouvez recevoir des courses');
-        // Navigate to ride requests screen
-        navigation.navigate('RideRequests');
-      } else {
-        Alert.alert('Hors ligne', 'Vous ne recevrez plus de demandes de course');
-      }
+      await driverService.toggleOnlineStatus(true);
+      setIsOnline(true);
+      navigation.replace('RideRequests');
     } catch (error) {
       console.error('Toggle online error:', error);
-      Alert.alert('Erreur', 'Impossible de changer le statut');
+      Alert.alert('Erreur', 'Impossible de passer en ligne');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Déconnexion',
-      'Voulez-vous vous déconnecter?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Déconnexion', 
-          style: 'destructive',
-          onPress: () => logout()
-        }
-      ]
-    );
-  };
-
   return (
     <View style={styles.container}>
-      {location && (
+      <StatusBar barStyle="light-content" />
+      
+      {/* Full Screen Map */}
+      {location ? (
         <MapView
           style={styles.map}
-          initialRegion={location}
-          showsUserLocation
-          showsMyLocationButton
+          provider={PROVIDER_GOOGLE}
+          customMapStyle={WAZE_DARK_STYLE}
+          initialRegion={{
+            ...location,
+            latitudeDelta: 0.05,
+            longitudeDelta: 0.05,
+          }}
+          showsUserLocation={false}
+          showsMyLocationButton={false}
+          showsTraffic={true}
         >
-          {location && (
-            <Marker
-              coordinate={location}
-              title="Votre position"
-            />
-          )}
+          <Marker coordinate={location}>
+            <View style={styles.driverMarker}>
+              <Text style={styles.markerText}>▲</Text>
+            </View>
+          </Marker>
         </MapView>
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <Text style={styles.loadingText}>Chargement de la carte...</Text>
+        </View>
       )}
 
-      <GlassCard style={styles.topBar}>
-        <View style={styles.topBarContent}>
-          <View>
-            <Text style={styles.greeting}>Bonjour,</Text>
-            <Text style={styles.userName}>{user?.name || 'Chauffeur'}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={handleLogout}
-          >
-            <Text style={styles.profileIcon}>👤</Text>
-          </TouchableOpacity>
-        </View>
-      </GlassCard>
-
-      <GlassCard style={styles.statusCard}>
-        <View style={styles.statusRow}>
-          <View>
-            <Text style={styles.statusLabel}>Statut</Text>
-            <Text style={[styles.statusText, isOnline && styles.statusOnline]}>
-              {isOnline ? 'En ligne' : 'Hors ligne'}
-            </Text>
-          </View>
-          <Switch
-            value={isOnline}
-            onValueChange={handleToggleOnline}
-            disabled={loading}
-            trackColor={{ false: COLORS.gray, true: COLORS.green }}
-            thumbColor={isOnline ? COLORS.white : COLORS.grayLight}
-          />
-        </View>
-
-        {!isOnline && (
-          <Text style={styles.statusHint}>
-            Activez pour recevoir des demandes de course
-          </Text>
-        )}
-      </GlassCard>
-
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <Text style={styles.navIconActive}>🏠</Text>
-          <Text style={styles.navLabelActive}>Accueil</Text>
-        </TouchableOpacity>
+      {/* Top Bar - Menu Button */}
+      <View style={styles.topBar}>
         <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('Earnings')}
+          style={styles.menuButton}
+          onPress={() => navigation.navigate('Menu')}
         >
-          <Text style={styles.navIcon}>💰</Text>
-          <Text style={styles.navLabel}>Gains</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={() => navigation.navigate('History')}
-        >
-          <Text style={styles.navIcon}>🕐</Text>
-          <Text style={styles.navLabel}>Historique</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.navItem}
-          onPress={handleLogout}
-        >
-          <Text style={styles.navIcon}>👤</Text>
-          <Text style={styles.navLabel}>Profil</Text>
+          <Text style={styles.menuIcon}>☰</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Offline State - Show "Go Online" Button */}
+      {!isOnline && (
+        <View style={styles.offlineContainer}>
+          <View style={styles.offlineCard}>
+            <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
+            <Text style={styles.offlineSubtitle}>Prêt à accepter des courses?</Text>
+            
+            <TouchableOpacity 
+              style={[styles.goOnlineButton, loading && styles.buttonDisabled]}
+              onPress={handleGoOnline}
+              disabled={loading}
+            >
+              <Text style={styles.goOnlineIcon}>🚗</Text>
+              <Text style={styles.goOnlineText}>
+                {loading ? 'Connexion...' : 'Passer en ligne'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -188,103 +122,125 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#000',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
-  topBar: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    right: 20,
-  },
-  topBarContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  greeting: {
-    fontSize: 14,
-    color: COLORS.gray,
-  },
-  userName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.black,
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.green,
+  mapPlaceholder: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  profileIcon: {
-    fontSize: 20,
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
   },
-  statusCard: {
+  driverMarker: {
+    width: 44,
+    height: 44,
+    backgroundColor: COLORS.green,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  markerText: {
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  topBar: {
     position: 'absolute',
-    top: 140,
+    top: 60,
     left: 20,
     right: 20,
-  },
-  statusRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+  },
+  menuButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: COLORS.green,
   },
-  statusLabel: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 4,
+  menuIcon: {
+    fontSize: 28,
+    color: '#000',
   },
-  statusText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.red,
-  },
-  statusOnline: {
-    color: COLORS.green,
-  },
-  statusHint: {
-    fontSize: 12,
-    color: COLORS.gray,
-    marginTop: 12,
-  },
-  bottomNav: {
+  offlineContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingVertical: 12,
-    paddingBottom: 24,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.grayLight,
-  },
-  navItem: {
-    flex: 1,
     alignItems: 'center',
+    paddingBottom: 60,
   },
-  navIcon: {
+  offlineCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 32,
+    marginHorizontal: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 3,
+    borderColor: COLORS.green,
+  },
+  offlineTitle: {
     fontSize: 24,
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 8,
   },
-  navIconActive: {
+  offlineSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 32,
+  },
+  goOnlineButton: {
+    backgroundColor: '#FCD116',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 48,
+    paddingVertical: 20,
+    borderRadius: 16,
+    shadowColor: '#FCD116',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  goOnlineIcon: {
     fontSize: 24,
-    marginBottom: 4,
+    marginRight: 12,
   },
-  navLabel: {
-    fontSize: 10,
-    color: COLORS.gray,
-  },
-  navLabelActive: {
-    fontSize: 10,
-    color: COLORS.green,
-    fontWeight: '600',
+  goOnlineText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#000',
   },
 });
 

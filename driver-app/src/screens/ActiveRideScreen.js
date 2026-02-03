@@ -20,6 +20,7 @@ import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+const ARRIVAL_THRESHOLD = 50; // meters - show button when within 50m
 
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId, ride: passedRide } = route.params;
@@ -42,6 +43,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [navigationStarted, setNavigationStarted] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [lastAnnouncedStep, setLastAnnouncedStep] = useState(null);
+  const [isNearDestination, setIsNearDestination] = useState(false);
   const announcementDistances = useRef(new Set());
 
   useEffect(() => {
@@ -270,7 +272,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [voiceEnabled]);
 
-  // Update current step based on driver location
+  // Update current step and check proximity to destination
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
@@ -286,7 +288,22 @@ const ActiveRideScreen = ({ route, navigation }) => {
     if (distance < 50 && currentStep.id < allSteps.length - 1) {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
-  }, [driverLocation, currentStep, allSteps]);
+    
+    // Check proximity to final destination
+    const destination = ride.status === 'accepted' || ride.status === 'arrived'
+      ? ride.pickup.coordinates 
+      : ride.dropoff.coordinates;
+    
+    if (destination) {
+      const distanceToDestination = calculateDistance(
+        driverLocation.latitude,
+        driverLocation.longitude,
+        destination.latitude,
+        destination.longitude
+      );
+      setIsNearDestination(distanceToDestination <= ARRIVAL_THRESHOLD);
+    }
+  }, [driverLocation, currentStep, allSteps, ride]);
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371e3; // Earth radius in meters
@@ -448,11 +465,19 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.navText}>Demarrer navigation</Text>
               </TouchableOpacity>
             )}
-            <GlassButton
-              title="Je suis arrive"
-              onPress={handleArrived}
-              loading={loading}
-            />
+            {isNearDestination ? (
+              <GlassButton
+                title="Je suis arrive"
+                onPress={handleArrived}
+                loading={loading}
+              />
+            ) : (
+              <View style={styles.proximityHint}>
+                <Text style={styles.proximityText}>
+                  Le bouton "Je suis arrive" apparaitra a 50m du client
+                </Text>
+              </View>
+            )}
           </View>
         );
       case 'arrived':
@@ -465,11 +490,21 @@ const ActiveRideScreen = ({ route, navigation }) => {
         );
       case 'in_progress':
         return (
-          <GlassButton
-            title="Terminer la course"
-            onPress={handleCompleteRide}
-            loading={loading}
-          />
+          <View>
+            {isNearDestination ? (
+              <GlassButton
+                title="Terminer la course"
+                onPress={handleCompleteRide}
+                loading={loading}
+              />
+            ) : (
+              <View style={styles.proximityHint}>
+                <Text style={styles.proximityText}>
+                  Le bouton "Terminer" apparaitra a 50m de la destination
+                </Text>
+              </View>
+            )}
+          </View>
         );
       default:
         return null;
@@ -951,6 +986,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
+  },
+  proximityHint: {
+    backgroundColor: 'rgba(0, 133, 63, 0.1)',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  proximityText: {
+    fontSize: 14,
+    color: COLORS.gray,
+    textAlign: 'center',
   },
 });
 

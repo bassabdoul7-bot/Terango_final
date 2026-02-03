@@ -11,7 +11,6 @@ import {
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import io from 'socket.io-client';
-import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 
@@ -24,6 +23,7 @@ const RideRequestsScreen = ({ navigation }) => {
   const [currentRequest, setCurrentRequest] = useState(null);
   const [socket, setSocket] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const mapRef = useRef(null);
@@ -31,6 +31,7 @@ const RideRequestsScreen = ({ navigation }) => {
   useEffect(() => {
     getLocation();
     connectSocket();
+    fetchEarnings();
 
     return () => {
       if (socket) socket.disconnect();
@@ -44,6 +45,18 @@ const RideRequestsScreen = ({ navigation }) => {
       hideRequestCard();
     }
   }, [currentRequest]);
+
+  const fetchEarnings = async () => {
+    try {
+      const response = await driverService.getEarnings();
+      setEarnings({
+        today: response.earnings.today || 0,
+        ridesCompleted: response.earnings.totalRides || 0,
+      });
+    } catch (error) {
+      console.log('Earnings error:', error);
+    }
+  };
 
   const getLocation = async () => {
     try {
@@ -61,7 +74,6 @@ const RideRequestsScreen = ({ navigation }) => {
         longitudeDelta: 0.05,
       });
 
-      // Update location every 10 seconds
       setInterval(async () => {
         const loc = await Location.getCurrentPositionAsync({});
         setLocation({
@@ -85,15 +97,12 @@ const RideRequestsScreen = ({ navigation }) => {
     newSocket.on('new-ride-request', (rideData) => {
       console.log('New ride request:', rideData);
       
-      // Add to queue
       setRideRequests(prev => [...prev, rideData]);
       
-      // Show first request if none is showing
       if (!currentRequest) {
         setCurrentRequest(rideData);
       }
       
-      // Play notification sound (optional)
       Alert.alert(
         '🚨 Nouvelle course!',
         `${rideData.distance.toFixed(1)} km • ${rideData.fare.toLocaleString()} FCFA`,
@@ -110,7 +119,6 @@ const RideRequestsScreen = ({ navigation }) => {
       friction: 8,
     }).start();
 
-    // Fit map to show pickup and dropoff
     if (mapRef.current && currentRequest) {
       mapRef.current.fitToCoordinates([
         {
@@ -136,6 +144,29 @@ const RideRequestsScreen = ({ navigation }) => {
     }).start();
   };
 
+  const handleGoOffline = async () => {
+    Alert.alert(
+      'Passer hors ligne?',
+      'Vous arrêterez de recevoir des courses',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Hors ligne',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await driverService.toggleOnlineStatus(false);
+              navigation.replace('Home');
+            } catch (error) {
+              console.error('Toggle offline error:', error);
+              navigation.replace('Home');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleAccept = async () => {
     if (!currentRequest) return;
 
@@ -143,10 +174,8 @@ const RideRequestsScreen = ({ navigation }) => {
     try {
       await driverService.acceptRide(currentRequest.rideId);
       
-      // Remove from queue
       setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
       
-      // Navigate to active ride
       navigation.replace('ActiveRide', {
         rideId: currentRequest.rideId,
         ride: currentRequest
@@ -167,10 +196,8 @@ const RideRequestsScreen = ({ navigation }) => {
     try {
       await driverService.rejectRide(currentRequest.rideId, 'Trop loin');
       
-      // Remove from queue
       setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
       
-      // Show next request or hide card
       const nextRequest = rideRequests.find(r => r.rideId !== currentRequest.rideId);
       setCurrentRequest(nextRequest || null);
     } catch (error) {
@@ -188,19 +215,17 @@ const RideRequestsScreen = ({ navigation }) => {
           showsUserLocation
           showsMyLocationButton={false}
         >
-          {/* Driver's current location */}
           {location && (
             <Marker
               coordinate={location}
               title="Votre position"
             >
               <View style={styles.driverMarker}>
-                <Text style={styles.driverMarkerText}>🚗</Text>
+                <Text style={styles.driverMarkerText}>▲</Text>
               </View>
             </Marker>
           )}
 
-          {/* Current request markers */}
           {currentRequest && (
             <>
               <Marker
@@ -220,7 +245,6 @@ const RideRequestsScreen = ({ navigation }) => {
                 title="Arrivée"
               />
               
-              {/* Circle around pickup (hot spot) */}
               <Circle
                 center={{
                   latitude: currentRequest.pickup.coordinates.latitude,
@@ -239,21 +263,31 @@ const RideRequestsScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Back button */}
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.backIcon}>←</Text>
-      </TouchableOpacity>
+      {/* Top Bar - Earnings + Go Offline */}
+      <View style={styles.topBar}>
+        <View style={styles.earningsCard}>
+          <Text style={styles.earningsValue}>{earnings.today.toLocaleString()} FCFA</Text>
+          <Text style={styles.earningsLabel}>Aujourd'hui • {earnings.ridesCompleted} courses</Text>
+        </View>
 
-      {/* Status indicator */}
-      <View style={styles.statusBadge}>
-        <View style={styles.onlineDot} />
-        <Text style={styles.statusText}>En ligne • En attente</Text>
+        <TouchableOpacity
+          style={styles.offlineButton}
+          onPress={handleGoOffline}
+        >
+          <View style={styles.onlineDot} />
+          <Text style={styles.offlineText}>En ligne</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Ride request card (slides up from bottom) */}
+      {/* Menu Button */}
+      <TouchableOpacity
+        style={styles.menuButton}
+        onPress={() => navigation.navigate('Menu')}
+      >
+        <Text style={styles.menuIcon}>☰</Text>
+      </TouchableOpacity>
+
+      {/* Ride request card */}
       <Animated.View 
         style={[
           styles.requestCard,
@@ -331,7 +365,7 @@ const RideRequestsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f5f5f5',
   },
   map: {
     ...StyleSheet.absoluteFillObject,
@@ -348,51 +382,64 @@ const styles = StyleSheet.create({
   driverMarker: {
     width: 40,
     height: 40,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.green,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: COLORS.green,
+    borderColor: '#fff',
   },
   driverMarkerText: {
-    fontSize: 20,
+    fontSize: 18,
+    color: '#fff',
+    fontWeight: 'bold',
   },
-  backButton: {
+  topBar: {
     position: 'absolute',
     top: 60,
     left: 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  backIcon: {
-    fontSize: 24,
-    color: COLORS.black,
-  },
-  statusBadge: {
-    position: 'absolute',
-    top: 60,
     right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    justifyContent: 'space-between',
+  },
+  earningsCard: {
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingVertical: 12,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
+    borderWidth: 2,
+    borderColor: COLORS.green,
+  },
+  earningsValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.green,
+    marginBottom: 2,
+  },
+  earningsLabel: {
+    fontSize: 11,
+    color: '#666',
+  },
+  offlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: '#FCD116',
   },
   onlineDot: {
     width: 8,
@@ -401,17 +448,39 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.green,
     marginRight: 8,
   },
-  statusText: {
+  offlineText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.black,
+    color: '#000',
+  },
+  menuButton: {
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: COLORS.green,
+  },
+  menuIcon: {
+    fontSize: 28,
+    color: '#000',
   },
   requestCard: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 8,
@@ -433,12 +502,12 @@ const styles = StyleSheet.create({
   requestTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: COLORS.black,
+    color: '#000',
     marginBottom: 4,
   },
   requestSubtitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: '#666',
   },
   fareText: {
     fontSize: 24,
@@ -446,7 +515,7 @@ const styles = StyleSheet.create({
     color: COLORS.green,
   },
   addressesContainer: {
-    backgroundColor: COLORS.background,
+    backgroundColor: '#f5f5f5',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -472,14 +541,14 @@ const styles = StyleSheet.create({
     height: 20,
     marginLeft: 6,
     borderLeftWidth: 2,
-    borderLeftColor: COLORS.grayLight,
+    borderLeftColor: '#ccc',
     borderStyle: 'dashed',
     marginVertical: 4,
   },
   addressText: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.black,
+    color: '#000',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -490,19 +559,19 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: COLORS.gray,
+    borderColor: '#666',
     alignItems: 'center',
   },
   rejectButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: COLORS.gray,
+    color: '#666',
   },
   acceptButton: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: COLORS.green,
+    backgroundColor: '#FCD116',
     alignItems: 'center',
   },
   acceptButtonDisabled: {
@@ -511,13 +580,13 @@ const styles = StyleSheet.create({
   acceptButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: '#000',
   },
   queueText: {
     textAlign: 'center',
     marginTop: 16,
     fontSize: 12,
-    color: COLORS.gray,
+    color: '#666',
   },
   emptyState: {
     alignItems: 'center',
@@ -531,15 +600,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.black,
+    color: '#000',
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: COLORS.gray,
+    color: '#666',
     textAlign: 'center',
   },
 });
 
 export default RideRequestsScreen;
-
