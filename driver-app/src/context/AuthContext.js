@@ -1,11 +1,12 @@
 ﻿import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { authService } from '../services/api.service';
+import { authService, driverService } from '../services/api.service';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [driver, setDriver] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -17,15 +18,34 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
-
+      const driverData = await AsyncStorage.getItem('driver');
+      
       if (token && userData) {
         setUser(JSON.parse(userData));
         setIsAuthenticated(true);
+        
+        if (driverData) {
+          setDriver(JSON.parse(driverData));
+        } else {
+          await fetchDriverProfile();
+        }
       }
     } catch (error) {
       console.error('Check auth error:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDriverProfile = async () => {
+    try {
+      const response = await driverService.getProfile();
+      if (response.success) {
+        setDriver(response.driver);
+        await AsyncStorage.setItem('driver', JSON.stringify(response.driver));
+      }
+    } catch (error) {
+      console.error('Fetch driver profile error:', error);
     }
   };
 
@@ -39,6 +59,8 @@ export const AuthProvider = ({ children }) => {
         
         setUser(response.user);
         setIsAuthenticated(true);
+        
+        await fetchDriverProfile();
         
         return response;
       } else {
@@ -54,7 +76,9 @@ export const AuthProvider = ({ children }) => {
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('driver');
       setUser(null);
+      setDriver(null);
       setIsAuthenticated(false);
     } catch (error) {
       console.error('Logout error:', error);
@@ -65,10 +89,12 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        driver,
         isAuthenticated,
         loading,
         login,
         logout,
+        fetchDriverProfile,
       }}
     >
       {children}

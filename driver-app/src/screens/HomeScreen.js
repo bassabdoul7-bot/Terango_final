@@ -10,17 +10,41 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import io from 'socket.io-client';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
+import { useAuth } from '../context/AuthContext';
+
+const SOCKET_URL = 'http://192.168.1.184:5000';
 
 const HomeScreen = ({ navigation }) => {
+  const { driver } = useAuth();
   const [isOnline, setIsOnline] = useState(false);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
     initializeLocation();
+    
+    // Initialize socket connection
+    const newSocket = io(SOCKET_URL);
+    setSocket(newSocket);
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected:', newSocket.id);
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
+
+    return () => {
+      if (newSocket) {
+        newSocket.disconnect();
+      }
+    };
   }, []);
 
   const initializeLocation = async () => {
@@ -42,11 +66,23 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleGoOnline = async () => {
+    if (!driver || !driver._id) {
+      Alert.alert('Erreur', 'Profil chauffeur introuvable');
+      return;
+    }
+
     setLoading(true);
     try {
       await driverService.toggleOnlineStatus(true);
       setIsOnline(true);
-      navigation.replace('RideRequests');
+      
+      // Emit driver-online to join personal room for TARGETED offers
+      if (socket) {
+        socket.emit('driver-online', driver._id);
+        console.log(`Driver ${driver._id} joined their room for targeted offers`);
+      }
+      
+      navigation.replace('RideRequests', { driverId: driver._id });
     } catch (error) {
       console.error('Toggle online error:', error);
       Alert.alert('Erreur', 'Impossible de passer en ligne');

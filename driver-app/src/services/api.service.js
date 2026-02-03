@@ -49,6 +49,9 @@ export const authService = {
 };
 
 export const driverService = {
+  getProfile: () => 
+    api.get('/drivers/profile'),
+    
   updateLocation: (latitude, longitude) => 
     api.put('/drivers/location', { latitude, longitude }),
   

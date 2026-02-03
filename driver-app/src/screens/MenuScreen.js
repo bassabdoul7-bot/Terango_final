@@ -6,11 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  Alert,
 } from 'react-native';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
+import { useAuth } from '../context/AuthContext';
 
 const MenuScreen = ({ navigation }) => {
+  const { logout } = useAuth();
   const [earnings, setEarnings] = useState({ today: 0, total: 0, totalRides: 0 });
 
   useEffect(() => {
@@ -30,11 +33,28 @@ const MenuScreen = ({ navigation }) => {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Déconnexion',
+      'Voulez-vous vraiment vous déconnecter?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            navigation.replace('Login');
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -47,7 +67,6 @@ const MenuScreen = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content}>
-        {/* Earnings Summary */}
         <View style={styles.earningsCard}>
           <Text style={styles.cardTitle}>Gains</Text>
           
@@ -74,7 +93,6 @@ const MenuScreen = ({ navigation }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Menu Options */}
         <View style={styles.menuSection}>
           <TouchableOpacity 
             style={styles.menuItem}
@@ -100,6 +118,15 @@ const MenuScreen = ({ navigation }) => {
           >
             <Text style={styles.menuIcon}>❓</Text>
             <Text style={styles.menuText}>Aide & Support</Text>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.menuItem, styles.logoutItem]}
+            onPress={handleLogout}
+          >
+            <Text style={styles.menuIcon}>🚪</Text>
+            <Text style={[styles.menuText, styles.logoutText]}>Déconnexion</Text>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
         </View>
@@ -197,6 +224,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     borderRadius: 20,
     overflow: 'hidden',
+    marginBottom: 40,
   },
   menuItem: {
     flexDirection: 'row',
@@ -213,6 +241,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#fff',
+  },
+  logoutItem: {
+    borderBottomWidth: 0,
+  },
+  logoutText: {
+    color: '#FF3B30',
   },
 });
 

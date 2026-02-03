@@ -13,12 +13,16 @@ import * as Location from 'expo-location';
 import io from 'socket.io-client';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
+import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
 const SOCKET_URL = 'http://192.168.1.184:5000';
 
-const RideRequestsScreen = ({ navigation }) => {
+const RideRequestsScreen = ({ navigation, route }) => {
+  const { driver } = useAuth();
+  const driverId = route.params?.driverId || driver?._id;
+  
   const [location, setLocation] = useState(null);
   const [rideRequests, setRideRequests] = useState([]);
   const [currentRequest, setCurrentRequest] = useState(null);
@@ -26,6 +30,7 @@ const RideRequestsScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offerTimeout, setOfferTimeout] = useState(null);
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -37,7 +42,15 @@ const RideRequestsScreen = ({ navigation }) => {
     fetchEarnings();
 
     return () => {
-      if (socket) socket.disconnect();
+      if (socket) {
+        if (driverId) {
+          socket.emit('driver-offline', driverId);
+        }
+        socket.disconnect();
+      }
+      if (offerTimeout) {
+        clearTimeout(offerTimeout);
+      }
     };
   }, []);
 
@@ -115,17 +128,54 @@ const RideRequestsScreen = ({ navigation }) => {
   };
 
   const connectSocket = () => {
+    if (!driverId) {
+      console.error('No driver ID available');
+      return;
+    }
+
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
-    newSocket.on('new-ride-request', (rideData) => {
-      console.log('New ride request:', rideData);
+    newSocket.on('connect', () => {
+      console.log('Socket connected:', newSocket.id);
+      // Join driver's personal room for TARGETED offers
+      newSocket.emit('driver-online', driverId);
+      console.log(`Listening for targeted offers: new-ride-offer-${driverId}`);
+    });
+
+    // UBER-LEVEL: Listen for TARGETED ride offers only
+    newSocket.on(`new-ride-offer-${driverId}`, (rideData) => {
+      console.log('🎯 TARGETED ride offer received:', rideData);
       
       setRideRequests(prev => [...prev, rideData]);
       
       if (!currentRequest) {
         setCurrentRequest(rideData);
+        
+        // Start 15-second countdown
+        const timeout = setTimeout(() => {
+          console.log('⏰ Offer expired, auto-rejecting');
+          handleReject();
+        }, rideData.offerExpiresIn || 15000);
+        
+        setOfferTimeout(timeout);
       }
+    });
+
+    // Listen for ride taken by another driver
+    newSocket.on(`ride-taken-${driverId}`, (data) => {
+      console.log('Ride taken by another driver:', data);
+      Alert.alert('Course prise', 'Un autre chauffeur a accepté cette course');
+      
+      if (currentRequest) {
+        setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
+        const nextRequest = rideRequests.find(r => r.rideId !== currentRequest.rideId);
+        setCurrentRequest(nextRequest || null);
+      }
+    });
+
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected');
     });
   };
 
@@ -166,6 +216,11 @@ const RideRequestsScreen = ({ navigation }) => {
     setShowOfflineModal(false);
     try {
       await driverService.toggleOnlineStatus(false);
+      
+      if (socket && driverId) {
+        socket.emit('driver-offline', driverId);
+      }
+      
       navigation.replace('Home');
     } catch (error) {
       console.error('Toggle offline error:', error);
@@ -175,6 +230,12 @@ const RideRequestsScreen = ({ navigation }) => {
 
   const handleAccept = async () => {
     if (!currentRequest) return;
+
+    // Clear timeout
+    if (offerTimeout) {
+      clearTimeout(offerTimeout);
+      setOfferTimeout(null);
+    }
 
     setLoading(true);
     try {
@@ -190,7 +251,7 @@ const RideRequestsScreen = ({ navigation }) => {
       setCurrentRequest(null);
     } catch (error) {
       console.error('Accept ride error:', error);
-      Alert.alert('Erreur', 'Impossible d\'accepter la course');
+      Alert.alert('Erreur', error.response?.data?.message || 'Impossible d\'accepter la course');
     } finally {
       setLoading(false);
     }
@@ -198,6 +259,12 @@ const RideRequestsScreen = ({ navigation }) => {
 
   const handleReject = async () => {
     if (!currentRequest) return;
+
+    // Clear timeout
+    if (offerTimeout) {
+      clearTimeout(offerTimeout);
+      setOfferTimeout(null);
+    }
 
     try {
       await driverService.rejectRide(currentRequest.rideId, 'Trop loin');
@@ -332,9 +399,10 @@ const RideRequestsScreen = ({ navigation }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View>
-                <Text style={styles.requestTitle}>Nouvelle course</Text>
+                <Text style={styles.requestTitle}>Nouvelle course 🎯</Text>
                 <Text style={styles.requestSubtitle}>
                   {currentRequest.distance.toFixed(1)} km • {Math.round(currentRequest.distance * 2)} min
+                  {currentRequest.distanceToPickup && ` • ${currentRequest.distanceToPickup.toFixed(1)}km de vous`}
                 </Text>
               </View>
               <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()} FCFA</Text>
@@ -387,7 +455,7 @@ const RideRequestsScreen = ({ navigation }) => {
             <Text style={styles.emptyIcon}>🚗</Text>
             <Text style={styles.emptyTitle}>En attente de courses</Text>
             <Text style={styles.emptySubtitle}>
-              Vous recevrez une notification dès qu'une course est disponible
+              Vous recevrez des offres ciblées basées sur votre position
             </Text>
           </View>
         )}
