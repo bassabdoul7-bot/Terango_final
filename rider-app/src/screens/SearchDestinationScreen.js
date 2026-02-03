@@ -10,9 +10,11 @@ import {
 } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import * as Location from 'expo-location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
 
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+const RECENT_SEARCHES_KEY = '@recent_searches';
 
 const SearchDestinationScreen = ({ route, navigation }) => {
   const { currentLocation } = route.params;
@@ -20,22 +22,61 @@ const SearchDestinationScreen = ({ route, navigation }) => {
   const [dropoff, setDropoff] = useState(null);
   const [loadingPickup, setLoadingPickup] = useState(true);
   const [editingPickup, setEditingPickup] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
 
   useEffect(() => {
     if (currentLocation) {
       getCurrentLocationAddress();
     }
+    loadRecentSearches();
   }, []);
 
   useEffect(() => {
-    // Navigate when both pickup and dropoff are selected
     if (pickup && dropoff && !editingPickup) {
+      saveRecentSearch(dropoff);
       navigation.navigate('RideSelection', {
         pickup,
         dropoff,
       });
     }
   }, [pickup, dropoff, editingPickup]);
+
+  const loadRecentSearches = async () => {
+    try {
+      const saved = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
+      if (saved) {
+        setRecentSearches(JSON.parse(saved));
+      }
+    } catch (error) {
+      console.error('Load recent searches error:', error);
+    }
+  };
+
+  const saveRecentSearch = async (location) => {
+    try {
+      const newSearch = {
+        address: location.address,
+        coordinates: location.coordinates,
+        timestamp: Date.now(),
+      };
+
+      let searches = [...recentSearches];
+      
+      // Remove duplicate if exists
+      searches = searches.filter(s => s.address !== newSearch.address);
+      
+      // Add to beginning
+      searches.unshift(newSearch);
+      
+      // Keep only last 10
+      searches = searches.slice(0, 10);
+      
+      await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches));
+      setRecentSearches(searches);
+    } catch (error) {
+      console.error('Save recent search error:', error);
+    }
+  };
 
   const getCurrentLocationAddress = async () => {
     try {
@@ -91,6 +132,13 @@ const SearchDestinationScreen = ({ route, navigation }) => {
     });
   };
 
+  const handleRecentPress = (recent) => {
+    setDropoff({
+      address: recent.address,
+      coordinates: recent.coordinates,
+    });
+  };
+
   if (loadingPickup) {
     return (
       <View style={styles.loadingContainer}>
@@ -114,8 +162,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
         <Text style={styles.headerTitle}>Planifiez votre course</Text>
       </View>
 
-      <View style={styles.inputsContainer}>
-        {/* Pickup (editable) */}
+      <View style={styles.inputsCard}>
         <View style={styles.inputRow}>
           <View style={styles.iconContainer}>
             <View style={styles.circleIcon} />
@@ -158,9 +205,8 @@ const SearchDestinationScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        <View style={styles.separator} />
+        <View style={styles.dashedLine} />
 
-        {/* Dropoff (autocomplete) */}
         <View style={styles.inputRow}>
           <View style={styles.iconContainer}>
             <View style={styles.squareIcon} />
@@ -189,7 +235,6 @@ const SearchDestinationScreen = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Use Current Location Button */}
         {editingPickup && (
           <TouchableOpacity
             style={styles.currentLocationButton}
@@ -198,13 +243,41 @@ const SearchDestinationScreen = ({ route, navigation }) => {
               setEditingPickup(false);
             }}
           >
-            <Text style={styles.currentLocationIcon}>📍</Text>
+            <View style={styles.currentLocationIconContainer}>
+              <Text style={styles.currentLocationIcon}>📍</Text>
+            </View>
             <Text style={styles.currentLocationText}>
               Utiliser ma position actuelle
             </Text>
           </TouchableOpacity>
         )}
       </View>
+
+      {recentSearches.length > 0 && (
+        <View style={styles.recentSection}>
+          <Text style={styles.recentTitle}>Récemment</Text>
+          
+          {recentSearches.slice(0, 5).map((recent, index) => (
+            <TouchableOpacity 
+              key={index}
+              style={styles.recentItem}
+              onPress={() => handleRecentPress(recent)}
+            >
+              <View style={styles.recentIconContainer}>
+                <Text style={styles.recentIcon}>🕐</Text>
+              </View>
+              <View style={styles.recentTextContainer}>
+                <Text style={styles.recentAddress} numberOfLines={1}>
+                  {recent.address}
+                </Text>
+                <Text style={styles.recentSubtext}>
+                  {new Date(recent.timestamp).toLocaleDateString('fr-FR')}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -212,13 +285,13 @@ const SearchDestinationScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F5F5F5',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
@@ -226,28 +299,49 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.grayLight,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
   },
   backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(179, 229, 206, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 16,
   },
   backIcon: {
     fontSize: 24,
-    color: COLORS.black,
+    color: '#000',
+    fontWeight: 'bold',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.black,
+    color: '#000',
   },
-  inputsContainer: {
+  inputsCard: {
+    margin: 20,
+    backgroundColor: 'rgba(179, 229, 206, 0.95)',
+    borderRadius: 20,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 8,
   },
   iconContainer: {
     width: 40,
@@ -255,58 +349,131 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   circleIcon: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: COLORS.green,
   },
   squareIcon: {
-    width: 12,
-    height: 12,
+    width: 14,
+    height: 14,
     backgroundColor: COLORS.red,
   },
-  separator: {
-    height: 1,
-    backgroundColor: COLORS.grayLight,
-    marginLeft: 52,
+  dashedLine: {
+    height: 30,
+    marginLeft: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(0, 0, 0, 0.3)',
+    borderStyle: 'dashed',
+    marginVertical: 4,
   },
   autocompleteWrapper: {
     flex: 1,
   },
   addressTouchable: {
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   addressText: {
     fontSize: 16,
-    color: COLORS.black,
+    color: '#000',
+    fontWeight: '500',
   },
   autocompleteContainer: {
     flex: 0,
   },
   autocompleteInput: {
     fontSize: 16,
-    color: COLORS.black,
+    color: '#000',
     paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
   },
   autocompleteList: {
     marginTop: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
   },
   currentLocationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: COLORS.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
     borderRadius: 12,
     marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  currentLocationIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FCD116',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   currentLocationIcon: {
-    fontSize: 20,
-    marginRight: 12,
+    fontSize: 18,
   },
   currentLocationText: {
     fontSize: 16,
-    color: COLORS.black,
-    fontWeight: '500',
+    color: '#000',
+    fontWeight: '600',
+  },
+  recentSection: {
+    marginHorizontal: 20,
+  },
+  recentTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 12,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  recentIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(179, 229, 206, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  recentIcon: {
+    fontSize: 20,
+  },
+  recentTextContainer: {
+    flex: 1,
+  },
+  recentAddress: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  recentSubtext: {
+    fontSize: 14,
+    color: '#666',
   },
 });
 
