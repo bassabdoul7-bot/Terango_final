@@ -21,6 +21,7 @@ const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const SOCKET_URL = 'http://192.168.1.184:5000';
 
 const ActiveRideScreen = ({ route, navigation }) => {
+  console.log('🟢 ActiveRideScreen MOUNTED with rideId:', route.params?.rideId);
   const { rideId } = route.params;
 
   const mapRef = useRef(null);
@@ -49,19 +50,9 @@ const ActiveRideScreen = ({ route, navigation }) => {
     };
   }, []);
 
-  // Connect to Socket.IO when ride is accepted
   useEffect(() => {
-    console.log('Checking socket connection conditions:', {
-      hasRide: !!ride,
-      hasDriver: !!ride?.driverId,
-      status: ride?.status
-    });
-    
-    if (ride && ride.driverId && (ride.status === 'accepted' || ride.status === 'in_progress')) {
-      console.log('Conditions met! Connecting to socket...');
+    if (ride && ride.driver && (ride.status === 'accepted' || ride.status === 'in_progress')) {
       connectToSocket();
-    } else {
-      console.log('Conditions NOT met - not connecting to socket');
     }
 
     return () => {
@@ -74,6 +65,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const connectToSocket = () => {
     if (socketRef.current) return;
 
+    console.log('🔌 Connecting to socket for ride:', rideId);
+
     socketRef.current = io(SOCKET_URL, {
       transports: ['websocket'],
       reconnection: true,
@@ -82,20 +75,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
     });
 
     socketRef.current.on('connect', () => {
-      console.log('Socket connected for rider');
-      // Join room to receive driver updates
+      console.log('✅ Socket connected for rider');
       socketRef.current.emit('join-ride-room', rideId);
+      console.log(`📍 Joined ride room: ${rideId}`);
     });
 
     socketRef.current.on('driver-location-update', (data) => {
-      console.log('Driver location update:', data);
-      if (data.driverId === ride.driverId._id) {
-        setDriverLocation(data.location);
-        
-        // Calculate ETA and distance if rider hasn't been picked up yet
-        if (ride.status === 'accepted') {
-          calculateETA(data.location, ride.pickup.coordinates);
-        }
+      console.log('📍 Driver location update received:', data);
+      
+      setDriverLocation(data.location);
+      
+      if (ride.status === 'accepted' && data.location) {
+        calculateETA(data.location, ride.pickup.coordinates);
       }
     });
 
@@ -109,7 +100,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   };
 
   const calculateETA = (driverLoc, pickupLoc) => {
-    const R = 6371e3; // Earth radius in meters
+    const R = 6371e3;
     const phi1 = driverLoc.latitude * Math.PI / 180;
     const phi2 = pickupLoc.latitude * Math.PI / 180;
     const deltaPhi = (pickupLoc.latitude - driverLoc.latitude) * Math.PI / 180;
@@ -123,9 +114,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
     const distanceInMeters = R * c;
     setDistance(formatDistance(distanceInMeters));
 
-    // Rough ETA calculation (assuming average speed of 30 km/h in city)
-    const etaMinutes = Math.round((distanceInMeters / 1000) * 2); // 2 min per km
-    console.log('ETA calculated:', etaMinutes, 'min, Distance:', formatDistance(distanceInMeters));
+    const etaMinutes = Math.round((distanceInMeters / 1000) * 2);
+    console.log('⏱️ ETA calculated:', etaMinutes, 'min, Distance:', formatDistance(distanceInMeters));
     setEta(etaMinutes);
   };
 
@@ -156,7 +146,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const startPolling = () => {
     pollInterval.current = setInterval(() => {
       fetchRideDetails();
-    }, 10000); // Poll every 10 seconds for ride status updates
+    }, 10000);
   };
 
   const getDirections = async (rideData) => {
@@ -217,13 +207,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const getStatusMessage = () => {
     if (!ride) return '';
     
-    console.log('getStatusMessage - status:', ride.status, 'eta:', eta, 'distance:', distance);
+    console.log('💬 Status:', ride.status, '⏱️ ETA:', eta, '📏 Distance:', distance);
     
     switch (ride.status) {
       case 'pending':
         return 'Recherche d\'un chauffeur...';
       case 'accepted':
-        if (eta) {
+        if (eta && distance) {
           return `Le chauffeur arrive dans ${eta} min (${distance})`;
         }
         return 'Le chauffeur est en route';
@@ -259,21 +249,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
           longitudeDelta: 0.05,
         }}
       >
-        {/* Pickup marker */}
         <Marker
           coordinate={ride.pickup.coordinates}
           pinColor={COLORS.green}
           title="Point de depart"
         />
 
-        {/* Dropoff marker */}
         <Marker
           coordinate={ride.dropoff.coordinates}
           pinColor={COLORS.red}
           title="Destination"
         />
 
-        {/* Driver marker - real-time position */}
         {driverLocation && (
           <Marker
             coordinate={driverLocation}
@@ -287,7 +274,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
           </Marker>
         )}
 
-        {/* Route polyline */}
         {routeCoordinates.length > 0 && (
           <Polyline
             coordinates={routeCoordinates}
@@ -297,7 +283,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </MapView>
 
-      {/* Top status bar */}
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backButton}
@@ -311,18 +296,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
         </View>
       </View>
 
-      {/* Bottom card with ride info */}
       <View style={styles.bottomCard}>
-        {ride.driverId && ride.driverId.userId && (
+        {ride.driver && ride.driver.userId && (
           <View style={styles.driverInfo}>
             <View style={styles.driverAvatar}>
               <Text style={styles.avatarText}>
-                {ride.driverId.userId.name?.charAt(0).toUpperCase() || 'D'}
+                {ride.driver.userId.name?.charAt(0).toUpperCase() || 'D'}
               </Text>
             </View>
             <View style={styles.driverDetails}>
-              <Text style={styles.driverName}>{ride.driverId.userId.name || 'Chauffeur'}</Text>
-              <Text style={styles.driverPhone}>{ride.driverId.userId.phone || ''}</Text>
+              <Text style={styles.driverName}>{ride.driver.userId.name || 'Chauffeur'}</Text>
+              <Text style={styles.driverPhone}>{ride.driver.userId.phone || ''}</Text>
             </View>
           </View>
         )}
@@ -376,24 +360,6 @@ const styles = StyleSheet.create({
   },
   map: {
     ...StyleSheet.absoluteFillObject,
-  },
-  driverMarker: {
-    width: 40,
-    height: 40,
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: COLORS.green,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  driverText: {
-    fontSize: 24,
   },
   topBar: {
     position: 'absolute',
