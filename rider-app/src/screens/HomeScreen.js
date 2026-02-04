@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,17 +9,44 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import io from 'socket.io-client';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
+import { driverService } from '../services/api.service';
+
+const SOCKET_URL = 'http://192.168.1.184:5000';
 
 const HomeScreen = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [location, setLocation] = useState(null);
+  const [nearbyDrivers, setNearbyDrivers] = useState([]);
+  const socketRef = useRef(null);
+  const fetchInterval = useRef(null);
 
   useEffect(() => {
     getLocation();
+    
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.emit('rider-stop-watching');
+        socketRef.current.disconnect();
+      }
+      if (fetchInterval.current) {
+        clearInterval(fetchInterval.current);
+      }
+    };
   }, []);
+
+  useEffect(() => {
+    if (location) {
+      fetchNearbyDrivers();
+      connectSocket();
+      
+      // Refresh nearby drivers every 15 seconds
+      fetchInterval.current = setInterval(fetchNearbyDrivers, 15000);
+    }
+  }, [location]);
 
   const getLocation = async () => {
     try {
@@ -38,12 +65,66 @@ const HomeScreen = ({ navigation }) => {
       setLocation({
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
       });
     } catch (error) {
       console.error('Location error:', error);
     }
+  };
+
+  const fetchNearbyDrivers = async () => {
+    if (!location) return;
+    
+    try {
+      const response = await driverService.getNearbyDrivers(
+        location.latitude,
+        location.longitude,
+        10
+      );
+      
+      if (response.success) {
+        setNearbyDrivers(response.drivers);
+      }
+    } catch (error) {
+      console.error('Fetch nearby drivers error:', error);
+    }
+  };
+
+  const connectSocket = () => {
+    if (socketRef.current) return;
+
+    socketRef.current = io(SOCKET_URL, {
+      transports: ['websocket'],
+      reconnection: true,
+    });
+
+    socketRef.current.on('connect', () => {
+      console.log('Rider connected to socket');
+      socketRef.current.emit('rider-watching-drivers');
+    });
+
+    // Real-time driver location updates
+    socketRef.current.on('nearby-driver-location', (data) => {
+      setNearbyDrivers(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(d => d._id === data.driverId);
+        
+        if (index !== -1) {
+          updated[index] = {
+            ...updated[index],
+            location: data.location
+          };
+        }
+        
+        return updated;
+      });
+    });
+
+    // Driver went offline
+    socketRef.current.on('driver-went-offline', (data) => {
+      setNearbyDrivers(prev => prev.filter(d => d._id !== data.driverId));
+    });
   };
 
   const handleWhereToPress = () => {
@@ -58,8 +139,8 @@ const HomeScreen = ({ navigation }) => {
       'Voulez-vous vous déconnecter?',
       [
         { text: 'Annuler', style: 'cancel' },
-        { 
-          text: 'Déconnexion', 
+        {
+          text: 'Déconnexion',
           style: 'destructive',
           onPress: () => logout()
         }
@@ -75,16 +156,39 @@ const HomeScreen = ({ navigation }) => {
           provider={PROVIDER_GOOGLE}
           customMapStyle={WAZE_DARK_STYLE}
           initialRegion={location}
-          showsUserLocation
+          showsUserLocation={false}
           showsMyLocationButton={false}
           showsTraffic={true}
         >
+          {/* User Marker */}
           <Marker coordinate={location}>
             <View style={styles.userMarker}>
               <View style={styles.userMarkerInner} />
             </View>
           </Marker>
+
+          {/* Nearby Driver Markers */}
+          {nearbyDrivers.map((driver) => (
+            <Marker
+              key={driver._id}
+              coordinate={driver.location}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={styles.driverMarker}>
+                <Text style={styles.driverCarIcon}>🚗</Text>
+              </View>
+            </Marker>
+          ))}
         </MapView>
+      )}
+
+      {/* Drivers count badge */}
+      {nearbyDrivers.length > 0 && (
+        <View style={styles.driverCountBadge}>
+          <Text style={styles.driverCountText}>
+            {nearbyDrivers.length} chauffeur{nearbyDrivers.length > 1 ? 's' : ''} disponible{nearbyDrivers.length > 1 ? 's' : ''}
+          </Text>
+        </View>
       )}
 
       <View style={styles.topBar}>
@@ -170,7 +274,7 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.navLabel}>Paiement</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.navItem}
           onPress={handleLogout}
         >
@@ -212,6 +316,43 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#000',
+  },
+  driverMarker: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: COLORS.green,
+  },
+  driverCarIcon: {
+    fontSize: 18,
+  },
+  driverCountBadge: {
+    position: 'absolute',
+    top: 130,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 133, 63, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  driverCountText: {
+    color: '#FFF',
+    fontSize: 13,
+    fontWeight: '600',
   },
   topBar: {
     position: 'absolute',

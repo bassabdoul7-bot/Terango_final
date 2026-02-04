@@ -9,12 +9,14 @@ exports.getProfile = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id })
       .populate('userId', 'name phone email rating');
+
     if (!driver) {
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouvé'
       });
     }
+
     res.status(200).json({
       success: true,
       driver
@@ -34,18 +36,23 @@ exports.getProfile = async (req, res) => {
 exports.completeProfile = async (req, res) => {
   try {
     const { driverLicenseNumber, driverLicensePhoto, vehicle } = req.body;
+
     const driver = await Driver.findOne({ userId: req.user._id });
+
     if (!driver) {
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouvé'
       });
     }
+
     driver.driverLicenseNumber = driverLicenseNumber;
     driver.driverLicensePhoto = driverLicensePhoto;
     driver.vehicle = vehicle;
     driver.verificationStatus = 'pending';
+
     await driver.save();
+
     res.status(200).json({
       success: true,
       message: 'Profil complété. En attente de vérification.',
@@ -66,12 +73,14 @@ exports.completeProfile = async (req, res) => {
 exports.toggleOnlineStatus = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
+
     if (!driver) {
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouvé'
       });
     }
+
     if (driver.verificationStatus !== 'approved') {
       return res.status(403).json({
         success: false,
@@ -79,27 +88,13 @@ exports.toggleOnlineStatus = async (req, res) => {
       });
     }
 
-    const driverLocationService = req.app.get('driverLocationService');
-    const { isOnline, latitude, longitude } = req.body;
-
-    // Update MongoDB
-    driver.isOnline = isOnline;
-    driver.isAvailable = isOnline;
+    driver.isOnline = req.body.isOnline;
+    driver.isAvailable = req.body.isOnline;
     await driver.save();
-
-    // Update Redis
-    if (isOnline && latitude && longitude) {
-      await driverLocationService.setDriverOnline(driver._id.toString(), latitude, longitude, {
-        vehicle: driver.vehicle,
-        rating: driver.userId?.rating || 5.0
-      });
-    } else {
-      await driverLocationService.setDriverOffline(driver._id.toString());
-    }
 
     res.status(200).json({
       success: true,
-      message: isOnline ? 'Vous êtes maintenant en ligne' : 'Vous êtes maintenant hors ligne',
+      message: driver.isOnline ? 'Vous êtes maintenant en ligne' : 'Vous êtes maintenant hors ligne',
       isOnline: driver.isOnline
     });
   } catch (error) {
@@ -111,133 +106,70 @@ exports.toggleOnlineStatus = async (req, res) => {
   }
 };
 
-// @desc    Update driver location (called every 5 seconds)
+// @desc    Update driver location
 // @route   PUT /api/drivers/location
 // @access  Private (Driver only)
 exports.updateLocation = async (req, res) => {
   try {
     const { latitude, longitude } = req.body;
-    
-    const driver = await Driver.findOne({ userId: req.user._id })
-      .populate('userId', 'rating');
+    console.log('🔵 UPDATE LOCATION CALLED:', { latitude, longitude });
+
+    const driver = await Driver.findOne({ userId: req.user._id });
 
     if (!driver) {
+      console.log('❌ DRIVER NOT FOUND');
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouvé'
       });
     }
 
-    const driverLocationService = req.app.get('driverLocationService');
-    const io = req.app.get('io');
+    console.log('✅ Driver found:', driver._id);
 
-    // Update Redis (this refreshes TTL - keeps driver "alive")
-    await driverLocationService.updateDriverLocation(
-      driver._id.toString(),
-      latitude,
-      longitude,
-      {
-        vehicle: driver.vehicle,
-        rating: driver.userId?.rating || 5.0
-      }
-    );
-
-    // Also update MongoDB (for persistence/history)
     driver.currentLocation = {
       type: 'Point',
-      coordinates: { latitude, longitude }
+      coordinates: {
+        latitude: latitude,
+        longitude: longitude
+      }
     };
-    driver.lastLocationUpdate = new Date();
-    await driver.save();
 
-    // Check for active ride and emit to ride room
-    const activeRide = await Ride.findOne({
-      driver: driver._id,
+    await driver.save();
+    console.log('✅ Location saved');
+
+    const io = req.app.get('io');
+    
+    const activeRide = await Ride.findOne({ 
+      driver: driver._id, 
       status: { $in: ['accepted', 'in_progress', 'arrived'] }
     });
-
+    
+    console.log('🔍 Active ride search result:', activeRide ? activeRide._id : 'NONE FOUND');
+    
     if (activeRide) {
+      console.log('📡 EMITTING to room:', activeRide._id.toString());
       io.to(activeRide._id.toString()).emit('driver-location-update', {
         driverId: driver._id,
         location: { latitude, longitude },
         timestamp: new Date()
       });
+      console.log('✅ EMITTED SUCCESSFULLY');
+    } else {
+      console.log('⚠️ NO ACTIVE RIDE - NOT EMITTING');
     }
-
-    // Broadcast to riders watching (for nearby drivers on map)
-    io.to('riders-watching').emit('nearby-driver-location', {
-      driverId: driver._id.toString(),
-      location: { latitude, longitude },
-      timestamp: new Date()
-    });
-
+    
     res.status(200).json({
       success: true,
-      currentLocation: { latitude, longitude }
+      currentLocation: {
+        latitude,
+        longitude
+      }
     });
   } catch (error) {
-    console.error('Update Location Error:', error);
+    console.error('❌ Update Location Error:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour de la localisation'
-    });
-  }
-};
-
-// @desc    Get nearby online drivers (for riders to see on map)
-// @route   GET /api/drivers/nearby
-// @access  Private (Rider)
-exports.getNearbyDrivers = async (req, res) => {
-  try {
-    const { latitude, longitude, radius = 10 } = req.query;
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: 'Latitude et longitude requises'
-      });
-    }
-
-    const driverLocationService = req.app.get('driverLocationService');
-
-    // Get drivers from Redis (real-time, only actually online drivers)
-    const nearbyDrivers = await driverLocationService.getNearbyDrivers(
-      parseFloat(latitude),
-      parseFloat(longitude),
-      parseFloat(radius)
-    );
-
-    // Enrich with MongoDB data if needed
-    const enrichedDrivers = await Promise.all(
-      nearbyDrivers.map(async (redisDriver) => {
-        try {
-          const mongoDriver = await Driver.findById(redisDriver.driverId)
-            .populate('userId', 'name rating');
-          
-          return {
-            _id: redisDriver.driverId,
-            location: redisDriver.location,
-            distance: redisDriver.distance,
-            vehicle: mongoDriver?.vehicle || redisDriver.vehicle,
-            rating: mongoDriver?.userId?.rating || redisDriver.rating || 5.0,
-            name: mongoDriver?.userId?.name
-          };
-        } catch (err) {
-          return redisDriver;
-        }
-      })
-    );
-
-    res.status(200).json({
-      success: true,
-      count: enrichedDrivers.length,
-      drivers: enrichedDrivers
-    });
-  } catch (error) {
-    console.error('Get Nearby Drivers Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de la recherche de chauffeurs'
     });
   }
 };
@@ -248,6 +180,7 @@ exports.getNearbyDrivers = async (req, res) => {
 exports.getActiveRide = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
+
     if (!driver) {
       return res.status(404).json({
         success: false,
@@ -258,21 +191,11 @@ exports.getActiveRide = async (req, res) => {
     const activeRide = await Ride.findOne({
       driver: driver._id,
       status: { $in: ['accepted', 'arrived', 'in_progress'] }
-    }).populate('riderId');
-
-    // Get rider info
-    let rideWithRider = null;
-    if (activeRide) {
-      const riderUser = await User.findById(activeRide.riderId?.userId);
-      rideWithRider = {
-        ...activeRide.toObject(),
-        rider: riderUser ? { name: riderUser.name, phone: riderUser.phone } : null
-      };
-    }
+    }).populate('rider', 'name phone');
 
     res.status(200).json({
       success: true,
-      ride: rideWithRider
+      ride: activeRide
     });
   } catch (error) {
     console.error('Get Active Ride Error:', error);
@@ -289,6 +212,7 @@ exports.getActiveRide = async (req, res) => {
 exports.getEarnings = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
+
     if (!driver) {
       return res.status(404).json({
         success: false,
@@ -301,14 +225,14 @@ exports.getEarnings = async (req, res) => {
       status: 'completed'
     });
 
-    const totalEarnings = completedRides.reduce((sum, ride) => sum + (ride.driverEarnings || ride.fare), 0);
+    const totalEarnings = completedRides.reduce((sum, ride) => sum + ride.fare, 0);
     const todayEarnings = completedRides
       .filter(ride => {
         const today = new Date();
-        const rideDate = new Date(ride.completedAt || ride.updatedAt);
+        const rideDate = new Date(ride.completedAt);
         return rideDate.toDateString() === today.toDateString();
       })
-      .reduce((sum, ride) => sum + (ride.driverEarnings || ride.fare), 0);
+      .reduce((sum, ride) => sum + ride.fare, 0);
 
     res.status(200).json({
       success: true,
@@ -333,6 +257,7 @@ exports.getEarnings = async (req, res) => {
 exports.getRideHistory = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
+
     if (!driver) {
       return res.status(404).json({
         success: false,
@@ -344,6 +269,7 @@ exports.getRideHistory = async (req, res) => {
       driver: driver._id,
       status: 'completed'
     })
+      .populate('rider', 'name phone')
       .sort({ completedAt: -1 })
       .limit(50);
 
@@ -356,27 +282,6 @@ exports.getRideHistory = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération de l\'historique'
-    });
-  }
-};
-
-// @desc    Get online drivers count (for admin/stats)
-// @route   GET /api/drivers/online-count
-// @access  Private
-exports.getOnlineCount = async (req, res) => {
-  try {
-    const driverLocationService = req.app.get('driverLocationService');
-    const count = await driverLocationService.getOnlineDriversCount();
-    
-    res.status(200).json({
-      success: true,
-      onlineDrivers: count
-    });
-  } catch (error) {
-    console.error('Get Online Count Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Erreur'
     });
   }
 };

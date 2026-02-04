@@ -8,16 +8,8 @@ const {
   updateLocation,
   getActiveRide,
   getEarnings,
-  getRideHistory,
-  getNearbyDrivers,
-  getOnlineCount
+  getRideHistory
 } = require('../controllers/driverController');
-
-// Public/stats routes
-router.get('/online-count', protect, getOnlineCount);
-
-// Get nearby drivers (for riders) - must be before /:id routes
-router.get('/nearby', protect, getNearbyDrivers);
 
 // Get driver profile
 router.get('/profile', protect, restrictTo('driver'), getProfile);

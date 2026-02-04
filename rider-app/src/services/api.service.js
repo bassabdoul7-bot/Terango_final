@@ -37,7 +37,7 @@ api.interceptors.response.use(
 
 export const authService = {
   sendOTP: (phone) => api.post('/auth/send-otp', { phone }),
-  verifyOTP: (phone, otp, name = 'Rider', role = 'rider') => 
+  verifyOTP: (phone, otp, name = 'Rider', role = 'rider') =>
     api.post('/auth/verify-otp', { phone, otp, name, role }),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
@@ -49,6 +49,11 @@ export const rideService = {
   getMyRides: () => api.get('/rides/my-rides'),
   cancelRide: (rideId, reason) => api.put(`/rides/${rideId}/cancel`, { reason }),
   rateRide: (rideId, rating, review) => api.put(`/rides/${rideId}/rate`, { rating, review }),
+};
+
+export const driverService = {
+  getNearbyDrivers: (latitude, longitude, radius = 10) => 
+    api.get(`/drivers/nearby?latitude=${latitude}&longitude=${longitude}&radius=${radius}`),
 };
 
 export default api;

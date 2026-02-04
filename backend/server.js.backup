@@ -5,6 +5,10 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const connectDB = require('./config/db');
 const RideMatchingService = require('./services/rideMatchingService');
+const authRoutes = require('./routes/authRoutes');
+const rideRoutes = require('./routes/rideRoutes');
+const driverRoutes = require('./routes/driverRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -15,26 +19,28 @@ const io = socketIo(server, {
   }
 });
 
-// Connect to database
-connectDB();
-
-// Initialize ride matching service
-const matchingService = new RideMatchingService(io);
-
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Make io and matchingService accessible to routes
-app.set('io', io);
+// Connect to MongoDB
+connectDB();
+
+// Initialize Ride Matching Service
+const matchingService = new RideMatchingService(io);
 app.set('matchingService', matchingService);
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const rideRoutes = require('./routes/rideRoutes');
-const driverRoutes = require('./routes/driverRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+// Health check
+app.get('/', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'TeranGO API is running',
+    timestamp: new Date().toISOString()
+  });
+});
 
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/drivers', driverRoutes);
@@ -47,28 +53,13 @@ io.on('connection', (socket) => {
   // Driver connects and joins their personal room
   socket.on('driver-online', (driverId) => {
     socket.join(`driver-${driverId}`);
-    socket.join('online-drivers');
-    console.log(`Driver ${driverId} joined their room and online-drivers`);
+    console.log(`Driver ${driverId} joined their room`);
   });
 
   // Driver disconnects from their room
   socket.on('driver-offline', (driverId) => {
     socket.leave(`driver-${driverId}`);
-    socket.leave('online-drivers');
-    io.to('riders-watching').emit('driver-went-offline', { driverId });
     console.log(`Driver ${driverId} left their room`);
-  });
-
-  // Rider starts watching for nearby drivers
-  socket.on('rider-watching-drivers', () => {
-    socket.join('riders-watching');
-    console.log(`Rider ${socket.id} watching for drivers`);
-  });
-
-  // Rider stops watching
-  socket.on('rider-stop-watching', () => {
-    socket.leave('riders-watching');
-    console.log(`Rider ${socket.id} stopped watching`);
   });
 
   // Join ride room for real-time updates
@@ -83,16 +74,9 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} left ride room: ${rideId}`);
   });
 
-  // Driver location updates - broadcast to ride room AND global riders
+  // Driver location updates
   socket.on('driver-location-update', (data) => {
-    if (data.rideId) {
-      io.to(data.rideId).emit('driver-location-update', data);
-    }
-    io.to('riders-watching').emit('nearby-driver-location', {
-      driverId: data.driverId,
-      location: data.location,
-      timestamp: new Date()
-    });
+    io.to(data.rideId).emit('driver-location', data);
   });
 
   // Ride updates
@@ -105,17 +89,39 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 5000;
+// Make io accessible to routes
+app.set('io', io);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
+const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
-  console.log(`\n🚀 TeranGO Backend Server Running!`);
-  console.log(`   📍 Port: ${PORT}`);
-  console.log(`   🔗 API Endpoints:`);
-  console.log(`   🔐 /api/auth    - Authentication`);
-  console.log(`   🚗 /api/rides   - Ride Management`);
-  console.log(`   👨‍✈️ /api/drivers - Driver Operations & Tracking`);
-  console.log(`   👨‍💼 /api/admin   - Admin Dashboard & Analytics`);
+  console.log(`🚀 TeranGO Backend API - FULLY OPERATIONAL!`);
+  console.log(`📡 Port: ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ Available Endpoints:`);
+  console.log(`   📱 /api/auth      - Authentication & User Management`);
+  console.log(`   🚗 /api/rides     - Ride Booking & Management`);
+  console.log(`   👨‍✈️ /api/drivers   - Driver Operations & Tracking`);
+  console.log(`   👨‍💼 /api/admin     - Admin Dashboard & Analytics`);
   console.log(`🔌 WebSocket: Real-time updates enabled`);
-  console.log(`📡 Nearby drivers broadcast: ACTIVE`);
   console.log(`🎯 UBER-LEVEL MATCHING: Proximity-based ride matching active!`);
 });
+
+module.exports = { app, server, io };
