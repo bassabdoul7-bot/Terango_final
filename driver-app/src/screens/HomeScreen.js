@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StatusBar,
   Alert,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -23,12 +24,13 @@ const HomeScreen = ({ navigation }) => {
   const [isOnline, setIsOnline] = useState(false);
   const [location, setLocation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(true);
   const [socket, setSocket] = useState(null);
+  const pendingGoOnline = useRef(false);
 
   useEffect(() => {
     initializeLocation();
-    
-    // Initialize socket connection
+
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
@@ -47,21 +49,92 @@ const HomeScreen = ({ navigation }) => {
     };
   }, []);
 
+  // When location becomes available and user wanted to go online
+  useEffect(() => {
+    if (location && pendingGoOnline.current) {
+      pendingGoOnline.current = false;
+      goOnlineWithLocation();
+    }
+  }, [location]);
+
   const initializeLocation = async () => {
+    setGettingLocation(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation');
+        Alert.alert(
+          'Permission requise', 
+          'Nous avons besoin de votre localisation pour vous mettre en ligne.',
+          [{ text: 'Réessayer', onPress: initializeLocation }]
+        );
+        setGettingLocation(false);
         return;
       }
 
-      const currentLocation = await Location.getCurrentPositionAsync({});
+      const currentLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeout: 15000,
+      });
+      
       setLocation({
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
       });
+      console.log('Location obtained:', currentLocation.coords);
     } catch (error) {
       console.error('Location error:', error);
+      // Retry with lower accuracy
+      try {
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setLocation({
+          latitude: currentLocation.coords.latitude,
+          longitude: currentLocation.coords.longitude,
+        });
+      } catch (retryError) {
+        console.error('Location retry error:', retryError);
+        Alert.alert(
+          'GPS non disponible',
+          'Impossible d\'obtenir votre position. Vérifiez que le GPS est activé.',
+          [{ text: 'Réessayer', onPress: initializeLocation }]
+        );
+      }
+    } finally {
+      setGettingLocation(false);
+    }
+  };
+
+  const goOnlineWithLocation = async () => {
+    if (!driver || !driver._id) {
+      Alert.alert('Erreur', 'Profil chauffeur introuvable');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Send location with online status for Redis tracking
+      await driverService.toggleOnlineStatus(true, location.latitude, location.longitude);
+      setIsOnline(true);
+
+      // Emit driver-online with location to socket for real-time tracking
+      if (socket) {
+        socket.emit('driver-online', {
+          driverId: driver._id,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          vehicle: driver.vehicle,
+          rating: driver.userId?.rating || 5.0
+        });
+        console.log(`Driver ${driver._id} went online at ${location.latitude}, ${location.longitude}`);
+      }
+
+      navigation.replace('RideRequests', { driverId: driver._id });
+    } catch (error) {
+      console.error('Toggle online error:', error);
+      Alert.alert('Erreur', error.response?.data?.message || 'Impossible de passer en ligne');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -72,29 +145,33 @@ const HomeScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-    try {
-      await driverService.toggleOnlineStatus(true);
-      setIsOnline(true);
+
+    if (!location) {
+      // Location not ready, get it first then go online
+      pendingGoOnline.current = true;
+      await initializeLocation();
       
-      // Emit driver-online to join personal room for TARGETED offers
-      if (socket) {
-        socket.emit('driver-online', driver._id);
-        console.log(`Driver ${driver._id} joined their room for targeted offers`);
+      // If still no location after trying, show error
+      if (!location && !pendingGoOnline.current) {
+        setLoading(false);
       }
-      
-      navigation.replace('RideRequests', { driverId: driver._id });
-    } catch (error) {
-      console.error('Toggle online error:', error);
-      Alert.alert('Erreur', 'Impossible de passer en ligne');
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    await goOnlineWithLocation();
+  };
+
+  const getButtonText = () => {
+    if (loading && !location) return 'Obtention GPS...';
+    if (loading) return 'Connexion...';
+    if (gettingLocation) return 'Localisation...';
+    return 'Passer en ligne';
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
+
       {location ? (
         <MapView
           style={styles.map}
@@ -117,12 +194,13 @@ const HomeScreen = ({ navigation }) => {
         </MapView>
       ) : (
         <View style={styles.mapPlaceholder}>
-          <Text style={styles.loadingText}>Chargement de la carte...</Text>
+          <ActivityIndicator size="large" color={COLORS.green} />
+          <Text style={styles.loadingText}>Obtention de votre position...</Text>
         </View>
       )}
 
       <View style={styles.topBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuButton}
           onPress={() => navigation.navigate('Menu')}
         >
@@ -142,19 +220,39 @@ const HomeScreen = ({ navigation }) => {
                 />
               </View>
             </View>
-            
+
             <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
-            <Text style={styles.offlineSubtitle}>Prêt à accepter des courses?</Text>
-            
-            <TouchableOpacity 
-              style={[styles.goOnlineButton, loading && styles.buttonDisabled]}
-              onPress={handleGoOnline}
-              disabled={loading}
-            >
-              <Text style={styles.goOnlineText}>
-                {loading ? 'Connexion...' : 'Passer en ligne'}
+            <Text style={styles.offlineSubtitle}>
+              {location ? 'Prêt à accepter des courses?' : 'En attente du GPS...'}
+            </Text>
+
+            {/* Location status indicator */}
+            <View style={styles.locationStatus}>
+              <View style={[styles.statusDot, location ? styles.statusDotGreen : styles.statusDotOrange]} />
+              <Text style={styles.statusText}>
+                {location ? 'GPS actif' : gettingLocation ? 'Recherche GPS...' : 'GPS non disponible'}
               </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.goOnlineButton, 
+                (loading || gettingLocation) && styles.buttonDisabled
+              ]}
+              onPress={handleGoOnline}
+              disabled={loading || gettingLocation}
+            >
+              {(loading || gettingLocation) && (
+                <ActivityIndicator size="small" color="#000" style={{ marginRight: 8 }} />
+              )}
+              <Text style={styles.goOnlineText}>{getButtonText()}</Text>
             </TouchableOpacity>
+
+            {!location && !gettingLocation && (
+              <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
+                <Text style={styles.retryText}>🔄 Réessayer GPS</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       )}
@@ -179,6 +277,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#fff',
     fontSize: 16,
+    marginTop: 16,
   },
   driverMarker: {
     width: 44,
@@ -286,8 +385,34 @@ const styles = StyleSheet.create({
   offlineSubtitle: {
     fontSize: 15,
     color: '#333',
-    marginBottom: 28,
+    marginBottom: 16,
     textAlign: 'center',
+  },
+  locationStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 8,
+  },
+  statusDotGreen: {
+    backgroundColor: COLORS.green,
+  },
+  statusDotOrange: {
+    backgroundColor: '#FFA500',
+  },
+  statusText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
   },
   goOnlineButton: {
     backgroundColor: '#FCD116',
@@ -301,6 +426,8 @@ const styles = StyleSheet.create({
     elevation: 8,
     width: '100%',
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -309,6 +436,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
+  },
+  retryButton: {
+    marginTop: 12,
+    padding: 12,
+  },
+  retryText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
   },
 });
 

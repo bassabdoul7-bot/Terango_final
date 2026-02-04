@@ -45,7 +45,7 @@ exports.createRide = async (req, res) => {
     });
 
     const matchingService = req.app.get('matchingService');
-    
+
     const rideData = {
       pickup: ride.pickup,
       dropoff: ride.dropoff,
@@ -121,7 +121,7 @@ exports.getRide = async (req, res) => {
 exports.getMyRides = async (req, res) => {
   try {
     const rider = await Rider.findOne({ userId: req.user._id });
-    
+
     const rides = await Ride.find({ riderId: rider._id })
       .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone rating profilePhoto' } })
       .sort({ createdAt: -1 })
@@ -148,7 +148,7 @@ exports.getMyRides = async (req, res) => {
 exports.acceptRide = async (req, res) => {
   try {
     const driver = await Driver.findOne({ userId: req.user._id });
-    
+
     if (!driver) {
       return res.status(404).json({
         success: false,
@@ -201,7 +201,7 @@ exports.rejectRide = async (req, res) => {
   try {
     const { reason } = req.body;
     const driver = await Driver.findOne({ userId: req.user._id });
-    
+
     if (!driver) {
       return res.status(404).json({
         success: false,
@@ -242,7 +242,7 @@ exports.updateRideStatus = async (req, res) => {
     }
 
     const driver = await Driver.findOne({ userId: req.user._id });
-    
+
     if (ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
@@ -251,7 +251,7 @@ exports.updateRideStatus = async (req, res) => {
     }
 
     ride.status = status;
-    
+
     if (status === 'arrived') {
       ride.arrivedAt = new Date();
     } else if (status === 'in_progress') {
@@ -259,7 +259,7 @@ exports.updateRideStatus = async (req, res) => {
     } else if (status === 'completed') {
       ride.completedAt = new Date();
       ride.paymentStatus = 'completed';
-      
+
       driver.totalEarnings += ride.driverEarnings;
       driver.weeklyEarnings += ride.driverEarnings;
       driver.totalRides += 1;
@@ -267,8 +267,10 @@ exports.updateRideStatus = async (req, res) => {
       await driver.save();
 
       const rider = await Rider.findById(ride.riderId);
-      rider.totalRides += 1;
-      await rider.save();
+      if (rider) {
+        rider.totalRides += 1;
+        await rider.save();
+      }
     }
 
     await ride.save();
@@ -290,6 +292,164 @@ exports.updateRideStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la mise à jour du statut'
+    });
+  }
+};
+
+// @desc    Start ride (Driver picks up rider)
+// @route   PUT /api/rides/:id/start
+// @access  Private (Driver only)
+exports.startRide = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course non trouvée'
+      });
+    }
+
+    const driver = await Driver.findOne({ userId: req.user._id });
+
+    if (!driver || ride.driver.toString() !== driver._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé'
+      });
+    }
+
+    if (ride.status !== 'arrived') {
+      return res.status(400).json({
+        success: false,
+        message: 'Vous devez d\'abord arriver au point de départ'
+      });
+    }
+
+    ride.status = 'in_progress';
+    ride.startedAt = new Date();
+    await ride.save();
+
+    const io = req.app.get('io');
+    io.emit(`ride-status-${ride._id}`, {
+      status: 'in_progress',
+      timestamp: new Date()
+    });
+
+    // Also emit to the ride room
+    io.to(ride._id.toString()).emit('ride-started', {
+      rideId: ride._id,
+      startedAt: ride.startedAt
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Course démarrée',
+      ride
+    });
+
+  } catch (error) {
+    console.error('Start Ride Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du démarrage de la course'
+    });
+  }
+};
+
+// @desc    Complete ride
+// @route   PUT /api/rides/:id/complete
+// @access  Private (Driver only)
+exports.completeRide = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course non trouvée'
+      });
+    }
+
+    const driver = await Driver.findOne({ userId: req.user._id });
+    const driverLocationService = req.app.get('driverLocationService');
+
+    if (!driver || ride.driver.toString() !== driver._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Non autorisé'
+      });
+    }
+
+    if (ride.status !== 'in_progress') {
+      return res.status(400).json({
+        success: false,
+        message: 'La course doit être en cours pour être terminée'
+      });
+    }
+
+    // Complete the ride
+    ride.status = 'completed';
+    ride.completedAt = new Date();
+    ride.paymentStatus = 'completed';
+    await ride.save();
+
+    // Update driver earnings and make available again
+    driver.totalEarnings = (driver.totalEarnings || 0) + (ride.driverEarnings || ride.fare);
+    driver.weeklyEarnings = (driver.weeklyEarnings || 0) + (ride.driverEarnings || ride.fare);
+    driver.totalRides = (driver.totalRides || 0) + 1;
+    driver.isAvailable = true; // Ready for next ride
+    await driver.save();
+
+    // Update rider stats
+    const rider = await Rider.findById(ride.riderId);
+    if (rider) {
+      rider.totalRides = (rider.totalRides || 0) + 1;
+      await rider.save();
+    }
+
+    // Update Redis - driver is available again
+    if (driver.currentLocation?.coordinates) {
+      await driverLocationService.updateDriverLocation(
+        driver._id.toString(),
+        driver.currentLocation.coordinates.latitude,
+        driver.currentLocation.coordinates.longitude,
+        { vehicle: driver.vehicle, rating: driver.userId?.rating || 5.0 }
+      );
+    }
+
+    const io = req.app.get('io');
+    
+    // Notify rider
+    io.emit(`ride-status-${ride._id}`, {
+      status: 'completed',
+      timestamp: new Date(),
+      fare: ride.fare,
+      driverEarnings: ride.driverEarnings
+    });
+
+    io.to(ride._id.toString()).emit('ride-completed', {
+      rideId: ride._id,
+      completedAt: ride.completedAt,
+      fare: ride.fare
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Course terminée',
+      ride,
+      earnings: {
+        thisRide: ride.driverEarnings || ride.fare,
+        totalToday: driver.weeklyEarnings,
+        totalAllTime: driver.totalEarnings
+      }
+    });
+
+  } catch (error) {
+    console.error('Complete Ride Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la finalisation de la course'
     });
   }
 };
@@ -319,12 +479,13 @@ exports.cancelRide = async (req, res) => {
     ride.status = 'cancelled';
     ride.cancelledAt = new Date();
     ride.cancelledBy = req.user.role;
-    ride.cancellationReason = reason;
+    ride.cancellationReason = reason || 'Non spécifié';
     await ride.save();
 
     const matchingService = req.app.get('matchingService');
     await matchingService.cancelRideOffers(ride._id);
 
+    // Make driver available again
     if (ride.driver) {
       await Driver.findByIdAndUpdate(ride.driver, { isAvailable: true });
     }
@@ -332,7 +493,7 @@ exports.cancelRide = async (req, res) => {
     const io = req.app.get('io');
     io.emit(`ride-cancelled-${ride._id}`, {
       cancelledBy: req.user.role,
-      reason
+      reason: reason || 'Non spécifié'
     });
 
     res.status(200).json({
@@ -379,33 +540,37 @@ exports.rateRide = async (req, res) => {
       ride.driverRating = { rating, review };
       await ride.save();
 
-      const driverUser = await Driver.findById(ride.driver).populate('userId');
-      const allRatings = await Ride.find({ 
-        driver: ride.driver, 
-        'driverRating.rating': { $exists: true } 
-      });
-      
-      const avgRating = allRatings.reduce((sum, r) => sum + r.driverRating.rating, 0) / allRatings.length;
-      
-      driverUser.userId.rating = avgRating;
-      driverUser.userId.totalRatings = allRatings.length;
-      await driverUser.userId.save();
+      const driverDoc = await Driver.findById(ride.driver).populate('userId');
+      if (driverDoc?.userId) {
+        const allRatings = await Ride.find({
+          driver: ride.driver,
+          'driverRating.rating': { $exists: true }
+        });
+
+        const avgRating = allRatings.reduce((sum, r) => sum + r.driverRating.rating, 0) / allRatings.length;
+
+        driverDoc.userId.rating = avgRating;
+        driverDoc.userId.totalRatings = allRatings.length;
+        await driverDoc.userId.save();
+      }
 
     } else if (driver) {
       ride.riderRating = { rating, review };
       await ride.save();
 
-      const riderUser = await Rider.findById(ride.riderId).populate('userId');
-      const allRatings = await Ride.find({ 
-        riderId: ride.riderId, 
-        'riderRating.rating': { $exists: true } 
-      });
-      
-      const avgRating = allRatings.reduce((sum, r) => sum + r.riderRating.rating, 0) / allRatings.length;
-      
-      riderUser.userId.rating = avgRating;
-      riderUser.userId.totalRatings = allRatings.length;
-      await riderUser.userId.save();
+      const riderDoc = await Rider.findById(ride.riderId).populate('userId');
+      if (riderDoc?.userId) {
+        const allRatings = await Ride.find({
+          riderId: ride.riderId,
+          'riderRating.rating': { $exists: true }
+        });
+
+        const avgRating = allRatings.reduce((sum, r) => sum + r.riderRating.rating, 0) / allRatings.length;
+
+        riderDoc.userId.rating = avgRating;
+        riderDoc.userId.totalRatings = allRatings.length;
+        await riderDoc.userId.save();
+      }
     }
 
     res.status(200).json({

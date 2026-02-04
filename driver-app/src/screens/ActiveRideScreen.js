@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,21 +14,24 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as PolylineUtil from '@mapbox/polyline';
+import io from 'socket.io-client';
 import GlassButton from '../components/GlassButton';
 import SuccessModal from '../components/SuccessModal';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import * as Speech from 'expo-speech';
+import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../utils/voice';
 import { simplifyPolyline } from '../utils/polylineSimplifier';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
+import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const ARRIVAL_THRESHOLD = 50;
+const SOCKET_URL = 'http://192.168.1.184:5000';
 
 const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
   const [selectedReason, setSelectedReason] = useState(null);
-
   const reasons = [
     { id: 1, label: 'Ma voiture est en panne' },
     { id: 2, label: 'Impossible de rejoindre le client' },
@@ -39,70 +42,40 @@ const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
   ];
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={cancelStyles.overlay}>
         <View style={cancelStyles.modal}>
           <Text style={cancelStyles.title}>Raison de l'annulation</Text>
           <Text style={cancelStyles.subtitle}>Sélectionnez une raison</Text>
-
           <ScrollView style={cancelStyles.reasonsList}>
             {reasons.map((reason) => (
               <TouchableOpacity
                 key={reason.id}
-                style={[
-                  cancelStyles.reasonItem,
-                  selectedReason === reason.id && cancelStyles.reasonItemSelected
-                ]}
+                style={[cancelStyles.reasonItem, selectedReason === reason.id && cancelStyles.reasonItemSelected]}
                 onPress={() => setSelectedReason(reason.id)}
               >
                 <View style={cancelStyles.radio}>
-                  {selectedReason === reason.id && (
-                    <View style={cancelStyles.radioInner} />
-                  )}
+                  {selectedReason === reason.id && <View style={cancelStyles.radioInner} />}
                 </View>
                 <Text style={cancelStyles.reasonText}>{reason.label}</Text>
               </TouchableOpacity>
             ))}
           </ScrollView>
-
           <View style={cancelStyles.actions}>
-            <TouchableOpacity
-              style={cancelStyles.supportButton}
-              onPress={onSupport}
-            >
+            <TouchableOpacity style={cancelStyles.supportButton} onPress={onSupport}>
               <Text style={cancelStyles.supportIcon}>📞</Text>
               <Text style={cancelStyles.supportText}>Contacter Support</Text>
             </TouchableOpacity>
-
             <View style={cancelStyles.mainActions}>
-              <TouchableOpacity
-                style={cancelStyles.backButton}
-                onPress={onClose}
-              >
+              <TouchableOpacity style={cancelStyles.backButton} onPress={onClose}>
                 <Text style={cancelStyles.backButtonText}>Retour</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
-                style={[
-                  cancelStyles.confirmButton,
-                  !selectedReason && cancelStyles.confirmButtonDisabled
-                ]}
-                onPress={() => {
-                  if (selectedReason) {
-                    const reason = reasons.find(r => r.id === selectedReason);
-                    onConfirm(reason.label);
-                  }
-                }}
+                style={[cancelStyles.confirmButton, !selectedReason && cancelStyles.confirmButtonDisabled]}
+                onPress={() => selectedReason && onConfirm(reasons.find(r => r.id === selectedReason).label)}
                 disabled={!selectedReason}
               >
-                <Text style={cancelStyles.confirmButtonText}>
-                  Confirmer l'annulation
-                </Text>
+                <Text style={cancelStyles.confirmButtonText}>Confirmer l'annulation</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -112,13 +85,33 @@ const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
   );
 };
 
+// Queued Ride Banner Component
+const QueuedRideBanner = ({ queuedRide, onView }) => {
+  if (!queuedRide) return null;
+  
+  return (
+    <TouchableOpacity style={queueStyles.banner} onPress={onView}>
+      <View style={queueStyles.iconContainer}>
+        <Text style={queueStyles.icon}>🚗</Text>
+      </View>
+      <View style={queueStyles.textContainer}>
+        <Text style={queueStyles.title}>Course en attente</Text>
+        <Text style={queueStyles.subtitle}>{queuedRide.fare?.toLocaleString()} FCFA • {queuedRide.distance?.toFixed(1)} km</Text>
+      </View>
+      <Text style={queueStyles.arrow}>→</Text>
+    </TouchableOpacity>
+  );
+};
+
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId, ride: passedRide } = route.params;
-  
+  const { driver } = useAuth();
+
   const mapRef = useRef(null);
   const locationSubscription = useRef(null);
   const hasFetchedRoute = useRef(false);
-  
+  const socketRef = useRef(null);
+
   const [ride, setRide] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
   const [heading, setHeading] = useState(0);
@@ -136,11 +129,72 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [isNearDestination, setIsNearDestination] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [queuedRide, setQueuedRide] = useState(null); // Next ride in queue
   const announcementDistances = useRef(new Set());
+
+  // Initialize socket for receiving queued rides
+  useEffect(() => {
+    if (!driver?._id) return;
+
+    socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
+    
+    socketRef.current.on('connect', () => {
+      console.log('ActiveRide socket connected');
+      // Join driver room to receive queued rides
+      socketRef.current.emit('driver-online', {
+        driverId: driver._id,
+        latitude: driverLocation?.latitude,
+        longitude: driverLocation?.longitude
+      });
+    });
+
+    // Listen for new ride offers (queue for after current ride)
+    socketRef.current.on(`new-ride-offer-${driver._id}`, (rideData) => {
+      console.log('🎯 Queued ride offer received:', rideData);
+      // Only queue if we're in a ride
+      if (ride?.status === 'in_progress') {
+        setQueuedRide(rideData);
+        // Auto-accept queued rides or show notification
+        Alert.alert(
+          'Nouvelle course en attente',
+          `${rideData.fare?.toLocaleString()} FCFA • ${rideData.distance?.toFixed(1)} km`,
+          [
+            { text: 'Refuser', style: 'cancel', onPress: () => rejectQueuedRide(rideData) },
+            { text: 'Accepter', onPress: () => acceptQueuedRide(rideData) }
+          ]
+        );
+      }
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [driver?._id, ride?.status]);
+
+  const acceptQueuedRide = async (rideData) => {
+    try {
+      await driverService.acceptRide(rideData.rideId);
+      setQueuedRide({ ...rideData, accepted: true });
+      speak('Course en attente acceptée');
+    } catch (error) {
+      console.error('Accept queued ride error:', error);
+      setQueuedRide(null);
+    }
+  };
+
+  const rejectQueuedRide = async (rideData) => {
+    try {
+      await driverService.rejectRide(rideData.rideId, 'Occupé');
+      setQueuedRide(null);
+    } catch (error) {
+      console.error('Reject queued ride error:', error);
+    }
+  };
 
   useEffect(() => {
     if (passedRide) {
-      console.log('Initializing ride');
       setRide({
         _id: rideId,
         status: 'accepted',
@@ -159,44 +213,32 @@ const ActiveRideScreen = ({ route, navigation }) => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          Alert.alert('Permission refusee', 'Localisation requise');
+          Alert.alert('Permission refusée', 'Localisation requise');
           setInitializing(false);
           return;
         }
 
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        
+        const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+
         if (mounted) {
-          const newLoc = {
+          setDriverLocation({
             latitude: currentLocation.coords.latitude,
             longitude: currentLocation.coords.longitude,
-          };
-          setDriverLocation(newLoc);
+          });
           setHeading(currentLocation.coords.heading || 0);
           setInitializing(false);
         }
 
         locationSubscription.current = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            timeInterval: 3000,
-            distanceInterval: 5,
-          },
+          { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
           (location) => {
             if (mounted) {
-              const newLoc = {
+              setDriverLocation({
                 latitude: location.coords.latitude,
                 longitude: location.coords.longitude,
-              };
-              setDriverLocation(newLoc);
+              });
               setHeading(location.coords.heading || heading);
-              
-              driverService.updateLocation(
-                location.coords.latitude,
-                location.coords.longitude
-              ).catch(() => {});
+              driverService.updateLocation(location.coords.latitude, location.coords.longitude).catch(() => {});
             }
           }
         );
@@ -210,9 +252,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     return () => {
       mounted = false;
-      if (locationSubscription.current) {
-        locationSubscription.current.remove();
-      }
+      if (locationSubscription.current) locationSubscription.current.remove();
     };
   }, []);
 
@@ -221,62 +261,43 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     const fetchRoute = async () => {
       const destination = ride.status === 'accepted' || ride.status === 'arrived'
-        ? ride.pickup.coordinates 
+        ? ride.pickup.coordinates
         : ride.dropoff.coordinates;
 
       if (!destination) return;
 
       try {
-        const originStr = `${driverLocation.latitude},${driverLocation.longitude}`;
-        const destStr = `${destination.latitude},${destination.longitude}`;
-        
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${originStr}&destination=${destStr}&key=${GOOGLE_MAPS_KEY}&mode=driving&language=fr`;
-        
+        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${driverLocation.latitude},${driverLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_MAPS_KEY}&mode=driving&language=fr`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         if (data.status === 'OK' && data.routes.length > 0) {
-          const routeData = data.routes[0];
-          const leg = routeData.legs[0];
-          
+          const leg = data.routes[0].legs[0];
           setTotalDistance(leg.distance.text);
           setTotalDuration(leg.duration.text);
-          
+
           const steps = leg.steps.map((step, index) => ({
             id: index,
             instruction: step.html_instructions.replace(/<[^>]*>/g, ''),
             distance: step.distance.text,
             distanceValue: step.distance.value,
-            duration: step.duration.text,
             maneuver: step.maneuver,
-            startLocation: {
-              latitude: step.start_location.lat,
-              longitude: step.start_location.lng,
-            },
-            endLocation: {
-              latitude: step.end_location.lat,
-              longitude: step.end_location.lng,
-            }
+            startLocation: { latitude: step.start_location.lat, longitude: step.start_location.lng },
+            endLocation: { latitude: step.end_location.lat, longitude: step.end_location.lng }
           }));
-          
+
           setAllSteps(steps);
-          if (steps.length > 0) {
-            setCurrentStep(steps[0]);
-          }
-          
-          const points = PolylineUtil.decode(routeData.overview_polyline.points);
-          const coords = points.map(point => ({
-            latitude: point[0],
-            longitude: point[1],
-          }));
-          
-          const simplifiedCoords = simplifyPolyline(coords, 0.00015);
-          setRouteCoordinates(simplifiedCoords);
+          if (steps.length > 0) setCurrentStep(steps[0]);
+
+          const points = PolylineUtil.decode(data.routes[0].overview_polyline.points);
+          const coords = points.map(p => ({ latitude: p[0], longitude: p[1] }));
+          console.log('🛣️ Route fetched with', coords.length, 'points');
+            setRouteCoordinates(coords); // Disabled simplification for testing
           hasFetchedRoute.current = true;
-          
+
           setTimeout(() => {
             if (mapRef.current && !navigationStarted) {
-              mapRef.current.fitToCoordinates(simplifiedCoords, {
+              mapRef.current.fitToCoordinates(coords, {
                 edgePadding: { top: 200, right: 50, bottom: 400, left: 50 },
                 animated: true,
               });
@@ -293,12 +314,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const announceInstruction = useCallback((instruction) => {
     if (!voiceEnabled) return;
-    
-    Speech.speak(instruction, {
-      language: 'fr-FR',
-      pitch: 1.0,
-      rate: 0.9,
-    });
+    speakNavigation(instruction);
   }, [voiceEnabled]);
 
   const handleRecenter = useCallback(() => {
@@ -316,19 +332,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
     if (!driverLocation || !currentStep || !allSteps.length || !voiceEnabled) return;
 
     const distance = calculateDistance(
-      driverLocation.latitude,
-      driverLocation.longitude,
-      currentStep.endLocation.latitude,
-      currentStep.endLocation.longitude
+      driverLocation.latitude, driverLocation.longitude,
+      currentStep.endLocation.latitude, currentStep.endLocation.longitude
     );
 
     const stepKey = `step_${currentStep.id}`;
-    
+
     if (distance <= 300 && distance > 250 && !announcementDistances.current.has(`${stepKey}_300`)) {
-      announceInstruction(`Dans 300 metres, ${currentStep.instruction}`);
+      announceInstruction(`Dans 300 mètres, ${currentStep.instruction}`);
       announcementDistances.current.add(`${stepKey}_300`);
     } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(`${stepKey}_100`)) {
-      announceInstruction(`Dans 100 metres, ${currentStep.instruction}`);
+      announceInstruction(`Dans 100 mètres, ${currentStep.instruction}`);
       announcementDistances.current.add(`${stepKey}_100`);
     } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(`${stepKey}_50`)) {
       announceInstruction(currentStep.instruction);
@@ -337,34 +351,22 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
     if (currentStep.id !== lastAnnouncedStep) {
       setLastAnnouncedStep(currentStep.id);
-      const toDelete = [];
-      announcementDistances.current.forEach(key => {
-        if (!key.startsWith(`step_${currentStep.id}_`)) {
-          toDelete.push(key);
-        }
-      });
-      toDelete.forEach(key => announcementDistances.current.delete(key));
+      announcementDistances.current.clear();
     }
   }, [driverLocation, currentStep, allSteps, voiceEnabled, announceInstruction, lastAnnouncedStep]);
 
   const toggleVoice = useCallback(() => {
     const newState = !voiceEnabled;
     setVoiceEnabled(newState);
-    if (newState) {
-      Speech.speak("Navigation vocale activee", { language: 'fr-FR' });
-    } else {
-      Speech.stop();
-    }
+    speak(newState ? "Navigation vocale activée" : "Navigation vocale désactivée");
   }, [voiceEnabled]);
 
   useEffect(() => {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
     const distance = calculateDistance(
-      driverLocation.latitude,
-      driverLocation.longitude,
-      currentStep.endLocation.latitude,
-      currentStep.endLocation.longitude
+      driverLocation.latitude, driverLocation.longitude,
+      currentStep.endLocation.latitude, currentStep.endLocation.longitude
     );
 
     setDistanceToStep(formatDistance(distance));
@@ -372,17 +374,15 @@ const ActiveRideScreen = ({ route, navigation }) => {
     if (distance < 50 && currentStep.id < allSteps.length - 1) {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
-    
+
     const destination = ride.status === 'accepted' || ride.status === 'arrived'
-      ? ride.pickup.coordinates 
+      ? ride.pickup.coordinates
       : ride.dropoff.coordinates;
-    
+
     if (destination) {
       const distanceToDestination = calculateDistance(
-        driverLocation.latitude,
-        driverLocation.longitude,
-        destination.latitude,
-        destination.longitude
+        driverLocation.latitude, driverLocation.longitude,
+        destination.latitude, destination.longitude
       );
       setIsNearDestination(distanceToDestination <= ARRIVAL_THRESHOLD);
     }
@@ -394,52 +394,32 @@ const ActiveRideScreen = ({ route, navigation }) => {
     const phi2 = lat2 * Math.PI / 180;
     const deltaPhi = (lat2 - lat1) * Math.PI / 180;
     const deltaLambda = (lon2 - lon1) * Math.PI / 180;
-
-    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
+    const a = Math.sin(deltaPhi/2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda/2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   };
 
-  const formatDistance = (meters) => {
-    if (meters < 1000) {
-      return `${Math.round(meters)} m`;
-    }
-    return `${(meters / 1000).toFixed(1)} km`;
-  };
+  const formatDistance = (meters) => meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
 
   const getManeuverIcon = (maneuver) => {
     if (!maneuver) return '↑';
     if (maneuver.includes('left')) return '↰';
     if (maneuver.includes('right')) return '↱';
-    if (maneuver.includes('straight')) return '↑';
     if (maneuver.includes('uturn')) return '↶';
     return '↑';
   };
 
   const handleStartNavigation = useCallback(() => {
     setNavigationStarted(true);
-    
     if (mapRef.current && driverLocation) {
-      mapRef.current.animateCamera({
-        center: driverLocation,
-        zoom: 18,
-        pitch: 30,
-        heading: heading,
-      }, { duration: 1000 });
+      mapRef.current.animateCamera({ center: driverLocation, zoom: 18, pitch: 30, heading }, { duration: 1000 });
     }
   }, [driverLocation, heading]);
 
-  const handleCancelRide = () => {
-    setShowCancelModal(true);
-  };
+  const handleCancelRide = () => setShowCancelModal(true);
 
   const handleConfirmCancel = async (reason) => {
     setShowCancelModal(false);
     setLoading(true);
-    
     try {
       await driverService.cancelRide(rideId, reason);
       setShowSuccessModal(true);
@@ -451,21 +431,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
   };
 
   const handleContactSupport = () => {
-    Alert.alert(
-      'Contacter le Support',
-      'Choisissez un moyen',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: '📞 Appeler',
-          onPress: () => Linking.openURL('tel:+221338234567')
-        },
-        {
-          text: '💬 WhatsApp',
-          onPress: () => Linking.openURL('https://wa.me/221778234567')
-        }
-      ]
-    );
+    Alert.alert('Contacter le Support', 'Choisissez un moyen', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: '📞 Appeler', onPress: () => Linking.openURL('tel:+221338234567') },
+      { text: '💬 WhatsApp', onPress: () => Linking.openURL('https://wa.me/221778234567') }
+    ]);
   };
 
   const handleArrived = useCallback(async () => {
@@ -475,6 +445,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       setRide(prev => ({ ...prev, status: 'arrived' }));
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
+      speakAnnouncement('Vous êtes arrivé au point de départ');
     } catch (error) {
       Alert.alert('Erreur', error.response?.data?.message || 'Erreur');
     } finally {
@@ -489,8 +460,9 @@ const ActiveRideScreen = ({ route, navigation }) => {
       setRide(prev => ({ ...prev, status: 'in_progress' }));
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
+      speakAnnouncement('Course démarrée. Bonne route!');
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de demarrer');
+      Alert.alert('Erreur', 'Impossible de démarrer');
     } finally {
       setLoading(false);
     }
@@ -499,18 +471,38 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleCompleteRide = useCallback(async () => {
     setLoading(true);
     try {
-      await driverService.completeRide(rideId);
-      Alert.alert(
-        'Termine!',
-        `Gains: ${ride.fare?.toLocaleString()} FCFA`,
-        [{ text: 'OK', onPress: () => navigation.navigate('RideRequests') }]
-      );
+      const response = await driverService.completeRide(rideId);
+      
+      speakAnnouncement(`Course terminée. Vous avez gagné ${ride.fare} francs.`);
+
+      // Check if there's a queued ride
+      if (queuedRide?.accepted) {
+        Alert.alert(
+          'Course terminée!',
+          `Gains: ${ride.fare?.toLocaleString()} FCFA\n\nVous avez une course en attente.`,
+          [{
+            text: 'Commencer la prochaine course',
+            onPress: () => {
+              navigation.replace('ActiveRide', {
+                rideId: queuedRide.rideId,
+                ride: queuedRide
+              });
+            }
+          }]
+        );
+      } else {
+        Alert.alert(
+          'Course terminée!',
+          `Gains: ${ride.fare?.toLocaleString()} FCFA`,
+          [{ text: 'OK', onPress: () => navigation.replace('RideRequests') }]
+        );
+      }
     } catch (error) {
       Alert.alert('Erreur', 'Impossible de terminer');
     } finally {
       setLoading(false);
     }
-  }, [rideId, ride, navigation]);
+  }, [rideId, ride, navigation, queuedRide]);
 
   if (initializing || !driverLocation || !ride) {
     return (
@@ -540,51 +532,30 @@ const ActiveRideScreen = ({ route, navigation }) => {
         return (
           <View>
             {!navigationStarted && (
-              <TouchableOpacity 
-                style={styles.navButton}
-                onPress={handleStartNavigation}
-              >
+              <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}>
                 <Text style={styles.navIcon}>🧭</Text>
-                <Text style={styles.navText}>Demarrer navigation</Text>
+                <Text style={styles.navText}>Démarrer navigation</Text>
               </TouchableOpacity>
             )}
             {isNearDestination ? (
-              <GlassButton
-                title="Je suis arrive"
-                onPress={handleArrived}
-                loading={loading}
-              />
+              <GlassButton title="Je suis arrivé" onPress={handleArrived} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>
-                  Le bouton "Je suis arrive" apparaitra a 50m du client
-                </Text>
+                <Text style={styles.proximityText}>Le bouton "Je suis arrivé" apparaîtra à 50m du client</Text>
               </View>
             )}
           </View>
         );
       case 'arrived':
-        return (
-          <GlassButton
-            title="Demarrer la course"
-            onPress={handleStartRide}
-            loading={loading}
-          />
-        );
+        return <GlassButton title="Démarrer la course" onPress={handleStartRide} loading={loading} />;
       case 'in_progress':
         return (
           <View>
             {isNearDestination ? (
-              <GlassButton
-                title="Terminer la course"
-                onPress={handleCompleteRide}
-                loading={loading}
-              />
+              <GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>
-                  Le bouton "Terminer" apparaitra a 50m de la destination
-                </Text>
+                <Text style={styles.proximityText}>Le bouton "Terminer" apparaîtra à 50m de la destination</Text>
               </View>
             )}
           </View>
@@ -601,11 +572,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
         style={styles.map}
         provider={PROVIDER_GOOGLE}
         customMapStyle={WAZE_DARK_STYLE}
-        initialRegion={{
-          ...driverLocation,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        }}
+        initialRegion={{ ...driverLocation, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
         showsUserLocation={false}
         showsBuildings={false}
         showsPointsOfInterest={false}
@@ -613,39 +580,28 @@ const ActiveRideScreen = ({ route, navigation }) => {
         rotateEnabled={navigationStarted}
         pitchEnabled={navigationStarted}
       >
-        <Marker
-          coordinate={driverLocation}
-          anchor={{ x: 0.5, y: 0.5 }}
-          flat={true}
-          rotation={heading}
-        >
-          <View style={styles.driverMarker}>
-            <Text style={styles.driverText}>▲</Text>
-          </View>
+        <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
+          <View style={styles.driverMarker}><Text style={styles.driverText}>▲</Text></View>
         </Marker>
-
-        {destination && (
-          <Marker
-            coordinate={destination}
-            pinColor={ride.status === 'in_progress' ? COLORS.red : COLORS.green}
-          />
-        )}
-
+        {destination && <Marker coordinate={destination} pinColor={ride.status === 'in_progress' ? COLORS.red : COLORS.green} />}
         {routeCoordinates.length > 0 && (
-          <Polyline
-            coordinates={routeCoordinates}
-            strokeColor="#00D9FF"
-            strokeWidth={10}
-          />
+          <>
+            <Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round" />
+            <Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round" />
+          </>
         )}
       </MapView>
 
-      <TouchableOpacity
-        style={styles.recenterButton}
-        onPress={handleRecenter}
-      >
+      <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
         <Text style={styles.recenterIcon}>⊙</Text>
       </TouchableOpacity>
+
+      {/* Queued ride banner */}
+      {queuedRide?.accepted && (
+        <View style={queueStyles.bannerContainer}>
+          <QueuedRideBanner queuedRide={queuedRide} onView={() => {}} />
+        </View>
+      )}
 
       {navigationStarted && currentStep && (
         <View style={styles.turnInstruction}>
@@ -660,22 +616,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
       )}
 
       <View style={styles.topBar}>
-        <TouchableOpacity 
-          style={styles.cancelButton}
-          onPress={handleCancelRide}
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
           <Text style={styles.cancelIcon}>✕</Text>
         </TouchableOpacity>
-
         {navigationStarted && (
-          <TouchableOpacity 
-            style={styles.voiceButton}
-            onPress={toggleVoice}
-          >
+          <TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}>
             <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
           </TouchableOpacity>
         )}
-
         {!navigationStarted && (
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>{getStatusText()}</Text>
@@ -689,18 +637,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
             <Text style={styles.etaTime}>{totalDuration}</Text>
             <Text style={styles.etaDistance}>{totalDistance}</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.stopNavButton}
-            onPress={() => {
-              setNavigationStarted(false);
-              if (mapRef.current) {
-                mapRef.current.animateCamera({
-                  pitch: 0,
-                  zoom: 15,
-                }, { duration: 500 });
-              }
-            }}
-          >
+          <TouchableOpacity style={styles.stopNavButton} onPress={() => {
+            setNavigationStarted(false);
+            mapRef.current?.animateCamera({ pitch: 0, zoom: 15 }, { duration: 500 });
+          }}>
             <Text style={styles.stopNavText}>■</Text>
           </TouchableOpacity>
         </View>
@@ -726,21 +666,15 @@ const ActiveRideScreen = ({ route, navigation }) => {
             <View style={styles.addressRow}>
               <View style={ride.status === 'in_progress' ? styles.redSquare : styles.greenDot} />
               <View style={styles.addressTextContainer}>
-                <Text style={styles.addressLabel}>
-                  {ride.status === 'in_progress' ? 'Destination' : 'Point de depart'}
-                </Text>
+                <Text style={styles.addressLabel}>{ride.status === 'in_progress' ? 'Destination' : 'Point de départ'}</Text>
                 <Text style={styles.addressText} numberOfLines={2}>
-                  {ride.status === 'in_progress' 
-                    ? ride.dropoff?.address 
-                    : ride.pickup?.address}
+                  {ride.status === 'in_progress' ? ride.dropoff?.address : ride.pickup?.address}
                 </Text>
               </View>
             </View>
           </View>
 
-          <View style={styles.actionContainer}>
-            {getActionButton()}
-          </View>
+          <View style={styles.actionContainer}>{getActionButton()}</View>
         </View>
       )}
 
@@ -757,478 +691,116 @@ const ActiveRideScreen = ({ route, navigation }) => {
         message="La course a été annulée avec succès"
         onClose={() => {
           setShowSuccessModal(false);
-          navigation.navigate('RideRequests');
+          navigation.replace('RideRequests');
         }}
       />
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: COLORS.gray,
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  driverMarker: {
-    width: 44,
-    height: 44,
-    backgroundColor: COLORS.green,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  driverText: {
-    fontSize: 18,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
-  topBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+const queueStyles = StyleSheet.create({
+  bannerContainer: { position: 'absolute', top: 130, left: 20, right: 20 },
+  banner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  cancelButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 59, 48, 0.95)',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  cancelIcon: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  voiceButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  voiceIcon: {
-    fontSize: 24,
-  },
-  recenterButton: {
-    position: 'absolute',
-    bottom: 300,
-    right: 20,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  recenterIcon: {
-    fontSize: 28,
-    color: COLORS.green,
-    fontWeight: 'bold',
-  },
-  statusBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  statusText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.black,
-  },
-  turnInstruction: {
-    position: 'absolute',
-    top: 120,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  turnIconContainer: {
-    width: 60,
-    height: 60,
+    backgroundColor: 'rgba(252, 209, 22, 0.95)',
     borderRadius: 12,
-    backgroundColor: COLORS.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  turnIcon: {
-    fontSize: 32,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
-  turnTextContainer: {
-    flex: 1,
-  },
-  turnDistance: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  turnText: {
-    fontSize: 15,
-    color: 'rgba(255, 255, 255, 0.9)',
-  },
-  wazeBottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    backgroundColor: 'rgba(30, 30, 30, 0.95)',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
-  etaContainer: {
-    flex: 1,
-  },
-  etaTime: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  etaDistance: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  stopNavButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FF3B30',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stopNavText: {
-    fontSize: 28,
-    color: COLORS.white,
-    fontWeight: 'bold',
-  },
-  bottomSheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(179, 229, 206, 0.95)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  etaCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  etaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  etaItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  etaValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
-  },
-  etaLabel: {
-    fontSize: 12,
-    color: '#333',
-    textTransform: 'uppercase',
-  },
-  etaDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  addressCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  addressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greenDot: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: COLORS.green,
-    marginRight: 12,
-  },
-  redSquare: {
-    width: 14,
-    height: 14,
-    backgroundColor: COLORS.red,
-    marginRight: 12,
-  },
-  addressTextContainer: {
-    flex: 1,
-  },
-  addressLabel: {
-    fontSize: 12,
-    color: '#333',
-    marginBottom: 4,
-  },
-  addressText: {
-    fontSize: 15,
-    color: '#000',
-    fontWeight: '500',
-  },
-  actionContainer: {
-    marginTop: 8,
-  },
-  navButton: {
-    backgroundColor: '#FCD116',
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  navIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  navText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  proximityHint: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.6)',
-  },
-  proximityText: {
-    fontSize: 14,
-    color: '#333',
-    textAlign: 'center',
-  },
-});
-
-const cancelStyles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modal: {
-    backgroundColor: 'rgba(179, 229, 206, 0.95)',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxHeight: '80%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#333',
-    marginBottom: 20,
-  },
-  reasonsList: {
-    maxHeight: 300,
-    marginBottom: 20,
-  },
-  reasonItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.4)',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  reasonItemSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderColor: '#FCD116',
-    borderWidth: 3,
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#333',
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  radioInner: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FCD116',
-  },
-  reasonText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000',
-    fontWeight: '500',
-  },
-  actions: {
-    gap: 12,
-  },
-  supportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  supportIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  supportText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  mainActions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.6)',
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.8)',
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  confirmButton: {
-    flex: 2,
-    padding: 16,
-    backgroundColor: '#FF3B30',
-    borderRadius: 12,
-    alignItems: 'center',
+    padding: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
-  confirmButtonDisabled: {
-    opacity: 0.4,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
+  iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  icon: { fontSize: 20 },
+  textContainer: { flex: 1 },
+  title: { fontSize: 14, fontWeight: 'bold', color: '#000' },
+  subtitle: { fontSize: 12, color: '#333' },
+  arrow: { fontSize: 20, fontWeight: 'bold', color: '#000' },
+});
+
+const cancelStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modal: { backgroundColor: 'rgba(179, 229, 206, 0.95)', borderRadius: 20, padding: 24, width: '100%', maxHeight: '80%' },
+  title: { fontSize: 22, fontWeight: 'bold', color: '#000', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#333', marginBottom: 20 },
+  reasonsList: { maxHeight: 300, marginBottom: 20 },
+  reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.5)' },
+  reasonItemSelected: { backgroundColor: 'rgba(255, 255, 255, 0.7)', borderColor: '#FCD116', borderWidth: 3 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#333', marginRight: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255, 255, 255, 0.5)' },
+  radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FCD116' },
+  reasonText: { flex: 1, fontSize: 16, color: '#000', fontWeight: '500' },
+  actions: { gap: 12 },
+  supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: 'rgba(255, 255, 255, 0.6)', borderRadius: 12, borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.8)' },
+  supportIcon: { fontSize: 20, marginRight: 8 },
+  supportText: { fontSize: 16, fontWeight: '600', color: '#000' },
+  mainActions: { flexDirection: 'row', gap: 12 },
+  backButton: { flex: 1, padding: 16, backgroundColor: 'rgba(255, 255, 255, 0.6)', borderRadius: 12, alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255, 255, 255, 0.8)' },
+  backButtonText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  confirmButton: { flex: 2, padding: 16, backgroundColor: '#FF3B30', borderRadius: 12, alignItems: 'center' },
+  confirmButtonDisabled: { opacity: 0.4 },
+  confirmButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
+});
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#000' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.white },
+  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.gray },
+  map: { ...StyleSheet.absoluteFillObject },
+  driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: COLORS.white },
+  driverText: { fontSize: 18, color: COLORS.white, fontWeight: 'bold' },
+  topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
+  cancelButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 59, 48, 0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
+  cancelIcon: { fontSize: 24, color: '#FFFFFF', fontWeight: 'bold' },
+  voiceButton: { position: 'absolute', top: 60, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 255, 255, 0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
+  voiceIcon: { fontSize: 24 },
+  recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255, 255, 255, 0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
+  recenterIcon: { fontSize: 28, color: COLORS.green, fontWeight: 'bold' },
+  statusBadge: { backgroundColor: 'rgba(255, 255, 255, 0.95)', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8 },
+  statusText: { fontSize: 15, fontWeight: '700', color: COLORS.black },
+  turnInstruction: { position: 'absolute', top: 120, left: 20, right: 20, flexDirection: 'row', backgroundColor: 'rgba(30, 30, 30, 0.95)', borderRadius: 16, padding: 16, alignItems: 'center', elevation: 10 },
+  turnIconContainer: { width: 60, height: 60, borderRadius: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  turnIcon: { fontSize: 32, color: COLORS.white, fontWeight: 'bold' },
+  turnTextContainer: { flex: 1 },
+  turnDistance: { fontSize: 22, fontWeight: 'bold', color: COLORS.white, marginBottom: 4 },
+  turnText: { fontSize: 15, color: 'rgba(255, 255, 255, 0.9)' },
+  wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(30, 30, 30, 0.95)', paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  etaContainer: { flex: 1 },
+  etaTime: { fontSize: 32, fontWeight: 'bold', color: COLORS.white, marginBottom: 4 },
+  etaDistance: { fontSize: 16, color: 'rgba(255, 255, 255, 0.8)' },
+  stopNavButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
+  stopNavText: { fontSize: 28, color: COLORS.white, fontWeight: 'bold' },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(179, 229, 206, 0.95)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, elevation: 12 },
+  etaCard: { backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 16, padding: 16, marginBottom: 12 },
+  etaRow: { flexDirection: 'row', alignItems: 'center' },
+  etaItem: { flex: 1, alignItems: 'center' },
+  etaValue: { fontSize: 24, fontWeight: 'bold', color: '#000', marginBottom: 4 },
+  etaLabel: { fontSize: 12, color: '#333', textTransform: 'uppercase' },
+  etaDivider: { width: 1, height: 40, backgroundColor: 'rgba(0, 0, 0, 0.2)' },
+  addressCard: { backgroundColor: 'rgba(255, 255, 255, 0.4)', borderRadius: 16, padding: 16, marginBottom: 12 },
+  addressRow: { flexDirection: 'row', alignItems: 'center' },
+  greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
+  redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
+  addressTextContainer: { flex: 1 },
+  addressLabel: { fontSize: 12, color: '#333', marginBottom: 4 },
+  addressText: { fontSize: 15, color: '#000', fontWeight: '500' },
+  actionContainer: { marginTop: 8 },
+  navButton: { backgroundColor: '#FCD116', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, elevation: 6 },
+  navIcon: { fontSize: 20, marginRight: 8 },
+  navText: { fontSize: 16, fontWeight: 'bold', color: '#000' },
+  proximityHint: { backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: 16, borderRadius: 12, alignItems: 'center' },
+  proximityText: { fontSize: 14, color: '#333', textAlign: 'center' },
 });
 
 export default ActiveRideScreen;
+
+
+
+
+
+
+
+
+
+

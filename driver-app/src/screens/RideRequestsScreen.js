@@ -8,10 +8,11 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import io from 'socket.io-client';
 import COLORS from '../constants/colors';
+import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -139,7 +140,11 @@ const RideRequestsScreen = ({ navigation, route }) => {
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
       // Join driver's personal room for TARGETED offers
-      newSocket.emit('driver-online', driverId);
+      newSocket.emit('driver-online', {
+          driverId: driverId,
+          latitude: location?.latitude,
+          longitude: location?.longitude
+        });
       console.log(`Listening for targeted offers: new-ride-offer-${driverId}`);
     });
 
@@ -284,9 +289,12 @@ const RideRequestsScreen = ({ navigation, route }) => {
         <MapView
           ref={mapRef}
           style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          customMapStyle={WAZE_DARK_STYLE}
           initialRegion={location}
-          showsUserLocation
-          showsMyLocationButton={false}
+          showsUserLocation={false}
+            showsMyLocationButton={false}
+            showsTraffic={true}
         >
           {location && (
             <Marker
@@ -766,3 +774,6 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
+

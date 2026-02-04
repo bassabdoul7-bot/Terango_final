@@ -11,7 +11,9 @@ const {
   rejectRide,
   updateRideStatus,
   cancelRide,
-  rateRide
+  rateRide,
+  startRide,
+  completeRide
 } = require('../controllers/rideController');
 
 // Create new ride (Rider only)
@@ -47,14 +49,10 @@ router.put(
   '/:id/reject',
   protect,
   restrictTo('driver'),
-  [
-    body('reason').notEmpty().withMessage('Raison de rejet requise')
-  ],
-  validate,
   rejectRide
 );
 
-// Update ride status (Driver only)
+// Update ride status (Driver only) - generic
 router.put(
   '/:id/status',
   protect,
@@ -66,14 +64,16 @@ router.put(
   updateRideStatus
 );
 
+// Start ride (Driver only) - shortcut
+router.put('/:id/start', protect, restrictTo('driver'), startRide);
+
+// Complete ride (Driver only) - shortcut
+router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
+
 // Cancel ride
 router.put(
   '/:id/cancel',
   protect,
-  [
-    body('reason').notEmpty().withMessage('Raison d\'annulation requise')
-  ],
-  validate,
   cancelRide
 );
 
