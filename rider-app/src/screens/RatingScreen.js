@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   StatusBar,
   Image,
 } from 'react-native';
-import { rideService } from '../services/api';
+import { rideService } from '../services/api.service';
 
 var MINT = 'rgba(179, 229, 206, 0.95)';
 var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
@@ -47,14 +47,14 @@ function RatingScreen(props) {
       driverRating = ride.driver.userId.rating ? ride.driver.userId.rating.toFixed(1) : '5.0';
     }
     if (ride.driver && ride.driver.vehicle) {
-      vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '') + ' • ' + (ride.driver.vehicle.color || '');
+      vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '') + ' â€¢ ' + (ride.driver.vehicle.color || '');
     }
     fare = ride.fare || 0;
   }
 
   function submitRating() {
     if (rating === 0) {
-      Alert.alert('Note requise', 'Veuillez donner une note à votre chauffeur.');
+      Alert.alert('Note requise', 'Veuillez donner une note Ã  votre chauffeur.');
       return;
     }
 
@@ -68,7 +68,7 @@ function RatingScreen(props) {
     rideService.rateRide(rideId, rating, review).then(function(response) {
       setLoading(false);
       if (response.success) {
-        Alert.alert('Merci!', 'Votre note a été enregistrée.', [
+        Alert.alert('Merci!', 'Votre note a Ã©tÃ© enregistrÃ©e.', [
           { text: 'OK', onPress: function() { navigation.replace('Home'); } }
         ]);
       } else {
@@ -89,7 +89,7 @@ function RatingScreen(props) {
     var filled = index <= rating;
     return (
       <TouchableOpacity key={index} onPress={function() { setRating(index); }} style={styles.starTouch}>
-        <Text style={[styles.star, filled && styles.starFilled]}>★</Text>
+        <Text style={[styles.star, filled && styles.starFilled]}>â˜…</Text>
       </TouchableOpacity>
     );
   }
@@ -108,7 +108,7 @@ function RatingScreen(props) {
 
   function getRatingLabel() {
     switch (rating) {
-      case 1: return 'Très mauvais';
+      case 1: return 'TrÃ¨s mauvais';
       case 2: return 'Mauvais';
       case 3: return 'Correct';
       case 4: return 'Bien';
@@ -122,15 +122,15 @@ function RatingScreen(props) {
       <StatusBar barStyle="light-content" />
 
       <View style={styles.successBanner}>
-        <Text style={styles.successIcon}>✓</Text>
-        <Text style={styles.successTitle}>Course terminée!</Text>
+        <Text style={styles.successIcon}>âœ“</Text>
+        <Text style={styles.successTitle}>Course terminÃ©e!</Text>
         <Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text>
       </View>
 
       <View style={styles.driverCard}>
         {renderDriverAvatar()}
         <Text style={styles.driverName}>{driverName}</Text>
-        <Text style={styles.driverMeta}>{'⭐ ' + driverRating}</Text>
+        <Text style={styles.driverMeta}>{'â­ ' + driverRating}</Text>
         {vehicleInfo ? <Text style={styles.vehicleText}>{vehicleInfo}</Text> : null}
       </View>
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -25,14 +25,23 @@ import { simplifyPolyline } from '../utils/polylineSimplifier';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 
-const { width, height } = Dimensions.get('window');
-const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-const ARRIVAL_THRESHOLD = 50;
-const SOCKET_URL = 'http://192.168.1.184:5000';
+var screenWidth = Dimensions.get('window').width;
+var screenHeight = Dimensions.get('window').height;
+var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+var ARRIVAL_THRESHOLD = 50;
+var SOCKET_URL = 'http://192.168.1.184:5000';
 
-const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
-  const [selectedReason, setSelectedReason] = useState(null);
-  const reasons = [
+function CancelReasonModal(props) {
+  var visible = props.visible;
+  var onClose = props.onClose;
+  var onConfirm = props.onConfirm;
+  var onSupport = props.onSupport;
+
+  var reasonState = useState(null);
+  var selectedReason = reasonState[0];
+  var setSelectedReason = reasonState[1];
+
+  var reasons = [
     { id: 1, label: 'Ma voiture est en panne' },
     { id: 2, label: 'Impossible de rejoindre le client' },
     { id: 3, label: 'Client ne répond pas' },
@@ -45,21 +54,23 @@ const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={cancelStyles.overlay}>
         <View style={cancelStyles.modal}>
-          <Text style={cancelStyles.title}>Raison de l'annulation</Text>
-          <Text style={cancelStyles.subtitle}>Sélectionnez une raison</Text>
+          <Text style={cancelStyles.title}>{"Raison de l'annulation"}</Text>
+          <Text style={cancelStyles.subtitle}>{"Sélectionnez une raison"}</Text>
           <ScrollView style={cancelStyles.reasonsList}>
-            {reasons.map((reason) => (
-              <TouchableOpacity
-                key={reason.id}
-                style={[cancelStyles.reasonItem, selectedReason === reason.id && cancelStyles.reasonItemSelected]}
-                onPress={() => setSelectedReason(reason.id)}
-              >
-                <View style={cancelStyles.radio}>
-                  {selectedReason === reason.id && <View style={cancelStyles.radioInner} />}
-                </View>
-                <Text style={cancelStyles.reasonText}>{reason.label}</Text>
-              </TouchableOpacity>
-            ))}
+            {reasons.map(function(reason) {
+              return (
+                <TouchableOpacity
+                  key={reason.id}
+                  style={[cancelStyles.reasonItem, selectedReason === reason.id && cancelStyles.reasonItemSelected]}
+                  onPress={function() { setSelectedReason(reason.id); }}
+                >
+                  <View style={cancelStyles.radio}>
+                    {selectedReason === reason.id && <View style={cancelStyles.radioInner} />}
+                  </View>
+                  <Text style={cancelStyles.reasonText}>{reason.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
           <View style={cancelStyles.actions}>
             <TouchableOpacity style={cancelStyles.supportButton} onPress={onSupport}>
@@ -72,10 +83,15 @@ const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[cancelStyles.confirmButton, !selectedReason && cancelStyles.confirmButtonDisabled]}
-                onPress={() => selectedReason && onConfirm(reasons.find(r => r.id === selectedReason).label)}
+                onPress={function() {
+                  if (selectedReason) {
+                    var found = reasons.find(function(r) { return r.id === selectedReason; });
+                    onConfirm(found.label);
+                  }
+                }}
                 disabled={!selectedReason}
               >
-                <Text style={cancelStyles.confirmButtonText}>Confirmer l'annulation</Text>
+                <Text style={cancelStyles.confirmButtonText}>{"Confirmer l'annulation"}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -83,12 +99,13 @@ const CancelReasonModal = ({ visible, onClose, onConfirm, onSupport }) => {
       </View>
     </Modal>
   );
-};
+}
 
-// Queued Ride Banner Component
-const QueuedRideBanner = ({ queuedRide, onView }) => {
+function QueuedRideBanner(props) {
+  var queuedRide = props.queuedRide;
+  var onView = props.onView;
   if (!queuedRide) return null;
-  
+
   return (
     <TouchableOpacity style={queueStyles.banner} onPress={onView}>
       <View style={queueStyles.iconContainer}>
@@ -96,104 +113,201 @@ const QueuedRideBanner = ({ queuedRide, onView }) => {
       </View>
       <View style={queueStyles.textContainer}>
         <Text style={queueStyles.title}>Course en attente</Text>
-        <Text style={queueStyles.subtitle}>{queuedRide.fare?.toLocaleString()} FCFA • {queuedRide.distance?.toFixed(1)} km</Text>
+        <Text style={queueStyles.subtitle}>
+          {(queuedRide.fare ? queuedRide.fare.toLocaleString() : '0') + ' FCFA • ' + (queuedRide.distance ? queuedRide.distance.toFixed(1) : '0') + ' km'}
+        </Text>
       </View>
-      <Text style={queueStyles.arrow}>→</Text>
+      <Text style={queueStyles.arrow}>{'→'}</Text>
     </TouchableOpacity>
   );
-};
+}
 
-const ActiveRideScreen = ({ route, navigation }) => {
-  const { rideId, ride: passedRide } = route.params;
-  const { driver } = useAuth();
+function ActiveRideScreen(props) {
+  var navigation = props.navigation;
+  var route = props.route;
+  var rideId = route.params.rideId;
+  var passedRide = route.params.ride;
+  var auth = useAuth();
+  var driver = auth.driver;
 
-  const mapRef = useRef(null);
-  const locationSubscription = useRef(null);
-  const hasFetchedRoute = useRef(false);
-  const socketRef = useRef(null);
+  var mapRef = useRef(null);
+  var locationSubscription = useRef(null);
+  var hasFetchedRoute = useRef(false);
+  var socketRef = useRef(null);
+  var announcementDistances = useRef(new Set());
+  var cancelledRef = useRef(false);
 
-  const [ride, setRide] = useState(null);
-  const [driverLocation, setDriverLocation] = useState(null);
-  const [heading, setHeading] = useState(0);
-  const [routeCoordinates, setRouteCoordinates] = useState([]);
-  const [allSteps, setAllSteps] = useState([]);
-  const [currentStep, setCurrentStep] = useState(null);
-  const [distanceToStep, setDistanceToStep] = useState(null);
-  const [totalDistance, setTotalDistance] = useState('--');
-  const [totalDuration, setTotalDuration] = useState('--');
-  const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
-  const [navigationStarted, setNavigationStarted] = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [lastAnnouncedStep, setLastAnnouncedStep] = useState(null);
-  const [isNearDestination, setIsNearDestination] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [queuedRide, setQueuedRide] = useState(null); // Next ride in queue
-  const announcementDistances = useRef(new Set());
+  var rideState = useState(null);
+  var ride = rideState[0];
+  var setRide = rideState[1];
 
-  // Initialize socket for receiving queued rides
-  useEffect(() => {
-    if (!driver?._id) return;
+  var driverLocState = useState(null);
+  var driverLocation = driverLocState[0];
+  var setDriverLocation = driverLocState[1];
+
+  var headingState = useState(0);
+  var heading = headingState[0];
+  var setHeading = headingState[1];
+
+  var routeState = useState([]);
+  var routeCoordinates = routeState[0];
+  var setRouteCoordinates = routeState[1];
+
+  var stepsState = useState([]);
+  var allSteps = stepsState[0];
+  var setAllSteps = stepsState[1];
+
+  var currentStepState = useState(null);
+  var currentStep = currentStepState[0];
+  var setCurrentStep = currentStepState[1];
+
+  var distStepState = useState(null);
+  var distanceToStep = distStepState[0];
+  var setDistanceToStep = distStepState[1];
+
+  var totalDistState = useState('--');
+  var totalDistance = totalDistState[0];
+  var setTotalDistance = totalDistState[1];
+
+  var totalDurState = useState('--');
+  var totalDuration = totalDurState[0];
+  var setTotalDuration = totalDurState[1];
+
+  var loadingState = useState(false);
+  var loading = loadingState[0];
+  var setLoading = loadingState[1];
+
+  var initState = useState(true);
+  var initializing = initState[0];
+  var setInitializing = initState[1];
+
+  var navStartState = useState(false);
+  var navigationStarted = navStartState[0];
+  var setNavigationStarted = navStartState[1];
+
+  var voiceState = useState(true);
+  var voiceEnabled = voiceState[0];
+  var setVoiceEnabled = voiceState[1];
+
+  var lastStepState = useState(null);
+  var lastAnnouncedStep = lastStepState[0];
+  var setLastAnnouncedStep = lastStepState[1];
+
+  var nearDestState = useState(false);
+  var isNearDestination = nearDestState[0];
+  var setIsNearDestination = nearDestState[1];
+
+  var cancelModalState = useState(false);
+  var showCancelModal = cancelModalState[0];
+  var setShowCancelModal = cancelModalState[1];
+
+  var successModalState = useState(false);
+  var showSuccessModal = successModalState[0];
+  var setShowSuccessModal = successModalState[1];
+
+  var queueState = useState(null);
+  var queuedRide = queueState[0];
+  var setQueuedRide = queueState[1];
+
+  // ========== SOCKET: queued rides + rider cancellation ==========
+  useEffect(function() {
+    if (!driver || !driver._id) return;
 
     socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
-    
-    socketRef.current.on('connect', () => {
+
+    socketRef.current.on('connect', function() {
       console.log('ActiveRide socket connected');
-      // Join driver room to receive queued rides
       socketRef.current.emit('driver-online', {
         driverId: driver._id,
-        latitude: driverLocation?.latitude,
-        longitude: driverLocation?.longitude
+        latitude: driverLocation ? driverLocation.latitude : 0,
+        longitude: driverLocation ? driverLocation.longitude : 0
       });
     });
 
     // Listen for new ride offers (queue for after current ride)
-    socketRef.current.on(`new-ride-offer-${driver._id}`, (rideData) => {
-      console.log('🎯 Queued ride offer received:', rideData);
-      // Only queue if we're in a ride
-      if (ride?.status === 'in_progress') {
+    socketRef.current.on('new-ride-offer-' + driver._id, function(rideData) {
+      console.log('Queued ride offer received:', rideData);
+      if (ride && ride.status === 'in_progress') {
         setQueuedRide(rideData);
-        // Auto-accept queued rides or show notification
         Alert.alert(
           'Nouvelle course en attente',
-          `${rideData.fare?.toLocaleString()} FCFA • ${rideData.distance?.toFixed(1)} km`,
+          (rideData.fare ? rideData.fare.toLocaleString() : '0') + ' FCFA • ' + (rideData.distance ? rideData.distance.toFixed(1) : '0') + ' km',
           [
-            { text: 'Refuser', style: 'cancel', onPress: () => rejectQueuedRide(rideData) },
-            { text: 'Accepter', onPress: () => acceptQueuedRide(rideData) }
+            { text: 'Refuser', style: 'cancel', onPress: function() { rejectQueuedRide(rideData); } },
+            { text: 'Accepter', onPress: function() { acceptQueuedRide(rideData); } }
           ]
         );
       }
     });
 
-    return () => {
+    // ===== RIDER CANCELLATION LISTENER =====
+    socketRef.current.on('ride-cancelled-' + rideId, function(data) {
+      console.log('Ride cancelled by rider:', data);
+      if (cancelledRef.current) return;
+      cancelledRef.current = true;
+      speakAnnouncement('Le passager a annulé la course');
+      Alert.alert(
+        'Course annulée par le passager',
+        'Le passager a annulé la course.' + (data.reason ? '\nRaison: ' + data.reason : ''),
+        [
+          {
+            text: 'OK',
+            onPress: function() {
+              navigation.replace('RideRequests');
+            }
+          }
+        ]
+      );
+    });
+
+    // Also listen via ride-status event as backup
+    socketRef.current.on('ride-status-' + rideId, function(data) {
+      console.log('Ride status update via socket:', data);
+      if (data.status === 'cancelled' && !cancelledRef.current) {
+        cancelledRef.current = true;
+        speakAnnouncement('Le passager a annulé la course');
+        Alert.alert(
+          'Course annulée',
+          'Le passager a annulé la course.',
+          [
+            {
+              text: 'OK',
+              onPress: function() {
+                navigation.replace('RideRequests');
+              }
+            }
+          ]
+        );
+      }
+    });
+
+    return function() {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
     };
-  }, [driver?._id, ride?.status]);
+  }, [driver ? driver._id : null, ride ? ride.status : null]);
 
-  const acceptQueuedRide = async (rideData) => {
-    try {
-      await driverService.acceptRide(rideData.rideId);
-      setQueuedRide({ ...rideData, accepted: true });
+  function acceptQueuedRide(rideData) {
+    driverService.acceptRide(rideData.rideId).then(function() {
+      setQueuedRide(Object.assign({}, rideData, { accepted: true }));
       speak('Course en attente acceptée');
-    } catch (error) {
+    }).catch(function(error) {
       console.error('Accept queued ride error:', error);
       setQueuedRide(null);
-    }
-  };
+    });
+  }
 
-  const rejectQueuedRide = async (rideData) => {
-    try {
-      await driverService.rejectRide(rideData.rideId, 'Occupé');
+  function rejectQueuedRide(rideData) {
+    driverService.rejectRide(rideData.rideId, 'Occupé').then(function() {
       setQueuedRide(null);
-    } catch (error) {
+    }).catch(function(error) {
       console.error('Reject queued ride error:', error);
-    }
-  };
+    });
+  }
 
-  useEffect(() => {
+  // ========== INIT RIDE DATA ==========
+  useEffect(function() {
     if (passedRide) {
       setRide({
         _id: rideId,
@@ -206,77 +320,83 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
+  // ========== LOCATION TRACKING ==========
+  useEffect(function() {
+    var mounted = true;
 
-    const startTracking = async () => {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+    function startTracking() {
+      Location.requestForegroundPermissionsAsync().then(function(result) {
+        if (result.status !== 'granted') {
           Alert.alert('Permission refusée', 'Localisation requise');
           setInitializing(false);
           return;
         }
 
-        const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-
-        if (mounted) {
-          setDriverLocation({
-            latitude: currentLocation.coords.latitude,
-            longitude: currentLocation.coords.longitude,
-          });
-          setHeading(currentLocation.coords.heading || 0);
-          setInitializing(false);
-        }
-
-        locationSubscription.current = await Location.watchPositionAsync(
-          { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
-          (location) => {
-            if (mounted) {
-              setDriverLocation({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-              });
-              setHeading(location.coords.heading || heading);
-              driverService.updateLocation(location.coords.latitude, location.coords.longitude).catch(() => {});
-            }
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(currentLocation) {
+          if (mounted) {
+            setDriverLocation({
+              latitude: currentLocation.coords.latitude,
+              longitude: currentLocation.coords.longitude,
+            });
+            setHeading(currentLocation.coords.heading || 0);
+            setInitializing(false);
           }
-        );
-      } catch (error) {
+
+          Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.High, timeInterval: 3000, distanceInterval: 5 },
+            function(location) {
+              if (mounted) {
+                setDriverLocation({
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                });
+                setHeading(location.coords.heading || heading);
+                driverService.updateLocation(location.coords.latitude, location.coords.longitude).catch(function() {});
+              }
+            }
+          ).then(function(sub) {
+            locationSubscription.current = sub;
+          });
+        });
+      }).catch(function(error) {
         console.error('Location error:', error);
         setInitializing(false);
-      }
-    };
+      });
+    }
 
     startTracking();
 
-    return () => {
+    return function() {
       mounted = false;
       if (locationSubscription.current) locationSubscription.current.remove();
     };
   }, []);
 
-  useEffect(() => {
+  // ========== ROUTE FETCHING ==========
+  useEffect(function() {
     if (!ride || !driverLocation || hasFetchedRoute.current) return;
 
-    const fetchRoute = async () => {
-      const destination = ride.status === 'accepted' || ride.status === 'arrived'
-        ? ride.pickup.coordinates
-        : ride.dropoff.coordinates;
+    var destination = (ride.status === 'accepted' || ride.status === 'arrived')
+      ? ride.pickup.coordinates
+      : ride.dropoff.coordinates;
 
-      if (!destination) return;
+    if (!destination) return;
 
-      try {
-        const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${driverLocation.latitude},${driverLocation.longitude}&destination=${destination.latitude},${destination.longitude}&key=${GOOGLE_MAPS_KEY}&mode=driving&language=fr`;
-        const response = await fetch(url);
-        const data = await response.json();
+    var url = 'https://maps.googleapis.com/maps/api/directions/json?origin=' +
+      driverLocation.latitude + ',' + driverLocation.longitude +
+      '&destination=' + destination.latitude + ',' + destination.longitude +
+      '&key=' + GOOGLE_MAPS_KEY + '&mode=driving&language=fr';
 
-        if (data.status === 'OK' && data.routes.length > 0) {
-          const leg = data.routes[0].legs[0];
-          setTotalDistance(leg.distance.text);
-          setTotalDuration(leg.duration.text);
+    fetch(url).then(function(response) {
+      return response.json();
+    }).then(function(data) {
+      if (data.status === 'OK' && data.routes.length > 0) {
+        var leg = data.routes[0].legs[0];
+        setTotalDistance(leg.distance.text);
+        setTotalDuration(leg.duration.text);
 
-          const steps = leg.steps.map((step, index) => ({
+        var steps = leg.steps.map(function(step, index) {
+          return {
             id: index,
             instruction: step.html_instructions.replace(/<[^>]*>/g, ''),
             distance: step.distance.text,
@@ -284,40 +404,39 @@ const ActiveRideScreen = ({ route, navigation }) => {
             maneuver: step.maneuver,
             startLocation: { latitude: step.start_location.lat, longitude: step.start_location.lng },
             endLocation: { latitude: step.end_location.lat, longitude: step.end_location.lng }
-          }));
+          };
+        });
 
-          setAllSteps(steps);
-          if (steps.length > 0) setCurrentStep(steps[0]);
+        setAllSteps(steps);
+        if (steps.length > 0) setCurrentStep(steps[0]);
 
-          const points = PolylineUtil.decode(data.routes[0].overview_polyline.points);
-          const coords = points.map(p => ({ latitude: p[0], longitude: p[1] }));
-          console.log('🛣️ Route fetched with', coords.length, 'points');
-            setRouteCoordinates(coords); // Disabled simplification for testing
-          hasFetchedRoute.current = true;
+        var points = PolylineUtil.decode(data.routes[0].overview_polyline.points);
+        var coords = points.map(function(p) { return { latitude: p[0], longitude: p[1] }; });
+        console.log('Route fetched with', coords.length, 'points');
+        setRouteCoordinates(coords);
+        hasFetchedRoute.current = true;
 
-          setTimeout(() => {
-            if (mapRef.current && !navigationStarted) {
-              mapRef.current.fitToCoordinates(coords, {
-                edgePadding: { top: 200, right: 50, bottom: 400, left: 50 },
-                animated: true,
-              });
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Route error:', error);
+        setTimeout(function() {
+          if (mapRef.current && !navigationStarted) {
+            mapRef.current.fitToCoordinates(coords, {
+              edgePadding: { top: 200, right: 50, bottom: 400, left: 50 },
+              animated: true,
+            });
+          }
+        }, 1000);
       }
-    };
-
-    fetchRoute();
+    }).catch(function(error) {
+      console.error('Route error:', error);
+    });
   }, [ride, driverLocation]);
 
-  const announceInstruction = useCallback((instruction) => {
+  // ========== VOICE ANNOUNCEMENTS ==========
+  var announceInstruction = useCallback(function(instruction) {
     if (!voiceEnabled) return;
     speakNavigation(instruction);
   }, [voiceEnabled]);
 
-  const handleRecenter = useCallback(() => {
+  var handleRecenter = useCallback(function() {
     if (mapRef.current && driverLocation) {
       mapRef.current.animateCamera({
         center: driverLocation,
@@ -328,25 +447,25 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [driverLocation, heading, navigationStarted]);
 
-  useEffect(() => {
+  useEffect(function() {
     if (!driverLocation || !currentStep || !allSteps.length || !voiceEnabled) return;
 
-    const distance = calculateDistance(
+    var distance = calcDistance(
       driverLocation.latitude, driverLocation.longitude,
       currentStep.endLocation.latitude, currentStep.endLocation.longitude
     );
 
-    const stepKey = `step_${currentStep.id}`;
+    var stepKey = 'step_' + currentStep.id;
 
-    if (distance <= 300 && distance > 250 && !announcementDistances.current.has(`${stepKey}_300`)) {
-      announceInstruction(`Dans 300 mètres, ${currentStep.instruction}`);
-      announcementDistances.current.add(`${stepKey}_300`);
-    } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(`${stepKey}_100`)) {
-      announceInstruction(`Dans 100 mètres, ${currentStep.instruction}`);
-      announcementDistances.current.add(`${stepKey}_100`);
-    } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(`${stepKey}_50`)) {
+    if (distance <= 300 && distance > 250 && !announcementDistances.current.has(stepKey + '_300')) {
+      announceInstruction('Dans 300 mètres, ' + currentStep.instruction);
+      announcementDistances.current.add(stepKey + '_300');
+    } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(stepKey + '_100')) {
+      announceInstruction('Dans 100 mètres, ' + currentStep.instruction);
+      announcementDistances.current.add(stepKey + '_100');
+    } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(stepKey + '_50')) {
       announceInstruction(currentStep.instruction);
-      announcementDistances.current.add(`${stepKey}_50`);
+      announcementDistances.current.add(stepKey + '_50');
     }
 
     if (currentStep.id !== lastAnnouncedStep) {
@@ -355,16 +474,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [driverLocation, currentStep, allSteps, voiceEnabled, announceInstruction, lastAnnouncedStep]);
 
-  const toggleVoice = useCallback(() => {
-    const newState = !voiceEnabled;
+  var toggleVoice = useCallback(function() {
+    var newState = !voiceEnabled;
     setVoiceEnabled(newState);
     speak(newState ? "Navigation vocale activée" : "Navigation vocale désactivée");
   }, [voiceEnabled]);
 
-  useEffect(() => {
+  // ========== STEP TRACKING + NEAR DESTINATION ==========
+  useEffect(function() {
     if (!driverLocation || !currentStep || !allSteps.length) return;
 
-    const distance = calculateDistance(
+    var distance = calcDistance(
       driverLocation.latitude, driverLocation.longitude,
       currentStep.endLocation.latitude, currentStep.endLocation.longitude
     );
@@ -375,114 +495,117 @@ const ActiveRideScreen = ({ route, navigation }) => {
       setCurrentStep(allSteps[currentStep.id + 1]);
     }
 
-    const destination = ride.status === 'accepted' || ride.status === 'arrived'
+    var destination = (ride.status === 'accepted' || ride.status === 'arrived')
       ? ride.pickup.coordinates
       : ride.dropoff.coordinates;
 
     if (destination) {
-      const distanceToDestination = calculateDistance(
+      var distToDest = calcDistance(
         driverLocation.latitude, driverLocation.longitude,
         destination.latitude, destination.longitude
       );
-      setIsNearDestination(distanceToDestination <= ARRIVAL_THRESHOLD);
+      setIsNearDestination(distToDest <= ARRIVAL_THRESHOLD);
     }
   }, [driverLocation, currentStep, allSteps, ride]);
 
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3;
-    const phi1 = lat1 * Math.PI / 180;
-    const phi2 = lat2 * Math.PI / 180;
-    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
-    const deltaLambda = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(deltaPhi/2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda/2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  };
+  // ========== HELPERS ==========
+  function calcDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371e3;
+    var phi1 = lat1 * Math.PI / 180;
+    var phi2 = lat2 * Math.PI / 180;
+    var deltaPhi = (lat2 - lat1) * Math.PI / 180;
+    var deltaLambda = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
 
-  const formatDistance = (meters) => meters < 1000 ? `${Math.round(meters)} m` : `${(meters / 1000).toFixed(1)} km`;
+  function formatDistance(meters) {
+    if (meters < 1000) return Math.round(meters) + ' m';
+    return (meters / 1000).toFixed(1) + ' km';
+  }
 
-  const getManeuverIcon = (maneuver) => {
+  function getManeuverIcon(maneuver) {
     if (!maneuver) return '↑';
-    if (maneuver.includes('left')) return '↰';
-    if (maneuver.includes('right')) return '↱';
-    if (maneuver.includes('uturn')) return '↶';
+    if (maneuver.indexOf('left') !== -1) return '↰';
+    if (maneuver.indexOf('right') !== -1) return '↱';
+    if (maneuver.indexOf('uturn') !== -1) return '↶';
     return '↑';
-  };
+  }
 
-  const handleStartNavigation = useCallback(() => {
+  // ========== ACTIONS ==========
+  var handleStartNavigation = useCallback(function() {
     setNavigationStarted(true);
     if (mapRef.current && driverLocation) {
-      mapRef.current.animateCamera({ center: driverLocation, zoom: 18, pitch: 30, heading }, { duration: 1000 });
+      mapRef.current.animateCamera({ center: driverLocation, zoom: 18, pitch: 30, heading: heading }, { duration: 1000 });
     }
   }, [driverLocation, heading]);
 
-  const handleCancelRide = () => setShowCancelModal(true);
+  function handleCancelRide() {
+    setShowCancelModal(true);
+  }
 
-  const handleConfirmCancel = async (reason) => {
+  function handleConfirmCancel(reason) {
     setShowCancelModal(false);
     setLoading(true);
-    try {
-      await driverService.cancelRide(rideId, reason);
+    driverService.cancelRide(rideId, reason).then(function() {
       setShowSuccessModal(true);
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'annuler la course');
-    } finally {
+    }).catch(function(error) {
+      Alert.alert('Erreur', "Impossible d'annuler la course");
+    }).finally(function() {
       setLoading(false);
-    }
-  };
+    });
+  }
 
-  const handleContactSupport = () => {
+  function handleContactSupport() {
     Alert.alert('Contacter le Support', 'Choisissez un moyen', [
       { text: 'Annuler', style: 'cancel' },
-      { text: '📞 Appeler', onPress: () => Linking.openURL('tel:+221338234567') },
-      { text: '💬 WhatsApp', onPress: () => Linking.openURL('https://wa.me/221778234567') }
+      { text: '📞 Appeler', onPress: function() { Linking.openURL('tel:+221338234567'); } },
+      { text: '💬 WhatsApp', onPress: function() { Linking.openURL('https://wa.me/221778234567'); } }
     ]);
-  };
+  }
 
-  const handleArrived = useCallback(async () => {
+  var handleArrived = useCallback(function() {
     setLoading(true);
-    try {
-      await driverService.updateRideStatus(rideId, 'arrived');
-      setRide(prev => ({ ...prev, status: 'arrived' }));
+    driverService.updateRideStatus(rideId, 'arrived').then(function() {
+      setRide(function(prev) { return Object.assign({}, prev, { status: 'arrived' }); });
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
-      speakAnnouncement('Vous êtes arrivé au point de départ');
-    } catch (error) {
-      Alert.alert('Erreur', error.response?.data?.message || 'Erreur');
-    } finally {
+      speakAnnouncement("Vous êtes arrivé au point de départ");
+    }).catch(function(error) {
+      var msg = (error.response && error.response.data && error.response.data.message) || 'Erreur';
+      Alert.alert('Erreur', msg);
+    }).finally(function() {
       setLoading(false);
-    }
+    });
   }, [rideId]);
 
-  const handleStartRide = useCallback(async () => {
+  var handleStartRide = useCallback(function() {
     setLoading(true);
-    try {
-      await driverService.startRide(rideId);
-      setRide(prev => ({ ...prev, status: 'in_progress' }));
+    driverService.startRide(rideId).then(function() {
+      setRide(function(prev) { return Object.assign({}, prev, { status: 'in_progress' }); });
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
       speakAnnouncement('Course démarrée. Bonne route!');
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de démarrer');
-    } finally {
+    }).catch(function(error) {
+      Alert.alert('Erreur', "Impossible de démarrer");
+    }).finally(function() {
       setLoading(false);
-    }
+    });
   }, [rideId]);
 
-  const handleCompleteRide = useCallback(async () => {
+  var handleCompleteRide = useCallback(function() {
     setLoading(true);
-    try {
-      const response = await driverService.completeRide(rideId);
-      
-      speakAnnouncement(`Course terminée. Vous avez gagné ${ride.fare} francs.`);
+    driverService.completeRide(rideId).then(function(response) {
+      speakAnnouncement('Course terminée. Vous avez gagné ' + (ride.fare || 0) + ' francs.');
 
-      // Check if there's a queued ride
-      if (queuedRide?.accepted) {
+      if (queuedRide && queuedRide.accepted) {
         Alert.alert(
           'Course terminée!',
-          `Gains: ${ride.fare?.toLocaleString()} FCFA\n\nVous avez une course en attente.`,
+          'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA\n\nVous avez une course en attente.',
           [{
             text: 'Commencer la prochaine course',
-            onPress: () => {
+            onPress: function() {
               navigation.replace('ActiveRide', {
                 rideId: queuedRide.rideId,
                 ride: queuedRide
@@ -493,17 +616,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
       } else {
         Alert.alert(
           'Course terminée!',
-          `Gains: ${ride.fare?.toLocaleString()} FCFA`,
-          [{ text: 'OK', onPress: () => navigation.replace('RideRequests') }]
+          'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA',
+          [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]
         );
       }
-    } catch (error) {
+    }).catch(function(error) {
       Alert.alert('Erreur', 'Impossible de terminer');
-    } finally {
+    }).finally(function() {
       setLoading(false);
-    }
+    });
   }, [rideId, ride, navigation, queuedRide]);
 
+  // ========== LOADING STATE ==========
   if (initializing || !driverLocation || !ride) {
     return (
       <View style={styles.loadingContainer}>
@@ -513,20 +637,20 @@ const ActiveRideScreen = ({ route, navigation }) => {
     );
   }
 
-  const destination = ride.status === 'accepted' || ride.status === 'arrived'
-    ? ride.pickup?.coordinates
-    : ride.dropoff?.coordinates;
+  var destination = (ride.status === 'accepted' || ride.status === 'arrived')
+    ? (ride.pickup ? ride.pickup.coordinates : null)
+    : (ride.dropoff ? ride.dropoff.coordinates : null);
 
-  const getStatusText = () => {
+  function getStatusText() {
     switch (ride.status) {
       case 'accepted': return 'En route vers le passager';
       case 'arrived': return 'En attente du passager';
       case 'in_progress': return 'Course en cours';
       default: return '';
     }
-  };
+  }
 
-  const getActionButton = () => {
+  function getActionButton() {
     switch (ride.status) {
       case 'accepted':
         return (
@@ -534,14 +658,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
             {!navigationStarted && (
               <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}>
                 <Text style={styles.navIcon}>🧭</Text>
-                <Text style={styles.navText}>Démarrer navigation</Text>
+                <Text style={styles.navText}>{"Démarrer navigation"}</Text>
               </TouchableOpacity>
             )}
             {isNearDestination ? (
               <GlassButton title="Je suis arrivé" onPress={handleArrived} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>Le bouton "Je suis arrivé" apparaîtra à 50m du client</Text>
+                <Text style={styles.proximityText}>{"Le bouton \"Je suis arrivé\" apparaîtra à 50m du client"}</Text>
               </View>
             )}
           </View>
@@ -555,7 +679,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               <GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>Le bouton "Terminer" apparaîtra à 50m de la destination</Text>
+                <Text style={styles.proximityText}>{"Le bouton \"Terminer\" apparaîtra à 50m de la destination"}</Text>
               </View>
             )}
           </View>
@@ -563,8 +687,9 @@ const ActiveRideScreen = ({ route, navigation }) => {
       default:
         return null;
     }
-  };
+  }
 
+  // ========== RENDER ==========
   return (
     <View style={styles.container}>
       <MapView
@@ -572,7 +697,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
         style={styles.map}
         provider={PROVIDER_GOOGLE}
         customMapStyle={WAZE_DARK_STYLE}
-        initialRegion={{ ...driverLocation, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
+        initialRegion={{
+          latitude: driverLocation.latitude,
+          longitude: driverLocation.longitude,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02
+        }}
         showsUserLocation={false}
         showsBuildings={false}
         showsPointsOfInterest={false}
@@ -593,13 +723,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
       </MapView>
 
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-        <Text style={styles.recenterIcon}>⊙</Text>
+        <Text style={styles.recenterIcon}>{"⊙"}</Text>
       </TouchableOpacity>
 
-      {/* Queued ride banner */}
-      {queuedRide?.accepted && (
+      {queuedRide && queuedRide.accepted && (
         <View style={queueStyles.bannerContainer}>
-          <QueuedRideBanner queuedRide={queuedRide} onView={() => {}} />
+          <QueuedRideBanner queuedRide={queuedRide} onView={function() {}} />
         </View>
       )}
 
@@ -617,7 +746,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
-          <Text style={styles.cancelIcon}>✕</Text>
+          <Text style={styles.cancelIcon}>{"✕"}</Text>
         </TouchableOpacity>
         {navigationStarted && (
           <TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}>
@@ -637,11 +766,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
             <Text style={styles.etaTime}>{totalDuration}</Text>
             <Text style={styles.etaDistance}>{totalDistance}</Text>
           </View>
-          <TouchableOpacity style={styles.stopNavButton} onPress={() => {
+          <TouchableOpacity style={styles.stopNavButton} onPress={function() {
             setNavigationStarted(false);
-            mapRef.current?.animateCamera({ pitch: 0, zoom: 15 }, { duration: 500 });
+            if (mapRef.current) {
+              mapRef.current.animateCamera({ pitch: 0, zoom: 15 }, { duration: 500 });
+            }
           }}>
-            <Text style={styles.stopNavText}>■</Text>
+            <Text style={styles.stopNavText}>{"■"}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -668,7 +799,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
               <View style={styles.addressTextContainer}>
                 <Text style={styles.addressLabel}>{ride.status === 'in_progress' ? 'Destination' : 'Point de départ'}</Text>
                 <Text style={styles.addressText} numberOfLines={2}>
-                  {ride.status === 'in_progress' ? ride.dropoff?.address : ride.pickup?.address}
+                  {ride.status === 'in_progress' ? (ride.dropoff ? ride.dropoff.address : '') : (ride.pickup ? ride.pickup.address : '')}
                 </Text>
               </View>
             </View>
@@ -680,7 +811,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
       <CancelReasonModal
         visible={showCancelModal}
-        onClose={() => setShowCancelModal(false)}
+        onClose={function() { setShowCancelModal(false); }}
         onConfirm={handleConfirmCancel}
         onSupport={handleContactSupport}
       />
@@ -689,28 +820,21 @@ const ActiveRideScreen = ({ route, navigation }) => {
         visible={showSuccessModal}
         title="Course annulée"
         message="La course a été annulée avec succès"
-        onClose={() => {
+        onClose={function() {
           setShowSuccessModal(false);
           navigation.replace('RideRequests');
         }}
       />
     </View>
   );
-};
+}
 
-const queueStyles = StyleSheet.create({
+var queueStyles = StyleSheet.create({
   bannerContainer: { position: 'absolute', top: 130, left: 20, right: 20 },
   banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(252, 209, 22, 0.95)',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: 'rgba(252, 209, 22, 0.95)', borderRadius: 12, padding: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 4,
   },
   iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   icon: { fontSize: 20 },
@@ -720,7 +844,7 @@ const queueStyles = StyleSheet.create({
   arrow: { fontSize: 20, fontWeight: 'bold', color: '#000' },
 });
 
-const cancelStyles = StyleSheet.create({
+var cancelStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modal: { backgroundColor: 'rgba(179, 229, 206, 0.95)', borderRadius: 20, padding: 24, width: '100%', maxHeight: '80%' },
   title: { fontSize: 22, fontWeight: 'bold', color: '#000', marginBottom: 8 },
@@ -743,11 +867,11 @@ const cancelStyles = StyleSheet.create({
   confirmButtonText: { fontSize: 16, fontWeight: 'bold', color: '#FFFFFF' },
 });
 
-const styles = StyleSheet.create({
+var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.white },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.gray },
-  map: { ...StyleSheet.absoluteFillObject },
+  map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: COLORS.white },
   driverText: { fontSize: 18, color: COLORS.white, fontWeight: 'bold' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
@@ -794,13 +918,3 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
-
-
-
-
-
-
-
-
-
-

@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RideRequestsScreen from '../screens/RideRequestsScreen';
+import DeliveryRequestsScreen from '../screens/DeliveryRequestsScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
 import MenuScreen from '../screens/MenuScreen';
 
@@ -27,6 +28,7 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="RideRequests" component={RideRequestsScreen} />
+            <Stack.Screen name="DeliveryRequests" component={DeliveryRequestsScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
             <Stack.Screen name="Menu" component={MenuScreen} />
           </>

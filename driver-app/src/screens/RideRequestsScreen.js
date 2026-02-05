@@ -7,11 +7,13 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import io from 'socket.io-client';
 import COLORS from '../constants/colors';
+import CAR_IMAGES from '../constants/carImages';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
@@ -416,7 +418,22 @@ const RideRequestsScreen = ({ navigation, route }) => {
               <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()} FCFA</Text>
             </View>
 
-            <View style={styles.addressesContainer}>
+              <View style={styles.rideTypeRow}>
+                <Image
+                  source={{ uri: (CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).uri }}
+                  style={styles.rideTypeImage}
+                  resizeMode='contain'
+                />
+                <View style={styles.rideTypeInfo}>
+                  <Text style={styles.rideTypeName}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).name}</Text>
+                  <Text style={styles.rideTypeDesc}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).description}</Text>
+                </View>
+                <View style={styles.rideTypeBadge}>
+                  <Text style={styles.rideTypeBadgeText}>{(currentRequest.rideType || 'standard').toUpperCase()}</Text>
+                </View>
+              </View>
+
+              <View style={styles.addressesContainer}>
               <View style={styles.addressRow}>
                 <View style={styles.greenDot} />
                 <Text style={styles.addressText} numberOfLines={1}>
@@ -668,6 +685,45 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
+  rideTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  rideTypeImage: {
+    width: 70,
+    height: 45,
+    marginRight: 12,
+  },
+  rideTypeInfo: {
+    flex: 1,
+  },
+  rideTypeName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 2,
+  },
+  rideTypeDesc: {
+    fontSize: 12,
+    color: '#444',
+  },
+  rideTypeBadge: {
+    backgroundColor: '#FCD116',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  rideTypeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#000',
+  },
   addressesContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.4)',
     borderRadius: 16,
@@ -774,6 +830,10 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
+
+
 
 
 

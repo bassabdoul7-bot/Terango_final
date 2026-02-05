@@ -43,3 +43,10 @@ __pycache__/
 
 # Metro
 .metro-health-check*
+*.txt
+*.backup
+CODEDUMP*
+AUDIT*
+HOME_DUMP*
+*_PEEK*
+*_NAV*

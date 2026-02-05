@@ -59,4 +59,32 @@ export var driverService = {
   },
 };
 
+export var deliveryService = {
+  getEstimate: function(serviceType, distance, size) {
+    return api.post('/deliveries/estimate', { serviceType: serviceType, distance: distance, size: size });
+  },
+  createDelivery: function(data) { return api.post('/deliveries/create', data); },
+  getMyDeliveries: function() { return api.get('/deliveries/my-deliveries'); },
+  getActiveDelivery: function() { return api.get('/deliveries/active'); },
+  cancelDelivery: function(deliveryId, reason) {
+    return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason });
+  },
+};
+
+export var orderService = {
+  createOrder: function(data) { return api.post('/orders', data); },
+  getMyOrders: function() { return api.get('/orders/my-orders'); },
+  getActiveOrder: function() { return api.get('/orders/active'); },
+  getOrder: function(id) { return api.get('/orders/' + id); },
+  cancelOrder: function(id) { return api.put('/orders/' + id + '/cancel'); },
+  rateOrder: function(id, data) { return api.put('/orders/' + id + '/rate', data); },
+};
+
+export var restaurantService = {
+  getRestaurants: function() { return api.get('/restaurants/list'); },
+  getRestaurantBySlug: function(slug) { return api.get('/restaurants/slug/' + slug); },
+  getRestaurantById: function(id) { return api.get('/restaurants/id/' + id); },
+};
+
 export default api;
+

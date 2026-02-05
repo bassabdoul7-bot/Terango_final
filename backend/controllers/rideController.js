@@ -587,3 +587,4 @@ exports.rateRide = async (req, res) => {
     });
   }
 };
+

@@ -27,6 +27,8 @@ const HomeScreen = ({ navigation }) => {
   const [gettingLocation, setGettingLocation] = useState(true);
   const [socket, setSocket] = useState(null);
   const pendingGoOnline = useRef(false);
+    const pendingMode = useRef('rides');
+    const [selectedMode, setSelectedMode] = useState('rides');
 
   useEffect(() => {
     initializeLocation();
@@ -126,10 +128,15 @@ const HomeScreen = ({ navigation }) => {
           vehicle: driver.vehicle,
           rating: driver.userId?.rating || 5.0
         });
-        console.log(`Driver ${driver._id} went online at ${location.latitude}, ${location.longitude}`);
+        console.log("Driver " + driver._id + " went online at " + location.latitude + ", " + location.longitude);
       }
 
-      navigation.replace('RideRequests', { driverId: driver._id });
+      // Navigate based on selected mode
+        if (pendingMode.current === 'delivery') {
+          navigation.replace('DeliveryRequests', { driverId: driver._id });
+        } else {
+          navigation.replace('RideRequests', { driverId: driver._id });
+        }
     } catch (error) {
       console.error('Toggle online error:', error);
       Alert.alert('Erreur', error.response?.data?.message || 'Impossible de passer en ligne');
@@ -138,7 +145,13 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-  const handleGoOnline = async () => {
+  const handleGoOnlineMode = async (mode) => {
+      pendingMode.current = mode;
+      setSelectedMode(mode);
+      await handleGoOnline();
+    };
+
+    const handleGoOnline = async () => {
     if (!driver || !driver._id) {
       Alert.alert('Erreur', 'Profil chauffeur introuvable');
       return;
@@ -234,19 +247,35 @@ const HomeScreen = ({ navigation }) => {
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={[
-                styles.goOnlineButton, 
-                (loading || gettingLocation) && styles.buttonDisabled
-              ]}
-              onPress={handleGoOnline}
-              disabled={loading || gettingLocation}
-            >
-              {(loading || gettingLocation) && (
-                <ActivityIndicator size="small" color="#000" style={{ marginRight: 8 }} />
-              )}
-              <Text style={styles.goOnlineText}>{getButtonText()}</Text>
-            </TouchableOpacity>
+              <View style={styles.modeSelector}>
+                <TouchableOpacity
+                  style={[styles.modeButton, selectedMode === 'rides' && styles.modeButtonActive]}
+                  onPress={() => setSelectedMode('rides')}
+                >
+                  <Text style={styles.modeIcon}>🚗</Text>
+                  <Text style={[styles.modeLabel, selectedMode === 'rides' && styles.modeLabelActive]}>Courses</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modeButton, selectedMode === 'delivery' && styles.modeButtonActive]}
+                  onPress={() => setSelectedMode('delivery')}
+                >
+                  <Text style={styles.modeIcon}>🏍️</Text>
+                  <Text style={[styles.modeLabel, selectedMode === 'delivery' && styles.modeLabelActive]}>Livraisons</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.goOnlineButton,
+                  (loading || gettingLocation) && styles.buttonDisabled
+                ]}
+                onPress={() => handleGoOnlineMode(selectedMode)}
+                disabled={loading || gettingLocation}
+              >
+                {(loading || gettingLocation) && (
+                  <ActivityIndicator size="small" color="#000" style={{ marginRight: 8 }} />
+                )}
+                <Text style={styles.goOnlineText}>{getButtonText()}</Text>
+              </TouchableOpacity>
 
             {!location && !gettingLocation && (
               <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
@@ -414,7 +443,42 @@ const styles = StyleSheet.create({
     color: '#333',
     fontWeight: '500',
   },
-  goOnlineButton: {
+  modeSelector: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 16,
+      width: '100%',
+      paddingHorizontal: 20,
+    },
+    modeButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 14,
+      borderRadius: 16,
+      backgroundColor: 'rgba(179, 229, 206, 0.12)',
+      borderWidth: 1.5,
+      borderColor: 'rgba(179, 229, 206, 0.25)',
+      gap: 8,
+    },
+    modeButtonActive: {
+      backgroundColor: 'rgba(252, 209, 22, 0.15)',
+      borderColor: '#FCD116',
+    },
+    modeIcon: {
+      fontSize: 22,
+    },
+    modeLabel: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: 'rgba(255,255,255,0.5)',
+    },
+    modeLabelActive: {
+      color: '#FCD116',
+      fontWeight: '700',
+    },
+    goOnlineButton: {
     backgroundColor: '#FCD116',
     paddingHorizontal: 48,
     paddingVertical: 18,
@@ -449,3 +513,5 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+

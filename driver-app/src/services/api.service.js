@@ -80,5 +80,17 @@ export const driverService = {
   }),
 };
 
+export const deliveryService = {
+  getActiveDelivery: function() { return api.get('/deliveries/driver-active'); },
+  acceptDelivery: function(deliveryId) { return api.put('/deliveries/' + deliveryId + '/accept'); },
+  updateDeliveryStatus: function(deliveryId, status) { return api.put('/deliveries/' + deliveryId + '/status', { status: status }); },
+};
+
+export const orderService = {
+  getActiveOrder: function() { return api.get('/orders/active'); },
+  getOrder: function(id) { return api.get('/orders/' + id); },
+};
+
 export default api;
+
 

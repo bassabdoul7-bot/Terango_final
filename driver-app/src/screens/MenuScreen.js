@@ -17,7 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 
-const MenuScreen = function(props) {
+var MenuScreen = function(props) {
   var navigation = props.navigation;
   var auth = useAuth();
   var user = auth.user;
@@ -25,7 +25,12 @@ const MenuScreen = function(props) {
   var logout = auth.logout;
   var updateUser = auth.updateUser;
 
-  var earningsState = useState({ today: 0, total: 0, totalRides: 0 });
+  var earningsState = useState({
+    today: 0, todayRides: 0, total: 0, totalRides: 0,
+    weekTotal: 0, weekRides: 0,
+    weeklyBreakdown: [0, 0, 0, 0, 0, 0, 0],
+    weeklyRides: [0, 0, 0, 0, 0, 0, 0],
+  });
   var earnings = earningsState[0];
   var setEarnings = earningsState[1];
 
@@ -59,10 +64,16 @@ const MenuScreen = function(props) {
 
   function fetchEarnings() {
     driverService.getEarnings().then(function(response) {
+      var e = response.earnings || {};
       setEarnings({
-        today: response.earnings ? response.earnings.today || 0 : 0,
-        total: response.earnings ? response.earnings.total || 0 : 0,
-        totalRides: response.earnings ? response.earnings.totalRides || 0 : 0,
+        today: e.today || 0,
+        todayRides: e.todayRides || 0,
+        total: e.total || 0,
+        totalRides: e.totalRides || 0,
+        weekTotal: e.weekTotal || 0,
+        weekRides: e.weekRides || 0,
+        weeklyBreakdown: e.weeklyBreakdown || [0, 0, 0, 0, 0, 0, 0],
+        weeklyRides: e.weeklyRides || [0, 0, 0, 0, 0, 0, 0],
       });
     }).catch(function(error) {
       console.log('Earnings error:', error);
@@ -78,8 +89,6 @@ const MenuScreen = function(props) {
   }
 
   // ========== PHOTO LOGIC ==========
-  // Only allowed when: no photo exists OR admin expired it
-  // Once taken: LOCKED. Only TeranGO admin can request retake.
 
   function takeLivePhoto() {
     Alert.alert(
@@ -120,7 +129,6 @@ const MenuScreen = function(props) {
       name: 'profile.jpg',
     });
     driverService.uploadProfilePhoto(formData).then(function(response) {
-      console.log('Upload response:', JSON.stringify(response));
       if (response.success) {
         updateUser({
           profilePhoto: response.profilePhoto,
@@ -142,16 +150,12 @@ const MenuScreen = function(props) {
   }
 
   function pickPhoto() {
-    // Photo already exists - check status
     if (user && user.profilePhoto) {
       var status = (user.photoStatus) || 'pending';
-
       if (status === 'expired') {
-        // Admin expired the photo, allow retake
         takeLivePhoto();
         return;
       }
-
       if (status === 'approved' || user.photoVerified) {
         Alert.alert(
           'Photo vérifiée ✓',
@@ -160,8 +164,6 @@ const MenuScreen = function(props) {
         );
         return;
       }
-
-      // Default: pending
       Alert.alert(
         'Photo en attente',
         "Votre photo est en cours de vérification par l'équipe TeranGO. Vous recevrez une notification une fois approuvée.",
@@ -169,8 +171,6 @@ const MenuScreen = function(props) {
       );
       return;
     }
-
-    // No photo yet - first time, take live photo
     takeLivePhoto();
   }
 
@@ -259,7 +259,7 @@ const MenuScreen = function(props) {
           <View style={styles.progressBarOuter}>
             <View style={[styles.progressBarInner, { width: progress + '%' }]} />
           </View>
-          <Text style={styles.progressLabel}>Objectif: 25,000 FCFA</Text>
+          <Text style={styles.progressLabel}>{'Objectif: 25,000 FCFA • ' + earnings.todayRides + ' course' + (earnings.todayRides !== 1 ? 's' : '') + " aujourd'hui"}</Text>
         </View>
 
         <View style={styles.statsRow}>
@@ -281,15 +281,25 @@ const MenuScreen = function(props) {
         </View>
 
         <View style={styles.weeklyCard}>
-          <Text style={styles.weeklyTitle}>Cette semaine</Text>
+          <View style={styles.weeklyHeader}>
+            <Text style={styles.weeklyTitle}>Cette semaine</Text>
+            <Text style={styles.weeklyTotal}>{earnings.weekTotal.toLocaleString() + ' FCFA'}</Text>
+          </View>
+          <Text style={styles.weeklySubtitle}>{earnings.weekRides + ' course' + (earnings.weekRides !== 1 ? 's' : '')}</Text>
           <View style={styles.weeklyBars}>
             {days.map(function(day, i) {
               var isToday = i === todayIndex;
-              var dayHeight = isToday ? 50 : 15;
+              var dayEarning = earnings.weeklyBreakdown[i] || 0;
+              var dayRides = earnings.weeklyRides[i] || 0;
+              var maxEarning = Math.max.apply(null, earnings.weeklyBreakdown) || 1;
+              var dayHeight = Math.max(dayEarning > 0 ? (dayEarning / maxEarning) * 60 + 10 : 8, 8);
+              var hasData = dayEarning > 0;
               return (
                 <View key={day} style={styles.barCol}>
-                  <View style={[styles.bar, { height: dayHeight }, isToday && styles.barActive]} />
-                  <Text style={[styles.barDay, isToday && styles.barDayActive]}>{day}</Text>
+                  {hasData && <Text style={styles.barAmount}>{(dayEarning / 1000).toFixed(0) + 'k'}</Text>}
+                  <View style={[styles.bar, { height: dayHeight }, (isToday || hasData) && styles.barActive]} />
+                  <Text style={[styles.barDay, (isToday || hasData) && styles.barDayActive]}>{day}</Text>
+                  {isToday && <View style={styles.todayDot} />}
                 </View>
               );
             })}
@@ -344,6 +354,7 @@ const MenuScreen = function(props) {
             </View>
           );
         })}
+        <View style={{ height: 40 }} />
       </ScrollView>
     );
   }
@@ -431,11 +442,11 @@ const MenuScreen = function(props) {
             <Text style={styles.vValue}>{v.make || '-'}</Text>
           </View>
           <View style={styles.vehicleItem}>
-            <Text style={styles.vLabel}>Modèle</Text>
+            <Text style={styles.vLabel}>{"Modèle"}</Text>
             <Text style={styles.vValue}>{v.model || '-'}</Text>
           </View>
           <View style={styles.vehicleItem}>
-            <Text style={styles.vLabel}>Année</Text>
+            <Text style={styles.vLabel}>{"Année"}</Text>
             <Text style={styles.vValue}>{v.year || '-'}</Text>
           </View>
           <View style={styles.vehicleItem}>
@@ -787,13 +798,18 @@ var styles = StyleSheet.create({
     backgroundColor: MINT_LIGHT, borderRadius: 20, padding: 20, marginBottom: 40,
     borderWidth: 1, borderColor: MINT_BORDER,
   },
-  weeklyTitle: { fontSize: 16, fontWeight: '600', color: '#fff', marginBottom: 20 },
-  weeklyBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 80 },
+  weeklyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  weeklyTitle: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  weeklyTotal: { fontSize: 16, fontWeight: '700', color: YELLOW },
+  weeklySubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.4)', marginBottom: 20, marginTop: 4 },
+  weeklyBars: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', height: 100 },
   barCol: { alignItems: 'center', flex: 1 },
   bar: { width: 20, backgroundColor: 'rgba(179, 229, 206, 0.3)', borderRadius: 6, marginBottom: 8 },
   barActive: { backgroundColor: YELLOW },
   barDay: { fontSize: 11, color: 'rgba(255,255,255,0.3)' },
   barDayActive: { color: YELLOW, fontWeight: '600' },
+  barAmount: { fontSize: 9, color: YELLOW, fontWeight: '600', marginBottom: 4 },
+  todayDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: YELLOW, marginTop: 4 },
   emptyState: { alignItems: 'center', marginTop: 80 },
   emptyIcon: { fontSize: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8 },
