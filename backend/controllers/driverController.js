@@ -1,6 +1,7 @@
 ﻿var Driver = require('../models/Driver');
 var User = require('../models/User');
 var Ride = require('../models/Ride');
+var Delivery = require('../models/Delivery');
 
 exports.getProfile = function(req, res) {
   Driver.findOne({ userId: req.user._id })
@@ -134,6 +135,21 @@ exports.updateLocation = function(req, res) {
             timestamp: new Date()
           });
         }
+
+
+        // Also emit to active delivery room
+        Delivery.findOne({
+          driver: driver._id,
+          status: { $in: ['accepted', 'picked_up', 'in_transit', 'at_pickup'] }
+        }).then(function(activeDelivery) {
+          if (activeDelivery) {
+            io.to(activeDelivery._id.toString()).emit('driver-location-update', {
+              driverId: driver._id,
+              location: { latitude: latitude, longitude: longitude },
+              timestamp: new Date()
+            });
+          }
+        });
 
         io.to('riders-watching').emit('nearby-driver-location', {
           driverId: driver._id.toString(),

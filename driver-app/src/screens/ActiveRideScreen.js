@@ -18,7 +18,7 @@ import io from 'socket.io-client';
 import GlassButton from '../components/GlassButton';
 import SuccessModal from '../components/SuccessModal';
 import COLORS from '../constants/colors';
-import { driverService } from '../services/api.service';
+import { driverService, deliveryService } from '../services/api.service';
 import * as Speech from 'expo-speech';
 import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../utils/voice';
 import { simplifyPolyline } from '../utils/polylineSimplifier';
@@ -44,7 +44,7 @@ function CancelReasonModal(props) {
   var reasons = [
     { id: 1, label: 'Ma voiture est en panne' },
     { id: 2, label: 'Impossible de rejoindre le client' },
-    { id: 3, label: 'Client ne répond pas' },
+    { id: 3, label: 'Client ne repond pas' },
     { id: 4, label: 'Urgence personnelle' },
     { id: 5, label: 'Embouteillage majeur' },
     { id: 6, label: 'Autre raison' },
@@ -55,7 +55,7 @@ function CancelReasonModal(props) {
       <View style={cancelStyles.overlay}>
         <View style={cancelStyles.modal}>
           <Text style={cancelStyles.title}>{"Raison de l'annulation"}</Text>
-          <Text style={cancelStyles.subtitle}>{"Sélectionnez une raison"}</Text>
+          <Text style={cancelStyles.subtitle}>{"Selectionnez une raison"}</Text>
           <ScrollView style={cancelStyles.reasonsList}>
             {reasons.map(function(reason) {
               return (
@@ -114,10 +114,10 @@ function QueuedRideBanner(props) {
       <View style={queueStyles.textContainer}>
         <Text style={queueStyles.title}>Course en attente</Text>
         <Text style={queueStyles.subtitle}>
-          {(queuedRide.fare ? queuedRide.fare.toLocaleString() : '0') + ' FCFA • ' + (queuedRide.distance ? queuedRide.distance.toFixed(1) : '0') + ' km'}
+          {(queuedRide.fare ? queuedRide.fare.toLocaleString() : '0') + ' FCFA - ' + (queuedRide.distance ? queuedRide.distance.toFixed(1) : '0') + ' km'}
         </Text>
       </View>
-      <Text style={queueStyles.arrow}>{'→'}</Text>
+      <Text style={queueStyles.arrow}>{'>'}</Text>
     </TouchableOpacity>
   );
 }
@@ -127,6 +127,8 @@ function ActiveRideScreen(props) {
   var route = props.route;
   var rideId = route.params.rideId;
   var passedRide = route.params.ride;
+  var deliveryMode = route.params.deliveryMode || false;
+  var deliveryData = route.params.deliveryData || null;
   var auth = useAuth();
   var driver = auth.driver;
 
@@ -231,7 +233,7 @@ function ActiveRideScreen(props) {
         setQueuedRide(rideData);
         Alert.alert(
           'Nouvelle course en attente',
-          (rideData.fare ? rideData.fare.toLocaleString() : '0') + ' FCFA • ' + (rideData.distance ? rideData.distance.toFixed(1) : '0') + ' km',
+          (rideData.fare ? rideData.fare.toLocaleString() : '0') + ' FCFA - ' + (rideData.distance ? rideData.distance.toFixed(1) : '0') + ' km',
           [
             { text: 'Refuser', style: 'cancel', onPress: function() { rejectQueuedRide(rideData); } },
             { text: 'Accepter', onPress: function() { acceptQueuedRide(rideData); } }
@@ -245,10 +247,10 @@ function ActiveRideScreen(props) {
       console.log('Ride cancelled by rider:', data);
       if (cancelledRef.current) return;
       cancelledRef.current = true;
-      speakAnnouncement('Le passager a annulé la course');
+      speakAnnouncement('Le passager a annule la course');
       Alert.alert(
-        'Course annulée par le passager',
-        'Le passager a annulé la course.' + (data.reason ? '\nRaison: ' + data.reason : ''),
+        'Course annulee par le passager',
+        'Le passager a annule la course.' + (data.reason ? '\nRaison: ' + data.reason : ''),
         [
           {
             text: 'OK',
@@ -260,15 +262,30 @@ function ActiveRideScreen(props) {
       );
     });
 
+    // ===== DELIVERY CANCELLATION LISTENER =====
+    if (deliveryMode) {
+      socketRef.current.on('delivery-cancelled-' + driver._id, function(data) {
+        console.log('Delivery cancelled by rider:', data);
+        if (cancelledRef.current) return;
+        cancelledRef.current = true;
+        speakAnnouncement('Le client a annule la livraison');
+        Alert.alert(
+          'Livraison annulee',
+          'Le client a annule la livraison.',
+          [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]
+        );
+      });
+    }
+
     // Also listen via ride-status event as backup
     socketRef.current.on('ride-status-' + rideId, function(data) {
       console.log('Ride status update via socket:', data);
       if (data.status === 'cancelled' && !cancelledRef.current) {
         cancelledRef.current = true;
-        speakAnnouncement('Le passager a annulé la course');
+        speakAnnouncement('Le passager a annule la course');
         Alert.alert(
-          'Course annulée',
-          'Le passager a annulé la course.',
+          'Course annulee',
+          'Le passager a annule la course.',
           [
             {
               text: 'OK',
@@ -291,7 +308,7 @@ function ActiveRideScreen(props) {
   function acceptQueuedRide(rideData) {
     driverService.acceptRide(rideData.rideId).then(function() {
       setQueuedRide(Object.assign({}, rideData, { accepted: true }));
-      speak('Course en attente acceptée');
+      speak('Course en attente acceptee');
     }).catch(function(error) {
       console.error('Accept queued ride error:', error);
       setQueuedRide(null);
@@ -299,7 +316,7 @@ function ActiveRideScreen(props) {
   }
 
   function rejectQueuedRide(rideData) {
-    driverService.rejectRide(rideData.rideId, 'Occupé').then(function() {
+    driverService.rejectRide(rideData.rideId, 'Occupe').then(function() {
       setQueuedRide(null);
     }).catch(function(error) {
       console.error('Reject queued ride error:', error);
@@ -327,7 +344,7 @@ function ActiveRideScreen(props) {
     function startTracking() {
       Location.requestForegroundPermissionsAsync().then(function(result) {
         if (result.status !== 'granted') {
-          Alert.alert('Permission refusée', 'Localisation requise');
+          Alert.alert('Permission refusee', 'Localisation requise');
           setInitializing(false);
           return;
         }
@@ -458,10 +475,10 @@ function ActiveRideScreen(props) {
     var stepKey = 'step_' + currentStep.id;
 
     if (distance <= 300 && distance > 250 && !announcementDistances.current.has(stepKey + '_300')) {
-      announceInstruction('Dans 300 mètres, ' + currentStep.instruction);
+      announceInstruction('Dans 300 metres, ' + currentStep.instruction);
       announcementDistances.current.add(stepKey + '_300');
     } else if (distance <= 100 && distance > 75 && !announcementDistances.current.has(stepKey + '_100')) {
-      announceInstruction('Dans 100 mètres, ' + currentStep.instruction);
+      announceInstruction('Dans 100 metres, ' + currentStep.instruction);
       announcementDistances.current.add(stepKey + '_100');
     } else if (distance <= 50 && distance > 30 && !announcementDistances.current.has(stepKey + '_50')) {
       announceInstruction(currentStep.instruction);
@@ -477,7 +494,7 @@ function ActiveRideScreen(props) {
   var toggleVoice = useCallback(function() {
     var newState = !voiceEnabled;
     setVoiceEnabled(newState);
-    speak(newState ? "Navigation vocale activée" : "Navigation vocale désactivée");
+    speak(newState ? "Navigation vocale activee" : "Navigation vocale desactivee");
   }, [voiceEnabled]);
 
   // ========== STEP TRACKING + NEAR DESTINATION ==========
@@ -526,11 +543,11 @@ function ActiveRideScreen(props) {
   }
 
   function getManeuverIcon(maneuver) {
-    if (!maneuver) return '↑';
-    if (maneuver.indexOf('left') !== -1) return '↰';
-    if (maneuver.indexOf('right') !== -1) return '↱';
-    if (maneuver.indexOf('uturn') !== -1) return '↶';
-    return '↑';
+    if (!maneuver) return '^';
+    if (maneuver.indexOf('left') !== -1) return '<';
+    if (maneuver.indexOf('right') !== -1) return '>';
+    if (maneuver.indexOf('uturn') !== -1) return 'U';
+    return '^';
   }
 
   // ========== ACTIONS ==========
@@ -560,8 +577,8 @@ function ActiveRideScreen(props) {
   function handleContactSupport() {
     Alert.alert('Contacter le Support', 'Choisissez un moyen', [
       { text: 'Annuler', style: 'cancel' },
-      { text: '📞 Appeler', onPress: function() { Linking.openURL('tel:+221338234567'); } },
-      { text: '💬 WhatsApp', onPress: function() { Linking.openURL('https://wa.me/221778234567'); } }
+      { text: 'Appeler', onPress: function() { Linking.openURL('tel:+221338234567'); } },
+      { text: 'WhatsApp', onPress: function() { Linking.openURL('https://wa.me/221778234567'); } }
     ]);
   }
 
@@ -571,7 +588,7 @@ function ActiveRideScreen(props) {
       setRide(function(prev) { return Object.assign({}, prev, { status: 'arrived' }); });
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
-      speakAnnouncement("Vous êtes arrivé au point de départ");
+      speakAnnouncement("Vous etes arrive au point de depart");
     }).catch(function(error) {
       var msg = (error.response && error.response.data && error.response.data.message) || 'Erreur';
       Alert.alert('Erreur', msg);
@@ -586,9 +603,9 @@ function ActiveRideScreen(props) {
       setRide(function(prev) { return Object.assign({}, prev, { status: 'in_progress' }); });
       hasFetchedRoute.current = false;
       setNavigationStarted(false);
-      speakAnnouncement('Course démarrée. Bonne route!');
+      speakAnnouncement('Course demarree. Bonne route!');
     }).catch(function(error) {
-      Alert.alert('Erreur', "Impossible de démarrer");
+      Alert.alert('Erreur', "Impossible de demarrer");
     }).finally(function() {
       setLoading(false);
     });
@@ -597,11 +614,11 @@ function ActiveRideScreen(props) {
   var handleCompleteRide = useCallback(function() {
     setLoading(true);
     driverService.completeRide(rideId).then(function(response) {
-      speakAnnouncement('Course terminée. Vous avez gagné ' + (ride.fare || 0) + ' francs.');
+      speakAnnouncement('Course terminee. Vous avez gagne ' + (ride.fare || 0) + ' francs.');
 
       if (queuedRide && queuedRide.accepted) {
         Alert.alert(
-          'Course terminée!',
+          'Course terminee!',
           'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA\n\nVous avez une course en attente.',
           [{
             text: 'Commencer la prochaine course',
@@ -615,7 +632,7 @@ function ActiveRideScreen(props) {
         );
       } else {
         Alert.alert(
-          'Course terminée!',
+          'Course terminee!',
           'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA',
           [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]
         );
@@ -658,20 +675,20 @@ function ActiveRideScreen(props) {
             {!navigationStarted && (
               <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}>
                 <Text style={styles.navIcon}>🧭</Text>
-                <Text style={styles.navText}>{"Démarrer navigation"}</Text>
+                <Text style={styles.navText}>{"Demarrer navigation"}</Text>
               </TouchableOpacity>
             )}
             {isNearDestination ? (
-              <GlassButton title="Je suis arrivé" onPress={handleArrived} loading={loading} />
+              <GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>{"Le bouton \"Je suis arrivé\" apparaîtra à 50m du client"}</Text>
+                <Text style={styles.proximityText}>{"Le bouton \"Je suis arrive\" apparaitra a 50m du client"}</Text>
               </View>
             )}
           </View>
         );
       case 'arrived':
-        return <GlassButton title="Démarrer la course" onPress={handleStartRide} loading={loading} />;
+        return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading} />;
       case 'in_progress':
         return (
           <View>
@@ -679,7 +696,7 @@ function ActiveRideScreen(props) {
               <GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading} />
             ) : (
               <View style={styles.proximityHint}>
-                <Text style={styles.proximityText}>{"Le bouton \"Terminer\" apparaîtra à 50m de la destination"}</Text>
+                <Text style={styles.proximityText}>{"Le bouton \"Terminer\" apparaitra a 50m de la destination"}</Text>
               </View>
             )}
           </View>
@@ -723,7 +740,7 @@ function ActiveRideScreen(props) {
       </MapView>
 
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}>
-        <Text style={styles.recenterIcon}>{"⊙"}</Text>
+        <Text style={styles.recenterIcon}>{"O"}</Text>
       </TouchableOpacity>
 
       {queuedRide && queuedRide.accepted && (
@@ -746,7 +763,7 @@ function ActiveRideScreen(props) {
 
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
-          <Text style={styles.cancelIcon}>{"✕"}</Text>
+          <Text style={styles.cancelIcon}>{"X"}</Text>
         </TouchableOpacity>
         {navigationStarted && (
           <TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}>
@@ -772,7 +789,7 @@ function ActiveRideScreen(props) {
               mapRef.current.animateCamera({ pitch: 0, zoom: 15 }, { duration: 500 });
             }
           }}>
-            <Text style={styles.stopNavText}>{"■"}</Text>
+            <Text style={styles.stopNavText}>{"||"}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -797,7 +814,7 @@ function ActiveRideScreen(props) {
             <View style={styles.addressRow}>
               <View style={ride.status === 'in_progress' ? styles.redSquare : styles.greenDot} />
               <View style={styles.addressTextContainer}>
-                <Text style={styles.addressLabel}>{ride.status === 'in_progress' ? 'Destination' : 'Point de départ'}</Text>
+                <Text style={styles.addressLabel}>{ride.status === 'in_progress' ? 'Destination' : 'Point de depart'}</Text>
                 <Text style={styles.addressText} numberOfLines={2}>
                   {ride.status === 'in_progress' ? (ride.dropoff ? ride.dropoff.address : '') : (ride.pickup ? ride.pickup.address : '')}
                 </Text>
@@ -818,8 +835,8 @@ function ActiveRideScreen(props) {
 
       <SuccessModal
         visible={showSuccessModal}
-        title="Course annulée"
-        message="La course a été annulée avec succès"
+        title="Course annulee"
+        message="La course a ete annulee avec succes"
         onClose={function() {
           setShowSuccessModal(false);
           navigation.replace('RideRequests');

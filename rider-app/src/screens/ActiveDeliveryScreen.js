@@ -58,6 +58,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
   const [delivery, setDelivery] = useState(null);
   const [driverInfo, setDriverInfo] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
+  const [eta, setEta] = useState(null);
   const [routeCoords, setRouteCoords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -177,6 +178,9 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         var points = PolylineUtil.decode(data.routes[0].overview_polyline.points);
         var coords = points.map(function(p) { return { latitude: p[0], longitude: p[1] }; });
         setRouteCoords(coords);
+        if (data.routes[0].legs && data.routes[0].legs[0]) {
+          setEta(data.routes[0].legs[0].duration.text);
+        }
       }
     } catch (err) {
       console.log('Directions error:', err);
@@ -250,6 +254,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
       <View style={styles.statusBar}>
         <Text style={{ fontSize: 18 }}>{statusInfo.icon}</Text>
         <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
+        {eta && <Text style={{ fontSize: 13, color: '#FCD116', fontWeight: '600' }}>{eta}</Text>}
       </View>
 
       {delivery?.status === 'pending' && !showNoDrivers && (
@@ -356,7 +361,7 @@ const styles = StyleSheet.create({
   retryBtn: { backgroundColor: '#FCD116', borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
   retryBtnText: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   driverCard: {
-    position: 'absolute', bottom: 220, left: 16, right: 16,
+    position: 'absolute', bottom: 290, left: 16, right: 16,
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(179,229,206,0.95)', borderRadius: 20, padding: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
@@ -378,7 +383,7 @@ const styles = StyleSheet.create({
   },
   bottomCard: {
     position: 'absolute', bottom: 30, left: 16, right: 16,
-    backgroundColor: 'rgba(179,229,206,0.95)', borderRadius: 20, padding: 20,
+    backgroundColor: 'rgba(179,229,206,0.95)', borderRadius: 20, padding: 16,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)',
   },
   addressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
@@ -402,3 +407,4 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
