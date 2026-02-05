@@ -1,4 +1,4 @@
-var Delivery = require('../models/Delivery');
+﻿var Delivery = require('../models/Delivery');
 var Driver = require('../models/Driver');
 var Rider = require('../models/Rider');
 var User = require('../models/User');
@@ -78,13 +78,13 @@ exports.createDelivery = function(req, res) {
   var paymentMethod = req.body.paymentMethod || 'cash';
 
   if (!serviceType || !pickup || !dropoff || !distance) {
-    return res.status(400).json({ success: false, message: 'Données incomplètes' });
+    return res.status(400).json({ success: false, message: 'DonnÃ©es incomplÃ¨tes' });
   }
 
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil passager non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil passager non trouvÃ©' });
       }
 
       var size = 'petit';
@@ -188,7 +188,7 @@ exports.createDelivery = function(req, res) {
 
           res.status(201).json({
             success: true,
-            message: 'Livraison demandée',
+            message: 'Livraison demandÃ©e',
             delivery: delivery
           });
         });
@@ -196,7 +196,7 @@ exports.createDelivery = function(req, res) {
     })
     .catch(function(error) {
       console.error('Create Delivery Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la création de la livraison' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la crÃ©ation de la livraison' });
     });
 };
 
@@ -208,7 +208,7 @@ exports.acceptDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvÃ©' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, status: 'pending' })
@@ -275,14 +275,14 @@ exports.updateDeliveryStatus = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃ©' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id });
     })
     .then(function(delivery) {
       if (!delivery) {
-        return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
+        return res.status(404).json({ success: false, message: 'Livraison non trouvÃ©e' });
       }
 
       var allowed = validTransitions[delivery.status];
@@ -337,7 +337,7 @@ exports.getMyDeliveries = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
       }
 
       return Delivery.find({ riderId: rider._id })
@@ -359,7 +359,7 @@ exports.getActiveDelivery = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
       }
 
       return Delivery.findOne({
@@ -376,11 +376,32 @@ exports.getActiveDelivery = function(req, res) {
     });
 };
 
+exports.getDeliveryById = function(req, res) {
+  Rider.findOne({ userId: req.user._id })
+    .then(function(rider) {
+      if (!rider) {
+        return res.status(404).json({ success: false, message: 'Profil non trouve' });
+      }
+      return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id })
+        .populate('driver');
+    })
+    .then(function(delivery) {
+      if (!delivery) {
+        return res.status(404).json({ success: false, message: 'Livraison non trouvee' });
+      }
+      res.status(200).json({ success: true, delivery: delivery });
+    })
+    .catch(function(error) {
+      console.error('Get Delivery By Id Error:', error);
+      res.status(500).json({ success: false, message: 'Erreur' });
+    });
+};
+
 exports.getDriverActiveDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃ©' });
       }
 
       return Delivery.findOne({
@@ -403,7 +424,7 @@ exports.cancelDelivery = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
       }
 
       return Delivery.findOne({
@@ -419,7 +440,7 @@ exports.cancelDelivery = function(req, res) {
 
       delivery.status = 'cancelled';
       delivery.cancelledBy = 'rider';
-      delivery.cancellationReason = req.body.reason || 'Annulé par le client';
+      delivery.cancellationReason = req.body.reason || 'AnnulÃ© par le client';
       delivery.cancelledAt = new Date();
 
       if (delivery.driver) {
@@ -436,7 +457,7 @@ exports.cancelDelivery = function(req, res) {
     })
     .then(function(delivery) {
       if (delivery) {
-        res.status(200).json({ success: true, message: 'Livraison annulée' });
+        res.status(200).json({ success: true, message: 'Livraison annulÃ©e' });
       }
     })
     .catch(function(error) {

@@ -2,6 +2,7 @@
 var User = require('../models/User');
 var Ride = require('../models/Ride');
 var Delivery = require('../models/Delivery');
+var Delivery = require('../models/Delivery');
 
 exports.getProfile = function(req, res) {
   Driver.findOne({ userId: req.user._id })

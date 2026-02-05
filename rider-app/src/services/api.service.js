@@ -66,6 +66,7 @@ export var deliveryService = {
   createDelivery: function(data) { return api.post('/deliveries/create', data); },
   getMyDeliveries: function() { return api.get('/deliveries/my-deliveries'); },
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
+  getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
   cancelDelivery: function(deliveryId, reason) {
     return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason });
   },
@@ -87,4 +88,5 @@ export var restaurantService = {
 };
 
 export default api;
+
 

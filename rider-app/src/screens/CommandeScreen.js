@@ -191,7 +191,7 @@ function CommandeScreen(props) {
 
   function renderStep1() {
     return (
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" nestedScrollEnabled={true}>
         <Text style={styles.stepTitle}>Type de magasin</Text>
         <Text style={styles.stepSub}>Ou voulez-vous commander?</Text>
 
@@ -634,4 +634,5 @@ var styles = StyleSheet.create({
 });
 
 export default CommandeScreen;
+
 

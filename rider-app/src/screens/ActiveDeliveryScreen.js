@@ -107,7 +107,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
 
   const fetchDelivery = async () => {
     try {
-      var res = await deliveryService.getActiveDelivery();
+      var res = await deliveryService.getDeliveryById(deliveryId);
       if (res.delivery) {
         setDelivery(res.delivery);
         if (res.delivery.driver) {
@@ -254,7 +254,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
       <View style={styles.statusBar}>
         <Text style={{ fontSize: 18 }}>{statusInfo.icon}</Text>
         <Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>
-        {eta && <Text style={{ fontSize: 13, color: '#FCD116', fontWeight: '600' }}>{eta}</Text>}
+        {eta && delivery?.status !== 'no_drivers_available' && delivery?.status !== 'pending' && <Text style={{ fontSize: 13, color: '#FCD116', fontWeight: '600' }}>{eta}</Text>}
       </View>
 
       {delivery?.status === 'pending' && !showNoDrivers && (
@@ -407,4 +407,6 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
+
 

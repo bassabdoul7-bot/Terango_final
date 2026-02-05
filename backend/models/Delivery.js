@@ -33,12 +33,12 @@ var deliverySchema = new mongoose.Schema({
       longitude: { type: Number, required: true }
     },
     contactName: { type: String, required: true },
-    contactPhone: { type: String, required: true },
+    contactPhone: { type: String, default: '' },
     instructions: String
   },
   packageDetails: {
     size: { type: String, enum: ['petit', 'moyen', 'grand'], default: 'petit' },
-    description: { type: String, required: true },
+    description: { type: String, default: '' },
     weight: String,
     isFragile: { type: Boolean, default: false }
   },
@@ -112,3 +112,4 @@ deliverySchema.index({ status: 1 });
 deliverySchema.index({ serviceType: 1 });
 
 module.exports = mongoose.model('Delivery', deliverySchema);
+
