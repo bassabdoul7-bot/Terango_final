@@ -230,7 +230,7 @@ function ColisScreen(props) {
                       },
                     });
                   }}
-                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }}
+                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }}
                   styles={{
                     textInput: styles.gInput,
                     listView: styles.gList,
@@ -267,7 +267,7 @@ function ColisScreen(props) {
                       },
                     });
                   }}
-                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }}
+                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }}
                   styles={{
                     textInput: styles.gInput,
                     listView: styles.gList,
@@ -648,3 +648,4 @@ var styles = StyleSheet.create({
 });
 
 export default ColisScreen;
+

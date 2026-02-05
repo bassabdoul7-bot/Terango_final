@@ -38,11 +38,11 @@ function ThiakThiakScreen(props) {
 
   function handleServicePress(serviceType) {
     if (serviceType === 'colis') {
-      navigation.navigate('ColisScreen', { currentLocation: currentLocation });
+      navigation.navigate('Colis', { currentLocation: currentLocation });
     } else if (serviceType === 'commande') {
-      navigation.navigate('CommandeScreen', { currentLocation: currentLocation });
+      navigation.navigate('Commande', { currentLocation: currentLocation });
     } else if (serviceType === 'resto') {
-      navigation.navigate('RestaurantListScreen', { currentLocation: currentLocation });
+      navigation.navigate('RestaurantList', { currentLocation: currentLocation });
     }
   }
 
@@ -227,3 +227,4 @@ var styles = StyleSheet.create({
 });
 
 export default ThiakThiakScreen;
+

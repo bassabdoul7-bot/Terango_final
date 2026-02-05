@@ -78,6 +78,10 @@ export const driverService = {
   uploadProfilePhoto: (formData) => api.put('/drivers/profile-photo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),
+
+  getServicePreferences: () => api.get('/drivers/service-preferences'),
+
+  updateServicePreferences: (prefs) => api.put('/drivers/service-preferences', prefs),
 };
 
 export const deliveryService = {
@@ -92,5 +96,6 @@ export const orderService = {
 };
 
 export default api;
+
 
 

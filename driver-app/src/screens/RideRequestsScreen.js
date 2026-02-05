@@ -15,7 +15,7 @@ import io from 'socket.io-client';
 import COLORS from '../constants/colors';
 import CAR_IMAGES from '../constants/carImages';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
-import { driverService } from '../services/api.service';
+import { driverService, deliveryService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -34,6 +34,9 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offerTimeout, setOfferTimeout] = useState(null);
+  const [activeServices, setActiveServices] = useState({ rides: true, colis: false, commande: false, resto: false });
+  const activeServicesRef = useRef({ rides: true, colis: false, commande: false, resto: false });
+  const [showFilters, setShowFilters] = useState(false);
   
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -98,6 +101,35 @@ const RideRequestsScreen = ({ navigation, route }) => {
     }
   };
 
+  const loadServicePreferences = async () => {
+    try {
+      const res = await driverService.getServicePreferences();
+      if (res.acceptedServices) {
+        setActiveServices(res.acceptedServices);
+      }
+    } catch (err) {
+      console.log('Load preferences error:', err);
+    }
+  };
+
+  useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
+
+  const toggleService = async (key) => {
+    const updated = { ...activeServices, [key]: !activeServices[key] };
+    const hasAtLeastOne = Object.values(updated).some(v => v);
+    if (!hasAtLeastOne) {
+      Alert.alert('Attention', 'Vous devez garder au moins un service actif.');
+      return;
+    }
+    setActiveServices(updated);
+    try {
+      await driverService.updateServicePreferences(updated);
+    } catch (err) {
+      console.log('Update preferences error:', err);
+      setActiveServices(activeServices);
+    }
+  };
+
   const getLocation = async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -141,43 +173,83 @@ const RideRequestsScreen = ({ navigation, route }) => {
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
-      // Join driver's personal room for TARGETED offers
       newSocket.emit('driver-online', {
-          driverId: driverId,
-          latitude: location?.latitude,
-          longitude: location?.longitude
-        });
-      console.log(`Listening for targeted offers: new-ride-offer-${driverId}`);
+        driverId: driverId,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      });
+      console.log('Listening for offers for driver: ' + driverId);
     });
 
-    // UBER-LEVEL: Listen for TARGETED ride offers only
-    newSocket.on(`new-ride-offer-${driverId}`, (rideData) => {
-      console.log('🎯 TARGETED ride offer received:', rideData);
-      
+    // === RIDE OFFERS ===
+    newSocket.on('new-ride-offer-' + driverId, (rideData) => {
+      console.log('🚗 Ride offer received:', rideData);
+      rideData._offerType = 'ride';
+      if (!activeServicesRef.current.rides) { console.log('Rides disabled, skipping'); return; }
+
       setRideRequests(prev => [...prev, rideData]);
-      
+
       if (!currentRequest) {
         setCurrentRequest(rideData);
-        
-        // Start 15-second countdown
+
         const timeout = setTimeout(() => {
           console.log('⏰ Offer expired, auto-rejecting');
           handleReject();
         }, rideData.offerExpiresIn || 15000);
-        
+
         setOfferTimeout(timeout);
       }
     });
 
-    // Listen for ride taken by another driver
-    newSocket.on(`ride-taken-${driverId}`, (data) => {
+    newSocket.on('ride-taken-' + driverId, (data) => {
       console.log('Ride taken by another driver:', data);
       Alert.alert('Course prise', 'Un autre chauffeur a accepté cette course');
-      
+
       if (currentRequest) {
         setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
         const nextRequest = rideRequests.find(r => r.rideId !== currentRequest.rideId);
         setCurrentRequest(nextRequest || null);
+      }
+    });
+
+    // === DELIVERY OFFERS (colis, commande, restaurant) ===
+    newSocket.on('new-delivery-' + driverId, (deliveryData) => {
+      console.log('📦 Delivery offer received:', deliveryData);
+      var sType = deliveryData.serviceType || 'colis';
+      if (sType === 'colis' && !activeServicesRef.current.colis) { console.log('Colis disabled, skipping'); return; }
+      if (sType === 'commande' && !activeServicesRef.current.commande) { console.log('Commande disabled, skipping'); return; }
+      if ((sType === 'resto' || sType === 'restaurant') && !activeServicesRef.current.resto) { console.log('Resto disabled, skipping'); return; }
+      var offerData = {
+        rideId: deliveryData.deliveryId,
+        _offerType: deliveryData.serviceType || 'colis',
+        _isDelivery: true,
+        pickup: deliveryData.pickup,
+        dropoff: deliveryData.dropoff,
+        fare: deliveryData.fare,
+        packageDetails: deliveryData.packageDetails,
+        restaurantName: deliveryData.restaurantName,
+        serviceType: deliveryData.serviceType,
+        offerExpiresIn: 60000,
+      };
+
+      setRideRequests(prev => [...prev, offerData]);
+
+      if (!currentRequest) {
+        setCurrentRequest(offerData);
+
+        const timeout = setTimeout(() => {
+          console.log('⏰ Delivery offer expired');
+          handleReject();
+        }, 60000);
+
+        setOfferTimeout(timeout);
+      }
+    });
+
+    newSocket.on('delivery-taken-' + driverId, () => {
+      Alert.alert('Livraison prise', 'Un autre livreur a accepté cette livraison.');
+      if (currentRequest && currentRequest._isDelivery) {
+        setCurrentRequest(null);
       }
     });
 
@@ -238,7 +310,6 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const handleAccept = async () => {
     if (!currentRequest) return;
 
-    // Clear timeout
     if (offerTimeout) {
       clearTimeout(offerTimeout);
       setOfferTimeout(null);
@@ -246,19 +317,27 @@ const RideRequestsScreen = ({ navigation, route }) => {
 
     setLoading(true);
     try {
-      await driverService.acceptRide(currentRequest.rideId);
-      
-      setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
-      
-      navigation.replace('ActiveRide', {
-        rideId: currentRequest.rideId,
-        ride: currentRequest
-      });
-      
+      if (currentRequest._isDelivery) {
+        await deliveryService.acceptDelivery(currentRequest.rideId);
+        setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
+        navigation.replace('ActiveRide', {
+          rideId: currentRequest.rideId,
+          ride: currentRequest,
+          deliveryMode: true,
+          deliveryData: currentRequest
+        });
+      } else {
+        await driverService.acceptRide(currentRequest.rideId);
+        setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
+        navigation.replace('ActiveRide', {
+          rideId: currentRequest.rideId,
+          ride: currentRequest
+        });
+      }
       setCurrentRequest(null);
     } catch (error) {
-      console.error('Accept ride error:', error);
-      Alert.alert('Erreur', error.response?.data?.message || 'Impossible d\'accepter la course');
+      console.error('Accept error:', error);
+      Alert.alert('Erreur', error.response?.data?.message || "Impossible d'accepter");
     } finally {
       setLoading(false);
     }
@@ -267,21 +346,20 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const handleReject = async () => {
     if (!currentRequest) return;
 
-    // Clear timeout
     if (offerTimeout) {
       clearTimeout(offerTimeout);
       setOfferTimeout(null);
     }
 
     try {
-      await driverService.rejectRide(currentRequest.rideId, 'Trop loin');
-      
+      if (!currentRequest._isDelivery) {
+        await driverService.rejectRide(currentRequest.rideId, 'Trop loin');
+      }
       setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
-      
       const nextRequest = rideRequests.find(r => r.rideId !== currentRequest.rideId);
       setCurrentRequest(nextRequest || null);
     } catch (error) {
-      console.error('Reject ride error:', error);
+      console.error('Reject error:', error);
     }
   };
 
@@ -359,7 +437,32 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.onlineDot} />
           <Text style={styles.offlineText}>En ligne</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={{width:36,height:36,borderRadius:18,backgroundColor:'rgba(179,229,206,0.2)',borderWidth:1,borderColor:'rgba(179,229,206,0.4)',alignItems:'center',justifyContent:'center',marginLeft:10}}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Text style={{fontSize:16,color:'#fff'}}>{showFilters ? '✕' : '⚙'}</Text>
+        </TouchableOpacity>
       </View>
+      {showFilters && (
+        <View style={{position:'absolute',top:110,left:12,right:12,flexDirection:'row',gap:8,zIndex:10,paddingVertical:10,paddingHorizontal:8,backgroundColor:'rgba(20,25,30,0.9)',borderRadius:16,borderWidth:1,borderColor:'rgba(179,229,206,0.25)'}}>
+          {[
+            {key:'rides',label:'Courses',icon:'🚗'},
+            {key:'colis',label:'Colis',icon:'📦'},
+            {key:'commande',label:'Commandes',icon:'🛒'},
+            {key:'resto',label:'Restaurant',icon:'🍽'},
+          ].map((svc) => (
+            <TouchableOpacity
+              key={svc.key}
+              style={[{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:8,borderRadius:10,backgroundColor:'rgba(255,255,255,0.08)',gap:4}, activeServices[svc.key] && {backgroundColor:'rgba(252,209,22,0.2)',borderWidth:1,borderColor:'#FCD116'}]}
+              onPress={() => toggleService(svc.key)}
+            >
+              <Text style={{fontSize:14}}>{svc.icon}</Text>
+              <Text style={[{fontSize:11,fontWeight:'600',color:'rgba(255,255,255,0.4)'}, activeServices[svc.key] && {color:'#FCD116',fontWeight:'700'}]}>{svc.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       {!currentRequest && (
         <View style={styles.scanningBar}>
@@ -409,29 +512,44 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View>
-                <Text style={styles.requestTitle}>Nouvelle course 🎯</Text>
+                <Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "📦 Nouveau colis" : currentRequest.serviceType === "commande" ? "🛒 Nouvelle commande" : "🍽️ Commande restaurant") : "Nouvelle course 🎯"}</Text>
                 <Text style={styles.requestSubtitle}>
-                  {currentRequest.distance.toFixed(1)} km • {Math.round(currentRequest.distance * 2)} min
+                  {(currentRequest.distance || 0).toFixed(1)} km • {Math.round(currentRequest.distance * 2)} min
                   {currentRequest.distanceToPickup && ` • ${currentRequest.distanceToPickup.toFixed(1)}km de vous`}
                 </Text>
               </View>
               <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()} FCFA</Text>
             </View>
 
-              <View style={styles.rideTypeRow}>
-                <Image
-                  source={{ uri: (CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).uri }}
-                  style={styles.rideTypeImage}
-                  resizeMode='contain'
-                />
-                <View style={styles.rideTypeInfo}>
-                  <Text style={styles.rideTypeName}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).name}</Text>
-                  <Text style={styles.rideTypeDesc}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).description}</Text>
+              {currentRequest._isDelivery ? (
+                <View style={styles.rideTypeRow}>
+                  <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: currentRequest.serviceType === 'colis' ? 'rgba(255,149,0,0.15)' : currentRequest.serviceType === 'commande' ? 'rgba(175,82,222,0.15)' : 'rgba(255,59,48,0.15)', alignItems: 'center', justifyContent: 'center'}}>
+                    <Text style={{fontSize: 22}}>{currentRequest.serviceType === 'colis' ? '📦' : currentRequest.serviceType === 'commande' ? '🛒' : '🍽️'}</Text>
+                  </View>
+                  <View style={styles.rideTypeInfo}>
+                    <Text style={styles.rideTypeName}>{currentRequest.serviceType === 'colis' ? 'Livraison Colis' : currentRequest.serviceType === 'commande' ? 'Commande' : 'Restaurant'}</Text>
+                    <Text style={styles.rideTypeDesc}>{currentRequest.restaurantName || (currentRequest.packageDetails ? 'Taille: ' + currentRequest.packageDetails.size : 'Livraison rapide')}</Text>
+                  </View>
+                  <View style={[styles.rideTypeBadge, {backgroundColor: 'rgba(255,149,0,0.15)'}]}>
+                    <Text style={[styles.rideTypeBadgeText, {color: '#FF9500'}]}>{(currentRequest.serviceType || 'LIVRAISON').toUpperCase()}</Text>
+                  </View>
                 </View>
-                <View style={styles.rideTypeBadge}>
-                  <Text style={styles.rideTypeBadgeText}>{(currentRequest.rideType || 'standard').toUpperCase()}</Text>
+              ) : (
+                <View style={styles.rideTypeRow}>
+                  <Image
+                    source={{ uri: (CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).uri }}
+                    style={styles.rideTypeImage}
+                    resizeMode='contain'
+                  />
+                  <View style={styles.rideTypeInfo}>
+                    <Text style={styles.rideTypeName}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).name}</Text>
+                    <Text style={styles.rideTypeDesc}>{(CAR_IMAGES[currentRequest.rideType] || CAR_IMAGES.standard).description}</Text>
+                  </View>
+                  <View style={styles.rideTypeBadge}>
+                    <Text style={styles.rideTypeBadgeText}>{(currentRequest.rideType || 'standard').toUpperCase()}</Text>
+                  </View>
                 </View>
-              </View>
+              )}
 
               <View style={styles.addressesContainer}>
               <View style={styles.addressRow}>
@@ -830,6 +948,9 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
+
 
 
 

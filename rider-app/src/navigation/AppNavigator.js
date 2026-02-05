@@ -14,6 +14,7 @@ import ColisScreen from '../screens/ColisScreen';
 import CommandeScreen from '../screens/CommandeScreen';
 import RestaurantListScreen from '../screens/RestaurantListScreen';
 import RestaurantMenuScreen from '../screens/RestaurantMenuScreen';
+import ActiveDeliveryScreen from '../screens/ActiveDeliveryScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -41,6 +42,7 @@ const AppNavigator = () => {
             <Stack.Screen name="Commande" component={CommandeScreen} />
             <Stack.Screen name="RestaurantList" component={RestaurantListScreen} />
             <Stack.Screen name="RestaurantMenuScreen" component={RestaurantMenuScreen} />
+        <Stack.Screen name="ActiveDeliveryScreen" component={ActiveDeliveryScreen} />
           </>
         )}
       </Stack.Navigator>
@@ -49,3 +51,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

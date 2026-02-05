@@ -1,4 +1,4 @@
-var mongoose = require('mongoose');
+﻿var mongoose = require('mongoose');
 
 var deliverySchema = new mongoose.Schema({
   deliveryNumber: { type: String, unique: true },
@@ -98,12 +98,12 @@ var deliverySchema = new mongoose.Schema({
   cancelledAt: Date
 }, { timestamps: true });
 
-deliverySchema.pre('save', function(next) {
+deliverySchema.pre('save', function() {
   if (!this.deliveryNumber) {
     var prefix = this.serviceType === 'colis' ? 'COL-' : 'CMD-';
     this.deliveryNumber = prefix + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 5).toUpperCase();
   }
-  next();
+
 });
 
 deliverySchema.index({ riderId: 1, createdAt: -1 });
