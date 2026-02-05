@@ -1,4 +1,6 @@
 ﻿const express = require('express');
+const multer = require('multer');
+const path = require('path');
 const router = express.Router();
 const { protect, restrictTo } = require('../middleware/auth');
 const {
@@ -10,8 +12,23 @@ const {
   getEarnings,
   getRideHistory,
   getNearbyDrivers,
-  getOnlineCount
+  getOnlineCount,
+  uploadProfilePhoto
 } = require('../controllers/driverController');
+
+// Configure multer for profile photos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => cb(null, `driver-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`)
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Seules les images sont acceptées'), false);
+  }
+});
 
 // Public/stats routes
 router.get('/online-count', protect, getOnlineCount);
@@ -39,5 +56,8 @@ router.get('/earnings', protect, restrictTo('driver'), getEarnings);
 
 // Get ride history
 router.get('/ride-history', protect, restrictTo('driver'), getRideHistory);
+
+// Upload profile photo
+router.put('/profile-photo', protect, restrictTo('driver'), upload.single('photo'), uploadProfilePhoto);
 
 module.exports = router;

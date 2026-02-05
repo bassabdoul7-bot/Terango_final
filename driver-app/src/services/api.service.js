@@ -75,6 +75,10 @@ export const driverService = {
   getEarnings: () => api.get('/drivers/earnings'),
   
   getRideHistory: () => api.get('/drivers/ride-history'),
+  uploadProfilePhoto: (formData) => api.put('/drivers/profile-photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }),
 };
 
 export default api;
+

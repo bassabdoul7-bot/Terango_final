@@ -380,3 +380,29 @@ exports.getOnlineCount = async (req, res) => {
     });
   }
 };
+
+
+// @desc    Upload profile photo
+// @route   PUT /api/drivers/profile-photo
+// @access  Private (Driver)
+exports.uploadProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Aucune photo fournie' });
+    }
+
+    const photoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(req.user.id, { profilePhoto: photoUrl });
+
+    res.json({
+      success: true,
+      message: 'Photo mise à jour',
+      profilePhoto: photoUrl
+    });
+  } catch (error) {
+    console.error('Upload photo error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};

@@ -328,9 +328,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
         if (rideData.status === 'completed') {
           alertShownRef.current = true;
           clearInterval(pollInterval.current);
-          Alert.alert('Course terminée', 'Merci d\'avoir voyagé avec TeranGO!', [
-            { text: 'OK', onPress: () => navigation.replace('Home') }
-          ]);
+          navigation.replace('Rating', { ride: rideData });
         } else if (rideData.status === 'cancelled') {
           alertShownRef.current = true;
           clearInterval(pollInterval.current);
@@ -594,3 +592,4 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+

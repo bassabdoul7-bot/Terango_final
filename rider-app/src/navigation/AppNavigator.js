@@ -8,6 +8,7 @@ import HomeScreen from '../screens/HomeScreen';
 import SearchDestinationScreen from '../screens/SearchDestinationScreen';
 import RideSelectionScreen from '../screens/RideSelectionScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
+import RatingScreen from '../screens/RatingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,6 +30,7 @@ const AppNavigator = () => {
             <Stack.Screen name="SearchDestination" component={SearchDestinationScreen} />
             <Stack.Screen name="RideSelection" component={RideSelectionScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
+            <Stack.Screen name="Rating" component={RatingScreen} />
           </>
         )}
       </Stack.Navigator>
@@ -37,3 +39,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

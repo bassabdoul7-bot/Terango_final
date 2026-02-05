@@ -72,7 +72,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const updateUser = async (updatedFields) => {
+      try {
+        const updatedUser = { ...user, ...updatedFields };
+        setUser(updatedUser);
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      } catch (error) {
+        console.error('Update user error:', error);
+      }
+    };
+
+    const logout = async () => {
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
@@ -93,7 +103,8 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         loading,
         login,
-        logout,
+          logout,
+          updateUser,
         fetchDriverProfile,
       }}
     >

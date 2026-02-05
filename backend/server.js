@@ -26,6 +26,7 @@ matchingService.setDriverLocationService(driverLocationService);
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static('uploads'));
 
 // Make io, matchingService, and driverLocationService accessible to routes
 app.set('io', io);
@@ -123,5 +124,6 @@ server.listen(PORT, () => {
   console.log(`   🔌 WebSocket: Active`);
   console.log(`   ⏱️  Driver TTL: 60 seconds`);
 });
+
 
 
