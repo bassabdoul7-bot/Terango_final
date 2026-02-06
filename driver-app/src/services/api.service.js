@@ -48,6 +48,7 @@ export const authService = {
 
 export const driverService = {
   getProfile: () => api.get('/drivers/profile'),
+  completeProfile: (data) => api.put('/drivers/complete-profile', data),
   
   updateLocation: (latitude, longitude) =>
     api.put('/drivers/location', { latitude, longitude }),
@@ -96,6 +97,7 @@ export const orderService = {
 };
 
 export default api;
+
 
 
 

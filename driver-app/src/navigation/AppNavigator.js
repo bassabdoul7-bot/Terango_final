@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 
 import LoginScreen from '../screens/LoginScreen';
+import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import RideRequestsScreen from '../screens/RideRequestsScreen';
 import DeliveryRequestsScreen from '../screens/DeliveryRequestsScreen';
@@ -24,6 +25,7 @@ const AppNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={RegisterScreen} />
         ) : (
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
@@ -39,3 +41,4 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+

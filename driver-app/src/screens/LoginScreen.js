@@ -11,6 +11,7 @@ import {
   Keyboard,
   Alert,
   Image,
+  TouchableOpacity,
 } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
@@ -18,7 +19,7 @@ import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
 
-const LoginScreen = () => {
+const LoginScreen = ({ navigation }) => {
   const { login } = useAuth();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -157,6 +158,14 @@ const LoginScreen = () => {
           </GlassCard>
 
           <View style={styles.bottomSpacer} />
+          
+          <TouchableOpacity 
+            style={styles.registerLink} 
+            onPress={() => navigation.navigate('Register')}
+          >
+            <Text style={styles.registerText}>Nouveau chauffeur? </Text>
+            <Text style={styles.registerBold}>S'inscrire</Text>
+          </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -268,6 +277,21 @@ const styles = StyleSheet.create({
   bottomSpacer: {
     height: 20,
   },
+  registerLink: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 30,
+  },
+  registerText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 15,
+  },
+  registerBold: {
+    color: '#FCD116',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
 });
 
 export default LoginScreen;
+
