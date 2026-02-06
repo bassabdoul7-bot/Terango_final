@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -74,7 +74,7 @@ function CancelReasonModal(props) {
           </ScrollView>
           <View style={cancelStyles.actions}>
             <TouchableOpacity style={cancelStyles.supportButton} onPress={onSupport}>
-              <Text style={cancelStyles.supportIcon}>📞</Text>
+              <Text style={cancelStyles.supportIcon}>ðŸ“ž</Text>
               <Text style={cancelStyles.supportText}>Contacter Support</Text>
             </TouchableOpacity>
             <View style={cancelStyles.mainActions}>
@@ -109,7 +109,7 @@ function QueuedRideBanner(props) {
   return (
     <TouchableOpacity style={queueStyles.banner} onPress={onView}>
       <View style={queueStyles.iconContainer}>
-        <Text style={queueStyles.icon}>🚗</Text>
+        <Text style={queueStyles.icon}>ðŸš—</Text>
       </View>
       <View style={queueStyles.textContainer}>
         <Text style={queueStyles.title}>Course en attente</Text>
@@ -674,7 +674,7 @@ function ActiveRideScreen(props) {
           <View>
             {!navigationStarted && (
               <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}>
-                <Text style={styles.navIcon}>🧭</Text>
+                <Text style={styles.navIcon}>ðŸ§­</Text>
                 <Text style={styles.navText}>{"Demarrer navigation"}</Text>
               </TouchableOpacity>
             )}
@@ -728,7 +728,7 @@ function ActiveRideScreen(props) {
         pitchEnabled={navigationStarted}
       >
         <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
-          <View style={styles.driverMarker}><Text style={styles.driverText}>▲</Text></View>
+          <View style={styles.driverMarker}><Text style={styles.driverText}>â–²</Text></View>
         </Marker>
         {destination && <Marker coordinate={destination} pinColor={ride.status === 'in_progress' ? COLORS.red : COLORS.green} />}
         {routeCoordinates.length > 0 && (
@@ -767,7 +767,7 @@ function ActiveRideScreen(props) {
         </TouchableOpacity>
         {navigationStarted && (
           <TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}>
-            <Text style={styles.voiceIcon}>{voiceEnabled ? '🔊' : '🔇'}</Text>
+            <Text style={styles.voiceIcon}>{voiceEnabled ? 'ðŸ”Š' : 'ðŸ”‡'}</Text>
           </TouchableOpacity>
         )}
         {!navigationStarted && (
@@ -935,3 +935,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
+
+
