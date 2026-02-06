@@ -49,9 +49,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (phone, otp) => {
+  const login = async (phone, otp, name = 'Driver', role = 'driver', vehicleInfo = null) => {
     try {
-      const response = await authService.verifyOTP(phone, otp);
+      const response = await authService.verifyOTP(phone, otp, name, role);
       
       if (response.success) {
         await AsyncStorage.setItem('token', response.token);
@@ -106,6 +106,7 @@ export const AuthProvider = ({ children }) => {
           logout,
           updateUser,
         fetchDriverProfile,
+          checkAuth,
       }}
     >
       {children}
@@ -120,4 +121,8 @@ export const useAuth = () => {
   }
   return context;
 };
+
+
+
+
 

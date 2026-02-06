@@ -184,20 +184,19 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.white,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    alignSelf: 'center',
     marginBottom: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#00853F',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoImageWrapper: {
     width: 120,
@@ -287,11 +286,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   registerBold: {
-    color: '#FCD116',
+    color: '#00A86B',
     fontSize: 15,
     fontWeight: 'bold',
   },
 });
 
 export default LoginScreen;
+
+
+
 

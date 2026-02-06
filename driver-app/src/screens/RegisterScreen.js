@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -13,207 +13,208 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
-import { authService } from '../services/api.service';
+import { authService, driverService } from '../services/api.service';
 
-var VEHICLE_TYPES = [
-  { key: 'moto', icon: '🏍️', label: 'Moto' },
-  { key: 'voiture', icon: '🚗', label: 'Voiture' },
-  { key: 'velo', icon: '🚲', label: 'Velo' },
-];
+const RegisterScreen = ({ navigation }) => {
+  const { checkAuth } = useAuth();
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [name, setName] = useState('');
+  const [vehicleType, setVehicleType] = useState('moto');
+  const [plateNumber, setPlateNumber] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1);
 
-function RegisterScreen(props) {
-  var navigation = props.navigation;
-  var { login } = useAuth();
-  
-  var [step, setStep] = useState(1);
-  var [phone, setPhone] = useState('');
-  var [otp, setOtp] = useState('');
-  var [name, setName] = useState('');
-  var [vehicleType, setVehicleType] = useState('moto');
-  var [plateNumber, setPlateNumber] = useState('');
-  var [vehicleColor, setVehicleColor] = useState('');
-  var [loading, setLoading] = useState(false);
-
-  async function handleSendOTP() {
+  const handleSendOTP = async () => {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Numero de telephone invalide');
+      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
       return;
     }
     setLoading(true);
     try {
-      var response = await authService.sendOTP(phone);
+      const fullPhone = '+221' + phone.replace(/\s/g, '');
+      const response = await authService.sendOTP(fullPhone);
       if (response.success) {
         setStep(2);
-        Alert.alert('Code envoye', 'Verifiez le terminal backend pour le code OTP');
+        Alert.alert('Code envoyé', 'Vérifiez le terminal backend pour le code OTP');
       }
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible d\'envoyer le code');
+      Alert.alert('Erreur', error.message || 'Erreur envoi code');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  async function handleVerifyAndRegister() {
+  const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 6) {
-      Alert.alert('Erreur', 'Code OTP invalide');
+      Alert.alert('Erreur', 'Veuillez entrer un code OTP valide (6 chiffres)');
       return;
     }
+    setLoading(true);
+    try {
+      const fullPhone = '+221' + phone.replace(/\s/g, '');
+      const response = await authService.verifyOTP(fullPhone, otp, name || 'Driver', 'driver');
+      if (response.success && response.token) {
+        await AsyncStorage.setItem('token', response.token);
+        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+        setStep(3);
+      }
+    } catch (error) {
+      Alert.alert('Erreur', error.message || 'Code OTP invalide');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteRegistration = async () => {
     if (!name.trim()) {
       Alert.alert('Erreur', 'Veuillez entrer votre nom');
       return;
     }
     if (!plateNumber.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer le numero de plaque');
+      Alert.alert('Erreur', 'Veuillez entrer le numéro de plaque');
       return;
     }
-
     setLoading(true);
     try {
-      var response = await authService.verifyOTP(phone, otp, name, 'driver');
-      if (response.success && response.token) {
-        await login(phone, otp, name, 'driver', {
-          vehicleType: vehicleType,
+      await driverService.completeProfile({
+        name: name,
+        vehicle: {
+          type: vehicleType,
           plateNumber: plateNumber,
-          vehicleColor: vehicleColor
-        });
-      }
+          color: vehicleColor || 'Non spécifié'
+        }
+      });
+      await checkAuth();
     } catch (error) {
-      Alert.alert('Erreur', error.message || 'Inscription echouee');
+      Alert.alert('Erreur', error.message || 'Inscription échouée');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
-  function renderStep1() {
-    return (
-      <GlassCard style={styles.card}>
-        <Text style={styles.title}>Devenir Chauffeur</Text>
-        <Text style={styles.subtitle}>Entrez votre numero de telephone</Text>
-        
-        <View style={styles.phoneRow}>
-          <View style={styles.countryCode}>
-            <Text style={styles.countryFlag}>🇸🇳</Text>
-            <Text style={styles.countryText}>+221</Text>
-          </View>
-          <TextInput
-            style={styles.phoneInput}
-            placeholder="77 123 45 67"
-            placeholderTextColor="rgba(255,255,255,0.4)"
-            keyboardType="phone-pad"
-            value={phone}
-            onChangeText={setPhone}
-            maxLength={12}
-          />
+  const renderStep1 = () => (
+    <>
+      <Text style={styles.title}>Devenir Chauffeur</Text>
+      <Text style={styles.subtitle}>Entrez votre numéro de téléphone</Text>
+
+      <Text style={styles.label}>Numéro de téléphone</Text>
+      <View style={styles.phoneRow}>
+        <View style={styles.countryCode}>
+          <Text style={styles.flag}>🇸🇳</Text>
+          <Text style={styles.codeText}>+221</Text>
         </View>
-
-        <GlassButton
-          title="Recevoir le code"
-          onPress={handleSendOTP}
-          loading={loading}
-        />
-
-        <TouchableOpacity onPress={function() { navigation.navigate('Login'); }} style={styles.linkRow}>
-          <Text style={styles.linkText}>Deja inscrit? </Text>
-          <Text style={styles.linkBold}>Se connecter</Text>
-        </TouchableOpacity>
-      </GlassCard>
-    );
-  }
-
-  function renderStep2() {
-    return (
-      <GlassCard style={styles.card}>
-        <Text style={styles.title}>Verification</Text>
-        <Text style={styles.subtitle}>Entrez le code recu par SMS</Text>
-
         <TextInput
-          style={styles.otpInput}
-          placeholder="000000"
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          keyboardType="number-pad"
-          value={otp}
-          onChangeText={setOtp}
-          maxLength={6}
+          style={[styles.input, styles.phoneInput]}
+          placeholder="77 123 45 67"
+          placeholderTextColor={COLORS.grayLight}
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="phone-pad"
+          maxLength={12}
         />
+      </View>
 
-        <GlassButton
-          title="Verifier"
-          onPress={function() { setStep(3); }}
-          loading={loading}
-        />
+      <GlassButton
+        title={loading ? 'Envoi...' : 'Recevoir le code'}
+        onPress={handleSendOTP}
+        loading={loading}
+      />
+    </>
+  );
 
-        <TouchableOpacity onPress={function() { setStep(1); }} style={styles.linkRow}>
-          <Text style={styles.linkText}>Changer de numero</Text>
-        </TouchableOpacity>
-      </GlassCard>
-    );
-  }
+  const renderStep2 = () => (
+    <>
+      <Text style={styles.title}>Vérification</Text>
+      <Text style={styles.subtitle}>Entrez le code envoyé au +221{phone}</Text>
 
-  function renderStep3() {
-    return (
-      <GlassCard style={styles.card}>
-        <Text style={styles.title}>Vos informations</Text>
-        <Text style={styles.subtitle}>Completez votre profil chauffeur</Text>
+      <Text style={styles.label}>Code OTP</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="123456"
+        placeholderTextColor={COLORS.grayLight}
+        value={otp}
+        onChangeText={setOtp}
+        keyboardType="number-pad"
+        maxLength={6}
+      />
 
-        <Text style={styles.fieldLabel}>Nom complet</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Moussa Diop"
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          value={name}
-          onChangeText={setName}
-        />
+      <GlassButton
+        title={loading ? 'Vérification...' : 'Vérifier'}
+        onPress={handleVerifyOTP}
+        loading={loading}
+      />
 
-        <Text style={styles.fieldLabel}>Type de vehicule</Text>
-        <View style={styles.vehicleRow}>
-          {VEHICLE_TYPES.map(function(v) {
-            var selected = vehicleType === v.key;
-            return (
-              <TouchableOpacity
-                key={v.key}
-                style={[styles.vehicleCard, selected && styles.vehicleCardSelected]}
-                onPress={function() { setVehicleType(v.key); }}
-              >
-                <Text style={styles.vehicleIcon}>{v.icon}</Text>
-                <Text style={[styles.vehicleLabel, selected && styles.vehicleLabelSelected]}>{v.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      <GlassButton
+        title="Changer de numéro"
+        onPress={() => setStep(1)}
+        variant="outline"
+        style={{ marginTop: 12 }}
+      />
+    </>
+  );
 
-        <Text style={styles.fieldLabel}>Numero de plaque</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="DK-1234-AB"
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          value={plateNumber}
-          onChangeText={setPlateNumber}
-          autoCapitalize="characters"
-        />
+  const renderStep3 = () => (
+    <>
+      <Text style={styles.title}>Vos informations</Text>
+      <Text style={styles.subtitle}>Complétez votre profil chauffeur</Text>
 
-        <Text style={styles.fieldLabel}>Couleur du vehicule</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="Noir, Blanc, Bleu..."
-          placeholderTextColor="rgba(255,255,255,0.4)"
-          value={vehicleColor}
-          onChangeText={setVehicleColor}
-        />
+      <Text style={styles.label}>Nom complet</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Votre nom"
+        placeholderTextColor={COLORS.grayLight}
+        value={name}
+        onChangeText={setName}
+      />
 
-        <View style={{ height: 16 }} />
-        
-        <GlassButton
-          title="Terminer l'inscription"
-          onPress={handleVerifyAndRegister}
-          loading={loading}
-        />
-      </GlassCard>
-    );
-  }
+      <Text style={styles.label}>Type de véhicule</Text>
+      <View style={styles.vehicleTypes}>
+        {['moto', 'voiture', 'velo'].map((type) => (
+          <TouchableOpacity
+            key={type}
+            style={[styles.vehicleOption, vehicleType === type && styles.vehicleOptionSelected]}
+            onPress={() => setVehicleType(type)}
+          >
+            <Text style={[styles.vehicleText, vehicleType === type && styles.vehicleTextSelected]}>
+              {type === 'moto' ? '🏍️ Moto' : type === 'voiture' ? '🚗 Voiture' : '🚲 Vélo'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <Text style={styles.label}>Numéro de plaque</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="AA-1234-BB"
+        placeholderTextColor={COLORS.grayLight}
+        value={plateNumber}
+        onChangeText={setPlateNumber}
+        autoCapitalize="characters"
+      />
+
+      <Text style={styles.label}>Couleur du véhicule</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Noir, Blanc, Rouge..."
+        placeholderTextColor={COLORS.grayLight}
+        value={vehicleColor}
+        onChangeText={setVehicleColor}
+      />
+
+      <GlassButton
+        title={loading ? 'Inscription...' : "Terminer l'inscription"}
+        onPress={handleCompleteRegistration}
+        loading={loading}
+      />
+    </>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -226,26 +227,39 @@ function RegisterScreen(props) {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.logoCircle}>
-            <Image
-              source={require('../../assets/images/logo.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.logoImageWrapper}>
+              <Image
+                source={require('../../assets/images/logo.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
           </View>
 
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
+          <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
+
+          <GlassCard style={styles.card}>
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
+          </GlassCard>
+
+          <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.registerLink}>
+            <Text style={styles.registerText}>Déjà inscrit? </Text>
+            <Text style={styles.registerBold}>Se connecter</Text>
+          </TouchableOpacity>
+
+          <View style={styles.bottomSpacer} />
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
-}
+};
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.black,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -256,29 +270,61 @@ var styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: 'rgba(179, 229, 206, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 30,
+    marginBottom: 16,
+    shadowColor: '#00853F',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  logoImageWrapper: {
+    width: 80,
+    height: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
     width: 70,
     height: 70,
   },
+  appTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.green,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
   card: {
-    padding: 24,
+    backgroundColor: 'rgba(0, 133, 63, 0.15)',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 133, 63, 0.3)',
+    shadowColor: '#00853F',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: COLORS.white,
+    color: COLORS.black,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.gray,
     marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.black,
+    marginBottom: 8,
   },
   phoneRow: {
     flexDirection: 'row',
@@ -287,95 +333,79 @@ var styles = StyleSheet.create({
   countryCode: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(179, 229, 206, 0.15)',
-    borderRadius: 12,
+    backgroundColor: COLORS.white,
     paddingHorizontal: 12,
+    borderRadius: 12,
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: COLORS.grayLight,
   },
-  countryFlag: {
+  flag: {
     fontSize: 20,
     marginRight: 6,
   },
-  countryText: {
-    color: COLORS.white,
+  codeText: {
     fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.black,
   },
   phoneInput: {
     flex: 1,
-    backgroundColor: 'rgba(179, 229, 206, 0.15)',
+    marginBottom: 0,
+  },
+  input: {
+    backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 16,
-    color: COLORS.white,
-    fontSize: 18,
-  },
-  otpInput: {
-    backgroundColor: 'rgba(179, 229, 206, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-    color: COLORS.white,
-    fontSize: 24,
-    textAlign: 'center',
-    letterSpacing: 8,
-    marginBottom: 20,
-  },
-  fieldLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 8,
-    marginTop: 12,
-  },
-  textInput: {
-    backgroundColor: 'rgba(179, 229, 206, 0.15)',
-    borderRadius: 12,
-    padding: 16,
-    color: COLORS.white,
     fontSize: 16,
+    color: COLORS.black,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.grayLight,
   },
-  vehicleRow: {
+  vehicleTypes: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 20,
   },
-  vehicleCard: {
+  vehicleOption: {
     flex: 1,
-    backgroundColor: 'rgba(179, 229, 206, 0.1)',
+    backgroundColor: COLORS.white,
+    paddingVertical: 12,
     borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
     marginHorizontal: 4,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.grayLight,
   },
-  vehicleCardSelected: {
-    borderColor: '#FCD116',
-    backgroundColor: 'rgba(252, 209, 22, 0.1)',
+  vehicleOptionSelected: {
+    backgroundColor: COLORS.green,
+    borderColor: COLORS.green,
   },
-  vehicleIcon: {
-    fontSize: 28,
-    marginBottom: 6,
-  },
-  vehicleLabel: {
+  vehicleText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.6)',
+    color: COLORS.black,
+  },
+  vehicleTextSelected: {
+    color: COLORS.white,
     fontWeight: '600',
   },
-  vehicleLabelSelected: {
-    color: '#FCD116',
-  },
-  linkRow: {
+  registerLink: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 20,
   },
-  linkText: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
+  registerText: {
+    color: COLORS.gray,
+    fontSize: 15,
   },
-  linkBold: {
-    color: '#FCD116',
-    fontSize: 14,
+  registerBold: {
+    color: '#00A86B',
+    fontSize: 15,
     fontWeight: 'bold',
+  },
+  bottomSpacer: {
+    height: 20,
   },
 });
 

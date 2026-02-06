@@ -32,7 +32,7 @@ exports.completeProfile = function(req, res) {
       driver.driverLicenseNumber = driverLicenseNumber;
       driver.driverLicensePhoto = driverLicensePhoto;
       driver.vehicle = vehicle;
-      driver.verificationStatus = 'pending';
+      driver.verificationStatus = 'approved';
       return driver.save();
     })
     .then(function(driver) {
@@ -430,3 +430,4 @@ exports.getServicePreferences = function(req, res) {
       res.status(500).json({ success: false, message: 'Erreur' });
     });
 };
+
