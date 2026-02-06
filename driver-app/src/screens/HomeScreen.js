@@ -17,7 +17,7 @@ import { driverService } from '../services/api.service';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 
-const SOCKET_URL = 'http://192.168.1.184:5000';
+const SOCKET_URL = 'https://terango-api.fly.dev';
 
 const HomeScreen = ({ navigation }) => {
   const { driver } = useAuth();
@@ -478,5 +478,6 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 

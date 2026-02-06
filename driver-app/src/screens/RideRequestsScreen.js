@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
-const SOCKET_URL = 'http://192.168.1.184:5000';
+const SOCKET_URL = 'https://terango-api.fly.dev';
 
 const RideRequestsScreen = ({ navigation, route }) => {
   const { driver } = useAuth();
@@ -948,6 +948,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 

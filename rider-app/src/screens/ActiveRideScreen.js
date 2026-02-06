@@ -24,7 +24,7 @@ import { rideService } from '../services/api.service';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-const SOCKET_URL = 'http://192.168.1.184:5000';
+const SOCKET_URL = 'https://terango-api.fly.dev';
 
 const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
   const [selectedReason, setSelectedReason] = useState(null);
@@ -592,4 +592,5 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 

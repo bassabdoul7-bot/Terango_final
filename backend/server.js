@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+﻿require('dotenv').config({ override: false });
 var express = require('express');
 var http = require('http');
 var socketIo = require('socket.io');
@@ -153,4 +153,5 @@ server.listen(PORT, function() {
   console.log('   ⏱️  Driver TTL: 60 seconds');
   console.log('   🍽️  Thiak Thiak: Colis + Commande + Resto');
 });
+
 

@@ -29,7 +29,7 @@ var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
-var SOCKET_URL = 'http://192.168.1.184:5000';
+var SOCKET_URL = 'https://terango-api.fly.dev';
 
 function CancelReasonModal(props) {
   var visible = props.visible;
@@ -935,6 +935,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 

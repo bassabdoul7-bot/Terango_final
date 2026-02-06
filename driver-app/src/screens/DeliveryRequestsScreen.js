@@ -17,7 +17,7 @@ import { driverService, deliveryService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
-const SOCKET_URL = 'http://192.168.1.184:5000';
+const SOCKET_URL = 'https://terango-api.fly.dev';
 
 var MINT = 'rgba(179, 229, 206, 0.95)';
 var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
@@ -397,3 +397,4 @@ const styles = StyleSheet.create({
 });
 
 export default DeliveryRequestsScreen;
+

@@ -20,7 +20,7 @@ import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, rideService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
-var SOCKET_URL = 'http://192.168.1.184:5000';
+var SOCKET_URL = 'https://terango-api.fly.dev';
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var MINT = 'rgba(179, 229, 206, 0.95)';
 var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
@@ -853,5 +853,6 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 

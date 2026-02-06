@@ -1,5 +1,5 @@
 ﻿// API Configuration
-export const API_URL = 'http://192.168.1.184:5000/api';
+export const API_URL = 'https://terango-api.fly.dev/api';
 
 export const ENDPOINTS = {
   // Auth
