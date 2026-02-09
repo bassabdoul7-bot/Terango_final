@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -93,14 +93,14 @@ var MenuScreen = function(props) {
   function takeLivePhoto() {
     Alert.alert(
       "Photo d'identité",
-      "Prenez une photo en direct pour vérification. La photo doit montrer clairement votre visage.\n\n⚠️ Les photos de galerie ne sont pas acceptées.",
+      "Prenez une photo en direct pour vérification. La photo doit montrer clairement votre visage.\n\nâš ï¸ Les photos de galerie ne sont pas acceptées.",
       [
         {
           text: 'Prendre la photo',
           onPress: function() {
             ImagePicker.requestCameraPermissionsAsync().then(function(perm) {
               if (perm.status !== 'granted') {
-                Alert.alert('Permission requise', "Autorisez l'accès à la caméra.");
+                Alert.alert('Permission requise', "Autorisez l'accès Ã  la caméra.");
                 return;
               }
               ImagePicker.launchCameraAsync({
@@ -138,7 +138,7 @@ var MenuScreen = function(props) {
         });
         Alert.alert(
           'Photo envoyée',
-          "Votre photo est en cours de vérification par l'équipe TeranGO. Cela peut prendre jusqu'à 24h."
+          "Votre photo est en cours de vérification par l'équipe TeranGO. Cela peut prendre jusqu'Ã  24h."
         );
       } else {
         Alert.alert('Erreur', response.message || 'Échec du téléchargement');
@@ -158,8 +158,8 @@ var MenuScreen = function(props) {
       }
       if (status === 'approved' || user.photoVerified) {
         Alert.alert(
-          'Photo vérifiée ✓',
-          "Votre photo d'identité est vérifiée et active.\n\nSeul TeranGO peut demander une mise à jour de votre photo.",
+          'Photo vérifiée âœ“',
+          "Votre photo d'identité est vérifiée et active.\n\nSeul TeranGO peut demander une mise Ã  jour de votre photo.",
           [{ text: 'OK' }]
         );
         return;
@@ -191,9 +191,7 @@ var MenuScreen = function(props) {
         text: 'Déconnexion',
         style: 'destructive',
         onPress: function() {
-          logout().then(function() {
-            navigation.replace('Login');
-          });
+          logout();
         }
       }
     ]);
@@ -233,12 +231,12 @@ var MenuScreen = function(props) {
 
   function getPhotoBadge() {
     if (user && user.photoVerified) {
-      return { style: [styles.editBadge, styles.editBadgeVerified], text: '✓' };
+      return { style: [styles.editBadge, styles.editBadgeVerified], text: 'âœ“' };
     }
     if (user && user.profilePhoto) {
-      return { style: [styles.editBadge, styles.editBadgePending], text: '⏳' };
+      return { style: [styles.editBadge, styles.editBadgePending], text: 'â³' };
     }
-    return { style: styles.editBadge, text: '📷' };
+    return { style: styles.editBadge, text: 'ðŸ“·' };
   }
 
   // ========== EARNINGS TAB ==========
@@ -259,22 +257,22 @@ var MenuScreen = function(props) {
           <View style={styles.progressBarOuter}>
             <View style={[styles.progressBarInner, { width: progress + '%' }]} />
           </View>
-          <Text style={styles.progressLabel}>{'Objectif: 25,000 FCFA • ' + earnings.todayRides + ' course' + (earnings.todayRides !== 1 ? 's' : '') + " aujourd'hui"}</Text>
+          <Text style={styles.progressLabel}>{'Objectif: 25,000 FCFA â€¢ ' + earnings.todayRides + ' course' + (earnings.todayRides !== 1 ? 's' : '') + " aujourd'hui"}</Text>
         </View>
 
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statIcon}>🚗</Text>
+            <Text style={styles.statIcon}>ðŸš—</Text>
             <Text style={styles.statNum}>{earnings.totalRides}</Text>
             <Text style={styles.statLbl}>Courses</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statIcon}>💰</Text>
+            <Text style={styles.statIcon}>ðŸ’°</Text>
             <Text style={styles.statNum}>{earnings.total.toLocaleString()}</Text>
             <Text style={styles.statLbl}>Total FCFA</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statIcon}>⭐</Text>
+            <Text style={styles.statIcon}>â­</Text>
             <Text style={styles.statNum}>{user && user.rating ? user.rating.toFixed(1) : '5.0'}</Text>
             <Text style={styles.statLbl}>Note</Text>
           </View>
@@ -316,7 +314,7 @@ var MenuScreen = function(props) {
       return (
         <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+            <Text style={styles.emptyIcon}>ðŸš—</Text>
             <Text style={styles.emptyTitle}>Aucune course</Text>
             <Text style={styles.emptySub}>{"Vos courses complétées apparaîtront ici"}</Text>
           </View>
@@ -372,41 +370,41 @@ var MenuScreen = function(props) {
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
         <View style={styles.supportHero}>
-          <Text style={styles.supportIcon}>🎧</Text>
+          <Text style={styles.supportIcon}>ðŸŽ§</Text>
           <Text style={styles.supportTitle}>Comment pouvons-nous vous aider?</Text>
         </View>
 
         <TouchableOpacity style={styles.supportItem} onPress={function() { Linking.openURL('tel:+221338234567'); }}>
           <View style={[styles.sIconBox, { backgroundColor: 'rgba(76, 217, 100, 0.2)' }]}>
-            <Text style={styles.sIcon}>📞</Text>
+            <Text style={styles.sIcon}>ðŸ“ž</Text>
           </View>
           <View style={styles.sText}>
             <Text style={styles.sTitle}>Appeler le support</Text>
-            <Text style={styles.sDesc}>{"Disponible 7j/7 de 6h à 22h"}</Text>
+            <Text style={styles.sDesc}>{"Disponible 7j/7 de 6h Ã  22h"}</Text>
           </View>
-          <Text style={styles.sChevron}>{'›'}</Text>
+          <Text style={styles.sChevron}>{'â€º'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.supportItem} onPress={function() { Linking.openURL('https://wa.me/221778234567'); }}>
           <View style={[styles.sIconBox, { backgroundColor: 'rgba(37, 211, 102, 0.2)' }]}>
-            <Text style={styles.sIcon}>💬</Text>
+            <Text style={styles.sIcon}>ðŸ’¬</Text>
           </View>
           <View style={styles.sText}>
             <Text style={styles.sTitle}>WhatsApp</Text>
             <Text style={styles.sDesc}>{"Réponse rapide par message"}</Text>
           </View>
-          <Text style={styles.sChevron}>{'›'}</Text>
+          <Text style={styles.sChevron}>{'â€º'}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.supportItem} onPress={function() { Linking.openURL('mailto:support@terango.sn'); }}>
           <View style={[styles.sIconBox, { backgroundColor: 'rgba(66, 133, 244, 0.2)' }]}>
-            <Text style={styles.sIcon}>📧</Text>
+            <Text style={styles.sIcon}>ðŸ“§</Text>
           </View>
           <View style={styles.sText}>
             <Text style={styles.sTitle}>Email</Text>
             <Text style={styles.sDesc}>support@terango.sn</Text>
           </View>
-          <Text style={styles.sChevron}>{'›'}</Text>
+          <Text style={styles.sChevron}>{'â€º'}</Text>
         </TouchableOpacity>
 
         <View style={styles.faqBox}>
@@ -431,7 +429,7 @@ var MenuScreen = function(props) {
     return (
       <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
         <View style={styles.vehicleHero}>
-          <Text style={{ fontSize: 60, marginBottom: 12 }}>🚗</Text>
+          <Text style={{ fontSize: 60, marginBottom: 12 }}>ðŸš—</Text>
           <Text style={styles.vehicleName}>{(v.make || 'Non renseigné') + ' ' + (v.model || '')}</Text>
           <Text style={styles.vehiclePlate}>{v.licensePlate || 'Aucune plaque'}</Text>
         </View>
@@ -464,7 +462,7 @@ var MenuScreen = function(props) {
         </View>
 
         <View style={styles.vehicleNote}>
-          <Text style={styles.vehicleNoteIcon}>{"ℹ️"}</Text>
+          <Text style={styles.vehicleNoteIcon}>{"â„¹ï¸"}</Text>
           <Text style={styles.vehicleNoteText}>
             {"Pour modifier les informations de votre véhicule, contactez le support TeranGO."}
           </Text>
@@ -481,14 +479,14 @@ var MenuScreen = function(props) {
         <Text style={styles.settingsSection}>Notifications</Text>
         <View style={styles.settingsGroup}>
           <TouchableOpacity style={styles.settingsRow} onPress={function() { setNotificationsEnabled(!notificationsEnabled); }}>
-            <Text style={styles.settingsEmoji}>🔔</Text>
+            <Text style={styles.settingsEmoji}>ðŸ””</Text>
             <Text style={styles.settingsLabel}>Notifications push</Text>
             <View style={[styles.toggle, notificationsEnabled && styles.toggleOn]}>
               <View style={[styles.toggleDot, notificationsEnabled && styles.toggleDotOn]} />
             </View>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.settingsRow, { borderBottomWidth: 0 }]} onPress={function() { setSoundEnabled(!soundEnabled); }}>
-            <Text style={styles.settingsEmoji}>🔊</Text>
+            <Text style={styles.settingsEmoji}>ðŸ”Š</Text>
             <Text style={styles.settingsLabel}>Sons de notification</Text>
             <View style={[styles.toggle, soundEnabled && styles.toggleOn]}>
               <View style={[styles.toggleDot, soundEnabled && styles.toggleDotOn]} />
@@ -505,13 +503,13 @@ var MenuScreen = function(props) {
               { text: 'English', onPress: function() { setLanguage('English'); } },
             ]);
           }}>
-            <Text style={styles.settingsEmoji}>🌍</Text>
+            <Text style={styles.settingsEmoji}>ðŸŒ</Text>
             <Text style={styles.settingsLabel}>Langue</Text>
             <Text style={styles.settingsValue}>{language}</Text>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
           <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.settingsEmoji}>📱</Text>
+            <Text style={styles.settingsEmoji}>ðŸ“±</Text>
             <Text style={styles.settingsLabel}>Version</Text>
             <Text style={styles.settingsValue}>1.0.0</Text>
           </View>
@@ -520,12 +518,12 @@ var MenuScreen = function(props) {
         <Text style={styles.settingsSection}>Compte</Text>
         <View style={styles.settingsGroup}>
           <View style={styles.settingsRow}>
-            <Text style={styles.settingsEmoji}>📞</Text>
+            <Text style={styles.settingsEmoji}>ðŸ“ž</Text>
             <Text style={styles.settingsLabel}>{"Téléphone"}</Text>
             <Text style={styles.settingsValue}>{(user && user.phone) ? user.phone : '-'}</Text>
           </View>
           <View style={[styles.settingsRow, { borderBottomWidth: 0 }]}>
-            <Text style={styles.settingsEmoji}>📧</Text>
+            <Text style={styles.settingsEmoji}>ðŸ“§</Text>
             <Text style={styles.settingsLabel}>Email</Text>
             <Text style={styles.settingsValue}>{(user && user.email) ? user.email : '-'}</Text>
           </View>
@@ -556,9 +554,9 @@ var MenuScreen = function(props) {
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{userName}</Text>
             <View style={styles.ratingRow}>
-              <Text style={styles.starIcon}>⭐</Text>
+              <Text style={styles.starIcon}>â­</Text>
               <Text style={styles.ratingVal}>{userRating}</Text>
-              <Text style={styles.ratingMeta}>{'• ' + earnings.totalRides + ' courses'}</Text>
+              <Text style={styles.ratingMeta}>{'â€¢ ' + earnings.totalRides + ' courses'}</Text>
             </View>
           </View>
         </View>
@@ -578,62 +576,62 @@ var MenuScreen = function(props) {
         <View style={styles.menuGroup}>
           <TouchableOpacity style={styles.menuRow} onPress={function() { switchTab('earnings'); }}>
             <View style={[styles.mIcon, { backgroundColor: 'rgba(0, 128, 0, 0.15)' }]}>
-              <Text style={styles.mEmoji}>💰</Text>
+              <Text style={styles.mEmoji}>ðŸ’°</Text>
             </View>
             <View style={styles.mInfo}>
               <Text style={styles.mTitle}>Mes Gains</Text>
               <Text style={styles.mSub}>Suivez vos revenus</Text>
             </View>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuRow} onPress={function() { switchTab('history'); }}>
             <View style={[styles.mIcon, { backgroundColor: 'rgba(66, 133, 244, 0.15)' }]}>
-              <Text style={styles.mEmoji}>📋</Text>
+              <Text style={styles.mEmoji}>ðŸ“‹</Text>
             </View>
             <View style={styles.mInfo}>
               <Text style={styles.mTitle}>Historique</Text>
               <Text style={styles.mSub}>{earnings.totalRides + ' courses effectuées'}</Text>
             </View>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuRow} onPress={function() { switchTab('vehicle'); }}>
             <View style={[styles.mIcon, { backgroundColor: 'rgba(252, 209, 22, 0.15)' }]}>
-              <Text style={styles.mEmoji}>🚗</Text>
+              <Text style={styles.mEmoji}>ðŸš—</Text>
             </View>
             <View style={styles.mInfo}>
               <Text style={styles.mTitle}>{"Mon Véhicule"}</Text>
               <Text style={styles.mSub}>{vehicleMake + ' ' + vehicleModel}</Text>
             </View>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuRow} onPress={function() { switchTab('settings'); }}>
             <View style={[styles.mIcon, { backgroundColor: 'rgba(175, 82, 222, 0.15)' }]}>
-              <Text style={styles.mEmoji}>⚙️</Text>
+              <Text style={styles.mEmoji}>âš™ï¸</Text>
             </View>
             <View style={styles.mInfo}>
               <Text style={styles.mTitle}>{"Paramètres"}</Text>
               <Text style={styles.mSub}>Notifications, langue</Text>
             </View>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={[styles.menuRow, { borderBottomWidth: 0 }]} onPress={function() { switchTab('support'); }}>
             <View style={[styles.mIcon, { backgroundColor: 'rgba(0, 199, 190, 0.15)' }]}>
-              <Text style={styles.mEmoji}>🎧</Text>
+              <Text style={styles.mEmoji}>ðŸŽ§</Text>
             </View>
             <View style={styles.mInfo}>
               <Text style={styles.mTitle}>Aide & Support</Text>
               <Text style={styles.mSub}>FAQ, contact</Text>
             </View>
-            <Text style={styles.mChevron}>{'›'}</Text>
+            <Text style={styles.mChevron}>{'â€º'}</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutIcon}>👋</Text>
+          <Text style={styles.logoutIcon}>ðŸ‘‹</Text>
           <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
         </TouchableOpacity>
 
@@ -664,7 +662,7 @@ var MenuScreen = function(props) {
         <TouchableOpacity style={styles.backBtn} onPress={function() {
           if (activeTab !== 'menu') { switchTab('menu'); } else { navigation.goBack(); }
         }}>
-          <Text style={styles.backArrow}>{'←'}</Text>
+          <Text style={styles.backArrow}>{'â†'}</Text>
         </TouchableOpacity>
         <Text style={styles.headerTxt}>{getTitle()}</Text>
         <View style={{ width: 44 }} />

@@ -121,7 +121,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         }
         if (res.delivery.status === 'cancelled') {
           clearInterval(pollRef.current);
-          Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [
+          Alert.alert('Livraison annulée', 'La livraison a été annulée.', [
             { text: 'OK', onPress: function() { navigation.replace('Home'); } }
           ]);
           return;

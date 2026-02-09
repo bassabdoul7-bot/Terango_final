@@ -42,7 +42,7 @@ var LoginScreen = function(props) {
 
   function handleSendOTP() {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un num\u00e9ro de t\u00e9l\u00e9phone valide');
+      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
       return;
     }
 
@@ -50,7 +50,7 @@ var LoginScreen = function(props) {
     authService.sendOTP(phone, 'login').then(function(response) {
       if (response.success) {
         setStep('otp');
-        Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez le terminal backend pour le code OTP');
+        Alert.alert('Code envoyé', 'Vérifiez le terminal backend pour le code OTP');
       }
     }).catch(function(error) {
       var msg = error.response?.data?.message || 'Erreur envoi code';
@@ -99,10 +99,10 @@ var LoginScreen = function(props) {
               <>
                 <Text style={styles.title}>Bienvenue</Text>
                 <Text style={styles.subtitle}>
-                  {"Entrez votre num\u00e9ro de t\u00e9l\u00e9phone"}
+                  {"Entrez votre numéro de téléphone"}
                 </Text>
 
-                <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
+                <Text style={styles.label}>{"Numéro de téléphone"}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="77 123 45 67"
@@ -122,9 +122,9 @@ var LoginScreen = function(props) {
               </>
             ) : (
               <>
-                <Text style={styles.title}>{"V\u00e9rification"}</Text>
+                <Text style={styles.title}>{"Vérification"}</Text>
                 <Text style={styles.subtitle}>
-                  {'Entrez le code envoy\u00e9 au ' + phone}
+                  {'Entrez le code envoyé au ' + phone}
                 </Text>
 
                 <Text style={styles.label}>Code OTP</Text>
@@ -140,7 +140,7 @@ var LoginScreen = function(props) {
                 />
 
                 <GlassButton
-                  title={loading ? 'V\u00e9rification...' : 'V\u00e9rifier'}
+                  title={loading ? 'Vérification...' : 'Vérifier'}
                   onPress={handleVerifyOTP}
                   loading={loading}
                   style={styles.verifyButton}
@@ -154,9 +154,9 @@ var LoginScreen = function(props) {
                 />
 
                 <View style={styles.newUserContainer}>
-                  <Text style={styles.newUserText}>{"Mauvais num\u00e9ro?"}</Text>
+                  <Text style={styles.newUserText}>{"Mauvais numéro?"}</Text>
                   <GlassButton
-                    title={"Changer de num\u00e9ro"}
+                    title={"Changer de numéro"}
                     onPress={function() { setStep('phone'); }}
                     variant="text"
                     style={styles.toggleButton}
@@ -174,9 +174,9 @@ var LoginScreen = function(props) {
           <View style={styles.privacyContainer}>
             <Text style={styles.privacyText}>
               {"En vous inscrivant, vous acceptez nos "}
-              <Text style={styles.privacyLink}>{"Conditions G\u00e9n\u00e9rales"}</Text>
+              <Text style={styles.privacyLink}>{"Conditions Générales"}</Text>
               {", reconnaissez notre "}
-              <Text style={styles.privacyLink}>{"Politique de Confidentialit\u00e9"}</Text>
+              <Text style={styles.privacyLink}>{"Politique de Confidentialité"}</Text>
               {", et confirmez que vous avez plus de 18 ans."}
             </Text>
           </View>

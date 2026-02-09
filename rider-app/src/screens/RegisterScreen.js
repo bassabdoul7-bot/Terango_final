@@ -103,7 +103,7 @@ var RegisterScreen = function(props) {
         <Text style={styles.label}>Numéro de téléphone</Text>
         <View style={styles.phoneRow}>
           <View style={styles.countryCode}>
-            <Text style={styles.flag}>{"\uD83C\uDDF8\uD83C\uDDF3"}</Text>
+            <Text style={styles.flag}>{"🇸🇳"}</Text>
             <Text style={styles.codeText}>+221</Text>
           </View>
           <TextInput

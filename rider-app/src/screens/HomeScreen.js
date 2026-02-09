@@ -238,9 +238,9 @@ function HomeScreen(props) {
         savePlacesToStorage(updated);
         setShowSaveModal(false);
         setSaveAddress('');
-        Alert.alert('Enregistr\u00e9', (saveType === 'home' ? 'Maison' : saveType === 'work' ? 'Travail' : 'Favori') + ' enregistr\u00e9 avec succ\u00e8s!');
+        Alert.alert('Enregistré', (saveType === 'home' ? 'Maison' : saveType === 'work' ? 'Travail' : 'Favori') + ' enregistré avec succès!');
       } else {
-        Alert.alert('Adresse introuvable', "Veuillez v\u00e9rifier l'adresse.");
+        Alert.alert('Adresse introuvable', "Veuillez vérifier l'adresse.");
       }
     }).catch(function(err) {
       Alert.alert('Erreur', "Impossible de trouver l'adresse.");
@@ -248,9 +248,9 @@ function HomeScreen(props) {
   }
 
   function handleLogout() {
-    Alert.alert('D\u00e9connexion', 'Voulez-vous vous d\u00e9connecter?', [
+    Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'D\u00e9connexion', style: 'destructive', onPress: function() { logout(); } }
+      { text: 'Déconnexion', style: 'destructive', onPress: function() { logout(); } }
     ]);
   }
 
@@ -271,9 +271,9 @@ function HomeScreen(props) {
       return (
         <View style={styles.tabScreen}>
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>{"\uD83D\uDE97"}</Text>
+            <Text style={styles.emptyIcon}>{"🚗"}</Text>
             <Text style={styles.emptyTitle}>Aucune course</Text>
-            <Text style={styles.emptySub}>{"Vos courses appara\u00eetront ici"}</Text>
+            <Text style={styles.emptySub}>{"Vos courses apparaîtront ici"}</Text>
           </View>
         </View>
       );
@@ -297,8 +297,8 @@ function HomeScreen(props) {
                   <View style={styles.rSquare} />
                 </View>
                 <View style={styles.addresses}>
-                  <Text style={styles.addr} numberOfLines={1}>{ride.pickup ? ride.pickup.address || 'D\u00e9part' : 'D\u00e9part'}</Text>
-                  <Text style={styles.addr} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address || 'Arriv\u00e9e' : 'Arriv\u00e9e'}</Text>
+                  <Text style={styles.addr} numberOfLines={1}>{ride.pickup ? ride.pickup.address || 'Départ' : 'Départ'}</Text>
+                  <Text style={styles.addr} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address || 'Arrivée' : 'Arrivée'}</Text>
                 </View>
               </View>
               <View style={styles.historyFooter}>
@@ -322,10 +322,10 @@ function HomeScreen(props) {
         <Text style={styles.tabHeader}>Paiement</Text>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text>
+          <Text style={styles.paymentIcon}>{"💵"}</Text>
           <View style={styles.paymentInfo}>
-            <Text style={styles.paymentTitle}>{"Esp\u00e8ces"}</Text>
-            <Text style={styles.paymentSub}>{"M\u00e9thode par d\u00e9faut"}</Text>
+            <Text style={styles.paymentTitle}>{"Espèces"}</Text>
+            <Text style={styles.paymentSub}>{"Méthode par défaut"}</Text>
           </View>
           <View style={styles.paymentActive}>
             <Text style={styles.paymentActiveText}>{"Actif"}</Text>
@@ -333,30 +333,30 @@ function HomeScreen(props) {
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>{"\uD83D\uDCF1"}</Text>
+          <Text style={styles.paymentIcon}>{"📱"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Wave</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
+          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>{"\uD83D\uDFE0"}</Text>
+          <Text style={styles.paymentIcon}>{"🟠"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Orange Money</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
+          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>{"\uD83D\uDCB3"}</Text>
+          <Text style={styles.paymentIcon}>{"💳"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Free Money</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
+          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
         </View>
       </View>
     );
@@ -378,9 +378,9 @@ function HomeScreen(props) {
           </View>
           <Text style={styles.profileName}>{userName}</Text>
           <View style={styles.profileRatingRow}>
-            <Text style={{ fontSize: 14 }}>{"\u2B50"}</Text>
+            <Text style={{ fontSize: 14 }}>{"⭐"}</Text>
             <Text style={styles.profileRatingVal}>{userRating}</Text>
-            <Text style={styles.profileRatingMeta}>{"\u2022 " + totalRides + ' courses'}</Text>
+            <Text style={styles.profileRatingMeta}>{"• " + totalRides + ' courses'}</Text>
           </View>
         </View>
 
@@ -388,12 +388,12 @@ function HomeScreen(props) {
           <Text style={styles.profileSectionTitle}>Informations</Text>
           <View style={styles.profileGroup}>
             <View style={styles.profileRow}>
-              <Text style={styles.profileEmoji}>{"\uD83D\uDCDE"}</Text>
-              <Text style={styles.profileLabel}>{"T\u00e9l\u00e9phone"}</Text>
+              <Text style={styles.profileEmoji}>{"📞"}</Text>
+              <Text style={styles.profileLabel}>{"Téléphone"}</Text>
               <Text style={styles.profileValue}>{userPhone}</Text>
             </View>
             <View style={[styles.profileRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.profileEmoji}>{"\uD83D\uDCE7"}</Text>
+              <Text style={styles.profileEmoji}>{"📧"}</Text>
               <Text style={styles.profileLabel}>Email</Text>
               <Text style={styles.profileValue}>{userEmail}</Text>
             </View>
@@ -401,30 +401,30 @@ function HomeScreen(props) {
         </View>
 
         <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>{"Lieux enregistr\u00e9s"}</Text>
+          <Text style={styles.profileSectionTitle}>{"Lieux enregistrés"}</Text>
           <View style={styles.profileGroup}>
             <TouchableOpacity style={styles.profileRow} onPress={function() { handleQuickPlace('home'); }}>
-              <Text style={styles.profileEmoji}>{"\uD83C\uDFE0"}</Text>
+              <Text style={styles.profileEmoji}>{"🏠"}</Text>
               <Text style={styles.profileLabel}>Maison</Text>
               <Text style={styles.profileValue} numberOfLines={1}>
                 {savedPlaces.home ? savedPlaces.home.address : 'Ajouter'}
               </Text>
-              <Text style={styles.profileChevron}>{"\u203A"}</Text>
+              <Text style={styles.profileChevron}>{"›"}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={function() { handleQuickPlace('work'); }}>
-              <Text style={styles.profileEmoji}>{"\uD83D\uDCBC"}</Text>
+              <Text style={styles.profileEmoji}>{"💼"}</Text>
               <Text style={styles.profileLabel}>Travail</Text>
               <Text style={styles.profileValue} numberOfLines={1}>
                 {savedPlaces.work ? savedPlaces.work.address : 'Ajouter'}
               </Text>
-              <Text style={styles.profileChevron}>{"\u203A"}</Text>
+              <Text style={styles.profileChevron}>{"›"}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutIcon}>{"\uD83D\uDC4B"}</Text>
-          <Text style={styles.logoutTxt}>{"Se d\u00e9connecter"}</Text>
+          <Text style={styles.logoutIcon}>{"👋"}</Text>
+          <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionTxt}>TeranGO Rider v1.0.0</Text>
@@ -512,36 +512,36 @@ function HomeScreen(props) {
             <Text style={styles.userName}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
           </View>
           <TouchableOpacity style={styles.profileButton} onPress={function() { setActiveTab('profile'); }}>
-            <Text style={styles.profileBtnIcon}>{"\uD83D\uDC64"}</Text>
+            <Text style={styles.profileBtnIcon}>{"👤"}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchCard}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
-              <Text style={styles.searchIcon}>{"\uD83D\uDD0D"}</Text>
+              <Text style={styles.searchIcon}>{"🔍"}</Text>
             </View>
-            <Text style={styles.searchTitle}>{"O\u00f9 allez-vous?"}</Text>
+            <Text style={styles.searchTitle}>{"Où allez-vous?"}</Text>
             <View style={styles.arrowContainer}>
-              <Text style={styles.arrow}>{"\u2191"}</Text>
+              <Text style={styles.arrow}>{"↑"}</Text>
             </View>
           </TouchableOpacity>
 
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickActionButton} onPress={function() { handleQuickPlace('home'); }}>
               <View style={[styles.quickActionIcon, savedPlaces.home && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>{"\uD83C\uDFE0"}</Text>
+                <Text style={styles.quickActionEmoji}>{"🏠"}</Text>
               </View>
               <Text style={styles.quickActionText}>Maison</Text>
-              {savedPlaces.home && <Text style={styles.quickActionSet}>{"\u2713"}</Text>}
+              {savedPlaces.home && <Text style={styles.quickActionSet}>{"✓"}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickActionButton} onPress={function() { handleQuickPlace('work'); }}>
               <View style={[styles.quickActionIcon, savedPlaces.work && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>{"\uD83D\uDCBC"}</Text>
+                <Text style={styles.quickActionEmoji}>{"💼"}</Text>
               </View>
               <Text style={styles.quickActionText}>Travail</Text>
-              {savedPlaces.work && <Text style={styles.quickActionSet}>{"\u2713"}</Text>}
+              {savedPlaces.work && <Text style={styles.quickActionSet}>{"✓"}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickActionButton} onPress={function() {
@@ -553,7 +553,7 @@ function HomeScreen(props) {
               }
             }}>
               <View style={[styles.quickActionIcon, savedPlaces.favorites && savedPlaces.favorites.length > 0 && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>{"\u2B50"}</Text>
+                <Text style={styles.quickActionEmoji}>{"⭐"}</Text>
               </View>
               <Text style={styles.quickActionText}>Favoris</Text>
             </TouchableOpacity>
@@ -564,28 +564,28 @@ function HomeScreen(props) {
             <View style={styles.servicesGrid}>
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('SearchDestination', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(0, 133, 63, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>{"\uD83D\uDE97"}</Text>
+                  <Text style={styles.serviceEmoji}>{"🚗"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Course</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('ThiakThiak', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(252, 209, 22, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>{"\uD83C\uDFCD\uFE0F"}</Text>
+                  <Text style={styles.serviceEmoji}>{"🏍️"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Thiak Thiak</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('Colis', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 149, 0, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>{"\uD83D\uDCE6"}</Text>
+                  <Text style={styles.serviceEmoji}>{"📦"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Colis</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('RestaurantList', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 59, 48, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>{"\uD83C\uDF7D\uFE0F"}</Text>
+                  <Text style={styles.serviceEmoji}>{"🍽️"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Restaurant</Text>
               </TouchableOpacity>
@@ -607,28 +607,28 @@ function HomeScreen(props) {
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('home'); }}>
           <View style={activeTab === 'home' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>{"\uD83C\uDFE0"}</Text>
+            <Text style={styles.navIconText}>{"🏠"}</Text>
           </View>
           <Text style={activeTab === 'home' ? styles.navLabelActive : styles.navLabel}>Accueil</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('activity'); loadRideHistory(); }}>
           <View style={activeTab === 'activity' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>{"\uD83D\uDD55"}</Text>
+            <Text style={styles.navIconText}>{"🕕"}</Text>
           </View>
-          <Text style={activeTab === 'activity' ? styles.navLabelActive : styles.navLabel}>{"Activit\u00e9"}</Text>
+          <Text style={activeTab === 'activity' ? styles.navLabelActive : styles.navLabel}>{"Activité"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('payment'); }}>
           <View style={activeTab === 'payment' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>{"\uD83D\uDCB3"}</Text>
+            <Text style={styles.navIconText}>{"💳"}</Text>
           </View>
           <Text style={activeTab === 'payment' ? styles.navLabelActive : styles.navLabel}>Paiement</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('profile'); }}>
           <View style={activeTab === 'profile' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>{"\uD83D\uDC64"}</Text>
+            <Text style={styles.navIconText}>{"👤"}</Text>
           </View>
           <Text style={activeTab === 'profile' ? styles.navLabelActive : styles.navLabel}>Profil</Text>
         </TouchableOpacity>
