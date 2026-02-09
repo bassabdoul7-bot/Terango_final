@@ -27,9 +27,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    console.error('API Error:', error.response?.status);
-    console.error('API Error Data:', error.response?.data);
-    console.error('API Error Config:', error.config?.url);
+    var url = error.config?.url || '';
+    if (url.indexOf('/location') === -1) {
+      console.error('API Error:', error.response?.status);
+      console.error('API Error Data:', error.response?.data);
+      console.error('API Error Config:', url);
+    }
     if (error.response?.status === 401) {
       AsyncStorage.removeItem('token');
       AsyncStorage.removeItem('user');
