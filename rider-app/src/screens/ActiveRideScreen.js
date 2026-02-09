@@ -21,6 +21,7 @@ import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { rideService } from '../services/api.service';
+import ChatScreen from './ChatScreen';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -209,6 +210,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId: initialRideId } = route.params;
   const mapRef = useRef(null);
   const socketRef = useRef(null);
+  const [showChat, setShowChat] = useState(false);
   const pollInterval = useRef(null);
   const etaInterval = useRef(null);
   const searchTimerRef = useRef(null);
@@ -492,8 +494,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
               </View>
             </View>
             <View style={styles.contactRow}>
-              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:' + ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{'📞'}</Text></View><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('sms:' + ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{'💬'}</Text></View><Text style={styles.contactLabel}>Message</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:' + ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{String.fromCodePoint(0x1F4DE)}</Text></View><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><View style={styles.contactIconBg}><Text>{String.fromCodePoint(0x1F4AC)}</Text></View><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
             </View>
           </View>
         )}
@@ -508,6 +510,19 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
         {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
       </View>
+
+
+      <Modal visible={showChat} animationType="slide" onRequestClose={() => setShowChat(false)}>
+        <ChatScreen
+          socket={socketRef.current}
+          rideId={rideId}
+          deliveryId={null}
+          myRole="rider"
+          myUserId={null}
+          otherName={ride && ride.driver && ride.driver.userId ? ride.driver.userId.name : "Chauffeur"}
+          onClose={() => setShowChat(false)}
+        />
+      </Modal>
 
       <CancelModal visible={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={handleCancelRide} loading={cancelling} />
     </View>

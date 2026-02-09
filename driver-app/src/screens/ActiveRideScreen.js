@@ -24,12 +24,26 @@ import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../util
 import { simplifyPolyline } from '../utils/polylineSimplifier';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
+import ChatScreen from './ChatScreen';
 
 var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
 
+
+
+      <Modal visible={showChat} animationType="slide" onRequestClose={function() { setShowChat(false); }}>
+        <ChatScreen
+          socket={socketRef.current}
+          rideId={deliveryMode ? null : rideId}
+          deliveryId={deliveryMode ? deliveryId : null}
+          myRole="driver"
+          myUserId={auth.user ? auth.user._id : null}
+          otherName={ride && ride.rider && ride.rider.userId ? ride.rider.userId.name : 'Passager'}
+          onClose={function() { setShowChat(false); }}
+        />
+      </Modal>
 
 function CancelReasonModal(props) {
   var visible = props.visible;
@@ -136,6 +150,9 @@ function ActiveRideScreen(props) {
   var locationSubscription = useRef(null);
   var hasFetchedRoute = useRef(false);
   var socketRef = useRef(null);
+  var chatState = useState(false);
+  var showChat = chatState[0];
+  var setShowChat = chatState[1];
   var announcementDistances = useRef(new Set());
   var cancelledRef = useRef(false);
 
@@ -825,6 +842,20 @@ function ActiveRideScreen(props) {
             </View>
           </View>
 
+
+          <View style={styles.chatButtonRow}>
+            <TouchableOpacity style={styles.chatBtn} onPress={function() { setShowChat(true); }}>
+              <Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text>
+              <Text style={styles.chatBtnText}>Message</Text>
+            </TouchableOpacity>
+            {ride && ride.rider && ride.rider.userId && ride.rider.userId.phone && (
+              <TouchableOpacity style={styles.callBtn} onPress={function() { Linking.openURL('tel:' + ride.rider.userId.phone); }}>
+                <Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text>
+                <Text style={styles.chatBtnText}>Appeler</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <View style={styles.actionContainer}>{getActionButton()}</View>
         </View>
       )}
@@ -935,6 +966,11 @@ var styles = StyleSheet.create({
   navText: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   proximityHint: { backgroundColor: 'rgba(255, 255, 255, 0.5)', padding: 16, borderRadius: 12, alignItems: 'center' },
   proximityText: { fontSize: 14, color: '#333', textAlign: 'center' },
+  chatButtonRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  chatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(179, 229, 206, 0.2)', borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(179, 229, 206, 0.3)' },
+  callBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76, 217, 100, 0.2)', borderRadius: 12, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(76, 217, 100, 0.3)' },
+  chatBtnIcon: { fontSize: 18, marginRight: 8 },
+  chatBtnText: { fontSize: 14, fontWeight: '600', color: '#fff' },
 });
 
 export default ActiveRideScreen;

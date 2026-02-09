@@ -9,6 +9,7 @@ import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { deliveryService } from '../services/api.service';
+import ChatScreen from './ChatScreen';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -68,6 +69,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
 
   const mapRef = useRef(null);
   const socketRef = useRef(null);
+  const [showChat, setShowChat] = useState(false);
   const pollRef = useRef(null);
   const searchTimerRef = useRef(null);
 
@@ -293,9 +295,14 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
             <Text style={styles.driverName}>{(driverInfo.firstName || '') + ' ' + (driverInfo.lastName || '')}</Text>
             <Text style={styles.driverVehicle}>{driverInfo.vehicleType || 'Moto'}</Text>
           </View>
-          <TouchableOpacity style={styles.callBtn} onPress={callDriver}>
-          <Text style={{ fontSize: 20 }}>{'📞'}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity style={styles.chatBtnSmall} onPress={function() { setShowChat(true); }}>
+              <Text style={{ fontSize: 20 }}>{String.fromCodePoint(0x1F4AC)}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.callBtn} onPress={callDriver}>
+              <Text style={{ fontSize: 20 }}>{String.fromCodePoint(0x1F4DE)}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -335,6 +342,18 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      <Modal visible={showChat} animationType="slide" onRequestClose={function() { setShowChat(false); }}>
+        <ChatScreen
+          socket={socketRef.current}
+          rideId={null}
+          deliveryId={deliveryId}
+          myRole="rider"
+          myUserId={null}
+          otherName={driverInfo ? driverInfo.name : "Livreur"}
+          onClose={function() { setShowChat(false); }}
+        />
       </Modal>
     </View>
   );
@@ -385,6 +404,7 @@ const styles = StyleSheet.create({
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   driverVehicle: { fontSize: 13, color: '#333', marginTop: 2 },
+  chatBtnSmall: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(179, 229, 206, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(179, 229, 206, 0.3)' },
   callBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#FCD116', alignItems: 'center', justifyContent: 'center',

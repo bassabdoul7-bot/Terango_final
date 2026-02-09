@@ -259,6 +259,51 @@ io.on('connection', function(socket) {
     socket.leave(orderId);
   });
 
+
+  // ========== CHAT ==========
+  var Message = require("./models/Message");
+
+  socket.on('chat-message', function(data) {
+    if (!data.text || !data.text.trim()) return;
+    var roomId = data.rideId || data.deliveryId;
+    if (!roomId) return;
+
+    var msg = new Message({
+      rideId: data.rideId || null,
+      deliveryId: data.deliveryId || null,
+      senderId: socket.userId,
+      senderRole: data.senderRole,
+      text: data.text.trim().substring(0, 500),
+    });
+
+    msg.save().then(function(saved) {
+      io.to(roomId).emit('new-chat-message', {
+        _id: saved._id,
+        rideId: saved.rideId,
+        deliveryId: saved.deliveryId,
+        senderId: saved.senderId,
+        senderRole: saved.senderRole,
+        text: saved.text,
+        createdAt: saved.createdAt,
+      });
+    }).catch(function(err) {
+      console.log('Chat save error:', err.message);
+    });
+  });
+
+  socket.on('chat-history', function(data) {
+    var query = {};
+    if (data.rideId) query.rideId = data.rideId;
+    else if (data.deliveryId) query.deliveryId = data.deliveryId;
+    else return;
+
+    Message.find(query).sort({ createdAt: 1 }).limit(100).then(function(messages) {
+      socket.emit('chat-history-response', messages);
+    }).catch(function(err) {
+      console.log('Chat history error:', err.message);
+    });
+  });
+
   socket.on('disconnect', function() {
     console.log('Socket disconnected: ' + socket.id);
     if (socket.driverId) {
