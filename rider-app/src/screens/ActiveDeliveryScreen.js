@@ -15,14 +15,14 @@ const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 
 const STATUS_MAP = {
-  pending: { label: 'Recherche de livreur...', color: '#FCD116', icon: 'ðŸ”' },
-  accepted: { label: 'Livreur en route vers le point de collecte', color: '#00853F', icon: 'ðŸšµ' },
-  picked_up: { label: 'Colis recupere, en route vers vous', color: '#00853F', icon: 'ðŸ“¦' },
-  at_pickup: { label: 'Livreur arrive au point de collecte', color: '#4CD964', icon: 'ðŸ“' },
-  in_transit: { label: 'Livraison en cours...', color: '#00853F', icon: 'ðŸš€' },
-  delivered: { label: 'Livre!', color: '#4CD964', icon: 'âœ…' },
-  cancelled: { label: 'Annulee', color: '#E31B23', icon: 'âœ•' },
-  no_drivers_available: { label: 'Aucun livreur disponible', color: '#E31B23', icon: 'ðŸ˜ž' },
+  pending: { label: 'Recherche de livreur...', color: '#FCD116', icon: '🔍' },
+  accepted: { label: 'Livreur en route vers le point de collecte', color: '#00853F', icon: '🚵' },
+  picked_up: { label: 'Colis recupere, en route vers vous', color: '#00853F', icon: '📦' },
+  at_pickup: { label: 'Livreur arrive au point de collecte', color: '#4CD964', icon: '📍' },
+  in_transit: { label: 'Livraison en cours...', color: '#00853F', icon: '🚀' },
+  delivered: { label: 'Livre!', color: '#4CD964', icon: '✅' },
+  cancelled: { label: 'Annulee', color: '#E31B23', icon: '✕' },
+  no_drivers_available: { label: 'Aucun livreur disponible', color: '#E31B23', icon: '😞' },
 };
 
 const SearchingAnimation = ({ searchTime }) => {
@@ -44,7 +44,7 @@ const SearchingAnimation = ({ searchTime }) => {
   return (
     <View style={styles.searchingContainer}>
       <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]}>
-        <Text style={{ fontSize: 40 }}>ðŸšµ</Text>
+        <Text style={{ fontSize: 40 }}>{'🚵'}</Text>
       </Animated.View>
       <Text style={styles.searchingTitle}>Recherche d'un livreur...</Text>
       <Text style={styles.searchingTime}>{searchTime}s</Text>
@@ -127,7 +127,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         }
         if (res.delivery.status === 'cancelled') {
           clearInterval(pollRef.current);
-          Alert.alert('Livraison annulÃ©e', 'La livraison a Ã©tÃ© annulÃ©e.', [
+      Alert.alert('Livraison annulée', 'La livraison a été annulée.', [
             { text: 'OK', onPress: function() { navigation.replace('Home'); } }
           ]);
           return;
@@ -258,7 +258,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         )}
         {driverLocation && (
           <Marker coordinate={driverLocation}>
-          <View style={styles.driverMarker}><Text style={{ fontSize: 20 }}>ðŸšµ</Text></View>
+          <View style={styles.driverMarker}><Text style={{ fontSize: 20 }}>{'🚵'}</Text></View>
           </Marker>
         )}
       </MapView>
@@ -275,7 +275,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
 
       {showNoDrivers && (
         <View style={styles.noDriverCard}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>ðŸ˜ž</Text>
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>{'😞'}</Text>
           <Text style={styles.noDriverTitle}>Aucun livreur disponible</Text>
           <Text style={styles.noDriverSub}>Veuillez reessayer dans quelques minutes</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.replace('Home')}>
@@ -294,7 +294,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
             <Text style={styles.driverVehicle}>{driverInfo.vehicleType || 'Moto'}</Text>
           </View>
           <TouchableOpacity style={styles.callBtn} onPress={callDriver}>
-          <Text style={{ fontSize: 20 }}>ðŸ“ž</Text>
+          <Text style={{ fontSize: 20 }}>{'📞'}</Text>
           </TouchableOpacity>
         </View>
       )}

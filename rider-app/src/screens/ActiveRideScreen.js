@@ -492,8 +492,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
               </View>
             </View>
             <View style={styles.contactRow}>
-              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL(`tel:${ride.driver.userId.phone}`)}><View style={styles.contactIconBg}><Text>📞</Text></View><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
-              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL(`sms:${ride.driver.userId.phone}`)}><View style={styles.contactIconBg}><Text>💬</Text></View><Text style={styles.contactLabel}>Message</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:' + ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{'📞'}</Text></View><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('sms:' + ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{'💬'}</Text></View><Text style={styles.contactLabel}>Message</Text></TouchableOpacity>
             </View>
           </View>
         )}
