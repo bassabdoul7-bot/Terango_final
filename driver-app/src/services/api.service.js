@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://terango-api.fly.dev/api';
@@ -39,8 +39,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
-  sendOTP: (phone) => api.post('/auth/send-otp', { phone }),
-  verifyOTP: (phone, otp, name = 'Driver', role = 'driver') =>
+  sendOTP: (phone, mode) => api.post('/auth/send-otp', { phone, mode }),
+  verifyOTP: (phone, otp, name, role) =>
     api.post('/auth/verify-otp', { phone, otp, name, role }),
   getMe: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/profile', data),
@@ -59,17 +59,18 @@ export const driverService = {
   acceptRide: (rideId) => api.put(`/rides/${rideId}/accept`),
   
   rejectRide: (rideId, reason = 'Non disponible') =>
-    api.put(`/rides/${rideId}/reject`, { reason }),
+    api.put('/rides/' + rideId + '/reject', { reason }),
   
   cancelRide: (rideId, reason) =>
-    api.put(`/rides/${rideId}/cancel`, { reason }),
-  
-  startRide: (rideId) => api.put(`/rides/${rideId}/start`),
-  
-  completeRide: (rideId) => api.put(`/rides/${rideId}/complete`),
+    api.put('/rides/' + rideId + '/cancel', { reason }),
+  cancelDelivery: (deliveryId, reason) =>
+    api.put('/deliveries/' + deliveryId + '/cancel', { reason }),
+  startRide: (rideId) => api.put('/rides/' + rideId + '/start'),
+
+  completeRide: (rideId) => api.put('/rides/' + rideId + '/complete'),
   
   updateRideStatus: (rideId, status) =>
-    api.put(`/rides/${rideId}/status`, { status }),
+    api.put('/rides/' + rideId + '/status', { status }),
   
   getActiveRide: () => api.get('/drivers/active-ride'),
   

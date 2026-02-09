@@ -1,4 +1,4 @@
-﻿var Delivery = require('../models/Delivery');
+var Delivery = require('../models/Delivery');
 var Driver = require('../models/Driver');
 var Rider = require('../models/Rider');
 var User = require('../models/User');
@@ -78,13 +78,13 @@ exports.createDelivery = function(req, res) {
   var paymentMethod = req.body.paymentMethod || 'cash';
 
   if (!serviceType || !pickup || !dropoff || !distance) {
-    return res.status(400).json({ success: false, message: 'DonnÃ©es incomplÃ¨tes' });
+    return res.status(400).json({ success: false, message: 'DonnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es incomplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨tes' });
   }
 
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil passager non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Profil passager non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       var size = 'petit';
@@ -162,7 +162,7 @@ exports.createDelivery = function(req, res) {
 
           // Emit to accepting drivers
           acceptingDrivers.forEach(function(driver) {
-            io.emit('new-delivery-' + driver._id, {
+            io.to('driver-' + driver._id.toString()).emit('new-delivery', {
               deliveryId: delivery._id,
               serviceType: delivery.serviceType,
               pickup: delivery.pickup,
@@ -181,14 +181,14 @@ exports.createDelivery = function(req, res) {
               if (d && d.status === 'pending') {
                 d.status = 'no_drivers_available';
                 d.save();
-                io.emit('delivery-expired-' + d.riderId, { deliveryId: d._id });
+                io.to(d._id.toString()).emit('delivery-expired', { deliveryId: d._id });
               }
             });
           }, 60000);
 
           res.status(201).json({
             success: true,
-            message: 'Livraison demandÃ©e',
+            message: 'Livraison demandÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e',
             delivery: delivery
           });
         });
@@ -196,7 +196,7 @@ exports.createDelivery = function(req, res) {
     })
     .catch(function(error) {
       console.error('Create Delivery Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la crÃ©ation de la livraison' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ation de la livraison' });
     });
 };
 
@@ -208,7 +208,7 @@ exports.acceptDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, status: 'pending' })
@@ -229,7 +229,7 @@ exports.acceptDelivery = function(req, res) {
           driver.save();
 
           // Notify rider
-          io.emit('delivery-accepted-' + delivery.riderId, {
+          io.to(delivery._id.toString()).emit('delivery-accepted', {
             deliveryId: delivery._id,
             driver: {
               id: driver._id,
@@ -239,7 +239,7 @@ exports.acceptDelivery = function(req, res) {
 
           // Get driver user info
           User.findById(driver.userId).then(function(driverUser) {
-            io.emit('delivery-accepted-' + delivery.riderId, {
+            io.to(delivery._id.toString()).emit('delivery-accepted', {
               deliveryId: delivery._id,
               driver: {
                 id: driver._id,
@@ -275,14 +275,14 @@ exports.updateDeliveryStatus = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id });
     })
     .then(function(delivery) {
       if (!delivery) {
-        return res.status(404).json({ success: false, message: 'Livraison non trouvÃ©e' });
+        return res.status(404).json({ success: false, message: 'Livraison non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e' });
       }
 
       var allowed = validTransitions[delivery.status];
@@ -318,7 +318,7 @@ exports.updateDeliveryStatus = function(req, res) {
     .then(function(delivery) {
       if (!delivery) return;
 
-      io.emit('delivery-status-' + delivery.riderId, {
+      io.to(delivery._id.toString()).emit('delivery-status', {
         deliveryId: delivery._id,
         status: delivery.status
       });
@@ -337,7 +337,7 @@ exports.getMyDeliveries = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       return Delivery.find({ riderId: rider._id })
@@ -359,7 +359,7 @@ exports.getActiveDelivery = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       return Delivery.findOne({
@@ -401,7 +401,7 @@ exports.getDriverActiveDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃ©' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
       }
 
       return Delivery.findOne({
@@ -420,29 +420,29 @@ exports.getDriverActiveDelivery = function(req, res) {
 
 exports.cancelDelivery = function(req, res) {
   var io = req.app.get('io');
+  var userRole = req.user.role;
 
-  Rider.findOne({ userId: req.user._id })
-    .then(function(rider) {
-      if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvÃ©' });
-      }
-
-      return Delivery.findOne({
-        _id: req.params.deliveryId,
-        riderId: rider._id,
-        status: { $in: ['pending', 'accepted'] }
-      });
-    })
+  var findProfile;
+  if (userRole === 'driver') {
+    findProfile = Driver.findOne({ userId: req.user._id }).then(function(driver) {
+      if (!driver) return res.status(404).json({ success: false, message: 'Profil non trouv\u00e9' });
+      return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id, status: { $in: ['pending', 'accepted'] } });
+    });
+  } else {
+    findProfile = Rider.findOne({ userId: req.user._id }).then(function(rider) {
+      if (!rider) return res.status(404).json({ success: false, message: 'Profil non trouv\u00e9' });
+      return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id, status: { $in: ['pending', 'accepted'] } });
+    });
+  }
+  findProfile
     .then(function(delivery) {
       if (!delivery) {
-        return res.status(400).json({ success: false, message: 'Impossible d\'annuler cette livraison' });
+        return res.status(400).json({ success: false, message: "Impossible d'annuler cette livraison" });
       }
 
       delivery.status = 'cancelled';
-      delivery.cancelledBy = 'rider';
-      delivery.cancellationReason = req.body.reason || 'AnnulÃ© par le client';
-      delivery.cancelledAt = new Date();
-
+      delivery.cancelledBy = req.user.role;
+      delivery.cancellationReason = req.body.reason || 'Annul\u00e9';
       if (delivery.driver) {
         Driver.findById(delivery.driver).then(function(d) {
           if (d) {
@@ -450,14 +450,14 @@ exports.cancelDelivery = function(req, res) {
             d.save();
           }
         });
-        io.emit('delivery-cancelled-' + delivery.driver, { deliveryId: delivery._id });
+        io.to('driver-' + delivery.driver.toString()).emit('delivery-cancelled', { deliveryId: delivery._id });
       }
 
       return delivery.save();
     })
     .then(function(delivery) {
       if (delivery) {
-        res.status(200).json({ success: true, message: 'Livraison annulÃ©e' });
+        res.status(200).json({ success: true, message: 'Livraison annul\u00e9e' });
       }
     })
     .catch(function(error) {
@@ -465,3 +465,4 @@ exports.cancelDelivery = function(req, res) {
       res.status(500).json({ success: false, message: 'Erreur' });
     });
 };
+

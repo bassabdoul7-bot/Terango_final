@@ -1,4 +1,4 @@
-﻿var express = require('express');
+var express = require('express');
 var router = express.Router();
 var protect = require('../middleware/auth').protect;
 var restrictTo = require('../middleware/auth').restrictTo;
@@ -10,7 +10,7 @@ router.post('/create', protect, restrictTo('rider'), ctrl.createDelivery);
 router.get('/my-deliveries', protect, restrictTo('rider'), ctrl.getMyDeliveries);
 router.get('/active', protect, restrictTo('rider'), ctrl.getActiveDelivery);
 router.get('/:deliveryId', protect, restrictTo('rider'), ctrl.getDeliveryById);
-router.put('/:deliveryId/cancel', protect, restrictTo('rider'), ctrl.cancelDelivery);
+router.put('/:deliveryId/cancel', protect, restrictTo('rider', 'driver'), ctrl.cancelDelivery);
 
 // Driver routes
 router.put('/:deliveryId/accept', protect, restrictTo('driver'), ctrl.acceptDelivery);

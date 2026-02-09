@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,13 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 
-const SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 const HomeScreen = ({ navigation }) => {
   const { driver } = useAuth();
@@ -33,20 +33,21 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     initializeLocation();
 
-    const newSocket = io(SOCKET_URL);
-    setSocket(newSocket);
+    createAuthSocket().then(function(newSocket) {
+      setSocket(newSocket);
 
-    newSocket.on('connect', () => {
-      console.log('Socket connected:', newSocket.id);
-    });
+      newSocket.on('connect', () => {
+        console.log('Socket connected:', newSocket.id);
+      });
 
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected');
+      newSocket.on('disconnect', () => {
+        console.log('Socket disconnected');
+      });
     });
 
     return () => {
-      if (newSocket) {
-        newSocket.disconnect();
+      if (socket) {
+        socket.disconnect();
       }
     };
   }, []);
@@ -478,6 +479,7 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 

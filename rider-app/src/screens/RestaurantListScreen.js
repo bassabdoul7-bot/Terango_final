@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -171,7 +171,7 @@ function RestaurantListScreen(props) {
           )}
         </View>
       ) : (
-        <ScrollView style={styles.listWrap} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.listWrap} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
           {filtered.map(function(restaurant) {
             var isOpen = restaurant.isOpen;
             return (

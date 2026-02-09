@@ -1,28 +1,28 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Dimensions, Modal, Linking, Animated, BackHandler, Alert, Easing,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as PolylineUtil from '@mapbox/polyline';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { deliveryService } from '../services/api.service';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-const SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 const STATUS_MAP = {
   pending: { label: 'Recherche de livreur...', color: '#FCD116', icon: '🔍' },
-  accepted: { label: 'Livreur en route vers le point de collecte', color: '#00853F', icon: '🛵' },
+  accepted: { label: 'Livreur en route vers le point de collecte', color: '#00853F', icon: '🚵' },
   picked_up: { label: 'Colis recupere, en route vers vous', color: '#00853F', icon: '📦' },
   at_pickup: { label: 'Livreur arrive au point de collecte', color: '#4CD964', icon: '📍' },
   in_transit: { label: 'Livraison en cours...', color: '#00853F', icon: '🚀' },
   delivered: { label: 'Livre!', color: '#4CD964', icon: '✅' },
   cancelled: { label: 'Annulee', color: '#E31B23', icon: '✕' },
-  no_drivers_available: { label: 'Aucun livreur disponible', color: '#E31B23', icon: '😔' },
+  no_drivers_available: { label: 'Aucun livreur disponible', color: '#E31B23', icon: '😞' },
 };
 
 const SearchingAnimation = ({ searchTime }) => {
@@ -44,7 +44,7 @@ const SearchingAnimation = ({ searchTime }) => {
   return (
     <View style={styles.searchingContainer}>
       <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]}>
-        <Text style={{ fontSize: 40 }}>🛵</Text>
+        <Text style={{ fontSize: 40 }}>🚵</Text>
       </Animated.View>
       <Text style={styles.searchingTitle}>Recherche d'un livreur...</Text>
       <Text style={styles.searchingTime}>{searchTime}s</Text>
@@ -119,7 +119,13 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         if (res.delivery.status === 'delivered') {
           navigation.replace('Home');
         }
-        getDirections(res.delivery);
+        if (res.delivery.status === 'cancelled') {
+          clearInterval(pollRef.current);
+          Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [
+            { text: 'OK', onPress: function() { navigation.replace('Home'); } }
+          ]);
+          return;
+        }
       }
       setLoading(false);
     } catch (err) {
@@ -128,8 +134,8 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
     }
   };
 
-  const connectSocket = () => {
-    var socket = io(SOCKET_URL, { transports: ['websocket'] });
+  const connectSocket = async () => {
+    var socket = await createAuthSocket();
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -137,13 +143,13 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
       socket.emit('join-delivery-room', deliveryId);
     });
 
-    socket.on('delivery-accepted-' + deliveryId, (data) => {
+    socket.on('delivery-accepted', (data) => {
       console.log('Delivery accepted:', data);
       setDelivery(prev => prev ? { ...prev, status: 'accepted', driver: data.driver } : prev);
       setDriverInfo(data.driver);
     });
 
-    socket.on('delivery-status-' + deliveryId, (data) => {
+    socket.on('delivery-status', (data) => {
       console.log('Delivery status update:', data);
       setDelivery(prev => prev ? { ...prev, status: data.status } : prev);
       if (data.status === 'delivered') {
@@ -151,12 +157,12 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
       }
     });
 
-    socket.on('delivery-expired-' + deliveryId, () => {
+    socket.on('delivery-expired', () => {
       setShowNoDrivers(true);
       setDelivery(prev => prev ? { ...prev, status: 'no_drivers_available' } : prev);
     });
 
-    socket.on('delivery-cancelled-' + deliveryId, () => {
+    socket.on('delivery-cancelled', () => {
       Alert.alert('Livraison annulee', 'La livraison a ete annulee.');
       navigation.replace('Home');
     });
@@ -246,7 +252,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
         )}
         {driverLocation && (
           <Marker coordinate={driverLocation}>
-            <View style={styles.driverMarker}><Text style={{ fontSize: 20 }}>🛵</Text></View>
+          <View style={styles.driverMarker}><Text style={{ fontSize: 20 }}>🚵</Text></View>
           </Marker>
         )}
       </MapView>
@@ -263,7 +269,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
 
       {showNoDrivers && (
         <View style={styles.noDriverCard}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>😔</Text>
+          <Text style={{ fontSize: 48, marginBottom: 12 }}>😞</Text>
           <Text style={styles.noDriverTitle}>Aucun livreur disponible</Text>
           <Text style={styles.noDriverSub}>Veuillez reessayer dans quelques minutes</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={() => navigation.replace('Home')}>
@@ -282,7 +288,7 @@ const ActiveDeliveryScreen = ({ route, navigation }) => {
             <Text style={styles.driverVehicle}>{driverInfo.vehicleType || 'Moto'}</Text>
           </View>
           <TouchableOpacity style={styles.callBtn} onPress={callDriver}>
-            <Text style={{ fontSize: 20 }}>📞</Text>
+          <Text style={{ fontSize: 20 }}>📞</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -407,6 +413,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
 
 
 

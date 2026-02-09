@@ -276,7 +276,7 @@ exports.updateRideStatus = async (req, res) => {
     await ride.save();
 
     const io = req.app.get('io');
-    io.emit(`ride-status-${ride._id}`, {
+    io.to(ride._id.toString()).emit('ride-status', {
       status: ride.status,
       timestamp: new Date()
     });
@@ -331,7 +331,7 @@ exports.startRide = async (req, res) => {
     await ride.save();
 
     const io = req.app.get('io');
-    io.emit(`ride-status-${ride._id}`, {
+    io.to(ride._id.toString()).emit('ride-status', {
       status: 'in_progress',
       timestamp: new Date()
     });
@@ -421,7 +421,7 @@ exports.completeRide = async (req, res) => {
     const io = req.app.get('io');
     
     // Notify rider
-    io.emit(`ride-status-${ride._id}`, {
+    io.to(ride._id.toString()).emit('ride-status', {
       status: 'completed',
       timestamp: new Date(),
       fare: ride.fare,
@@ -491,7 +491,7 @@ exports.cancelRide = async (req, res) => {
     }
 
     const io = req.app.get('io');
-    io.emit(`ride-cancelled-${ride._id}`, {
+    io.to(ride._id.toString()).emit('ride-cancelled', {
       cancelledBy: req.user.role,
       reason: reason || 'Non spécifié'
     });
@@ -587,4 +587,5 @@ exports.rateRide = async (req, res) => {
     });
   }
 };
+
 

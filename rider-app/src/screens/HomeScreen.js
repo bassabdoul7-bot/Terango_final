@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +20,7 @@ import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, rideService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
-var SOCKET_URL = 'https://terango-api.fly.dev';
+
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var MINT = 'rgba(179, 229, 206, 0.95)';
 var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
@@ -160,28 +160,32 @@ function HomeScreen(props) {
 
   function connectSocket() {
     if (socketRef.current) return;
-    socketRef.current = io(SOCKET_URL, { transports: ['websocket'], reconnection: true });
+    createAuthSocket().then(function(socket) {
+      socketRef.current = socket;
 
-    socketRef.current.on('connect', function() {
-      console.log('Rider connected to socket');
-      socketRef.current.emit('rider-watching-drivers');
-    });
-
-    socketRef.current.on('nearby-driver-location', function(data) {
-      setNearbyDrivers(function(prev) {
-        var updated = prev.slice();
-        var index = updated.findIndex(function(d) { return d._id === data.driverId; });
-        if (index !== -1) {
-          updated[index] = Object.assign({}, updated[index], { location: data.location });
-        }
-        return updated;
+      socket.on('connect', function() {
+        console.log('Rider connected to socket');
+        socket.emit('rider-watching-drivers');
       });
-    });
 
-    socketRef.current.on('driver-went-offline', function(data) {
-      setNearbyDrivers(function(prev) {
-        return prev.filter(function(d) { return d._id !== data.driverId; });
+      socket.on('nearby-driver-location', function(data) {
+        setNearbyDrivers(function(prev) {
+          var updated = prev.slice();
+          var index = updated.findIndex(function(d) { return d._id === data.driverId; });
+          if (index !== -1) {
+            updated[index] = Object.assign({}, updated[index], { location: data.location });
+          }
+          return updated;
+        });
       });
+
+      socket.on('driver-went-offline', function(data) {
+        setNearbyDrivers(function(prev) {
+          return prev.filter(function(d) { return d._id !== data.driverId; });
+        });
+      });
+    }).catch(function(err) {
+      console.log('Socket error:', err);
     });
   }
 
@@ -212,7 +216,6 @@ function HomeScreen(props) {
       return;
     }
 
-    // Geocode the address
     var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' +
       encodeURIComponent(saveAddress) + '&key=' + GOOGLE_MAPS_KEY + '&region=sn';
 
@@ -235,9 +238,9 @@ function HomeScreen(props) {
         savePlacesToStorage(updated);
         setShowSaveModal(false);
         setSaveAddress('');
-        Alert.alert('Enregistré', (saveType === 'home' ? 'Maison' : saveType === 'work' ? 'Travail' : 'Favori') + ' enregistré avec succès!');
+        Alert.alert('Enregistr\u00e9', (saveType === 'home' ? 'Maison' : saveType === 'work' ? 'Travail' : 'Favori') + ' enregistr\u00e9 avec succ\u00e8s!');
       } else {
-        Alert.alert('Adresse introuvable', "Veuillez vérifier l'adresse.");
+        Alert.alert('Adresse introuvable', "Veuillez v\u00e9rifier l'adresse.");
       }
     }).catch(function(err) {
       Alert.alert('Erreur', "Impossible de trouver l'adresse.");
@@ -245,9 +248,9 @@ function HomeScreen(props) {
   }
 
   function handleLogout() {
-    Alert.alert('Déconnexion', 'Voulez-vous vous déconnecter?', [
+    Alert.alert('D\u00e9connexion', 'Voulez-vous vous d\u00e9connecter?', [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Déconnexion', style: 'destructive', onPress: function() { logout(); } }
+      { text: 'D\u00e9connexion', style: 'destructive', onPress: function() { logout(); } }
     ]);
   }
 
@@ -268,9 +271,9 @@ function HomeScreen(props) {
       return (
         <View style={styles.tabScreen}>
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+            <Text style={styles.emptyIcon}>{"\uD83D\uDE97"}</Text>
             <Text style={styles.emptyTitle}>Aucune course</Text>
-            <Text style={styles.emptySub}>{"Vos courses apparaîtront ici"}</Text>
+            <Text style={styles.emptySub}>{"Vos courses appara\u00eetront ici"}</Text>
           </View>
         </View>
       );
@@ -294,8 +297,8 @@ function HomeScreen(props) {
                   <View style={styles.rSquare} />
                 </View>
                 <View style={styles.addresses}>
-                  <Text style={styles.addr} numberOfLines={1}>{ride.pickup ? ride.pickup.address || 'Départ' : 'Départ'}</Text>
-                  <Text style={styles.addr} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address || 'Arrivée' : 'Arrivée'}</Text>
+                  <Text style={styles.addr} numberOfLines={1}>{ride.pickup ? ride.pickup.address || 'D\u00e9part' : 'D\u00e9part'}</Text>
+                  <Text style={styles.addr} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address || 'Arriv\u00e9e' : 'Arriv\u00e9e'}</Text>
                 </View>
               </View>
               <View style={styles.historyFooter}>
@@ -319,10 +322,10 @@ function HomeScreen(props) {
         <Text style={styles.tabHeader}>Paiement</Text>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>💵</Text>
+          <Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text>
           <View style={styles.paymentInfo}>
-            <Text style={styles.paymentTitle}>{"Espèces"}</Text>
-            <Text style={styles.paymentSub}>{"Méthode par défaut"}</Text>
+            <Text style={styles.paymentTitle}>{"Esp\u00e8ces"}</Text>
+            <Text style={styles.paymentSub}>{"M\u00e9thode par d\u00e9faut"}</Text>
           </View>
           <View style={styles.paymentActive}>
             <Text style={styles.paymentActiveText}>{"Actif"}</Text>
@@ -330,30 +333,30 @@ function HomeScreen(props) {
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>📱</Text>
+          <Text style={styles.paymentIcon}>{"\uD83D\uDCF1"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Wave</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
+          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>🟠</Text>
+          <Text style={styles.paymentIcon}>{"\uD83D\uDFE0"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Orange Money</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
+          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
         </View>
 
         <View style={styles.paymentCard}>
-          <Text style={styles.paymentIcon}>💳</Text>
+          <Text style={styles.paymentIcon}>{"\uD83D\uDCB3"}</Text>
           <View style={styles.paymentInfo}>
             <Text style={styles.paymentTitle}>Free Money</Text>
             <Text style={styles.paymentSub}>{"Paiement mobile"}</Text>
           </View>
-          <Text style={styles.paymentSoon}>{"Bientôt"}</Text>
+          <Text style={styles.paymentSoon}>{"Bient\u00f4t"}</Text>
         </View>
       </View>
     );
@@ -375,9 +378,9 @@ function HomeScreen(props) {
           </View>
           <Text style={styles.profileName}>{userName}</Text>
           <View style={styles.profileRatingRow}>
-            <Text style={{ fontSize: 14 }}>⭐</Text>
+            <Text style={{ fontSize: 14 }}>{"\u2B50"}</Text>
             <Text style={styles.profileRatingVal}>{userRating}</Text>
-            <Text style={styles.profileRatingMeta}>{'• ' + totalRides + ' courses'}</Text>
+            <Text style={styles.profileRatingMeta}>{"\u2022 " + totalRides + ' courses'}</Text>
           </View>
         </View>
 
@@ -385,12 +388,12 @@ function HomeScreen(props) {
           <Text style={styles.profileSectionTitle}>Informations</Text>
           <View style={styles.profileGroup}>
             <View style={styles.profileRow}>
-              <Text style={styles.profileEmoji}>📞</Text>
-              <Text style={styles.profileLabel}>{"Téléphone"}</Text>
+              <Text style={styles.profileEmoji}>{"\uD83D\uDCDE"}</Text>
+              <Text style={styles.profileLabel}>{"T\u00e9l\u00e9phone"}</Text>
               <Text style={styles.profileValue}>{userPhone}</Text>
             </View>
             <View style={[styles.profileRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.profileEmoji}>📧</Text>
+              <Text style={styles.profileEmoji}>{"\uD83D\uDCE7"}</Text>
               <Text style={styles.profileLabel}>Email</Text>
               <Text style={styles.profileValue}>{userEmail}</Text>
             </View>
@@ -398,30 +401,30 @@ function HomeScreen(props) {
         </View>
 
         <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>Lieux enregistrés</Text>
+          <Text style={styles.profileSectionTitle}>{"Lieux enregistr\u00e9s"}</Text>
           <View style={styles.profileGroup}>
             <TouchableOpacity style={styles.profileRow} onPress={function() { handleQuickPlace('home'); }}>
-              <Text style={styles.profileEmoji}>🏠</Text>
+              <Text style={styles.profileEmoji}>{"\uD83C\uDFE0"}</Text>
               <Text style={styles.profileLabel}>Maison</Text>
               <Text style={styles.profileValue} numberOfLines={1}>
                 {savedPlaces.home ? savedPlaces.home.address : 'Ajouter'}
               </Text>
-              <Text style={styles.profileChevron}>{'›'}</Text>
+              <Text style={styles.profileChevron}>{"\u203A"}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={function() { handleQuickPlace('work'); }}>
-              <Text style={styles.profileEmoji}>💼</Text>
+              <Text style={styles.profileEmoji}>{"\uD83D\uDCBC"}</Text>
               <Text style={styles.profileLabel}>Travail</Text>
               <Text style={styles.profileValue} numberOfLines={1}>
                 {savedPlaces.work ? savedPlaces.work.address : 'Ajouter'}
               </Text>
-              <Text style={styles.profileChevron}>{'›'}</Text>
+              <Text style={styles.profileChevron}>{"\u203A"}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-          <Text style={styles.logoutIcon}>👋</Text>
-          <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
+          <Text style={styles.logoutIcon}>{"\uD83D\uDC4B"}</Text>
+          <Text style={styles.logoutTxt}>{"Se d\u00e9connecter"}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionTxt}>TeranGO Rider v1.0.0</Text>
@@ -509,36 +512,36 @@ function HomeScreen(props) {
             <Text style={styles.userName}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
           </View>
           <TouchableOpacity style={styles.profileButton} onPress={function() { setActiveTab('profile'); }}>
-            <Text style={styles.profileBtnIcon}>👤</Text>
+            <Text style={styles.profileBtnIcon}>{"\uD83D\uDC64"}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.searchCard}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
-              <Text style={styles.searchIcon}>🔍</Text>
+              <Text style={styles.searchIcon}>{"\uD83D\uDD0D"}</Text>
             </View>
-            <Text style={styles.searchTitle}>{"Où allez-vous?"}</Text>
+            <Text style={styles.searchTitle}>{"O\u00f9 allez-vous?"}</Text>
             <View style={styles.arrowContainer}>
-              <Text style={styles.arrow}>{"→"}</Text>
+              <Text style={styles.arrow}>{"\u2191"}</Text>
             </View>
           </TouchableOpacity>
 
           <View style={styles.quickActions}>
             <TouchableOpacity style={styles.quickActionButton} onPress={function() { handleQuickPlace('home'); }}>
               <View style={[styles.quickActionIcon, savedPlaces.home && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>🏠</Text>
+                <Text style={styles.quickActionEmoji}>{"\uD83C\uDFE0"}</Text>
               </View>
               <Text style={styles.quickActionText}>Maison</Text>
-              {savedPlaces.home && <Text style={styles.quickActionSet}>{"✓"}</Text>}
+              {savedPlaces.home && <Text style={styles.quickActionSet}>{"\u2713"}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickActionButton} onPress={function() { handleQuickPlace('work'); }}>
               <View style={[styles.quickActionIcon, savedPlaces.work && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>💼</Text>
+                <Text style={styles.quickActionEmoji}>{"\uD83D\uDCBC"}</Text>
               </View>
               <Text style={styles.quickActionText}>Travail</Text>
-              {savedPlaces.work && <Text style={styles.quickActionSet}>{"✓"}</Text>}
+              {savedPlaces.work && <Text style={styles.quickActionSet}>{"\u2713"}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.quickActionButton} onPress={function() {
@@ -550,7 +553,7 @@ function HomeScreen(props) {
               }
             }}>
               <View style={[styles.quickActionIcon, savedPlaces.favorites && savedPlaces.favorites.length > 0 && styles.quickActionIconSaved]}>
-                <Text style={styles.quickActionEmoji}>⭐</Text>
+                <Text style={styles.quickActionEmoji}>{"\u2B50"}</Text>
               </View>
               <Text style={styles.quickActionText}>Favoris</Text>
             </TouchableOpacity>
@@ -561,28 +564,28 @@ function HomeScreen(props) {
             <View style={styles.servicesGrid}>
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('SearchDestination', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(0, 133, 63, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>🚗</Text>
+                  <Text style={styles.serviceEmoji}>{"\uD83D\uDE97"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Course</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('ThiakThiak', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(252, 209, 22, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>🏍️</Text>
+                  <Text style={styles.serviceEmoji}>{"\uD83C\uDFCD\uFE0F"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Thiak Thiak</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('Colis', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 149, 0, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>📦</Text>
+                  <Text style={styles.serviceEmoji}>{"\uD83D\uDCE6"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Colis</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('RestaurantList', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 59, 48, 0.15)' }]}>
-                  <Text style={styles.serviceEmoji}>🍽️</Text>
+                  <Text style={styles.serviceEmoji}>{"\uD83C\uDF7D\uFE0F"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Restaurant</Text>
               </TouchableOpacity>
@@ -604,28 +607,28 @@ function HomeScreen(props) {
       <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('home'); }}>
           <View style={activeTab === 'home' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>🏠</Text>
+            <Text style={styles.navIconText}>{"\uD83C\uDFE0"}</Text>
           </View>
           <Text style={activeTab === 'home' ? styles.navLabelActive : styles.navLabel}>Accueil</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('activity'); loadRideHistory(); }}>
           <View style={activeTab === 'activity' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>🕐</Text>
+            <Text style={styles.navIconText}>{"\uD83D\uDD55"}</Text>
           </View>
-          <Text style={activeTab === 'activity' ? styles.navLabelActive : styles.navLabel}>{"Activité"}</Text>
+          <Text style={activeTab === 'activity' ? styles.navLabelActive : styles.navLabel}>{"Activit\u00e9"}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('payment'); }}>
           <View style={activeTab === 'payment' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>💳</Text>
+            <Text style={styles.navIconText}>{"\uD83D\uDCB3"}</Text>
           </View>
           <Text style={activeTab === 'payment' ? styles.navLabelActive : styles.navLabel}>Paiement</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('profile'); }}>
           <View style={activeTab === 'profile' ? styles.navIconContainerActive : styles.navIconContainer}>
-            <Text style={styles.navIconText}>👤</Text>
+            <Text style={styles.navIconText}>{"\uD83D\uDC64"}</Text>
           </View>
           <Text style={activeTab === 'profile' ? styles.navLabelActive : styles.navLabel}>Profil</Text>
         </TouchableOpacity>
@@ -728,16 +731,12 @@ var styles = StyleSheet.create({
   navIconText: { fontSize: 24 },
   navLabel: { fontSize: 11, color: '#333', fontWeight: '500' },
   navLabelActive: { fontSize: 11, color: '#000', fontWeight: 'bold' },
-
-  // Tab screens
   tabScreen: { flex: 1, backgroundColor: DARK_BG, paddingHorizontal: 20, paddingTop: 70 },
   tabHeader: { fontSize: 24, fontWeight: '700', color: '#fff', marginBottom: 20, marginTop: 10 },
   emptyState: { alignItems: 'center', marginTop: 100 },
   emptyIcon: { fontSize: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#fff', marginBottom: 8 },
   emptySub: { fontSize: 14, color: 'rgba(255,255,255,0.4)' },
-
-  // History cards
   historyCard: {
     backgroundColor: MINT_LIGHT, borderRadius: 16, padding: 18, marginBottom: 12,
     borderWidth: 1, borderColor: MINT_BORDER,
@@ -756,8 +755,6 @@ var styles = StyleSheet.create({
   historyMeta: { fontSize: 12, color: 'rgba(255,255,255,0.4)' },
   typeBadge: { backgroundColor: 'rgba(252, 209, 22, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeText: { fontSize: 11, color: YELLOW, fontWeight: '600' },
-
-  // Payment tab
   paymentCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: MINT_LIGHT, borderRadius: 16, padding: 18, marginBottom: 12,
@@ -770,8 +767,6 @@ var styles = StyleSheet.create({
   paymentActive: { backgroundColor: '#4CD964', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   paymentActiveText: { fontSize: 12, fontWeight: '700', color: '#fff' },
   paymentSoon: { fontSize: 12, color: 'rgba(255,255,255,0.3)', fontStyle: 'italic' },
-
-  // Profile tab
   profileHero: {
     backgroundColor: MINT, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24,
   },
@@ -809,8 +804,6 @@ var styles = StyleSheet.create({
   logoutIcon: { fontSize: 20, marginRight: 10 },
   logoutTxt: { fontSize: 16, fontWeight: '600', color: '#FF3B30' },
   versionTxt: { textAlign: 'center', fontSize: 12, color: 'rgba(255,255,255,0.15)', marginBottom: 20 },
-
-  // Services section
   servicesSection: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)' },
   servicesTitle: { fontSize: 13, fontWeight: '700', color: '#333', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
   servicesGrid: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -821,12 +814,6 @@ var styles = StyleSheet.create({
   },
   serviceEmoji: { fontSize: 26 },
   serviceLabel: { fontSize: 11, fontWeight: '600', color: '#222' },
-
-  // Services section
-
-  // Services section
-
-  // Save place modal
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20,
   },
@@ -853,6 +840,3 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-
-
-

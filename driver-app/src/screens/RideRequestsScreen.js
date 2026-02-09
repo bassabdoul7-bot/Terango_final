@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import CAR_IMAGES from '../constants/carImages';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
-const SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 const RideRequestsScreen = ({ navigation, route }) => {
   const { driver } = useAuth();
@@ -134,7 +134,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission refusée', 'Nous avons besoin de votre localisation');
+      Alert.alert('Permission refus\u00e9e', 'Nous avons besoin de votre localisation');
         return;
       }
 
@@ -168,8 +168,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
       return;
     }
 
-    const newSocket = io(SOCKET_URL);
-    setSocket(newSocket);
+    createAuthSocket().then(function(newSocket) {
+      setSocket(newSocket);
 
     newSocket.on('connect', () => {
       console.log('Socket connected:', newSocket.id);
@@ -182,8 +182,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
     });
 
     // === RIDE OFFERS ===
-    newSocket.on('new-ride-offer-' + driverId, (rideData) => {
-      console.log('🚗 Ride offer received:', rideData);
+    newSocket.on('new-ride-offer', (rideData) => {
+      console.log('Ride offer received:', rideData);
       rideData._offerType = 'ride';
       if (!activeServicesRef.current.rides) { console.log('Rides disabled, skipping'); return; }
 
@@ -193,7 +193,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
         setCurrentRequest(rideData);
 
         const timeout = setTimeout(() => {
-          console.log('⏰ Offer expired, auto-rejecting');
+          console.log('Offer expired, auto-rejecting');
           handleReject();
         }, rideData.offerExpiresIn || 15000);
 
@@ -201,9 +201,9 @@ const RideRequestsScreen = ({ navigation, route }) => {
       }
     });
 
-    newSocket.on('ride-taken-' + driverId, (data) => {
+    newSocket.on('ride-taken', (data) => {
       console.log('Ride taken by another driver:', data);
-      Alert.alert('Course prise', 'Un autre chauffeur a accepté cette course');
+      Alert.alert('Course prise', 'Un autre chauffeur a accept\u00e9 cette course');
 
       if (currentRequest) {
         setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId));
@@ -213,8 +213,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
     });
 
     // === DELIVERY OFFERS (colis, commande, restaurant) ===
-    newSocket.on('new-delivery-' + driverId, (deliveryData) => {
-      console.log('📦 Delivery offer received:', deliveryData);
+    newSocket.on('new-delivery', (deliveryData) => {
+      console.log('Delivery offer received:', deliveryData);
       var sType = deliveryData.serviceType || 'colis';
       if (sType === 'colis' && !activeServicesRef.current.colis) { console.log('Colis disabled, skipping'); return; }
       if (sType === 'commande' && !activeServicesRef.current.commande) { console.log('Commande disabled, skipping'); return; }
@@ -238,7 +238,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
         setCurrentRequest(offerData);
 
         const timeout = setTimeout(() => {
-          console.log('⏰ Delivery offer expired');
+          console.log('Delivery offer expired');
           handleReject();
         }, 60000);
 
@@ -246,8 +246,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
       }
     });
 
-    newSocket.on('delivery-taken-' + driverId, () => {
-      Alert.alert('Livraison prise', 'Un autre livreur a accepté cette livraison.');
+    newSocket.on('delivery-taken', () => {
+      Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9 cette livraison.');
       if (currentRequest && currentRequest._isDelivery) {
         setCurrentRequest(null);
       }
@@ -256,8 +256,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
     newSocket.on('disconnect', () => {
       console.log('Socket disconnected');
     });
+    });
   };
-
   const showRequestCard = () => {
     Animated.spring(slideAnim, {
       toValue: 0,
@@ -382,7 +382,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
               title="Votre position"
             >
               <View style={styles.driverMarker}>
-                <Text style={styles.driverMarkerText}>▲</Text>
+            <Text style={styles.driverMarkerText}>{"\u25B2"}</Text>
               </View>
             </Marker>
           )}
@@ -395,7 +395,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
                   longitude: currentRequest.pickup.coordinates.longitude,
                 }}
                 pinColor={COLORS.green}
-                title="Départ"
+              title="D\u00e9part"
               />
               <Marker
                 coordinate={{
@@ -403,7 +403,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
                   longitude: currentRequest.dropoff.coordinates.longitude,
                 }}
                 pinColor={COLORS.red}
-                title="Arrivée"
+              title="Arriv\u00e9e"
               />
               
               <Circle
@@ -427,7 +427,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       <View style={styles.topBar}>
         <View style={styles.earningsCard}>
           <Text style={styles.earningsValue}>{earnings.today.toLocaleString()} FCFA</Text>
-          <Text style={styles.earningsLabel}>Aujourd'hui • {earnings.ridesCompleted} courses</Text>
+          <Text style={styles.earningsLabel}>Aujourd'hui \u2022 {earnings.ridesCompleted} courses</Text>
         </View>
 
         <TouchableOpacity
@@ -441,16 +441,16 @@ const RideRequestsScreen = ({ navigation, route }) => {
           style={{width:36,height:36,borderRadius:18,backgroundColor:'rgba(179,229,206,0.2)',borderWidth:1,borderColor:'rgba(179,229,206,0.4)',alignItems:'center',justifyContent:'center',marginLeft:10}}
           onPress={() => setShowFilters(!showFilters)}
         >
-          <Text style={{fontSize:16,color:'#fff'}}>{showFilters ? '✕' : '⚙'}</Text>
+            <Text style={{fontSize:16,color:'#fff'}}>{showFilters ? '\u2715' : '\u2699'}</Text>
         </TouchableOpacity>
       </View>
       {showFilters && (
         <View style={{position:'absolute',top:110,left:12,right:12,flexDirection:'row',gap:8,zIndex:10,paddingVertical:10,paddingHorizontal:8,backgroundColor:'rgba(20,25,30,0.9)',borderRadius:16,borderWidth:1,borderColor:'rgba(179,229,206,0.25)'}}>
           {[
-            {key:'rides',label:'Courses',icon:'🚗'},
-            {key:'colis',label:'Colis',icon:'📦'},
-            {key:'commande',label:'Commandes',icon:'🛒'},
-            {key:'resto',label:'Restaurant',icon:'🍽'},
+          {key:'rides',label:'Courses',icon:'\uD83D\uDE97'},
+          {key:'colis',label:'Colis',icon:'\uD83D\uDCE6'},
+          {key:'commande',label:'Commandes',icon:'\uD83D\uDED2'},
+          {key:'resto',label:'Restaurant',icon:'\uD83C\uDF7D\uFE0F'},
           ].map((svc) => (
             <TouchableOpacity
               key={svc.key}
@@ -486,7 +486,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             style={styles.menuButton}
             onPress={() => navigation.navigate('Menu')}
           >
-            <Text style={styles.menuIcon}>☰</Text>
+              <Text style={styles.menuIcon}>{"\u2630"}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -497,7 +497,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             style={styles.menuButton}
             onPress={() => navigation.navigate('Menu')}
           >
-            <Text style={styles.menuIcon}>☰</Text>
+              <Text style={styles.menuIcon}>{"\u2630"}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -512,10 +512,10 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View>
-                <Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "📦 Nouveau colis" : currentRequest.serviceType === "commande" ? "🛒 Nouvelle commande" : "🍽️ Commande restaurant") : "Nouvelle course 🎯"}</Text>
+          <Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "\uD83D\uDCE6 Nouveau colis" : currentRequest.serviceType === "commande" ? "\uD83D\uDED2 Nouvelle commande" : "\uD83C\uDF7D\uFE0F Commande restaurant") : "Nouvelle course \uD83C\uDFCF"}</Text>
                 <Text style={styles.requestSubtitle}>
-                  {(currentRequest.distance || 0).toFixed(1)} km • {Math.round(currentRequest.distance * 2)} min
-                  {currentRequest.distanceToPickup && ` • ${currentRequest.distanceToPickup.toFixed(1)}km de vous`}
+              {(currentRequest.distance || 0).toFixed(1)} km \u2022 {Math.round(currentRequest.distance * 2)} min
+              {currentRequest.distanceToPickup && ` \u2022 ${currentRequest.distanceToPickup.toFixed(1)}km de vous`}
                 </Text>
               </View>
               <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()} FCFA</Text>
@@ -524,7 +524,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
               {currentRequest._isDelivery ? (
                 <View style={styles.rideTypeRow}>
                   <View style={{width: 40, height: 40, borderRadius: 20, backgroundColor: currentRequest.serviceType === 'colis' ? 'rgba(255,149,0,0.15)' : currentRequest.serviceType === 'commande' ? 'rgba(175,82,222,0.15)' : 'rgba(255,59,48,0.15)', alignItems: 'center', justifyContent: 'center'}}>
-                    <Text style={{fontSize: 22}}>{currentRequest.serviceType === 'colis' ? '📦' : currentRequest.serviceType === 'commande' ? '🛒' : '🍽️'}</Text>
+          <Text style={{fontSize: 22}}>{currentRequest.serviceType === 'colis' ? '\uD83D\uDCE6' : currentRequest.serviceType === 'commande' ? '\uD83D\uDED2' : '\uD83C\uDF7D\uFE0F'}</Text>
                   </View>
                   <View style={styles.rideTypeInfo}>
                     <Text style={styles.rideTypeName}>{currentRequest.serviceType === 'colis' ? 'Livraison Colis' : currentRequest.serviceType === 'commande' ? 'Commande' : 'Restaurant'}</Text>
@@ -595,10 +595,10 @@ const RideRequestsScreen = ({ navigation, route }) => {
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🚗</Text>
+        <Text style={styles.emptyIcon}>{"\uD83D\uDE97"}</Text>
             <Text style={styles.emptyTitle}>En attente de courses</Text>
             <Text style={styles.emptySubtitle}>
-              Vous recevrez des offres ciblées basées sur votre position
+            Vous recevrez des offres cibl\u00e9es bas\u00e9es sur votre position
             </Text>
           </View>
         )}
@@ -607,7 +607,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       <ConfirmModal
         visible={showOfflineModal}
         title="Passer hors ligne?"
-        message="Vous arrêterez de recevoir des courses"
+            message="Vous arr\u00eaterez de recevoir des courses"
         cancelText="Rester en ligne"
         confirmText="Hors ligne"
         onCancel={() => setShowOfflineModal(false)}
@@ -948,6 +948,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 

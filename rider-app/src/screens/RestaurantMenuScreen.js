@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -293,7 +293,7 @@ function RestaurantMenuScreen(props) {
       </ScrollView>
 
       {/* Menu Items */}
-      <ScrollView style={styles.menuScroll} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.menuScroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
         {menuItems.length === 0 ? (
           <View style={styles.emptyMenu}>
             <Text style={styles.emptyIcon}>🍽️</Text>
@@ -358,7 +358,7 @@ function RestaurantMenuScreen(props) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.cartList}>
+            <ScrollView style={styles.cartList} nestedScrollEnabled={true}>
               {cart.map(function(item) {
                 return (
                   <View key={item.menuItemId} style={styles.cartItem}>
@@ -417,7 +417,7 @@ function RestaurantMenuScreen(props) {
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.checkoutScroll}>
+            <ScrollView style={styles.checkoutScroll} nestedScrollEnabled={true}>
               <Text style={styles.checkoutSection}>Adresse de livraison</Text>
               <TextInput
                 style={styles.checkoutInput}

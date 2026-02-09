@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -34,7 +34,7 @@ const LoginScreen = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const response = await authService.sendOTP(phone);
+      const response = await authService.sendOTP(phone, 'login');
       if (response.success) {
         setStep('otp');
         Alert.alert('Code envoyé', 'Vérifiez le terminal backend pour le code OTP');

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
+  TouchableOpacity,
 } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
@@ -18,49 +19,60 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
 import { Image } from 'react-native';
 
-const LoginScreen = () => {
-  const { login } = useAuth();
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState('phone');
+var LoginScreen = function(props) {
+  var navigation = props.navigation;
+  var auth = useAuth();
+  var login = auth.login;
 
-  const handleSendOTP = async () => {
+  var phoneState = useState('');
+  var phone = phoneState[0];
+  var setPhone = phoneState[1];
+
+  var otpState = useState('');
+  var otp = otpState[0];
+  var setOtp = otpState[1];
+
+  var loadingState = useState(false);
+  var loading = loadingState[0];
+  var setLoading = loadingState[1];
+
+  var stepState = useState('phone');
+  var step = stepState[0];
+  var setStep = stepState[1];
+
+  function handleSendOTP() {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
+      Alert.alert('Erreur', 'Veuillez entrer un num\u00e9ro de t\u00e9l\u00e9phone valide');
       return;
     }
 
     setLoading(true);
-    try {
-      const response = await authService.sendOTP(phone);
+    authService.sendOTP(phone, 'login').then(function(response) {
       if (response.success) {
         setStep('otp');
-        Alert.alert('Code envoyé', 'Vérifiez le terminal backend pour le code OTP');
+        Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez le terminal backend pour le code OTP');
       }
-    } catch (error) {
-      console.error('Send OTP Error:', error);
-      Alert.alert('Erreur', 'Erreur envoi code');
-    } finally {
+    }).catch(function(error) {
+      var msg = error.response?.data?.message || 'Erreur envoi code';
+      Alert.alert('Erreur', msg);
+    }).finally(function() {
       setLoading(false);
-    }
-  };
+    });
+  }
 
-  const handleVerifyOTP = async () => {
+  function handleVerifyOTP() {
     if (!otp || otp.length !== 6) {
       Alert.alert('Erreur', 'Veuillez entrer un code OTP valide');
       return;
     }
 
     setLoading(true);
-    try {
-      await login(phone, otp);
-    } catch (error) {
+    login(phone, otp).catch(function(error) {
       Alert.alert('Erreur', error.message || 'Code OTP invalide');
-    } finally {
+    }).finally(function() {
       setLoading(false);
-    }
-  };
+    });
+  }
 
   return (
     <KeyboardAvoidingView
@@ -87,10 +99,10 @@ const LoginScreen = () => {
               <>
                 <Text style={styles.title}>Bienvenue</Text>
                 <Text style={styles.subtitle}>
-                  Entrez votre numéro de téléphone
+                  {"Entrez votre num\u00e9ro de t\u00e9l\u00e9phone"}
                 </Text>
 
-                <Text style={styles.label}>Numéro de téléphone</Text>
+                <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="77 123 45 67"
@@ -110,9 +122,9 @@ const LoginScreen = () => {
               </>
             ) : (
               <>
-                <Text style={styles.title}>Vérification</Text>
+                <Text style={styles.title}>{"V\u00e9rification"}</Text>
                 <Text style={styles.subtitle}>
-                  Entrez le code envoyé au {phone}
+                  {'Entrez le code envoy\u00e9 au ' + phone}
                 </Text>
 
                 <Text style={styles.label}>Code OTP</Text>
@@ -128,7 +140,7 @@ const LoginScreen = () => {
                 />
 
                 <GlassButton
-                  title={loading ? 'Vérification...' : 'Vérifier'}
+                  title={loading ? 'V\u00e9rification...' : 'V\u00e9rifier'}
                   onPress={handleVerifyOTP}
                   loading={loading}
                   style={styles.verifyButton}
@@ -142,10 +154,10 @@ const LoginScreen = () => {
                 />
 
                 <View style={styles.newUserContainer}>
-                  <Text style={styles.newUserText}>Mauvais numéro?</Text>
+                  <Text style={styles.newUserText}>{"Mauvais num\u00e9ro?"}</Text>
                   <GlassButton
-                    title="Changer de numéro"
-                    onPress={() => setStep('phone')}
+                    title={"Changer de num\u00e9ro"}
+                    onPress={function() { setStep('phone'); }}
                     variant="text"
                     style={styles.toggleButton}
                   />
@@ -154,11 +166,18 @@ const LoginScreen = () => {
             )}
           </GlassCard>
 
+          <TouchableOpacity onPress={function() { navigation.navigate('Register'); }} style={styles.registerLink}>
+            <Text style={styles.registerText}>{"Pas encore de compte? "}</Text>
+            <Text style={styles.registerBold}>S'inscrire</Text>
+          </TouchableOpacity>
+
           <View style={styles.privacyContainer}>
             <Text style={styles.privacyText}>
-              En vous inscrivant, vous acceptez nos{' '}
-              <Text style={styles.privacyLink}>Conditions Générales</Text>, reconnaissez notre{' '}
-              <Text style={styles.privacyLink}>Politique de Confidentialité</Text>, et confirmez que vous avez plus de 18 ans. Nous pouvons vous envoyer des promotions liées à nos services - vous pouvez vous désabonner à tout moment dans les paramètres de communication de votre profil.
+              {"En vous inscrivant, vous acceptez nos "}
+              <Text style={styles.privacyLink}>{"Conditions G\u00e9n\u00e9rales"}</Text>
+              {", reconnaissez notre "}
+              <Text style={styles.privacyLink}>{"Politique de Confidentialit\u00e9"}</Text>
+              {", et confirmez que vous avez plus de 18 ans."}
             </Text>
           </View>
 
@@ -169,7 +188,7 @@ const LoginScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+var styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -264,6 +283,20 @@ const styles = StyleSheet.create({
   toggleButton: {
     paddingHorizontal: 20,
   },
+  registerLink: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  registerText: {
+    color: COLORS.gray,
+    fontSize: 15,
+  },
+  registerBold: {
+    color: '#00A86B',
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
   privacyContainer: {
     marginTop: 32,
     marginBottom: 20,
@@ -285,4 +318,3 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
-

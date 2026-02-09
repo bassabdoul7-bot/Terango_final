@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as PolylineUtil from '@mapbox/polyline';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import SuccessModal from '../components/SuccessModal';
 import COLORS from '../constants/colors';
@@ -29,7 +29,7 @@ var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
-var SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 function CancelReasonModal(props) {
   var visible = props.visible;
@@ -74,7 +74,7 @@ function CancelReasonModal(props) {
           </ScrollView>
           <View style={cancelStyles.actions}>
             <TouchableOpacity style={cancelStyles.supportButton} onPress={onSupport}>
-              <Text style={cancelStyles.supportIcon}>ðŸ“ž</Text>
+          <Text style={cancelStyles.supportIcon}>{"\uD83D\uDCDE"}</Text>
               <Text style={cancelStyles.supportText}>Contacter Support</Text>
             </TouchableOpacity>
             <View style={cancelStyles.mainActions}>
@@ -109,7 +109,7 @@ function QueuedRideBanner(props) {
   return (
     <TouchableOpacity style={queueStyles.banner} onPress={onView}>
       <View style={queueStyles.iconContainer}>
-        <Text style={queueStyles.icon}>ðŸš—</Text>
+        <Text style={queueStyles.icon}>{"\uD83D\uDE97"}</Text>
       </View>
       <View style={queueStyles.textContainer}>
         <Text style={queueStyles.title}>Course en attente</Text>
@@ -129,9 +129,9 @@ function ActiveRideScreen(props) {
   var passedRide = route.params.ride;
   var deliveryMode = route.params.deliveryMode || false;
   var deliveryData = route.params.deliveryData || null;
+  var deliveryId = deliveryMode ? (rideId || (deliveryData ? (deliveryData._id || deliveryData.rideId) : null)) : null;
   var auth = useAuth();
   var driver = auth.driver;
-
   var mapRef = useRef(null);
   var locationSubscription = useRef(null);
   var hasFetchedRoute = useRef(false);
@@ -215,19 +215,22 @@ function ActiveRideScreen(props) {
   useEffect(function() {
     if (!driver || !driver._id) return;
 
-    socketRef.current = io(SOCKET_URL, { transports: ['websocket'] });
 
-    socketRef.current.on('connect', function() {
+    createAuthSocket().then(function(sock) { socketRef.current = sock;
+
+    sock.on('connect', function() {
       console.log('ActiveRide socket connected');
-      socketRef.current.emit('driver-online', {
+      sock.emit('driver-online', {
         driverId: driver._id,
         latitude: driverLocation ? driverLocation.latitude : 0,
         longitude: driverLocation ? driverLocation.longitude : 0
       });
+      // Join ride/delivery room for cancellations and status updates
+      if (rideId) { sock.emit('join-ride-room', rideId); console.log('Joined ride room: ' + rideId); }
+      if (deliveryId) { sock.emit('join-delivery-room', deliveryId); console.log('Joined delivery room: ' + deliveryId); }
     });
 
-    // Listen for new ride offers (queue for after current ride)
-    socketRef.current.on('new-ride-offer-' + driver._id, function(rideData) {
+    sock.on('new-ride-offer', function(rideData) {
       console.log('Queued ride offer received:', rideData);
       if (ride && ride.status === 'in_progress') {
         setQueuedRide(rideData);
@@ -243,7 +246,7 @@ function ActiveRideScreen(props) {
     });
 
     // ===== RIDER CANCELLATION LISTENER =====
-    socketRef.current.on('ride-cancelled-' + rideId, function(data) {
+    sock.on('ride-cancelled', function(data) {
       console.log('Ride cancelled by rider:', data);
       if (cancelledRef.current) return;
       cancelledRef.current = true;
@@ -264,7 +267,7 @@ function ActiveRideScreen(props) {
 
     // ===== DELIVERY CANCELLATION LISTENER =====
     if (deliveryMode) {
-      socketRef.current.on('delivery-cancelled-' + driver._id, function(data) {
+      sock.on('delivery-cancelled', function(data) {
         console.log('Delivery cancelled by rider:', data);
         if (cancelledRef.current) return;
         cancelledRef.current = true;
@@ -278,7 +281,7 @@ function ActiveRideScreen(props) {
     }
 
     // Also listen via ride-status event as backup
-    socketRef.current.on('ride-status-' + rideId, function(data) {
+    sock.on('ride-status', function(data) {
       console.log('Ride status update via socket:', data);
       if (data.status === 'cancelled' && !cancelledRef.current) {
         cancelledRef.current = true;
@@ -297,13 +300,13 @@ function ActiveRideScreen(props) {
         );
       }
     });
+    }).catch(function(err) { console.log("Socket error:", err); });
 
     return function() {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      if (socketRef.current) { socketRef.current.disconnect(); }
     };
   }, [driver ? driver._id : null, ride ? ride.status : null]);
+
 
   function acceptQueuedRide(rideData) {
     driverService.acceptRide(rideData.rideId).then(function() {
@@ -565,8 +568,8 @@ function ActiveRideScreen(props) {
   function handleConfirmCancel(reason) {
     setShowCancelModal(false);
     setLoading(true);
-    driverService.cancelRide(rideId, reason).then(function() {
-      setShowSuccessModal(true);
+    var cancelPromise = deliveryMode ? driverService.cancelDelivery(deliveryId, reason) : driverService.cancelRide(rideId, reason);
+    cancelPromise.then(function() {
     }).catch(function(error) {
       Alert.alert('Erreur', "Impossible d'annuler la course");
     }).finally(function() {
@@ -674,7 +677,7 @@ function ActiveRideScreen(props) {
           <View>
             {!navigationStarted && (
               <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}>
-                <Text style={styles.navIcon}>ðŸ§­</Text>
+          <Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text>
                 <Text style={styles.navText}>{"Demarrer navigation"}</Text>
               </TouchableOpacity>
             )}
@@ -728,7 +731,7 @@ function ActiveRideScreen(props) {
         pitchEnabled={navigationStarted}
       >
         <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
-          <View style={styles.driverMarker}><Text style={styles.driverText}>â–²</Text></View>
+          <View style={styles.driverMarker}><Text style={styles.driverText}>{"\u25B2"}</Text></View>
         </Marker>
         {destination && <Marker coordinate={destination} pinColor={ride.status === 'in_progress' ? COLORS.red : COLORS.green} />}
         {routeCoordinates.length > 0 && (
@@ -767,7 +770,7 @@ function ActiveRideScreen(props) {
         </TouchableOpacity>
         {navigationStarted && (
           <TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}>
-            <Text style={styles.voiceIcon}>{voiceEnabled ? 'ðŸ”Š' : 'ðŸ”‡'}</Text>
+          <Text style={styles.voiceIcon}>{voiceEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'}</Text>
           </TouchableOpacity>
         )}
         {!navigationStarted && (
@@ -935,6 +938,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 

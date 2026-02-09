@@ -7,18 +7,15 @@
  */
 class DriverLocationService {
   constructor() {
-    // Use REDIS_URL if available (Upstash format), otherwise build from parts
     const redisUrl = process.env.REDIS_URL;
-    
+
     if (redisUrl) {
-      // Upstash connection with TLS
       this.redis = new Redis(redisUrl, {
         tls: { rejectUnauthorized: false },
         maxRetriesPerRequest: 3,
         retryDelayOnFailover: 100,
       });
     } else {
-      // Local Redis fallback
       this.redis = new Redis({
         host: process.env.REDIS_HOST || 'localhost',
         port: process.env.REDIS_PORT || 6379,
@@ -30,8 +27,8 @@ class DriverLocationService {
     this.DRIVERS_GEO_KEY = 'terango:drivers:locations';
     this.DRIVER_INFO_PREFIX = 'terango:driver:info:';
     this.DRIVER_HEARTBEAT_PREFIX = 'terango:driver:heartbeat:';
-    
-    // TTL in seconds - driver considered offline if no update within this time
+
+    // TTL in seconds
     this.DRIVER_TTL = 60;
 
     this.redis.on('connect', () => {
@@ -52,12 +49,10 @@ class DriverLocationService {
   isValidCoordinates(latitude, longitude) {
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
-    
     if (isNaN(lat) || isNaN(lng)) return false;
     if (lat < -90 || lat > 90) return false;
     if (lng < -180 || lng > 180) return false;
-    if (lat === 0 && lng === 0) return false; // Unlikely real location
-    
+    if (lat === 0 && lng === 0) return false;
     return true;
   }
 
@@ -66,30 +61,20 @@ class DriverLocationService {
    */
   async updateDriverLocation(driverId, latitude, longitude, additionalInfo = {}) {
     try {
-      // Validate inputs
       if (!driverId) {
         console.log('⚠️ updateDriverLocation: No driverId provided');
         return { success: false, error: 'No driverId provided' };
       }
 
       if (!this.isValidCoordinates(latitude, longitude)) {
-        console.log(`⚠️ updateDriverLocation: Invalid coordinates for ${driverId}: ${latitude}, ${longitude}`);
+    console.log('updateDriverLocation: Invalid coordinates for ' + driverId + ': ' + latitude + ', ' + longitude);
         return { success: false, error: 'Invalid coordinates' };
       }
 
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
       const now = Date.now();
-      
-      // Add/Update driver location in geospatial index
-      await this.redis.geoadd(
-        this.DRIVERS_GEO_KEY,
-        lng,
-        lat,
-        driverId.toString()
-      );
 
-      // Store driver info with TTL
       const driverInfo = {
         driverId: driverId.toString(),
         latitude: lat,
@@ -97,19 +82,13 @@ class DriverLocationService {
         lastUpdate: now,
         ...additionalInfo
       };
-      
-      await this.redis.setex(
-        `${this.DRIVER_INFO_PREFIX}${driverId}`,
-        this.DRIVER_TTL,
-        JSON.stringify(driverInfo)
-      );
 
-      // Set heartbeat with TTL
-      await this.redis.setex(
-        `${this.DRIVER_HEARTBEAT_PREFIX}${driverId}`,
-        this.DRIVER_TTL,
-        now.toString()
-      );
+      // FIXED: Use pipeline for atomic batch operation (1 round trip instead of 3)
+      const pipeline = this.redis.pipeline();
+      pipeline.geoadd(this.DRIVERS_GEO_KEY, lng, lat, driverId.toString());
+      pipeline.setex(this.DRIVER_INFO_PREFIX + driverId, this.DRIVER_TTL, JSON.stringify(driverInfo));
+      pipeline.setex(this.DRIVER_HEARTBEAT_PREFIX + driverId, this.DRIVER_TTL, now.toString());
+      await pipeline.exec();
 
       return { success: true, timestamp: now };
     } catch (error) {
@@ -119,51 +98,49 @@ class DriverLocationService {
   }
 
   /**
-   * Get nearby drivers within radius using GEORADIUS (compatible with older Redis)
+   * Get nearby drivers within radius using GEORADIUS
    */
   async getNearbyDrivers(latitude, longitude, radiusKm = 10, limit = 50) {
     try {
       if (!this.isValidCoordinates(latitude, longitude)) {
-        console.log(`⚠️ getNearbyDrivers: Invalid coordinates: ${latitude}, ${longitude}`);
+    console.log('getNearbyDrivers: Invalid coordinates: ' + latitude + ', ' + longitude);
         return [];
       }
 
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
 
-      // Use GEORADIUS for better compatibility with Upstash
       const nearbyDriverIds = await this.redis.georadius(
         this.DRIVERS_GEO_KEY,
-        lng,
-        lat,
-        radiusKm,
-        'km',
-        'WITHDIST',
-        'WITHCOORD',
-        'ASC',
-        'COUNT',
-        limit
+        lng, lat, radiusKm, 'km',
+        'WITHDIST', 'WITHCOORD', 'ASC', 'COUNT', limit
       );
 
       if (!nearbyDriverIds || nearbyDriverIds.length === 0) {
         return [];
       }
 
-      // Parse results - GEORADIUS returns [name, distance, [lng, lat]]
-      const drivers = [];
-      
+      // FIXED: Use pipeline instead of sequential gets (1 round trip instead of N*2)
+      const pipeline = this.redis.pipeline();
       for (const item of nearbyDriverIds) {
+        const driverId = item[0];
+        pipeline.get(this.DRIVER_HEARTBEAT_PREFIX + driverId);
+        pipeline.get(this.DRIVER_INFO_PREFIX + driverId);
+      }
+      const results = await pipeline.exec();
+
+      const drivers = [];
+      for (let i = 0; i < nearbyDriverIds.length; i++) {
+        const item = nearbyDriverIds[i];
         const driverId = item[0];
         const distance = parseFloat(item[1]);
         const [driverLng, driverLat] = item[2];
 
-        // Check if driver has valid heartbeat
-        const heartbeat = await this.redis.get(`${this.DRIVER_HEARTBEAT_PREFIX}${driverId}`);
-        
-        if (heartbeat) {
-          const infoStr = await this.redis.get(`${this.DRIVER_INFO_PREFIX}${driverId}`);
-          const info = infoStr ? JSON.parse(infoStr) : {};
+        const heartbeat = results[i * 2][1];
+        const infoStr = results[i * 2 + 1][1];
 
+        if (heartbeat) {
+          const info = infoStr ? JSON.parse(infoStr) : {};
           drivers.push({
             _id: driverId,
             driverId,
@@ -195,10 +172,14 @@ class DriverLocationService {
         return { success: false, error: 'No driverId provided' };
       }
 
-      await this.redis.zrem(this.DRIVERS_GEO_KEY, driverId.toString());
-      await this.redis.del(`${this.DRIVER_INFO_PREFIX}${driverId}`);
-      await this.redis.del(`${this.DRIVER_HEARTBEAT_PREFIX}${driverId}`);
-      console.log(`🔴 Driver ${driverId} set offline in Redis`);
+      // FIXED: Use pipeline instead of 3 separate calls
+      const pipeline = this.redis.pipeline();
+      pipeline.zrem(this.DRIVERS_GEO_KEY, driverId.toString());
+      pipeline.del(this.DRIVER_INFO_PREFIX + driverId);
+      pipeline.del(this.DRIVER_HEARTBEAT_PREFIX + driverId);
+      await pipeline.exec();
+
+    console.log('Driver ' + driverId + ' set offline in Redis');
       return { success: true };
     } catch (error) {
       console.error('Set driver offline error:', error);
@@ -216,12 +197,11 @@ class DriverLocationService {
     }
 
     if (!this.isValidCoordinates(latitude, longitude)) {
-      console.log(`⚠️ Driver ${driverId} going online but no valid location yet`);
-      // Still allow going online, just don't add to geo index
+    console.log('Driver ' + driverId + ' going online but no valid location yet');
       return { success: true, warning: 'No valid location' };
     }
 
-    console.log(`🟢 Driver ${driverId} going online at ${latitude}, ${longitude}`);
+    console.log('Driver ' + driverId + ' going online at ' + latitude + ', ' + longitude);
     return this.updateDriverLocation(driverId, latitude, longitude, driverInfo);
   }
 
@@ -230,7 +210,7 @@ class DriverLocationService {
    */
   async isDriverOnline(driverId) {
     if (!driverId) return false;
-    const heartbeat = await this.redis.get(`${this.DRIVER_HEARTBEAT_PREFIX}${driverId}`);
+    const heartbeat = await this.redis.get(this.DRIVER_HEARTBEAT_PREFIX + driverId);
     return !!heartbeat;
   }
 
@@ -245,7 +225,7 @@ class DriverLocationService {
       if (!pos || !pos[0]) return null;
 
       const [longitude, latitude] = pos[0];
-      const infoStr = await this.redis.get(`${this.DRIVER_INFO_PREFIX}${driverId}`);
+      const infoStr = await this.redis.get(this.DRIVER_INFO_PREFIX + driverId);
       const info = infoStr ? JSON.parse(infoStr) : {};
 
       return {
@@ -261,11 +241,11 @@ class DriverLocationService {
 
   /**
    * Get count of online drivers
+   * FIXED: Use ZCARD instead of KEYS (O(1) instead of O(n))
    */
   async getOnlineDriversCount() {
     try {
-      const keys = await this.redis.keys(`${this.DRIVER_HEARTBEAT_PREFIX}*`);
-      return keys.length;
+      return await this.redis.zcard(this.DRIVERS_GEO_KEY);
     } catch (error) {
       console.error('Get online drivers count error:', error);
       return 0;
@@ -273,20 +253,26 @@ class DriverLocationService {
   }
 
   /**
-   * Cleanup stale drivers every 30 seconds
+   * Cleanup stale drivers - FIXED: Use pipeline for batch operations
    */
   startCleanupJob() {
-    setInterval(async () => {
+    this._cleanupInterval = setInterval(async () => {
       try {
         const allDrivers = await this.redis.zrange(this.DRIVERS_GEO_KEY, 0, -1);
-        
-        for (const driverId of allDrivers) {
-          const heartbeat = await this.redis.get(`${this.DRIVER_HEARTBEAT_PREFIX}${driverId}`);
-          
-          if (!heartbeat) {
-            await this.redis.zrem(this.DRIVERS_GEO_KEY, driverId);
-            console.log(`🧹 Cleaned up stale driver: ${driverId}`);
-          }
+        if (allDrivers.length === 0) return;
+
+        // Batch check all heartbeats in one round trip
+        const pipeline = this.redis.pipeline();
+        allDrivers.forEach(id => {
+        pipeline.get(this.DRIVER_HEARTBEAT_PREFIX + id);
+        });
+        const results = await pipeline.exec();
+
+        const staleDrivers = allDrivers.filter((_, i) => !results[i][1]);
+
+        if (staleDrivers.length > 0) {
+          await this.redis.zrem(this.DRIVERS_GEO_KEY, ...staleDrivers);
+      console.log('Cleaned ' + staleDrivers.length + ' stale drivers');
         }
       } catch (error) {
         // Silently fail cleanup - not critical
@@ -298,6 +284,9 @@ class DriverLocationService {
    * Graceful shutdown
    */
   async disconnect() {
+    if (this._cleanupInterval) {
+      clearInterval(this._cleanupInterval);
+    }
     await this.redis.quit();
     console.log('Redis disconnected');
   }

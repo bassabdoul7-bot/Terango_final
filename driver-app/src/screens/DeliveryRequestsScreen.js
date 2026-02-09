@@ -10,14 +10,14 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, deliveryService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 
 const { width, height } = Dimensions.get('window');
-const SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 var MINT = 'rgba(179, 229, 206, 0.95)';
 var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
@@ -109,8 +109,8 @@ const DeliveryRequestsScreen = ({ navigation, route }) => {
     });
   }
 
-  function connectSocket() {
-    const newSocket = io(SOCKET_URL, { transports: ['websocket'], reconnection: true });
+  async function connectSocket() {
+    const newSocket = await createAuthSocket();
 
     newSocket.on('connect', () => {
       console.log('Driver delivery socket connected');
@@ -119,33 +119,30 @@ const DeliveryRequestsScreen = ({ navigation, route }) => {
         location: location,
         services: ['colis', 'commande', 'resto']
       });
+    });
 
-      // Listen for delivery offers
-      console.log('Listening for: new-delivery-' + driverId);
-      newSocket.on('new-delivery-' + driverId, (data) => {
-        console.log('📦 Delivery offer received:', data.serviceType);
-        setCurrentRequest(data);
-      });
+    // Room-based events
+    newSocket.on('new-delivery', (data) => {
+      console.log('📦 Delivery offer received:', data.serviceType);
+      setCurrentRequest(data);
+    });
 
-      // Listen for order offers (restaurant)
-      newSocket.on('new-order-' + driverId, (data) => {
-        console.log('🍽️ Order offer received:', data);
-        setCurrentRequest({
-          deliveryId: data.orderId,
-          serviceType: 'resto',
-          pickup: data.pickup,
-          dropoff: data.dropoff,
-          fare: data.deliveryFee || 500,
-          restaurantName: data.restaurantName,
-          isOrder: true,
-        });
+    newSocket.on('new-order', (data) => {
+      console.log('🍽️ Order offer received:', data);
+      setCurrentRequest({
+        deliveryId: data.orderId,
+        serviceType: 'resto',
+        pickup: data.pickup,
+        dropoff: data.dropoff,
+        fare: data.deliveryFee || 500,
+        restaurantName: data.restaurantName,
+        isOrder: true,
       });
+    });
 
-      // Delivery taken by another driver
-      newSocket.on('delivery-taken-' + driverId, () => {
-        setCurrentRequest(null);
-        Alert.alert('Livraison prise', 'Un autre livreur a accepte cette livraison.');
-      });
+    newSocket.on('delivery-taken', () => {
+      setCurrentRequest(null);
+      Alert.alert('Livraison prise', 'Un autre livreur a accepte cette livraison.');
     });
 
     newSocket.on('disconnect', () => {
@@ -397,4 +394,5 @@ const styles = StyleSheet.create({
 });
 
 export default DeliveryRequestsScreen;
+
 

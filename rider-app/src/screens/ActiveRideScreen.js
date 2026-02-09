@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as PolylineUtil from '@mapbox/polyline';
-import io from 'socket.io-client';
+import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
@@ -24,7 +24,7 @@ import { rideService } from '../services/api.service';
 
 const { width, height } = Dimensions.get('window');
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
-const SOCKET_URL = 'https://terango-api.fly.dev';
+
 
 const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
   const [selectedReason, setSelectedReason] = useState(null);
@@ -44,7 +44,7 @@ const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
           <View style={cancelStyles.handle} />
           <Text style={cancelStyles.title}>Annuler la course?</Text>
           <Text style={cancelStyles.subtitle}>Dites-nous pourquoi</Text>
-          <ScrollView style={cancelStyles.reasonsList}>
+          <ScrollView style={cancelStyles.reasonsList} nestedScrollEnabled={true}>
             {reasons.map((reason) => (
               <TouchableOpacity
                 key={reason.id}
@@ -285,11 +285,30 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   }, [ride?.status, ride?.driver?._id]);
 
-  const connectToSocket = () => {
+  const connectToSocket = async () => {
     if (socketRef.current?.connected) return;
-    socketRef.current = io(SOCKET_URL, { transports: ['websocket'], reconnection: true });
+    socketRef.current = await createAuthSocket();
     socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId));
     socketRef.current.on('driver-location-update', (data) => data.location && setDriverLocation(data.location));
+    socketRef.current.on('ride-accepted', (data) => {
+      setRide(prev => prev ? { ...prev, status: 'accepted', driver: data } : prev);
+    });
+    socketRef.current.on('ride-no-drivers', () => {
+      if (!alertShownRef.current) {
+        alertShownRef.current = true;
+        clearInterval(pollInterval.current);
+        setShowNoDrivers(true);
+      }
+    });
+    socketRef.current.on('ride-cancelled', () => {
+      if (!alertShownRef.current) {
+        alertShownRef.current = true;
+        clearInterval(pollInterval.current);
+        Alert.alert('Course annulée', 'Votre course a été annulée.', [
+          { text: 'OK', onPress: () => navigation.replace('Home') }
+        ]);
+      }
+    });
   };
 
   const fetchETA = async () => {
@@ -592,5 +611,6 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 

@@ -1,4 +1,4 @@
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const Rider = require('../models/Rider');
 const Driver = require('../models/Driver');
 const OTP = require('../models/OTP');
@@ -23,6 +23,18 @@ exports.sendOTP = async (req, res) => {
 
     // Format phone number
     phone = formatPhoneNumber(phone);
+
+
+    // If mode is "login", check user exists first
+    if (req.body.mode === 'login') {
+      const existingUser = await User.findOne({ phone });
+      if (!existingUser) {
+        return res.status(404).json({
+          success: false,
+          message: 'Aucun compte trouv\u00e9 avec ce num\u00e9ro. Veuillez vous inscrire.'
+        });
+      }
+    }
 
     // Generate OTP
     const otp = generateOTP();

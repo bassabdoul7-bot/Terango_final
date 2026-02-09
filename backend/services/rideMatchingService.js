@@ -8,7 +8,7 @@ class RideMatchingService {
     this.pendingOffers = new Map();
     this.offerTimeouts = new Map();
     this.searchTimeouts = new Map();
-    this.retryTimeouts = new Map(); // Track ALL retry timeouts
+    this.retryTimeouts = new Map();
 
     // Configuration
     this.DRIVER_RESPONSE_TIMEOUT = 20000;
@@ -30,16 +30,25 @@ class RideMatchingService {
         );
 
         if (redisDrivers.length > 0) {
-          const enrichedDrivers = await Promise.all(
-            redisDrivers.map(async (rd) => {
-              const driver = await Driver.findById(rd.driverId).populate('userId', 'name phone rating');
-              if (driver && driver.isAvailable) {
-                return { driver, distance: rd.distance, driverId: rd.driverId };
-              }
-              return null;
-            })
+          // FIXED: Batch query instead of N+1
+          const driverIds = redisDrivers.map(rd => rd.driverId);
+          const drivers = await Driver.find({
+            _id: { $in: driverIds },
+            isAvailable: true
+          }).populate('userId', 'name phone rating');
+
+          const driverMap = new Map(
+            drivers.map(d => [d._id.toString(), d])
           );
-          return enrichedDrivers.filter(d => d !== null).sort((a, b) => a.distance - b.distance);
+
+          return redisDrivers
+            .map(rd => {
+              const driver = driverMap.get(rd.driverId);
+              if (!driver) return null;
+              return { driver, distance: rd.distance, driverId: rd.driverId };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.distance - b.distance);
         }
       }
 
@@ -86,7 +95,6 @@ class RideMatchingService {
       }, this.MAX_SEARCH_TIME);
 
       this.searchTimeouts.set(rideId, { maxSearchTimeout, startTime });
-
       await this.searchAndOfferToDrivers(rideId, pickupCoords, rideData, 0);
     } catch (error) {
       console.error('Offer Ride Error:', error);
@@ -133,17 +141,14 @@ class RideMatchingService {
           return;
         }
 
-        // Schedule retry - STORE the timeout so we can cancel it
         console.log(`🔄 Retrying search in ${this.SEARCH_RETRY_INTERVAL / 1000}s for ride ${rideId}`);
         const retryTimeout = setTimeout(() => {
           this.searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt + 1);
         }, this.SEARCH_RETRY_INTERVAL);
 
-        // Store retry timeout for cleanup
         const existingRetries = this.retryTimeouts.get(rideId) || [];
         existingRetries.push(retryTimeout);
         this.retryTimeouts.set(rideId, existingRetries);
-
         return;
       }
 
@@ -185,7 +190,6 @@ class RideMatchingService {
         });
         this.pendingOffers.set(rideId, offerData);
 
-        // Store this retry timeout too
         const retryTimeout = setTimeout(() => {
           const attempt = Math.floor(offerData.rejectedDrivers.length / 3);
           this.searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt);
@@ -194,12 +198,10 @@ class RideMatchingService {
         const existingRetries = this.retryTimeouts.get(rideId) || [];
         existingRetries.push(retryTimeout);
         this.retryTimeouts.set(rideId, existingRetries);
-
         return;
       }
 
       const { driver, distance, driverId } = driversList[currentIndex];
-
       console.log(`📤 Offering ride ${rideId} to driver ${driverId} (${distance.toFixed(2)}km away)`);
 
       const offerData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
@@ -210,25 +212,18 @@ class RideMatchingService {
       offerData.pickupCoords = pickupCoords;
       this.pendingOffers.set(rideId, offerData);
 
-      // Emit to driver's targeted channel
-      this.io.emit(`new-ride-offer-${driverId}`, {
+      const offerPayload = {
         rideId,
         ...rideData,
         distanceToPickup: distance,
         offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT
-      });
+      };
 
-      // Also emit to driver's personal room
-      this.io.to(`driver-${driverId}`).emit('new-ride-offer', {
-        rideId,
-        ...rideData,
-        distanceToPickup: distance,
-        offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT
-      });
+      // FIXED: Use rooms instead of dynamic event names
+      this.io.to(`driver-${driverId}`).emit('new-ride-offer', offerPayload);
 
       // Set timeout for driver response
       const timeout = setTimeout(async () => {
-        // Check AGAIN if ride is still pending before moving to next
         if (!this.isRideStillSearching(rideId)) return;
 
         console.log(`⏰ Driver ${driverId} did not respond to ride ${rideId}, moving to next`);
@@ -249,23 +244,26 @@ class RideMatchingService {
   }
 
   async markNoDriversAvailable(rideId) {
-    // Double check ride is still pending before marking
-    const ride = await Ride.findById(rideId);
-    if (!ride || ride.status !== 'pending') {
-      console.log(`🛑 Ride ${rideId} is ${ride?.status}, NOT marking no-drivers`);
+    try {
+      const ride = await Ride.findById(rideId);
+      if (!ride || ride.status !== 'pending') {
+        console.log(`🛑 Ride ${rideId} is ${ride?.status}, NOT marking no-drivers`);
+        this.cleanupSearch(rideId);
+        return;
+      }
+
+      console.log(`❌ No drivers available for ride ${rideId} after exhaustive search`);
+      await Ride.findByIdAndUpdate(rideId, { status: 'no_drivers_available' });
+
+      // FIXED: Use room instead of dynamic event name
+      this.io.to(rideId).emit('ride-no-drivers', {
+        message: 'Aucun chauffeur disponible pour le moment'
+      });
+
       this.cleanupSearch(rideId);
-      return;
+    } catch (error) {
+      console.error('Mark No Drivers Error:', error);
     }
-
-    console.log(`❌ No drivers available for ride ${rideId} after exhaustive search`);
-
-    await Ride.findByIdAndUpdate(rideId, { status: 'no_drivers_available' });
-
-    this.io.emit(`ride-no-drivers-${rideId}`, {
-      message: 'Aucun chauffeur disponible pour le moment'
-    });
-
-    this.cleanupSearch(rideId);
   }
 
   async handleDriverAcceptance(rideId, driverId) {
@@ -295,8 +293,8 @@ class RideMatchingService {
       // Mark driver as unavailable
       await Driver.findByIdAndUpdate(driverId, { isAvailable: false });
 
-      // Notify rider that driver accepted
-      this.io.emit(`ride-accepted-${rideId}`, {
+      // FIXED: Notify rider via room
+      this.io.to(rideId).emit('ride-accepted', {
         driverId: driver._id,
         driver: {
           name: driver.userId?.name,
@@ -312,7 +310,7 @@ class RideMatchingService {
       if (offerData?.driversList) {
         offerData.driversList.forEach(d => {
           if (d.driverId !== driverId.toString()) {
-            this.io.emit(`ride-taken-${d.driverId}`, { rideId });
+            this.io.to(`driver-${d.driverId}`).emit('ride-taken', { rideId });
           }
         });
       }
@@ -320,7 +318,7 @@ class RideMatchingService {
       return { success: true, ride };
     } catch (error) {
       console.error('Handle Driver Acceptance Error:', error);
-      return { success: false, message: 'Erreur lors de l\'acceptation de la course' };
+      return { success: false, message: "Erreur lors de l'acceptation de la course" };
     }
   }
 
@@ -385,7 +383,8 @@ class RideMatchingService {
 
   async cancelRideOffers(rideId) {
     this.cleanupSearch(rideId);
-    this.io.emit(`ride-cancelled-${rideId}`, { message: 'Course annulée' });
+    // FIXED: Use room
+    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annulée' });
   }
 }
 

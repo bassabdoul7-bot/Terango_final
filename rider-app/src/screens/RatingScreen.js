@@ -68,7 +68,7 @@ function RatingScreen(props) {
     rideService.rateRide(rideId, rating, review).then(function(response) {
       setLoading(false);
       if (response.success) {
-        Alert.alert('Merci!', 'Votre note a Ã©tÃ© enregistrÃ©e.', [
+      Alert.alert('Merci!', 'Votre note a été enregistrée.', [
           { text: 'OK', onPress: function() { navigation.replace('Home'); } }
         ]);
       } else {
@@ -108,7 +108,7 @@ function RatingScreen(props) {
 
   function getRatingLabel() {
     switch (rating) {
-      case 1: return 'TrÃ¨s mauvais';
+      case 1: return 'Très mauvais';
       case 2: return 'Mauvais';
       case 3: return 'Correct';
       case 4: return 'Bien';
@@ -123,7 +123,7 @@ function RatingScreen(props) {
 
       <View style={styles.successBanner}>
         <Text style={styles.successIcon}>âœ“</Text>
-        <Text style={styles.successTitle}>Course terminÃ©e!</Text>
+        <Text style={styles.successTitle}>Course terminée!</Text>
         <Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text>
       </View>
 

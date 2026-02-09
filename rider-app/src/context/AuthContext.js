@@ -1,4 +1,4 @@
-﻿import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api.service';
 
@@ -29,9 +29,9 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (phone, otp) => {
+  const login = async (phone, otp, name, role) => {
     try {
-      const response = await authService.verifyOTP(phone, otp);
+      const response = await authService.verifyOTP(phone, otp, name, role);
       
       if (response.success) {
         await AsyncStorage.setItem('token', response.token);

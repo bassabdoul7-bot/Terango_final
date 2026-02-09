@@ -1,4 +1,4 @@
-# syntax = docker/dockerfile:1
+﻿# syntax = docker/dockerfile:1
 
 # Adjust NODE_VERSION as desired
 ARG NODE_VERSION=22.19.0
@@ -35,5 +35,6 @@ FROM base
 COPY --from=build /app /app
 
 # Start the server by default, this can be overwritten at runtime
-EXPOSE 3000
+EXPOSE 5000
 CMD [ "npm", "run", "start" ]
+

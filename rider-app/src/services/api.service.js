@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 var API_URL = 'https://terango-api.fly.dev/api';
@@ -36,9 +36,9 @@ api.interceptors.response.use(
 );
 
 export var authService = {
-  sendOTP: function(phone) { return api.post('/auth/send-otp', { phone: phone }); },
+  sendOTP: function(phone, mode) { return api.post('/auth/send-otp', { phone: phone, mode: mode }); },
   verifyOTP: function(phone, otp, name, role) {
-    return api.post('/auth/verify-otp', { phone: phone, otp: otp, name: name || 'Rider', role: role || 'rider' });
+    return api.post('/auth/verify-otp', { phone: phone, otp: otp, name: name, role: role });
   },
   getMe: function() { return api.get('/auth/me'); },
   updateProfile: function(data) { return api.put('/auth/profile', data); },
