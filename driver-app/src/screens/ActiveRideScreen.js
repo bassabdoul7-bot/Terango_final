@@ -30,21 +30,6 @@ var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
-
-
-
-      <Modal visible={showChat} animationType="slide" onRequestClose={function() { setShowChat(false); }}>
-        <ChatScreen
-          socket={socketRef.current}
-          rideId={deliveryMode ? null : rideId}
-          deliveryId={deliveryMode ? deliveryId : null}
-          myRole="driver"
-          myUserId={auth.user ? auth.user._id : null}
-          otherName={ride && ride.rider && ride.rider.userId ? ride.rider.userId.name : 'Passager'}
-          onClose={function() { setShowChat(false); }}
-        />
-      </Modal>
-
 function CancelReasonModal(props) {
   var visible = props.visible;
   var onClose = props.onClose;
@@ -859,6 +844,18 @@ function ActiveRideScreen(props) {
           <View style={styles.actionContainer}>{getActionButton()}</View>
         </View>
       )}
+
+      <Modal visible={showChat} animationType="slide" onRequestClose={function() { setShowChat(false); }}>
+        <ChatScreen
+          socket={socketRef.current}
+          rideId={deliveryMode ? null : rideId}
+          deliveryId={deliveryMode ? deliveryId : null}
+          myRole="driver"
+          myUserId={auth.user ? auth.user._id : null}
+          otherName={ride && ride.rider && ride.rider.userId ? ride.rider.userId.name : 'Passager'}
+          onClose={function() { setShowChat(false); }}
+        />
+      </Modal>
 
       <CancelReasonModal
         visible={showCancelModal}
