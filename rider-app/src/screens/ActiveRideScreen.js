@@ -253,11 +253,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
       return;
     }
     if (!ride) { navigation.goBack(); return; }
-    if (['pending', 'accepted', 'arrived', 'in_progress'].includes(ride.status)) {
-      Alert.alert('Course en cours', 'Voulez-vous retourner à l\'accueil?', [
+    if (ride.status === 'pending') {
+      Alert.alert('Recherche en cours', 'Voulez-vous annuler la recherche?', [
         { text: 'Rester', style: 'cancel' },
-        { text: 'Accueil', onPress: () => navigation.navigate('Home') },
+        { text: 'Annuler', style: 'destructive', onPress: () => { handleCancelRide('Annul\u00e9 par le passager'); } },
       ]);
+    } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) {
+      Alert.alert('Course en cours', 'Vous avez une course active. Vous ne pouvez pas quitter.');
     } else {
       navigation.navigate('Home');
     }
@@ -608,7 +610,7 @@ const styles = StyleSheet.create({
   ratingText: { marginLeft: 4, fontSize: 12, fontWeight: '600', color: '#333' },
   vehicleText: { fontSize: 12, color: '#555' },
   contactRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.08)', paddingTop: 12 },
-  contactButton: { alignItems: 'center' },
+  contactButton: { alignItems: 'center', backgroundColor: 'rgba(66, 133, 244, 0.15)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: 'rgba(66, 133, 244, 0.3)' },
   contactIconBg: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FCD116', alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   contactLabel: { fontSize: 12, fontWeight: '500', color: '#000' },
   addressCard: { backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 14, padding: 14, marginBottom: 12 },

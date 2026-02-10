@@ -1,4 +1,4 @@
-﻿const Ride = require('../models/Ride');
+const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const Rider = require('../models/Rider');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
@@ -91,7 +91,7 @@ exports.createRide = async (req, res) => {
 exports.getRide = async (req, res) => {
   try {
     const ride = await Ride.findById(req.params.id)
-      .populate('riderId', 'userId')
+      .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone rating profilePhoto' } })
       .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone rating profilePhoto' } });
 
     if (!ride) {

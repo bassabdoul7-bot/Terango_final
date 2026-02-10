@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontWeight: 'bold', color: '#000' },
   driverVehicle: { fontSize: 13, color: '#333', marginTop: 2 },
-  chatBtnSmall: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(179, 229, 206, 0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(179, 229, 206, 0.3)' },
+  chatBtnSmall: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(66, 133, 244, 0.25)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(66, 133, 244, 0.5)' },
   callBtn: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#FCD116', alignItems: 'center', justifyContent: 'center',
