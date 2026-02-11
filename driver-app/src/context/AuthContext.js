@@ -1,6 +1,7 @@
 ﻿import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, driverService } from '../services/api.service';
+import { registerForPushNotifications } from '../services/notifications';
 
 const AuthContext = createContext();
 
@@ -29,6 +30,10 @@ export const AuthProvider = ({ children }) => {
         } else {
           await fetchDriverProfile();
         }
+        // Register push on auto-login
+        registerForPushNotifications().then(function(token) {
+          if (token) authService.registerPushToken(token);
+        });
       }
     } catch (error) {
       console.error('Check auth error:', error);

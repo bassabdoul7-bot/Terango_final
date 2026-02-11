@@ -244,3 +244,20 @@ exports.adminLogin = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
+
+// @desc    Register push notification token
+// @route   PUT /api/auth/push-token
+// @access  Private
+exports.registerPushToken = async (req, res) => {
+  try {
+    var { pushToken } = req.body;
+    if (!pushToken) {
+      return res.status(400).json({ success: false, message: 'Token requis' });
+    }
+    await User.findByIdAndUpdate(req.user._id, { pushToken: pushToken });
+    res.json({ success: true, message: 'Token enregistr\u00e9' });
+  } catch (error) {
+    console.error('Register Push Token Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};

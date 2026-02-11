@@ -1,4 +1,5 @@
 ﻿const Driver = require('../models/Driver');
+const { sendPushNotification } = require('./pushService');
 const Ride = require('../models/Ride');
 const { calculateDistance } = require('../utils/distance');
 
@@ -222,6 +223,9 @@ class RideMatchingService {
       // FIXED: Use rooms instead of dynamic event names
       this.io.to(`driver-${driverId}`).emit('new-ride-offer', offerPayload);
 
+      // Push notify driver
+      sendPushNotification(driver.userId, 'Nouvelle course!', 'Un passager demande une course \u00e0 ' + (rideData.dropoff && rideData.dropoff.address ? rideData.dropoff.address.substring(0, 30) : 'proximit\u00e9'), { type: 'new-ride-offer', rideId: rideId });
+
       // Set timeout for driver response
       const timeout = setTimeout(async () => {
         if (!this.isRideStillSearching(rideId)) return;
@@ -256,6 +260,12 @@ class RideMatchingService {
       await Ride.findByIdAndUpdate(rideId, { status: 'no_drivers_available' });
 
       // FIXED: Use room instead of dynamic event name
+      // Push notify rider - no drivers
+      const noDriverRide = await Ride.findById(rideId).populate('riderId');
+      if (noDriverRide && noDriverRide.riderId) {
+        sendPushNotification(noDriverRide.riderId.userId, 'Aucun chauffeur disponible', 'D\u00e9sol\u00e9, aucun chauffeur n\'est disponible pour le moment. Veuillez r\u00e9essayer.', { type: 'ride-no-drivers', rideId: rideId });
+      }
+
       this.io.to(rideId).emit('ride-no-drivers', {
         message: 'Aucun chauffeur disponible pour le moment'
       });

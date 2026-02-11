@@ -1,4 +1,5 @@
 var Delivery = require('../models/Delivery');
+var { sendPushNotification } = require('../services/pushService');
 var Driver = require('../models/Driver');
 var Rider = require('../models/Rider');
 var User = require('../models/User');
@@ -248,6 +249,13 @@ exports.acceptDelivery = function(req, res) {
                 vehicle: driver.vehicle
               }
             });
+          });
+
+          // Push notify rider
+          Delivery.findById(delivery._id).populate('riderId').then(function(d) {
+            if (d && d.riderId) {
+              sendPushNotification(d.riderId.userId, 'Livreur trouv\u00e9!', 'Un livreur a accept\u00e9 votre livraison.', { type: 'delivery-accepted', deliveryId: delivery._id.toString() });
+            }
           });
 
           res.status(200).json({ success: true, delivery: delivery });
