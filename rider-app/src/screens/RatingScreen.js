@@ -47,14 +47,14 @@ function RatingScreen(props) {
       driverRating = ride.driver.userId.rating ? ride.driver.userId.rating.toFixed(1) : '5.0';
     }
     if (ride.driver && ride.driver.vehicle) {
-      vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '') + ' â€¢ ' + (ride.driver.vehicle.color || '');
+      vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '') + ' • ' + (ride.driver.vehicle.color || '');
     }
     fare = ride.fare || 0;
   }
 
   function submitRating() {
     if (rating === 0) {
-      Alert.alert('Note requise', 'Veuillez donner une note Ã  votre chauffeur.');
+      Alert.alert('Note requise', 'Veuillez donner une note à votre chauffeur.');
       return;
     }
 
@@ -89,7 +89,7 @@ function RatingScreen(props) {
     var filled = index <= rating;
     return (
       <TouchableOpacity key={index} onPress={function() { setRating(index); }} style={styles.starTouch}>
-        <Text style={[styles.star, filled && styles.starFilled]}>â˜…</Text>
+        <Text style={[styles.star, filled && styles.starFilled]}>★</Text>
       </TouchableOpacity>
     );
   }
@@ -122,7 +122,7 @@ function RatingScreen(props) {
       <StatusBar barStyle="light-content" />
 
       <View style={styles.successBanner}>
-        <Text style={styles.successIcon}>âœ“</Text>
+        <Text style={styles.successIcon}>✔</Text>
         <Text style={styles.successTitle}>Course terminée!</Text>
         <Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text>
       </View>
@@ -130,7 +130,7 @@ function RatingScreen(props) {
       <View style={styles.driverCard}>
         {renderDriverAvatar()}
         <Text style={styles.driverName}>{driverName}</Text>
-        <Text style={styles.driverMeta}>{'â­ ' + driverRating}</Text>
+        <Text style={styles.driverMeta}>{'⭐ ' + driverRating}</Text>
         {vehicleInfo ? <Text style={styles.vehicleText}>{vehicleInfo}</Text> : null}
       </View>
 

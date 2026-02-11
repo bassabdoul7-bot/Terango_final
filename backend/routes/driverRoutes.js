@@ -1,5 +1,7 @@
 ﻿var express = require('express');
 var multer = require('multer');
+var cloudinary = require('cloudinary').v2;
+var { CloudinaryStorage } = require('multer-storage-cloudinary');
 var path = require('path');
 var router = express.Router();
 var auth = require('../middleware/auth');
@@ -7,9 +9,19 @@ var protect = auth.protect;
 var restrictTo = auth.restrictTo;
 var ctrl = require('../controllers/driverController');
 
-var storage = multer.diskStorage({
-  destination: function(req, file, cb) { cb(null, 'uploads/'); },
-  filename: function(req, file, cb) { cb(null, 'driver-' + req.user.id + '-' + Date.now() + path.extname(file.originalname)); }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+var storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'terango-drivers',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 500, height: 500, crop: 'fill', gravity: 'face' }]
+  }
 });
 var upload = multer({
   storage: storage,

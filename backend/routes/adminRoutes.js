@@ -10,7 +10,10 @@ const {
   getAllRides,
   getAllRiders,
   getRevenueAnalytics,
-  toggleUserStatus
+  toggleUserStatus,
+  getPendingPhotos,
+  approvePhoto,
+  rejectPhoto
 } = require('../controllers/adminController');
 
 // All routes are admin-only
@@ -41,5 +44,10 @@ router.get('/revenue', getRevenueAnalytics);
 
 // User status toggle
 router.put('/users/:id/status', toggleUserStatus);
+
+// Photo verification
+router.get('/pending-photos', getPendingPhotos);
+router.put('/users/:id/approve-photo', approvePhoto);
+router.put('/users/:id/reject-photo', rejectPhoto);
 
 module.exports = router;
