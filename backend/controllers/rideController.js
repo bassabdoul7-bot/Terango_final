@@ -1,5 +1,6 @@
 const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
+const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
 const { calculateFare, calculateEarnings } = require('../utils/fare');
@@ -428,6 +429,12 @@ exports.completeRide = async (req, res) => {
       driverEarnings: ride.driverEarnings
     });
 
+    // Push notify rider - ride completed
+    var completedRide = await Ride.findById(ride._id).populate('riderId');
+    if (completedRide && completedRide.riderId) {
+      sendPushNotification(completedRide.riderId.userId, 'Course termin\u00e9e!', 'Merci! Votre course de ' + ride.fare + ' FCFA est termin\u00e9e.', { type: 'ride-completed', rideId: ride._id.toString() });
+    }
+
     io.to(ride._id.toString()).emit('ride-completed', {
       rideId: ride._id,
       completedAt: ride.completedAt,
@@ -491,6 +498,16 @@ exports.cancelRide = async (req, res) => {
     }
 
     const io = req.app.get('io');
+    // Push notify cancellation
+    var cancelledRide = await Ride.findById(ride._id).populate('riderId').populate('driver');
+    if (cancelledRide) {
+      if (req.user.role === 'driver' && cancelledRide.riderId) {
+        sendPushNotification(cancelledRide.riderId.userId, 'Course annul\u00e9e', 'Votre chauffeur a annul\u00e9 la course.', { type: 'ride-cancelled', rideId: ride._id.toString() });
+      } else if (cancelledRide.driver) {
+        sendPushNotification(cancelledRide.driver.userId, 'Course annul\u00e9e', 'Le passager a annul\u00e9 la course.', { type: 'ride-cancelled', rideId: ride._id.toString() });
+      }
+    }
+
     io.to(ride._id.toString()).emit('ride-cancelled', {
       cancelledBy: req.user.role,
       reason: reason || 'Non spécifié'

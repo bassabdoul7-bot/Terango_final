@@ -8,7 +8,8 @@ const {
   verifyOTP,
   getMe,
   updateProfile,
-  adminLogin
+  adminLogin,
+  registerPushToken
 } = require('../controllers/authController');
 
 // Send OTP
@@ -37,6 +38,9 @@ router.get('/me', protect, getMe);
 
 // Update profile
 router.put('/profile', protect, updateProfile);
+
+// Push token
+router.put('/push-token', protect, registerPushToken);
 
 // Admin login
 router.post('/admin-login', adminLogin);

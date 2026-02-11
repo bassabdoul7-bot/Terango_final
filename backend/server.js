@@ -39,6 +39,8 @@ const adminRoutes = require('./routes/adminRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
 
+app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
+
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/drivers', driverRoutes);

@@ -42,6 +42,8 @@ api.interceptors.response.use(
 );
 
 export const authService = {
+  registerPushToken: (pushToken) => api.put('/auth/push-token', { pushToken }),
+
   sendOTP: (phone, mode) => api.post('/auth/send-otp', { phone, mode }),
   verifyOTP: (phone, otp, name, role) =>
     api.post('/auth/verify-otp', { phone, otp, name, role }),
