@@ -293,3 +293,50 @@ exports.toggleUserStatus = async (req, res) => {
     });
   }
 };
+
+// @desc    Get drivers with pending photos
+// @route   GET /api/admin/pending-photos
+// @access  Private (Admin only)
+exports.getPendingPhotos = async (req, res) => {
+  try {
+    const users = await User.find({ photoStatus: 'pending', profilePhoto: { $ne: '' } });
+    res.status(200).json({ success: true, users: users });
+  } catch (error) {
+    console.error('Pending Photos Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Approve driver photo
+// @route   PUT /api/admin/users/:id/approve-photo
+// @access  Private (Admin only)
+exports.approvePhoto = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, {
+      photoStatus: 'approved',
+      photoVerified: true
+    }, { new: true });
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    res.json({ success: true, message: 'Photo approuvée', user: user });
+  } catch (error) {
+    console.error('Approve Photo Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Reject driver photo
+// @route   PUT /api/admin/users/:id/reject-photo
+// @access  Private (Admin only)
+exports.rejectPhoto = async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.params.id, {
+      photoStatus: 'rejected',
+      photoVerified: false
+    }, { new: true });
+    if (!user) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    res.json({ success: true, message: 'Photo rejetée', user: user });
+  } catch (error) {
+    console.error('Reject Photo Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};

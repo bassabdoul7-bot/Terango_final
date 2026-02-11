@@ -368,7 +368,7 @@ exports.uploadProfilePhoto = function(req, res) {
     return res.status(400).json({ success: false, message: 'Aucune photo fournie' });
   }
 
-  var photoUrl = req.protocol + '://' + req.get('host') + '/uploads/' + req.file.filename;
+  var photoUrl = req.file.path;
 
   User.findByIdAndUpdate(req.user.id, {
     profilePhoto: photoUrl,

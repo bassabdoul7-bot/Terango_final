@@ -7,7 +7,8 @@ const {
   sendOTP,
   verifyOTP,
   getMe,
-  updateProfile
+  updateProfile,
+  adminLogin
 } = require('../controllers/authController');
 
 // Send OTP
@@ -36,5 +37,8 @@ router.get('/me', protect, getMe);
 
 // Update profile
 router.put('/profile', protect, updateProfile);
+
+// Admin login
+router.post('/admin-login', adminLogin);
 
 module.exports = router;

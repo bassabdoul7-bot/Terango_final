@@ -204,3 +204,43 @@ exports.updateProfile = async (req, res) => {
     });
   }
 };
+
+// @desc    Admin login with email/password
+// @route   POST /api/auth/admin-login
+// @access  Public
+exports.adminLogin = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email et mot de passe requis' });
+    }
+    console.log('ADMIN LOGIN ATTEMPT - email:', email);
+    var debugUser = await User.findOne({ email: email.toLowerCase() });
+    console.log('DEBUG - by email only:', debugUser ? debugUser.name + ' role=' + debugUser.role : 'NOT FOUND');
+    var allAdmins = await User.find({ role: 'admin' });
+    console.log('DEBUG - all admins:', allAdmins.length, allAdmins.map(function(a){ return a.email; }));
+    const user = await User.findOne({ email: email.toLowerCase(), role: 'admin' }).select('+password');
+    console.log('USER FOUND:', !!user);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Identifiants invalides' });
+    }
+    if (!user.password) {
+      return res.status(401).json({ success: false, message: 'Mot de passe non configuré. Contactez le support.' });
+    }
+    const bcrypt = require('bcryptjs');
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Identifiants invalides' });
+    }
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      success: true,
+      token: token,
+      user: { _id: user._id, name: user.name, email: user.email, role: user.role, phone: user.phone }
+    });
+  } catch (error) {
+    console.error('Admin Login Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
