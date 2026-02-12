@@ -9,7 +9,11 @@ const {
   getMe,
   updateProfile,
   adminLogin,
-  registerPushToken
+  registerPushToken,
+  register,
+  loginWithPin,
+  forgotPin,
+  resetPin
 } = require('../controllers/authController');
 
 // Send OTP
@@ -38,6 +42,18 @@ router.get('/me', protect, getMe);
 
 // Update profile
 router.put('/profile', protect, updateProfile);
+
+// Register with PIN
+router.post('/register', register);
+
+// Login with PIN
+router.post('/login', loginWithPin);
+
+// Forgot PIN
+router.post('/forgot-pin', forgotPin);
+
+// Reset PIN
+router.post('/reset-pin', resetPin);
 
 // Push token
 router.put('/push-token', protect, registerPushToken);

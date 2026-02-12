@@ -1,320 +1,195 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Alert,
-  TouchableOpacity,
+  View, Text, TextInput, StyleSheet, KeyboardAvoidingView,
+  Platform, ScrollView, TouchableWithoutFeedback, Keyboard,
+  Alert, Image, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
-import GlassButton from '../components/GlassButton';
-import GlassCard from '../components/GlassCard';
-import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
-import { Image } from 'react-native';
 
-var LoginScreen = function(props) {
+var DARK_BG = '#0a0a0a';
+var MINT = 'rgba(179, 229, 206, 0.95)';
+var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
+var MINT_BORDER = 'rgba(179, 229, 206, 0.25)';
+var GREEN = '#4CD964';
+
+function LoginScreen(props) {
   var navigation = props.navigation;
   var auth = useAuth();
-  var login = auth.login;
+  var loginWithPin = auth.loginWithPin;
 
   var phoneState = useState('');
   var phone = phoneState[0];
   var setPhone = phoneState[1];
 
-  var otpState = useState('');
-  var otp = otpState[0];
-  var setOtp = otpState[1];
+  var pinState = useState('');
+  var pin = pinState[0];
+  var setPin = pinState[1];
 
   var loadingState = useState(false);
   var loading = loadingState[0];
   var setLoading = loadingState[1];
 
-  var stepState = useState('phone');
-  var step = stepState[0];
-  var setStep = stepState[1];
+  // Forgot PIN states
+  var forgotState = useState(false);
+  var showForgot = forgotState[0];
+  var setShowForgot = forgotState[1];
 
-  function handleSendOTP() {
+  var forgotStepState = useState('phone');
+  var forgotStep = forgotStepState[0];
+  var setForgotStep = forgotStepState[1];
+
+  var otpState = useState('');
+  var otp = otpState[0];
+  var setOtp = otpState[1];
+
+  var newPinState = useState('');
+  var newPin = newPinState[0];
+  var setNewPin = newPinState[1];
+
+  var confirmPinState = useState('');
+  var confirmPin = confirmPinState[0];
+  var setConfirmPin = confirmPinState[1];
+
+  var fullPhone = phone.startsWith('+221') ? phone : '+221' + phone;
+
+  function handleLogin() {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
+      Alert.alert('Erreur', 'Num\u00e9ro de t\u00e9l\u00e9phone invalide');
       return;
     }
-
+    if (!pin || pin.length !== 4) {
+      Alert.alert('Erreur', 'Le PIN doit contenir 4 chiffres');
+      return;
+    }
     setLoading(true);
-    authService.sendOTP(phone, 'login').then(function(response) {
+    loginWithPin(fullPhone, pin).then(function() {
+      setLoading(false);
+    }).catch(function(error) {
+      setLoading(false);
+      Alert.alert('Erreur', error.message || 'PIN incorrect');
+    });
+  }
+
+  function handleForgotPin() {
+    if (!phone || phone.length < 9) {
+      Alert.alert('Erreur', 'Entrez votre num\u00e9ro d\'abord');
+      return;
+    }
+    setLoading(true);
+    authService.forgotPin(fullPhone).then(function(response) {
+      setLoading(false);
       if (response.success) {
-        setStep('otp');
-        Alert.alert('Code envoyé', 'Vérifiez le terminal backend pour le code OTP');
+        setShowForgot(true);
+        setForgotStep('otp');
+        Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez votre email');
       }
     }).catch(function(error) {
-      var msg = error.response?.data?.message || 'Erreur envoi code';
-      Alert.alert('Erreur', msg);
-    }).finally(function() {
       setLoading(false);
+      Alert.alert('Erreur', error.message || 'Aucun email associ\u00e9 \u00e0 ce num\u00e9ro');
     });
   }
 
-  function handleVerifyOTP() {
+  function handleResetPin() {
     if (!otp || otp.length !== 6) {
-      Alert.alert('Erreur', 'Veuillez entrer un code OTP valide');
+      Alert.alert('Erreur', 'Code \u00e0 6 chiffres requis');
       return;
     }
-
+    if (!newPin || newPin.length !== 4) {
+      Alert.alert('Erreur', 'Le PIN doit contenir 4 chiffres');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      Alert.alert('Erreur', 'Les PINs ne correspondent pas');
+      return;
+    }
     setLoading(true);
-    login(phone, otp).catch(function(error) {
-      Alert.alert('Erreur', error.message || 'Code OTP invalide');
-    }).finally(function() {
+    authService.resetPin(fullPhone, otp, newPin).then(function(response) {
       setLoading(false);
+      if (response.success) {
+        Alert.alert('Succ\u00e8s', 'PIN r\u00e9initialis\u00e9!');
+        setShowForgot(false);
+        setForgotStep('phone');
+        setOtp('');
+        setNewPin('');
+        setConfirmPin('');
+        setPin('');
+      }
+    }).catch(function(error) {
+      setLoading(false);
+      Alert.alert('Erreur', error.message || 'Code invalide');
     });
   }
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.logoCircle}>
-            <View style={styles.logoImageWrapper}>
-              <Image
-                source={require('../../assets/images/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
+  function renderForgotPin() {
+    return React.createElement(View, { style: styles.card }, [
+      React.createElement(Text, { key: 't', style: styles.title }, 'R\u00e9initialiser PIN'),
+      React.createElement(Text, { key: 's', style: styles.subtitle }, 'Entrez le code re\u00e7u par email'),
+      React.createElement(Text, { key: 'l1', style: styles.label }, 'Code (6 chiffres)'),
+      React.createElement(TextInput, { key: 'i1', style: styles.input, value: otp, onChangeText: setOtp, keyboardType: 'number-pad', maxLength: 6, placeholder: '000000', placeholderTextColor: 'rgba(255,255,255,0.3)' }),
+      React.createElement(Text, { key: 'l2', style: styles.label }, 'Nouveau PIN (4 chiffres)'),
+      React.createElement(TextInput, { key: 'i2', style: styles.input, value: newPin, onChangeText: setNewPin, keyboardType: 'number-pad', maxLength: 4, secureTextEntry: true, placeholder: '\u2022\u2022\u2022\u2022', placeholderTextColor: 'rgba(255,255,255,0.3)' }),
+      React.createElement(Text, { key: 'l3', style: styles.label }, 'Confirmer PIN'),
+      React.createElement(TextInput, { key: 'i3', style: styles.input, value: confirmPin, onChangeText: setConfirmPin, keyboardType: 'number-pad', maxLength: 4, secureTextEntry: true, placeholder: '\u2022\u2022\u2022\u2022', placeholderTextColor: 'rgba(255,255,255,0.3)' }),
+      React.createElement(TouchableOpacity, { key: 'b1', style: styles.submitBtn, onPress: handleResetPin },
+        React.createElement(Text, { style: styles.submitBtnText }, loading ? 'Envoi...' : 'R\u00e9initialiser')
+      ),
+      React.createElement(TouchableOpacity, { key: 'b2', style: styles.skipBtn, onPress: function() { setShowForgot(false); } },
+        React.createElement(Text, { style: styles.skipBtnText }, 'Retour')
+      )
+    ]);
+  }
 
-          <GlassCard style={styles.card}>
-            {step === 'phone' ? (
-              <>
-                <Text style={styles.title}>Bienvenue</Text>
-                <Text style={styles.subtitle}>
-                  {"Entrez votre numéro de téléphone"}
-                </Text>
+  if (showForgot) {
+    return React.createElement(View, { style: styles.container }, renderForgotPin());
+  }
 
-                <Text style={styles.label}>{"Numéro de téléphone"}</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="77 123 45 67"
-                  placeholderTextColor={COLORS.grayLight}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  returnKeyType="done"
-                  maxLength={12}
-                />
-
-                <GlassButton
-                  title={loading ? 'Envoi...' : 'Obtenir le code OTP'}
-                  onPress={handleSendOTP}
-                  loading={loading}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={styles.title}>{"Vérification"}</Text>
-                <Text style={styles.subtitle}>
-                  {'Entrez le code envoyé au ' + phone}
-                </Text>
-
-                <Text style={styles.label}>Code OTP</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="123456"
-                  placeholderTextColor={COLORS.grayLight}
-                  value={otp}
-                  onChangeText={setOtp}
-                  keyboardType="number-pad"
-                  returnKeyType="done"
-                  maxLength={6}
-                />
-
-                <GlassButton
-                  title={loading ? 'Vérification...' : 'Vérifier'}
-                  onPress={handleVerifyOTP}
-                  loading={loading}
-                  style={styles.verifyButton}
-                />
-
-                <GlassButton
-                  title="Renvoyer le code"
-                  onPress={handleSendOTP}
-                  variant="outline"
-                  style={styles.resendButton}
-                />
-
-                <View style={styles.newUserContainer}>
-                  <Text style={styles.newUserText}>{"Mauvais numéro?"}</Text>
-                  <GlassButton
-                    title={"Changer de numéro"}
-                    onPress={function() { setStep('phone'); }}
-                    variant="text"
-                    style={styles.toggleButton}
-                  />
-                </View>
-              </>
-            )}
-          </GlassCard>
-
-          <TouchableOpacity onPress={function() { navigation.navigate('Register'); }} style={styles.registerLink}>
-            <Text style={styles.registerText}>{"Pas encore de compte? "}</Text>
-            <Text style={styles.registerBold}>S'inscrire</Text>
-          </TouchableOpacity>
-
-          <View style={styles.privacyContainer}>
-            <Text style={styles.privacyText}>
-              {"En vous inscrivant, vous acceptez nos "}
-              <Text style={styles.privacyLink}>{"Conditions Générales"}</Text>
-              {", reconnaissez notre "}
-              <Text style={styles.privacyLink}>{"Politique de Confidentialité"}</Text>
-              {", et confirmez que vous avez plus de 18 ans."}
-            </Text>
-          </View>
-
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+  return React.createElement(KeyboardAvoidingView, {
+    behavior: Platform.OS === 'ios' ? 'padding' : 'height',
+    style: styles.container
+  },
+    React.createElement(TouchableWithoutFeedback, { onPress: Keyboard.dismiss },
+      React.createElement(ScrollView, { contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'handled' }, [
+        React.createElement(Text, { key: 'logo', style: styles.appTitle }, 'TeranGO'),
+        React.createElement(View, { key: 'card', style: styles.card }, [
+          React.createElement(Text, { key: 't', style: styles.title }, 'Connexion'),
+          React.createElement(Text, { key: 's', style: styles.subtitle }, 'Connectez-vous avec votre PIN'),
+          React.createElement(Text, { key: 'l1', style: styles.label }, 'T\u00e9l\u00e9phone'),
+          React.createElement(TextInput, { key: 'i1', style: styles.input, placeholder: '77 123 45 67', placeholderTextColor: 'rgba(255,255,255,0.3)', value: phone, onChangeText: setPhone, keyboardType: 'phone-pad', maxLength: 12 }),
+          React.createElement(Text, { key: 'l2', style: styles.label }, 'PIN (4 chiffres)'),
+          React.createElement(TextInput, { key: 'i2', style: styles.input, placeholder: '\u2022\u2022\u2022\u2022', placeholderTextColor: 'rgba(255,255,255,0.3)', value: pin, onChangeText: setPin, keyboardType: 'number-pad', maxLength: 4, secureTextEntry: true }),
+          React.createElement(TouchableOpacity, { key: 'b1', style: styles.submitBtn, onPress: handleLogin },
+            React.createElement(Text, { style: styles.submitBtnText }, loading ? 'Connexion...' : 'Se connecter')
+          ),
+          React.createElement(TouchableOpacity, { key: 'b2', style: { marginTop: 16, alignItems: 'center' }, onPress: handleForgotPin },
+            React.createElement(Text, { style: { color: GREEN, fontSize: 14 } }, 'PIN oubli\u00e9?')
+          )
+        ]),
+        React.createElement(TouchableOpacity, { key: 'reg', style: styles.registerLink, onPress: function() { navigation.navigate('Register'); } }, [
+          React.createElement(Text, { key: 'r1', style: styles.registerText }, 'Nouveau? '),
+          React.createElement(Text, { key: 'r2', style: styles.registerBold }, 'S\'inscrire')
+        ])
+      ])
+    )
   );
-};
+}
 
 var styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  logoCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: COLORS.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginBottom: 32,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  logoImageWrapper: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.white,
-  },
-  logo: {
-    width: 110,
-    height: 110,
-  },
-  card: {
-    backgroundColor: 'rgba(0, 133, 63, 0.15)',
-    borderRadius: 24,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 133, 63, 0.3)',
-    shadowColor: '#00853F',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.black,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.black,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: COLORS.black,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.grayLight,
-  },
-  verifyButton: {
-    marginBottom: 12,
-  },
-  resendButton: {
-    marginBottom: 12,
-  },
-  newUserContainer: {
-    alignItems: 'center',
-  },
-  newUserText: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 12,
-  },
-  toggleButton: {
-    paddingHorizontal: 20,
-  },
-  registerLink: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  registerText: {
-    color: COLORS.gray,
-    fontSize: 15,
-  },
-  registerBold: {
-    color: '#00A86B',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  privacyContainer: {
-    marginTop: 32,
-    marginBottom: 20,
-    paddingHorizontal: 20,
-  },
-  privacyText: {
-    fontSize: 11,
-    color: COLORS.gray,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  privacyLink: {
-    color: COLORS.green,
-    fontWeight: '600',
-  },
-  bottomSpacer: {
-    height: 20,
-  },
+  container: { flex: 1, backgroundColor: DARK_BG },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+  appTitle: { fontSize: 36, fontWeight: 'bold', color: GREEN, textAlign: 'center', marginBottom: 32 },
+  card: { backgroundColor: MINT_LIGHT, borderRadius: 24, padding: 28, borderWidth: 1, borderColor: MINT_BORDER, marginBottom: 24 },
+  title: { fontSize: 22, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)', marginBottom: 6 },
+  input: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, fontSize: 16, color: '#fff', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  submitBtn: { backgroundColor: GREEN, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8 },
+  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  skipBtn: { padding: 16, alignItems: 'center' },
+  skipBtnText: { color: 'rgba(255,255,255,0.4)', fontSize: 14 },
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
+  registerText: { color: 'rgba(255,255,255,0.5)', fontSize: 15 },
+  registerBold: { color: GREEN, fontSize: 15, fontWeight: 'bold' },
 });
 
 export default LoginScreen;

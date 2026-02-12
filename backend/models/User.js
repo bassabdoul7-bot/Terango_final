@@ -5,6 +5,7 @@ var userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, trim: true, lowercase: true },
   password: { type: String, select: false },
+  pin: { type: String, select: false },
   pushToken: { type: String, default: '' },
   profilePhoto: { type: String, default: '' },
   photoStatus: { type: String, enum: ['pending', 'approved', 'rejected', 'expired'], default: 'pending' },
