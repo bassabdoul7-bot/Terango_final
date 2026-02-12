@@ -34,6 +34,48 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const loginWithPin = async (phone, pin) => {
+    try {
+      const response = await authService.loginWithPin(phone, pin);
+      if (response.success) {
+        await AsyncStorage.setItem('token', response.token);
+        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+        setUser(response.user);
+        setIsAuthenticated(true);
+        registerForPushNotifications().then((token) => {
+          if (token) authService.registerPushToken(token);
+        });
+        return response;
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
+  };
+
+  const registerUser = async (phone, name, email, pin) => {
+    try {
+      const response = await authService.register(phone, name, email, pin, 'rider');
+      if (response.success) {
+        await AsyncStorage.setItem('token', response.token);
+        await AsyncStorage.setItem('user', JSON.stringify(response.user));
+        setUser(response.user);
+        setIsAuthenticated(true);
+        registerForPushNotifications().then((token) => {
+          if (token) authService.registerPushToken(token);
+        });
+        return response;
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Register error:', error);
+      throw error;
+    }
+  };
+
   const login = async (phone, otp, name, role) => {
     try {
       const response = await authService.verifyOTP(phone, otp, name, role);
@@ -73,6 +115,8 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         loading,
         login,
+        loginWithPin,
+        registerUser,
         logout,
       }}
     >

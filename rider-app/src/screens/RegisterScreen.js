@@ -1,327 +1,116 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Alert,
-  Image,
-  TouchableOpacity,
+  View, Text, TextInput, StyleSheet, KeyboardAvoidingView,
+  Platform, ScrollView, TouchableWithoutFeedback, Keyboard,
+  Alert, TouchableOpacity,
 } from 'react-native';
-import GlassButton from '../components/GlassButton';
-import GlassCard from '../components/GlassCard';
-import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
-import { authService } from '../services/api.service';
 
-var RegisterScreen = function(props) {
+var DARK_BG = '#0a0a0a';
+var MINT_LIGHT = 'rgba(179, 229, 206, 0.12)';
+var MINT_BORDER = 'rgba(179, 229, 206, 0.25)';
+var GREEN = '#4CD964';
+
+function RegisterScreen(props) {
   var navigation = props.navigation;
   var auth = useAuth();
-  var login = auth.login;
-
-  var phoneState = useState('');
-  var phone = phoneState[0];
-  var setPhone = phoneState[1];
-
-  var otpState = useState('');
-  var otp = otpState[0];
-  var setOtp = otpState[1];
+  var registerUser = auth.registerUser;
 
   var nameState = useState('');
   var name = nameState[0];
   var setName = nameState[1];
 
+  var phoneState = useState('');
+  var phone = phoneState[0];
+  var setPhone = phoneState[1];
+
+  var emailState = useState('');
+  var email = emailState[0];
+  var setEmail = emailState[1];
+
+  var pinState = useState('');
+  var pin = pinState[0];
+  var setPin = pinState[1];
+
+  var confirmPinState = useState('');
+  var confirmPin = confirmPinState[0];
+  var setConfirmPin = confirmPinState[1];
+
   var loadingState = useState(false);
   var loading = loadingState[0];
   var setLoading = loadingState[1];
 
-  var stepState = useState(1);
-  var step = stepState[0];
-  var setStep = stepState[1];
+  var fullPhone = phone.startsWith('+221') ? phone : '+221' + phone;
 
-  function handleSendOTP() {
-    if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide');
-      return;
-    }
+  function handleRegister() {
+    if (!name.trim()) { Alert.alert('Erreur', 'Nom requis'); return; }
+    if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro invalide'); return; }
+    if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour r\u00e9cup\u00e9ration du PIN)'); return; }
+    if (!pin || pin.length !== 4) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
+    if (pin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
+
     setLoading(true);
-    var fullPhone = '+221' + phone.replace(/\s/g, '');
-    authService.sendOTP(fullPhone).then(function(response) {
-      if (response.success) {
-        setStep(2);
-        Alert.alert('Code envoyé', 'Vérifiez le terminal pour le code OTP');
-      }
-    }).catch(function(error) {
-      Alert.alert('Erreur', error.response?.data?.message || 'Erreur envoi code');
-    }).finally(function() {
+    registerUser(fullPhone, name, email, pin).then(function() {
       setLoading(false);
+    }).catch(function(error) {
+      setLoading(false);
+      Alert.alert('Erreur', error.message || 'Erreur lors de l\'inscription');
     });
   }
 
-  function handleVerifyOTP() {
-    if (!otp || otp.length !== 6) {
-      Alert.alert('Erreur', 'Veuillez entrer un code OTP valide (6 chiffres)');
-      return;
-    }
-    if (!name.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer votre nom');
-      return;
-    }
-    setLoading(true);
-    setLoading(true);
-    var fullPhone = '+221' + phone.replace(/\s/g, '');
-    login(fullPhone, otp, name, 'rider').then(function() {
-      console.log('Registration successful');
-    }).catch(function(error) {
-      Alert.alert('Erreur', error.response?.data?.message || error.message || 'Code OTP invalide');
-    }).finally(function() {
-      setLoading(false);
-    });
-  }
+  return React.createElement(KeyboardAvoidingView, {
+    behavior: Platform.OS === 'ios' ? 'padding' : 'height',
+    style: styles.container
+  },
+    React.createElement(TouchableWithoutFeedback, { onPress: Keyboard.dismiss },
+      React.createElement(ScrollView, { contentContainerStyle: styles.scrollContent, keyboardShouldPersistTaps: 'handled' }, [
+        React.createElement(Text, { key: 'logo', style: styles.appTitle }, 'TeranGO'),
+        React.createElement(View, { key: 'card', style: styles.card }, [
+          React.createElement(Text, { key: 't', style: styles.title }, 'Inscription'),
+          React.createElement(Text, { key: 's', style: styles.subtitle }, 'Cr\u00e9ez votre compte passager'),
 
+          React.createElement(Text, { key: 'l1', style: styles.label }, 'Nom complet'),
+          React.createElement(TextInput, { key: 'i1', style: styles.input, placeholder: 'Votre nom', placeholderTextColor: 'rgba(255,255,255,0.3)', value: name, onChangeText: setName }),
 
-  function renderStep1() {
-    return (
-      <>
-        <Text style={styles.title}>Créer un compte</Text>
-        <Text style={styles.subtitle}>Inscrivez-vous pour commencer</Text>
+          React.createElement(Text, { key: 'l2', style: styles.label }, 'T\u00e9l\u00e9phone'),
+          React.createElement(TextInput, { key: 'i2', style: styles.input, placeholder: '77 123 45 67', placeholderTextColor: 'rgba(255,255,255,0.3)', value: phone, onChangeText: setPhone, keyboardType: 'phone-pad', maxLength: 12 }),
 
-        <Text style={styles.label}>Votre nom</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Prénom et nom"
-          placeholderTextColor={COLORS.grayLight}
-          value={name}
-          onChangeText={setName}
-        />
+          React.createElement(Text, { key: 'l3', style: styles.label }, 'Email (pour r\u00e9cup\u00e9ration PIN)'),
+          React.createElement(TextInput, { key: 'i3', style: styles.input, placeholder: 'votre@email.com', placeholderTextColor: 'rgba(255,255,255,0.3)', value: email, onChangeText: setEmail, keyboardType: 'email-address', autoCapitalize: 'none' }),
 
-        <Text style={styles.label}>Numéro de téléphone</Text>
-        <View style={styles.phoneRow}>
-          <View style={styles.countryCode}>
-            <Text style={styles.flag}>{"🇸🇳"}</Text>
-            <Text style={styles.codeText}>+221</Text>
-          </View>
-          <TextInput
-            style={[styles.input, styles.phoneInput]}
-            placeholder="77 123 45 67"
-            placeholderTextColor={COLORS.grayLight}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            maxLength={12}
-          />
-        </View>
+          React.createElement(Text, { key: 'l4', style: styles.label }, 'Cr\u00e9er un PIN (4 chiffres)'),
+          React.createElement(TextInput, { key: 'i4', style: styles.input, placeholder: '\u2022\u2022\u2022\u2022', placeholderTextColor: 'rgba(255,255,255,0.3)', value: pin, onChangeText: setPin, keyboardType: 'number-pad', maxLength: 4, secureTextEntry: true }),
 
-        <GlassButton
-          title={loading ? 'Envoi...' : 'Recevoir le code'}
-          onPress={handleSendOTP}
-          loading={loading}
-        />
-      </>
-    );
-  }
+          React.createElement(Text, { key: 'l5', style: styles.label }, 'Confirmer le PIN'),
+          React.createElement(TextInput, { key: 'i5', style: styles.input, placeholder: '\u2022\u2022\u2022\u2022', placeholderTextColor: 'rgba(255,255,255,0.3)', value: confirmPin, onChangeText: setConfirmPin, keyboardType: 'number-pad', maxLength: 4, secureTextEntry: true }),
 
-  function renderStep2() {
-    return (
-      <>
-        <Text style={styles.title}>Vérification</Text>
-        <Text style={styles.subtitle}>{'Entrez le code envoyé au +221' + phone}</Text>
-
-        <Text style={styles.label}>Code OTP</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="123456"
-          placeholderTextColor={COLORS.grayLight}
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-
-        <GlassButton
-          title={loading ? 'Vérification...' : 'Vérifier'}
-          onPress={handleVerifyOTP}
-          loading={loading}
-        />
-
-        <GlassButton
-          title="Changer de numéro"
-          onPress={function() { setStep(1); }}
-          variant="outline"
-          style={{ marginTop: 12 }}
-        />
-      </>
-    );
-  }
-
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.logoCircle}>
-            <View style={styles.logoImageWrapper}>
-              <Image
-                source={require('../../assets/images/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
-
-          <Text style={styles.appTitle}>TeranGO</Text>
-
-          <GlassCard style={styles.card}>
-            {step === 1 && renderStep1()}
-            {step === 2 && renderStep2()}
-          </GlassCard>
-
-          <TouchableOpacity onPress={function() { navigation.navigate('Login'); }} style={styles.loginLink}>
-            <Text style={styles.loginText}>{"Déjà inscrit? "}</Text>
-            <Text style={styles.loginBold}>Se connecter</Text>
-          </TouchableOpacity>
-
-          <View style={styles.bottomSpacer} />
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          React.createElement(TouchableOpacity, { key: 'b1', style: styles.submitBtn, onPress: handleRegister },
+            React.createElement(Text, { style: styles.submitBtnText }, loading ? 'Inscription...' : 'S\'inscrire')
+          )
+        ]),
+        React.createElement(TouchableOpacity, { key: 'back', style: styles.registerLink, onPress: function() { navigation.navigate('Login'); } }, [
+          React.createElement(Text, { key: 'r1', style: styles.registerText }, 'D\u00e9j\u00e0 un compte? '),
+          React.createElement(Text, { key: 'r2', style: styles.registerBold }, 'Se connecter')
+        ])
+      ])
+    )
   );
-};
+}
 
 var styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: '#00853F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  logoImageWrapper: {
-    width: 80,
-    height: 80,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 70,
-    height: 70,
-  },
-  appTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.green,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  card: {
-    backgroundColor: 'rgba(0, 133, 63, 0.15)',
-    borderRadius: 24,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(0, 133, 63, 0.3)',
-    shadowColor: '#00853F',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: COLORS.black,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.black,
-    marginBottom: 8,
-  },
-  phoneRow: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  countryCode: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginRight: 10,
-    borderWidth: 1,
-    borderColor: COLORS.grayLight,
-  },
-  flag: {
-    fontSize: 20,
-    marginRight: 6,
-  },
-  codeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.black,
-  },
-  phoneInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  input: {
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: COLORS.black,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: COLORS.grayLight,
-  },
-  loginLink: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  loginText: {
-    color: COLORS.gray,
-    fontSize: 15,
-  },
-  loginBold: {
-    color: '#00A86B',
-    fontSize: 15,
-    fontWeight: 'bold',
-  },
-  bottomSpacer: {
-    height: 20,
-  },
+  container: { flex: 1, backgroundColor: DARK_BG },
+  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
+  appTitle: { fontSize: 36, fontWeight: 'bold', color: GREEN, textAlign: 'center', marginBottom: 32 },
+  card: { backgroundColor: MINT_LIGHT, borderRadius: 24, padding: 28, borderWidth: 1, borderColor: MINT_BORDER, marginBottom: 24 },
+  title: { fontSize: 22, fontWeight: '700', color: '#fff', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)', marginBottom: 6 },
+  input: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16, fontSize: 16, color: '#fff', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  submitBtn: { backgroundColor: GREEN, borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 8 },
+  submitBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
+  registerText: { color: 'rgba(255,255,255,0.5)', fontSize: 15 },
+  registerBold: { color: GREEN, fontSize: 15, fontWeight: 'bold' },
 });
 
 export default RegisterScreen;
