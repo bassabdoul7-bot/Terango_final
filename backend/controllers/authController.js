@@ -15,7 +15,6 @@ exports.sendOTP = async (req, res) => {
   try {
     let { phone } = req.body;
 
-    // Validate phone number
     if (!isValidSenegalPhone(phone)) {
       return res.status(400).json({
         success: false,
@@ -23,32 +22,26 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    // Format phone number
     phone = formatPhoneNumber(phone);
 
-
-    // If mode is "login", check user exists first
     if (req.body.mode === 'login') {
       const existingUser = await User.findOne({ phone });
       if (!existingUser) {
         return res.status(404).json({
           success: false,
-          message: 'Aucun compte trouv\u00e9 avec ce num\u00e9ro. Veuillez vous inscrire.'
+          message: 'Aucun compte trouvé avec ce numéro. Veuillez vous inscrire.'
         });
       }
     }
 
-    // Generate OTP
     const otp = generateOTP();
 
-    // Save OTP to database
     await OTP.create({
       phone,
       otp,
       expiresAt: new Date(Date.now() + 10 * 60 * 1000)
     });
 
-    // TODO: Send OTP via SMS
     console.log('OTP for', phone, ':', otp);
 
     res.status(200).json({
@@ -216,20 +209,13 @@ exports.adminLogin = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email et mot de passe requis' });
     }
-    console.log('ADMIN LOGIN ATTEMPT - email:', email);
-    var debugUser = await User.findOne({ email: email.toLowerCase() });
-    console.log('DEBUG - by email only:', debugUser ? debugUser.name + ' role=' + debugUser.role : 'NOT FOUND');
-    var allAdmins = await User.find({ role: 'admin' });
-    console.log('DEBUG - all admins:', allAdmins.length, allAdmins.map(function(a){ return a.email; }));
     const user = await User.findOne({ email: email.toLowerCase(), role: 'admin' }).select('+password');
-    console.log('USER FOUND:', !!user);
     if (!user) {
       return res.status(401).json({ success: false, message: 'Identifiants invalides' });
     }
     if (!user.password) {
       return res.status(401).json({ success: false, message: 'Mot de passe non configuré. Contactez le support.' });
     }
-    const bcrypt = require('bcryptjs');
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Identifiants invalides' });
@@ -257,13 +243,12 @@ exports.registerPushToken = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Token requis' });
     }
     await User.findByIdAndUpdate(req.user._id, { pushToken: pushToken });
-    res.json({ success: true, message: 'Token enregistr\u00e9' });
+    res.json({ success: true, message: 'Token enregistré' });
   } catch (error) {
     console.error('Register Push Token Error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
-
 
 // @desc    Register new user with PIN
 // @route   POST /api/auth/register
@@ -284,7 +269,14 @@ exports.register = async (req, res) => {
 
     var existingUser = await User.findOne({ phone });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Ce num\u00e9ro est d\u00e9j\u00e0 enregistr\u00e9' });
+      return res.status(400).json({ success: false, message: 'Ce numéro est déjà enregistré' });
+    }
+
+    if (email) {
+      var existingEmail = await User.findOne({ email: email.toLowerCase() });
+      if (existingEmail) {
+        return res.status(400).json({ success: false, message: 'Cet email est déjà utilisé' });
+      }
     }
 
     var hashedPin = await bcrypt.hash(pin, 10);
@@ -299,18 +291,18 @@ exports.register = async (req, res) => {
     });
 
     if (role === 'rider') {
-      var Rider = require('../models/Rider');
-      await Rider.create({ userId: user._id });
+      var RiderModel = require('../models/Rider');
+      await RiderModel.create({ userId: user._id });
     } else if (role === 'driver') {
-      var Driver = require('../models/Driver');
-      await Driver.create({ userId: user._id, verificationStatus: 'approved' });
+      var DriverModel = require('../models/Driver');
+      await DriverModel.create({ userId: user._id, verificationStatus: 'approved' });
     }
 
     var token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
-      message: 'Compte cr\u00e9\u00e9 avec succ\u00e8s',
+      message: 'Compte créé avec succès',
       token: token,
       user: {
         id: user._id,
@@ -324,7 +316,7 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Register Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur lors de l\'inscription' });
+    res.status(500).json({ success: false, message: "Erreur lors de l'inscription" });
   }
 };
 
@@ -336,7 +328,7 @@ exports.loginWithPin = async (req, res) => {
     let { phone, pin } = req.body;
 
     if (!phone || !pin) {
-      return res.status(400).json({ success: false, message: 'T\u00e9l\u00e9phone et PIN requis' });
+      return res.status(400).json({ success: false, message: 'Téléphone et PIN requis' });
     }
 
     phone = formatPhoneNumber(phone);
@@ -347,7 +339,7 @@ exports.loginWithPin = async (req, res) => {
     }
 
     if (!user.pin) {
-      return res.status(401).json({ success: false, message: 'Aucun PIN configur\u00e9. Veuillez vous r\u00e9inscrire.' });
+      return res.status(401).json({ success: false, message: 'Aucun PIN configuré. Veuillez vous réinscrire.' });
     }
 
     var isMatch = await bcrypt.compare(pin, user.pin);
@@ -359,7 +351,7 @@ exports.loginWithPin = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Connexion r\u00e9ussie',
+      message: 'Connexion réussie',
       token: token,
       user: {
         id: user._id,
@@ -387,7 +379,7 @@ exports.forgotPin = async (req, res) => {
 
     var user = await User.findOne({ phone });
     if (!user || !user.email) {
-      return res.status(404).json({ success: false, message: 'Aucun compte avec email trouv\u00e9 pour ce num\u00e9ro' });
+      return res.status(404).json({ success: false, message: 'Aucun compte avec email trouvé pour ce numéro' });
     }
 
     var otp = generateOTP();
@@ -404,14 +396,14 @@ exports.forgotPin = async (req, res) => {
     await transporter.sendMail({
       from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
       to: user.email,
-      subject: 'R\u00e9initialisation de votre PIN TeranGO',
-      html: '<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#4CD964;">TeranGO</h2><p>Votre code de r\u00e9initialisation:</p><h1 style="text-align:center;color:#4CD964;font-size:36px;letter-spacing:8px;">' + otp + '</h1><p>Ce code expire dans 10 minutes.</p></div>'
+      subject: 'Réinitialisation de votre PIN TeranGO',
+      html: '<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#4CD964;">TeranGO</h2><p>Votre code de réinitialisation:</p><h1 style="text-align:center;color:#4CD964;font-size:36px;letter-spacing:8px;">' + otp + '</h1><p>Ce code expire dans 10 minutes.</p></div>'
     });
 
-    res.json({ success: true, message: 'Code envoy\u00e9 \u00e0 votre email' });
+    res.json({ success: true, message: 'Code envoyé à votre email' });
   } catch (error) {
     console.error('Forgot PIN Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur lors de l\'envoi du code' });
+    res.status(500).json({ success: false, message: "Erreur lors de l'envoi du code" });
   }
 };
 
@@ -430,7 +422,7 @@ exports.resetPin = async (req, res) => {
 
     var otpRecord = await OTP.findOne({ phone: phone, otp: otp, verified: false, expiresAt: { $gt: new Date() } });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Code invalide ou expir\u00e9' });
+      return res.status(400).json({ success: false, message: 'Code invalide ou expiré' });
     }
 
     otpRecord.verified = true;
@@ -439,9 +431,9 @@ exports.resetPin = async (req, res) => {
     var hashedPin = await bcrypt.hash(newPin, 10);
     await User.findOneAndUpdate({ phone: phone }, { pin: hashedPin });
 
-    res.json({ success: true, message: 'PIN r\u00e9initialis\u00e9 avec succ\u00e8s' });
+    res.json({ success: true, message: 'PIN réinitialisé avec succès' });
   } catch (error) {
     console.error('Reset PIN Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur lors de la r\u00e9initialisation' });
+    res.status(500).json({ success: false, message: 'Erreur lors de la réinitialisation' });
   }
 };

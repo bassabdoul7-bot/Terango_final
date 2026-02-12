@@ -79,13 +79,13 @@ exports.createDelivery = function(req, res) {
   var paymentMethod = req.body.paymentMethod || 'cash';
 
   if (!serviceType || !pickup || !dropoff || !distance) {
-    return res.status(400).json({ success: false, message: 'DonnÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©es incomplÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¨tes' });
+    return res.status(400).json({ success: false, message: 'Données incomplètes' });
   }
 
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil passager non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Profil passager non trouvé' });
       }
 
       var size = 'petit';
@@ -189,7 +189,7 @@ exports.createDelivery = function(req, res) {
 
           res.status(201).json({
             success: true,
-            message: 'Livraison demandÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e',
+            message: 'Livraison demandée',
             delivery: delivery
           });
         });
@@ -197,7 +197,7 @@ exports.createDelivery = function(req, res) {
     })
     .catch(function(error) {
       console.error('Create Delivery Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la crÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©ation de la livraison' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la création de la livraison' });
     });
 };
 
@@ -209,7 +209,7 @@ exports.acceptDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, status: 'pending' })
@@ -254,7 +254,7 @@ exports.acceptDelivery = function(req, res) {
           // Push notify rider
           Delivery.findById(delivery._id).populate('riderId').then(function(d) {
             if (d && d.riderId) {
-              sendPushNotification(d.riderId.userId, 'Livreur trouv\u00e9!', 'Un livreur a accept\u00e9 votre livraison.', { type: 'delivery-accepted', deliveryId: delivery._id.toString() });
+              sendPushNotification(d.riderId.userId, 'Livreur trouvé!', 'Un livreur a accepté votre livraison.', { type: 'delivery-accepted', deliveryId: delivery._id.toString() });
             }
           });
 
@@ -283,14 +283,14 @@ exports.updateDeliveryStatus = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvé' });
       }
 
       return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id });
     })
     .then(function(delivery) {
       if (!delivery) {
-        return res.status(404).json({ success: false, message: 'Livraison non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©e' });
+        return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
       }
 
       var allowed = validTransitions[delivery.status];
@@ -345,7 +345,7 @@ exports.getMyDeliveries = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       }
 
       return Delivery.find({ riderId: rider._id })
@@ -367,7 +367,7 @@ exports.getActiveDelivery = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       }
 
       return Delivery.findOne({
@@ -388,14 +388,14 @@ exports.getDeliveryById = function(req, res) {
   Rider.findOne({ userId: req.user._id })
     .then(function(rider) {
       if (!rider) {
-        return res.status(404).json({ success: false, message: 'Profil non trouve' });
+        return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       }
       return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id })
         .populate('driver');
     })
     .then(function(delivery) {
       if (!delivery) {
-        return res.status(404).json({ success: false, message: 'Livraison non trouvee' });
+        return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
       }
       res.status(200).json({ success: true, delivery: delivery });
     })
@@ -409,7 +409,7 @@ exports.getDriverActiveDelivery = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Chauffeur non trouvÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©' });
+        return res.status(404).json({ success: false, message: 'Chauffeur non trouvé' });
       }
 
       return Delivery.findOne({
@@ -433,12 +433,12 @@ exports.cancelDelivery = function(req, res) {
   var findProfile;
   if (userRole === 'driver') {
     findProfile = Driver.findOne({ userId: req.user._id }).then(function(driver) {
-      if (!driver) return res.status(404).json({ success: false, message: 'Profil non trouv\u00e9' });
+      if (!driver) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id, status: { $in: ['pending', 'accepted'] } });
     });
   } else {
     findProfile = Rider.findOne({ userId: req.user._id }).then(function(rider) {
-      if (!rider) return res.status(404).json({ success: false, message: 'Profil non trouv\u00e9' });
+      if (!rider) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id, status: { $in: ['pending', 'accepted'] } });
     });
   }
@@ -450,7 +450,7 @@ exports.cancelDelivery = function(req, res) {
 
       delivery.status = 'cancelled';
       delivery.cancelledBy = req.user.role;
-      delivery.cancellationReason = req.body.reason || 'Annul\u00e9';
+      delivery.cancellationReason = req.body.reason || 'Annulé';
       if (delivery.driver) {
         Driver.findById(delivery.driver).then(function(d) {
           if (d) {
@@ -465,7 +465,7 @@ exports.cancelDelivery = function(req, res) {
     })
     .then(function(delivery) {
       if (delivery) {
-        res.status(200).json({ success: true, message: 'Livraison annul\u00e9e' });
+        res.status(200).json({ success: true, message: 'Livraison annulée' });
       }
     })
     .catch(function(error) {
@@ -473,4 +473,3 @@ exports.cancelDelivery = function(req, res) {
       res.status(500).json({ success: false, message: 'Erreur' });
     });
 };
-

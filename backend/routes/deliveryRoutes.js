@@ -1,20 +1,16 @@
 var express = require('express');
 var router = express.Router();
-var protect = require('../middleware/auth').protect;
-var restrictTo = require('../middleware/auth').restrictTo;
-var ctrl = require('../controllers/deliveryController');
+var { protect } = require('../middleware/auth');
+var deliveryController = require('../controllers/deliveryController');
 
-// Rider routes
-router.post('/estimate', protect, ctrl.getEstimate);
-router.post('/create', protect, restrictTo('rider'), ctrl.createDelivery);
-router.get('/my-deliveries', protect, restrictTo('rider'), ctrl.getMyDeliveries);
-router.get('/active', protect, restrictTo('rider'), ctrl.getActiveDelivery);
-router.get('/:deliveryId', protect, restrictTo('rider'), ctrl.getDeliveryById);
-router.put('/:deliveryId/cancel', protect, restrictTo('rider', 'driver'), ctrl.cancelDelivery);
-
-// Driver routes
-router.put('/:deliveryId/accept', protect, restrictTo('driver'), ctrl.acceptDelivery);
-router.put('/:deliveryId/status', protect, restrictTo('driver'), ctrl.updateDeliveryStatus);
-router.get('/driver-active', protect, restrictTo('driver'), ctrl.getDriverActiveDelivery);
+router.post('/estimate', protect, deliveryController.getEstimate);
+router.post('/create', protect, deliveryController.createDelivery);
+router.put('/:deliveryId/accept', protect, deliveryController.acceptDelivery);
+router.put('/:deliveryId/status', protect, deliveryController.updateDeliveryStatus);
+router.get('/my-deliveries', protect, deliveryController.getMyDeliveries);
+router.get('/active', protect, deliveryController.getActiveDelivery);
+router.get('/driver-active', protect, deliveryController.getDriverActiveDelivery);
+router.get('/:deliveryId', protect, deliveryController.getDeliveryById);
+router.put('/:deliveryId/cancel', protect, deliveryController.cancelDelivery);
 
 module.exports = router;

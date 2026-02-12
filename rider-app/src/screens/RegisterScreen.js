@@ -42,8 +42,8 @@ var RegisterScreen = function(props) {
 
   function handleRegister() {
     if (!name.trim()) { Alert.alert('Erreur', 'Nom requis'); return; }
-    if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro invalide'); return; }
-    if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour r\u00e9cup\u00e9ration du PIN)'); return; }
+    if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Numéro invalide'); return; }
+    if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour récupération du PIN)'); return; }
     if (!pin || pin.length !== 4) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
     if (pin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
 
@@ -68,33 +68,33 @@ var RegisterScreen = function(props) {
           <Text style={styles.appTitle}>TeranGO</Text>
           <GlassCard style={styles.card}>
             <Text style={styles.title}>Inscription</Text>
-            <Text style={styles.subtitle}>Cr\u00e9ez votre compte passager</Text>
+            <Text style={styles.subtitle}>Créez votre compte passager</Text>
 
             <Text style={styles.label}>Nom complet</Text>
             <TextInput style={styles.input} placeholder='Votre nom' placeholderTextColor={COLORS.grayLight}
               value={name} onChangeText={setName} />
 
-            <Text style={styles.label}>Num\u00e9ro de t\u00e9l\u00e9phone</Text>
+            <Text style={styles.label}>Numéro de téléphone</Text>
             <TextInput style={styles.input} placeholder='77 123 45 67' placeholderTextColor={COLORS.grayLight}
               value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
 
-            <Text style={styles.label}>Email (pour r\u00e9cup\u00e9ration PIN)</Text>
+            <Text style={styles.label}>Email (pour récupération PIN)</Text>
             <TextInput style={styles.input} placeholder='votre@email.com' placeholderTextColor={COLORS.grayLight}
               value={email} onChangeText={setEmail} keyboardType='email-address' autoCapitalize='none' />
 
-            <Text style={styles.label}>Cr\u00e9er un PIN (4 chiffres)</Text>
-            <TextInput style={styles.input} placeholder='\u2022\u2022\u2022\u2022' placeholderTextColor={COLORS.grayLight}
+            <Text style={styles.label}>Créer un PIN (4 chiffres)</Text>
+            <TextInput style={styles.input} placeholder='••••' placeholderTextColor={COLORS.grayLight}
               value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
 
             <Text style={styles.label}>Confirmer le PIN</Text>
-            <TextInput style={styles.input} placeholder='\u2022\u2022\u2022\u2022' placeholderTextColor={COLORS.grayLight}
+            <TextInput style={styles.input} placeholder='••••' placeholderTextColor={COLORS.grayLight}
               value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
 
             <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
           </GlassCard>
           <View style={styles.bottomSpacer} />
           <TouchableOpacity style={styles.registerLink} onPress={function() { navigation.navigate('Login'); }}>
-            <Text style={styles.registerText}>D\u00e9j\u00e0 un compte? </Text>
+            <Text style={styles.registerText}>Déjà un compte? </Text>
             <Text style={styles.registerBold}>Se connecter</Text>
           </TouchableOpacity>
         </ScrollView>
