@@ -295,7 +295,7 @@ exports.register = async (req, res) => {
       await RiderModel.create({ userId: user._id });
     } else if (role === 'driver') {
       var DriverModel = require('../models/Driver');
-      await DriverModel.create({ userId: user._id, verificationStatus: 'approved' });
+      await DriverModel.create({ userId: user._id, verificationStatus: 'pending' });
     }
 
     var token = generateToken(user._id);

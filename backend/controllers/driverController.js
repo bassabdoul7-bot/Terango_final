@@ -60,12 +60,12 @@ exports.toggleOnlineStatus = function(req, res) {
       if (!driver) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
       }
-    // if (driver.verificationStatus !== 'approved') {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Votre compte doit \u00eatre v\u00e9rifi\u00e9 pour vous mettre en ligne'
-    //   });
-    // }
+      if (driver.verificationStatus !== 'approved') {
+        return res.status(403).json({
+          success: false,
+          message: 'Votre compte doit \u00eatre v\u00e9rifi\u00e9 pour vous mettre en ligne'
+        });
+      }
 
       var driverLocationService = req.app.get('driverLocationService');
       driver.isOnline = isOnline;
