@@ -1,7 +1,6 @@
-var Driver = require('../models/Driver');
+﻿var Driver = require('../models/Driver');
 var User = require('../models/User');
 var Ride = require('../models/Ride');
-var Delivery = require('../models/Delivery');
 var Delivery = require('../models/Delivery');
 
 exports.getProfile = function(req, res) {
@@ -9,13 +8,13 @@ exports.getProfile = function(req, res) {
     .populate('userId', 'name phone email rating profilePhoto photoStatus photoVerified')
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
       res.status(200).json({ success: true, driver: driver });
     })
     .catch(function(error) {
       console.error('Get Profile Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la récupération du profil' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation du profil' });
     });
 };
 
@@ -27,7 +26,7 @@ exports.completeProfile = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
       driver.driverLicenseNumber = driverLicenseNumber;
       driver.driverLicensePhoto = driverLicensePhoto;
@@ -39,14 +38,14 @@ exports.completeProfile = function(req, res) {
       if (driver) {
         res.status(200).json({
           success: true,
-          message: 'Profil complété. En attente de vérification.',
+          message: 'Profil complete. En attente de verification.',
           driver: driver
         });
       }
     })
     .catch(function(error) {
       console.error('Complete Profile Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la mise à jour du profil' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour du profil' });
     });
 };
 
@@ -58,12 +57,12 @@ exports.toggleOnlineStatus = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
       if (driver.verificationStatus !== 'approved') {
         return res.status(403).json({
           success: false,
-          message: 'Votre compte doit \u00eatre v\u00e9rifi\u00e9 pour vous mettre en ligne'
+          message: 'Votre compte doit etre verifie pour vous mettre en ligne'
         });
       }
 
@@ -83,7 +82,7 @@ exports.toggleOnlineStatus = function(req, res) {
       }).then(function() {
         res.status(200).json({
           success: true,
-          message: isOnline ? 'Vous êtes maintenant en ligne' : 'Vous êtes maintenant hors ligne',
+          message: isOnline ? 'Vous etes maintenant en ligne' : 'Vous etes maintenant hors ligne',
           isOnline: driver.isOnline
         });
       });
@@ -102,7 +101,7 @@ exports.updateLocation = function(req, res) {
     .populate('userId', 'rating')
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       var driverLocationService = req.app.get('driverLocationService');
@@ -137,7 +136,6 @@ exports.updateLocation = function(req, res) {
           });
         }
 
-
         // Also emit to active delivery room
         Delivery.findOne({
           driver: driver._id,
@@ -166,7 +164,7 @@ exports.updateLocation = function(req, res) {
     })
     .catch(function(error) {
       console.error('Update Location Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la mise à jour de la localisation' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour de la localisation' });
     });
 };
 
@@ -221,7 +219,7 @@ exports.getActiveRide = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       return Ride.findOne({
@@ -251,7 +249,7 @@ exports.getActiveRide = function(req, res) {
     })
     .catch(function(error) {
       console.error('Get Active Ride Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la récupération de la course active' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de la course active' });
     });
 };
 
@@ -259,7 +257,7 @@ exports.getEarnings = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       return Ride.find({ driver: driver._id, status: 'completed' });
@@ -324,7 +322,7 @@ exports.getEarnings = function(req, res) {
     })
     .catch(function(error) {
       console.error('Get Earnings Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la récupération des gains' });
+      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation des gains' });
     });
 };
 
@@ -332,7 +330,7 @@ exports.getRideHistory = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       return Ride.find({ driver: driver._id, status: 'completed' })
@@ -346,7 +344,7 @@ exports.getRideHistory = function(req, res) {
     })
     .catch(function(error) {
       console.error('Get Ride History Error:', error);
-      res.status(500).json({ success: false, message: "Erreur lors de la récupération de l'historique" });
+      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de historique' });
     });
 };
 
@@ -376,7 +374,7 @@ exports.uploadProfilePhoto = function(req, res) {
     photoVerified: false
   })
     .then(function() {
-      res.json({ success: true, message: 'Photo mise à jour', profilePhoto: photoUrl });
+      res.json({ success: true, message: 'Photo mise a jour', profilePhoto: photoUrl });
     })
     .catch(function(error) {
       console.error('Upload photo error:', error);
@@ -388,7 +386,7 @@ exports.updateServicePreferences = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       if (req.body.rides !== undefined) driver.acceptedServices.rides = req.body.rides;
@@ -403,7 +401,7 @@ exports.updateServicePreferences = function(req, res) {
         res.status(200).json({
           success: true,
           acceptedServices: driver.acceptedServices,
-          message: 'Préférences mises à jour'
+          message: 'Preferences mises a jour'
         });
       }
     })
@@ -417,7 +415,7 @@ exports.getServicePreferences = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
       res.status(200).json({
@@ -431,3 +429,75 @@ exports.getServicePreferences = function(req, res) {
     });
 };
 
+// ========== DOCUMENT UPLOAD ==========
+
+exports.uploadDocuments = function(req, res) {
+  Driver.findOne({ userId: req.user._id })
+    .then(function(driver) {
+      if (!driver) {
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+      }
+
+      if (req.files) {
+        if (req.files.nationalId) {
+          driver.nationalIdPhoto = req.files.nationalId[0].path;
+        }
+        if (req.files.driverLicense) {
+          driver.driverLicensePhoto = req.files.driverLicense[0].path;
+        }
+        if (req.files.vehicleRegistration) {
+          if (!driver.vehicle) driver.vehicle = {};
+          driver.vehicle.registrationPhoto = req.files.vehicleRegistration[0].path;
+        }
+      }
+
+      if (req.body.vehicleMake) {
+        if (!driver.vehicle) driver.vehicle = {};
+        driver.vehicle.make = req.body.vehicleMake;
+        driver.vehicle.model = req.body.vehicleModel || '';
+        driver.vehicle.year = req.body.vehicleYear || 2020;
+        driver.vehicle.color = req.body.vehicleColor || '';
+        driver.vehicle.licensePlate = req.body.licensePlate || '';
+      }
+
+      driver.verificationStatus = 'pending';
+      return driver.save();
+    })
+    .then(function(driver) {
+      if (!driver) return;
+      res.status(200).json({
+        success: true,
+        message: 'Documents soumis pour verification',
+        driver: driver
+      });
+    })
+    .catch(function(error) {
+      console.error('Upload Documents Error:', error);
+      res.status(500).json({ success: false, message: 'Erreur lors du telechargement' });
+    });
+};
+
+// ========== VERIFICATION STATUS ==========
+
+exports.getVerificationStatus = function(req, res) {
+  Driver.findOne({ userId: req.user._id })
+    .then(function(driver) {
+      if (!driver) {
+        return res.status(404).json({ success: false, message: 'Profil non trouve' });
+      }
+      res.status(200).json({
+        success: true,
+        verificationStatus: driver.verificationStatus,
+        hasDocuments: !!(driver.nationalIdPhoto && driver.driverLicensePhoto),
+        documents: {
+          nationalIdPhoto: driver.nationalIdPhoto || null,
+          driverLicensePhoto: driver.driverLicensePhoto || null,
+          vehicleRegistrationPhoto: (driver.vehicle && driver.vehicle.registrationPhoto) || null
+        }
+      });
+    })
+    .catch(function(error) {
+      console.error('Get Verification Status Error:', error);
+      res.status(500).json({ success: false, message: 'Erreur' });
+    });
+};

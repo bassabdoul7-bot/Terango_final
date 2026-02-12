@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://terango-api.fly.dev/api';
@@ -56,6 +56,8 @@ export const authService = {
 };
 
 export const driverService = {
+uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  getVerificationStatus: () => api.get('/drivers/verification-status'),
   getProfile: () => api.get('/drivers/profile'),
   completeProfile: (data) => api.put('/drivers/complete-profile', data),
   
