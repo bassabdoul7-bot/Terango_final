@@ -51,7 +51,7 @@ var LoginScreen = function(props) {
 
   function handleLogin() {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Num\u00e9ro de t\u00e9l\u00e9phone invalide');
+      Alert.alert('Erreur', 'Numéro de téléphone invalide');
       return;
     }
     if (!pin || pin.length !== 4) {
@@ -69,7 +69,7 @@ var LoginScreen = function(props) {
 
   function handleForgotPin() {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Entrez votre num\u00e9ro d\'abord');
+      Alert.alert('Erreur', 'Entrez votre numéro d\'abord');
       return;
     }
     setLoading(true);
@@ -78,17 +78,17 @@ var LoginScreen = function(props) {
       if (response.success) {
         setForgotMode(true);
         setForgotStep('otp');
-        Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez votre email');
+        Alert.alert('Code envoyé', 'Vérifiez votre email');
       }
     }).catch(function(error) {
       setLoading(false);
-      Alert.alert('Erreur', error.message || 'Aucun email associ\u00e9');
+      Alert.alert('Erreur', error.message || 'Aucun email associé');
     });
   }
 
   function handleResetPin() {
     if (!otp || otp.length !== 6) {
-      Alert.alert('Erreur', 'Code \u00e0 6 chiffres requis');
+      Alert.alert('Erreur', 'Code à 6 chiffres requis');
       return;
     }
     if (!newPin || newPin.length !== 4) {
@@ -103,7 +103,7 @@ var LoginScreen = function(props) {
     authService.resetPin(fullPhone, otp, newPin).then(function(response) {
       setLoading(false);
       if (response.success) {
-        Alert.alert('Succ\u00e8s', 'PIN r\u00e9initialis\u00e9!');
+        Alert.alert('Succès', 'PIN réinitialisé!');
         setForgotMode(false);
         setOtp(''); setNewPin(''); setConfirmPin(''); setPin('');
       }
@@ -125,18 +125,18 @@ var LoginScreen = function(props) {
             </View>
             <Text style={styles.appTitle}>TeranGO</Text>
             <GlassCard style={styles.card}>
-              <Text style={styles.title}>R\u00e9initialiser PIN</Text>
-              <Text style={styles.subtitle}>Entrez le code re\u00e7u par email</Text>
+              <Text style={styles.title}>Réinitialiser PIN</Text>
+              <Text style={styles.subtitle}>Entrez le code reçu par email</Text>
               <Text style={styles.label}>Code (6 chiffres)</Text>
               <TextInput style={styles.input} placeholder='000000' placeholderTextColor={COLORS.grayLight}
                 value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
               <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
-              <TextInput style={styles.input} placeholder='\u2022\u2022\u2022\u2022' placeholderTextColor={COLORS.grayLight}
+              <TextInput style={styles.input} placeholder='••••' placeholderTextColor={COLORS.grayLight}
                 value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
               <Text style={styles.label}>Confirmer PIN</Text>
-              <TextInput style={styles.input} placeholder='\u2022\u2022\u2022\u2022' placeholderTextColor={COLORS.grayLight}
+              <TextInput style={styles.input} placeholder='••••' placeholderTextColor={COLORS.grayLight}
                 value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
-              <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
+              <GlassButton title={loading ? 'Envoi...' : 'Réinitialiser'} onPress={handleResetPin} loading={loading} />
               <GlassButton title='Retour' onPress={function() { setForgotMode(false); }} variant='outline' style={{ marginTop: 12 }} />
             </GlassCard>
           </ScrollView>
@@ -158,15 +158,15 @@ var LoginScreen = function(props) {
           <GlassCard style={styles.card}>
             <Text style={styles.title}>Connexion</Text>
             <Text style={styles.subtitle}>Connectez-vous avec votre PIN</Text>
-            <Text style={styles.label}>Num\u00e9ro de t\u00e9l\u00e9phone</Text>
+            <Text style={styles.label}>Numéro de téléphone</Text>
             <TextInput style={styles.input} placeholder='77 123 45 67' placeholderTextColor={COLORS.grayLight}
               value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
             <Text style={styles.label}>PIN (4 chiffres)</Text>
-            <TextInput style={styles.input} placeholder='\u2022\u2022\u2022\u2022' placeholderTextColor={COLORS.grayLight}
+            <TextInput style={styles.input} placeholder='••••' placeholderTextColor={COLORS.grayLight}
               value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
             <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
             <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
-              <Text style={{ color: COLORS.green, fontSize: 14 }}>PIN oubli\u00e9?</Text>
+              <Text style={{ color: COLORS.green, fontSize: 14 }}>PIN oublié?</Text>
             </TouchableOpacity>
           </GlassCard>
           <View style={styles.bottomSpacer} />

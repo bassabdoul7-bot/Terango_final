@@ -11,21 +11,22 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
 
 const LoginScreen = ({ navigation }) => {
-  const { login } = useAuth();
+  const { loginWithPin } = useAuth();
   const [phone, setPhone] = useState('');
   const [pin, setPin] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Forgot PIN states
   const [forgotMode, setForgotMode] = useState(false);
-  const [forgotStep, setForgotStep] = useState('phone');
   const [otp, setOtp] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
+  const fullPhone = phone.startsWith('+221') ? phone : '+221' + phone;
+
   const handleLogin = async () => {
     if (!phone || phone.length < 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro valide');
+      Alert.alert('Erreur', 'Numéro de téléphone invalide');
       return;
     }
     if (!pin || pin.length !== 4) {
@@ -34,11 +35,7 @@ const LoginScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      const fullPhone = '+221' + phone.replace(/\s/g, '');
-      const response = await authService.loginWithPin(fullPhone, pin);
-      if (response.success) {
-        await login(fullPhone, null, null, null, null, response.token, response.user);
-      }
+      await loginWithPin(fullPhone, pin);
     } catch (error) {
       Alert.alert('Erreur', error.message || 'PIN incorrect');
     } finally {
@@ -53,15 +50,13 @@ const LoginScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      const fullPhone = '+221' + phone.replace(/\s/g, '');
       const response = await authService.forgotPin(fullPhone);
       if (response.success) {
         setForgotMode(true);
-        setForgotStep('otp');
-        Alert.alert('Code envoyé', 'Vérifiez votre email pour le code de réinitialisation');
+        Alert.alert('Code envoyé', 'Vérifiez votre email');
       }
     } catch (error) {
-      Alert.alert('Erreur', error.message || 'Aucun email associé à ce numéro');
+      Alert.alert('Erreur', error.message || 'Aucun email associé');
     } finally {
       setLoading(false);
     }
@@ -69,7 +64,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleResetPin = async () => {
     if (!otp || otp.length !== 6) {
-      Alert.alert('Erreur', 'Code invalide');
+      Alert.alert('Erreur', 'Code à 6 chiffres requis');
       return;
     }
     if (!newPin || newPin.length !== 4) {
@@ -82,15 +77,11 @@ const LoginScreen = ({ navigation }) => {
     }
     setLoading(true);
     try {
-      const fullPhone = '+221' + phone.replace(/\s/g, '');
       const response = await authService.resetPin(fullPhone, otp, newPin);
       if (response.success) {
-        Alert.alert('Succès', 'PIN réinitialisé! Connectez-vous avec votre nouveau PIN.');
+        Alert.alert('Succès', 'PIN réinitialisé!');
         setForgotMode(false);
-        setForgotStep('phone');
-        setOtp('');
-        setNewPin('');
-        setConfirmPin('');
+        setOtp(''); setNewPin(''); setConfirmPin(''); setPin('');
       }
     } catch (error) {
       Alert.alert('Erreur', error.message || 'Code invalide');
@@ -113,19 +104,15 @@ const LoginScreen = ({ navigation }) => {
             <GlassCard style={styles.card}>
               <Text style={styles.title}>Réinitialiser PIN</Text>
               <Text style={styles.subtitle}>Entrez le code reçu par email</Text>
-
-              <Text style={styles.label}>Code de vérification</Text>
-              <TextInput style={styles.input} placeholder="123456" placeholderTextColor={COLORS.grayLight}
+              <Text style={styles.label}>Code (6 chiffres)</Text>
+              <TextInput style={styles.input} placeholder="000000" placeholderTextColor={COLORS.grayLight}
                 value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} />
-
               <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
               <TextInput style={styles.input} placeholder="••••" placeholderTextColor={COLORS.grayLight}
                 value={newPin} onChangeText={setNewPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
-
               <Text style={styles.label}>Confirmer PIN</Text>
               <TextInput style={styles.input} placeholder="••••" placeholderTextColor={COLORS.grayLight}
                 value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
-
               <GlassButton title={loading ? 'Envoi...' : 'Réinitialiser'} onPress={handleResetPin} loading={loading} />
               <GlassButton title="Retour" onPress={() => { setForgotMode(false); }} variant="outline" style={{ marginTop: 12 }} />
             </GlassCard>
@@ -148,33 +135,22 @@ const LoginScreen = ({ navigation }) => {
           <GlassCard style={styles.card}>
             <Text style={styles.title}>Bienvenue Chauffeur</Text>
             <Text style={styles.subtitle}>Connectez-vous avec votre PIN</Text>
-
             <Text style={styles.label}>Numéro de téléphone</Text>
-            <View style={styles.phoneRow}>
-              <View style={styles.countryCode}>
-                <Text style={styles.codeText}>+221</Text>
-              </View>
-              <TextInput style={[styles.input, styles.phoneInput]} placeholder="77 123 45 67"
-                placeholderTextColor={COLORS.grayLight} value={phone} onChangeText={setPhone}
-                keyboardType="phone-pad" maxLength={12} />
-            </View>
-
+            <TextInput style={styles.input} placeholder="77 123 45 67" placeholderTextColor={COLORS.grayLight}
+              value={phone} onChangeText={setPhone} keyboardType="phone-pad" returnKeyType="done" maxLength={12} />
             <Text style={styles.label}>PIN (4 chiffres)</Text>
             <TextInput style={styles.input} placeholder="••••" placeholderTextColor={COLORS.grayLight}
               value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
-
             <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
-
             <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
               <Text style={{ color: COLORS.green, fontSize: 14 }}>PIN oublié?</Text>
             </TouchableOpacity>
           </GlassCard>
-
+          <View style={styles.bottomSpacer} />
           <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
             <Text style={styles.registerText}>Nouveau chauffeur? </Text>
             <Text style={styles.registerBold}>S'inscrire</Text>
           </TouchableOpacity>
-          <View style={styles.bottomSpacer} />
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -188,19 +164,15 @@ const styles = StyleSheet.create({
   logoImageWrapper: { width: 120, height: 120, borderRadius: 60, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.white },
   logo: { width: 110, height: 110 },
   appTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.green, textAlign: 'center', marginBottom: 24 },
-  card: { backgroundColor: 'rgba(0,133,63,0.15)', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(0,133,63,0.3)', shadowColor: '#00853F', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20 },
+  card: { backgroundColor: 'rgba(0, 133, 63, 0.15)', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: 'rgba(0, 133, 63, 0.3)', shadowColor: '#00853F', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 20 },
   title: { fontSize: 24, fontWeight: 'bold', color: COLORS.black, marginBottom: 8 },
   subtitle: { fontSize: 14, color: COLORS.gray, marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '600', color: COLORS.black, marginBottom: 8 },
-  phoneRow: { flexDirection: 'row', marginBottom: 20 },
-  countryCode: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.white, paddingHorizontal: 12, borderRadius: 12, marginRight: 10, borderWidth: 1, borderColor: COLORS.grayLight },
-  codeText: { fontSize: 16, fontWeight: '600', color: COLORS.black },
-  phoneInput: { flex: 1, marginBottom: 0 },
   input: { backgroundColor: COLORS.white, borderRadius: 12, padding: 16, fontSize: 16, color: COLORS.black, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight },
-  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 20, marginBottom: 30 },
+  bottomSpacer: { height: 20 },
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
   registerText: { color: 'rgba(255,255,255,0.6)', fontSize: 15 },
   registerBold: { color: '#00A86B', fontSize: 15, fontWeight: 'bold' },
-  bottomSpacer: { height: 20 },
 });
 
 export default LoginScreen;

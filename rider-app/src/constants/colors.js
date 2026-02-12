@@ -2,7 +2,7 @@
 export const COLORS = {
   // Senegal Flag Colors
   green: '#00853F',
-  yellow: '#FDEF42',
+  yellow: '#FCD116',
   red: '#E31B23',
   
   // Neutrals
