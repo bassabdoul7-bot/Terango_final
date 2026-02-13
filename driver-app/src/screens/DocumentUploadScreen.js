@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Alert, Image,
   TouchableOpacity, TextInput, ActivityIndicator, Platform,
@@ -91,8 +91,8 @@ const DocumentUploadScreen = ({ onComplete }) => {
       Alert.alert('Erreur', "Date d'expiration du permis requise");
       return;
     }
-    if (!vehicleMake.trim() || !licensePlate.trim()) {
-      Alert.alert('Erreur', 'Marque du vehicule et plaque requises');
+    if (!vehicleMake.trim()) {
+      Alert.alert('Erreur', 'Marque du vehicule requise');
       return;
     }
 
@@ -166,7 +166,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
           <Image source={{ uri: photo.uri }} style={styles.previewImage} />
         ) : (
           <View style={styles.imagePickerInner}>
-            <Text style={styles.imagePickerIcon}>{cameraOnly ? '🤳' : '📷'}</Text>
+            <Text style={styles.imagePickerIcon}>{cameraOnly ? 'ðŸ¤³' : 'ðŸ“·'}</Text>
             <Text style={styles.imagePickerText}>
               {cameraOnly ? 'Prendre un selfie' : 'Appuyez pour ajouter'}
             </Text>
@@ -179,7 +179,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.logoCircle}>
-        <Text style={styles.logoText}>📋</Text>
+        <Text style={styles.logoText}>ðŸ“‹</Text>
       </View>
       <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
       <Text style={styles.subtitle}>Soumettez vos documents pour verification</Text>
@@ -232,7 +232,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
         <TextInput style={styles.input} placeholder="Ex: Blanc" placeholderTextColor={COLORS.grayLight}
           value={vehicleColor} onChangeText={setVehicleColor} />
 
-        <Text style={styles.label}>Plaque d'immatriculation <Text style={styles.required}>*</Text></Text>
+        <Text style={styles.label}>Plaque d'immatriculation (optionnel)</Text>
         <TextInput style={styles.input} placeholder="Ex: DK-1234-AB" placeholderTextColor={COLORS.grayLight}
           value={licensePlate} onChangeText={setLicensePlate} autoCapitalize="characters" />
 
@@ -292,3 +292,5 @@ const styles = StyleSheet.create({
 });
 
 export default DocumentUploadScreen;
+
+

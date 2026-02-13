@@ -464,7 +464,7 @@ exports.uploadDocuments = function(req, res) {
         driver.driverLicense = req.body.driverLicenseNumber;
       }
       if (req.body.licenseExpiryDate) {
-        driver.licenseExpiryDate = new Date(req.body.licenseExpiryDate);
+        var parts = req.body.licenseExpiryDate.split('/'); if (parts.length === 3) { driver.licenseExpiryDate = new Date(parts[2] + '-' + parts[1] + '-' + parts[0]); }
       }
 
       if (req.body.vehicleMake) {
