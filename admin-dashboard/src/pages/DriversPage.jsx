@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../services/api';
-import { CheckCircle, XCircle, Clock, Search, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
+import { CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye, X, AlertTriangle } from 'lucide-react';
 
 var statusColors = {
   approved: 'text-emerald-400 bg-emerald-400/10',
@@ -53,6 +53,17 @@ export default function DriversPage() {
     return name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
   });
 
+  function isExpired(dateStr) {
+    if (!dateStr) return false;
+    return new Date(dateStr) < new Date();
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    var d = new Date(dateStr);
+    return d.toLocaleDateString('fr-FR');
+  }
+
   function renderDocumentModal() {
     if (!selectedDriver) return null;
     var d = selectedDriver;
@@ -60,10 +71,11 @@ export default function DriversPage() {
     var phone = (d.userId && d.userId.phone) || 'N/A';
     var email = (d.userId && d.userId.email) || 'N/A';
     var vehicle = d.vehicle || {};
+    var expired = isExpired(d.licenseExpiryDate);
 
     return (
       <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={function() { setSelectedDriver(null); }}>
-        <div className="bg-gray-900 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-gray-700" onClick={function(e) { e.stopPropagation(); }}>
+        <div className="bg-gray-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-gray-700" onClick={function(e) { e.stopPropagation(); }}>
           <div className="flex items-center justify-between p-6 border-b border-gray-800">
             <div>
               <h2 className="text-xl font-bold text-white">{name}</h2>
@@ -75,54 +87,115 @@ export default function DriversPage() {
           </div>
 
           <div className="p-6">
+            {(d.selfiePhoto || d.nationalIdPhoto) && (
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Verification d'identite</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-800 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-2">Selfie</p>
+                    {d.selfiePhoto ? (
+                      <img src={d.selfiePhoto} alt="Selfie" className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                        onClick={function() { setViewingImage(d.selfiePhoto); }} />
+                    ) : (
+                      <div className="w-full h-48 rounded-lg bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">Non soumis</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-gray-800 rounded-xl p-3">
+                    <p className="text-xs text-gray-400 mb-2">Carte d'Identite (CNI)</p>
+                    {d.nationalIdPhoto ? (
+                      <img src={d.nationalIdPhoto} alt="CNI" className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                        onClick={function() { setViewingImage(d.nationalIdPhoto); }} />
+                    ) : (
+                      <div className="w-full h-48 rounded-lg bg-gray-700 flex items-center justify-center">
+                        <span className="text-gray-500 text-sm">Non soumis</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {d.nationalId && (
+                  <div className="mt-2 bg-gray-800 rounded-lg p-3">
+                    <span className="text-xs text-gray-500">Numero CNI: </span>
+                    <span className="text-white font-mono">{d.nationalId}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase mb-2">Vehicule</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <span className="text-xs text-gray-500">Marque/Modele</span>
-                  <p className="text-white">{(vehicle.make || '-') + ' ' + (vehicle.model || '')}</p>
+              <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Permis de conduire</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-800 rounded-xl p-3">
+                  {d.driverLicensePhoto ? (
+                    <img src={d.driverLicensePhoto} alt="Permis" className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                      onClick={function() { setViewingImage(d.driverLicensePhoto); }} />
+                  ) : (
+                    <div className="w-full h-48 rounded-lg bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Non soumis</span>
+                    </div>
+                  )}
                 </div>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <span className="text-xs text-gray-500">Plaque</span>
-                  <p className="text-white">{vehicle.licensePlate || '-'}</p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <span className="text-xs text-gray-500">Couleur</span>
-                  <p className="text-white">{vehicle.color || '-'}</p>
-                </div>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <span className="text-xs text-gray-500">Annee</span>
-                  <p className="text-white">{vehicle.year || '-'}</p>
+                <div className="space-y-2">
+                  <div className="bg-gray-800 rounded-lg p-3">
+                    <span className="text-xs text-gray-500">Numero du permis</span>
+                    <p className="text-white font-mono">{d.driverLicense || '-'}</p>
+                  </div>
+                  <div className={'rounded-lg p-3 ' + (expired ? 'bg-red-900/30 border border-red-500/30' : 'bg-gray-800')}>
+                    <span className="text-xs text-gray-500">Date d'expiration</span>
+                    <div className="flex items-center gap-2">
+                      <p className={expired ? 'text-red-400 font-bold' : 'text-white'}>{formatDate(d.licenseExpiryDate)}</p>
+                      {expired && <AlertTriangle size={16} className="text-red-400" />}
+                    </div>
+                    {expired && <p className="text-red-400 text-xs mt-1">PERMIS EXPIRE</p>}
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="mb-6">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Documents</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { label: "Carte d'Identite", url: d.nationalIdPhoto },
-                  { label: "Permis de conduire", url: d.driverLicensePhoto },
-                  { label: "Carte grise", url: vehicle.registrationPhoto }
-                ].map(function(doc, i) {
-                  return (
-                    <div key={i} className="bg-gray-800 rounded-xl p-3">
-                      <p className="text-xs text-gray-400 mb-2">{doc.label}</p>
-                      {doc.url ? (
-                        <img
-                          src={doc.url}
-                          alt={doc.label}
-                          className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                          onClick={function() { setViewingImage(doc.url); }}
-                        />
-                      ) : (
-                        <div className="w-full h-40 rounded-lg bg-gray-700 flex items-center justify-center">
-                          <span className="text-gray-500 text-sm">Non soumis</span>
-                        </div>
-                      )}
+              <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Vehicule</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <span className="text-xs text-gray-500">Marque</span>
+                  <p className="text-white">{vehicle.make || '-'}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <span className="text-xs text-gray-500">Modele</span>
+                  <p className="text-white">{vehicle.model || '-'}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <span className="text-xs text-gray-500">Plaque</span>
+                  <p className="text-white font-mono">{vehicle.licensePlate || '-'}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <span className="text-xs text-gray-500">Couleur / Annee</span>
+                  <p className="text-white">{(vehicle.color || '-') + ' / ' + (vehicle.year || '-')}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-800 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-2">Carte grise</p>
+                  {vehicle.registrationPhoto ? (
+                    <img src={vehicle.registrationPhoto} alt="Carte grise" className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                      onClick={function() { setViewingImage(vehicle.registrationPhoto); }} />
+                  ) : (
+                    <div className="w-full h-40 rounded-lg bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Non soumis</span>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+                <div className="bg-gray-800 rounded-xl p-3">
+                  <p className="text-xs text-gray-400 mb-2">Assurance</p>
+                  {vehicle.insurancePhoto ? (
+                    <img src={vehicle.insurancePhoto} alt="Assurance" className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80"
+                      onClick={function() { setViewingImage(vehicle.insurancePhoto); }} />
+                  ) : (
+                    <div className="w-full h-40 rounded-lg bg-gray-700 flex items-center justify-center">
+                      <span className="text-gray-500 text-sm">Non soumis</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -138,20 +211,17 @@ export default function DriversPage() {
                 </button>
               </div>
             )}
-
             {d.verificationStatus === 'approved' && (
               <div className="pt-4 border-t border-gray-800 text-center">
                 <span className="px-4 py-2 rounded-full bg-emerald-400/10 text-emerald-400 font-medium">Chauffeur approuve</span>
               </div>
             )}
-
             {d.verificationStatus === 'rejected' && (
-              <div className="flex gap-3 pt-4 border-t border-gray-800">
-                <div className="flex-1 text-center">
-                  <span className="px-4 py-2 rounded-full bg-red-400/10 text-red-400 font-medium">Rejete</span>
-                </div>
+              <div className="flex gap-3 pt-4 border-t border-gray-800 items-center">
+                <span className="px-4 py-2 rounded-full bg-red-400/10 text-red-400 font-medium">Rejete</span>
+                {d.rejectionReason && <span className="text-gray-400 text-sm">Raison: {d.rejectionReason}</span>}
                 <button onClick={function() { handleVerify(d._id, 'approved'); }}
-                  className="px-6 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 font-medium hover:bg-emerald-500/20 transition-colors">
+                  className="ml-auto px-6 py-2 rounded-xl bg-emerald-500/10 text-emerald-400 font-medium hover:bg-emerald-500/20">
                   Reapprouver
                 </button>
               </div>
@@ -168,7 +238,7 @@ export default function DriversPage() {
       <div className="fixed inset-0 bg-black/90 z-[60] flex items-center justify-center p-4" onClick={function() { setViewingImage(null); }}>
         <img src={viewingImage} alt="Document" className="max-w-full max-h-full object-contain rounded-lg" />
         <button onClick={function() { setViewingImage(null); }}
-          className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
+          className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20">
           <X size={24} className="text-white" />
         </button>
       </div>
@@ -209,7 +279,7 @@ export default function DriversPage() {
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">CHAUFFEUR</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">TELEPHONE</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">VEHICULE</th>
-                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DOCUMENTS</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DOCS</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">STATUT</th>
                 <th className="text-right text-xs text-gray-500 font-medium px-6 py-4">ACTIONS</th>
               </tr>
@@ -222,7 +292,8 @@ export default function DriversPage() {
                 var status = driver.verificationStatus || 'pending';
                 var hasId = !!driver.nationalIdPhoto;
                 var hasLicense = !!driver.driverLicensePhoto;
-                var docCount = (hasId ? 1 : 0) + (hasLicense ? 1 : 0);
+                var hasSelfie = !!driver.selfiePhoto;
+                var docCount = (hasId ? 1 : 0) + (hasLicense ? 1 : 0) + (hasSelfie ? 1 : 0);
 
                 return (
                   <tr key={driver._id} className="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
@@ -231,8 +302,8 @@ export default function DriversPage() {
                     <td className="px-6 py-4 text-gray-400">{phone}</td>
                     <td className="px-6 py-4 text-gray-400">{vehicle.trim() || 'N/A'}</td>
                     <td className="px-6 py-4">
-                      <span className={'text-xs font-medium ' + (docCount >= 2 ? 'text-emerald-400' : docCount > 0 ? 'text-yellow-400' : 'text-gray-500')}>
-                        {docCount}/2
+                      <span className={'text-xs font-medium ' + (docCount >= 3 ? 'text-emerald-400' : docCount > 0 ? 'text-yellow-400' : 'text-gray-500')}>
+                        {docCount}/3
                       </span>
                     </td>
                     <td className="px-6 py-4">

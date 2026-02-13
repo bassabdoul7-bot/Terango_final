@@ -136,7 +136,6 @@ exports.updateLocation = function(req, res) {
           });
         }
 
-        // Also emit to active delivery room
         Delivery.findOne({
           driver: driver._id,
           status: { $in: ['accepted', 'picked_up', 'in_transit', 'at_pickup'] }
@@ -445,10 +444,27 @@ exports.uploadDocuments = function(req, res) {
         if (req.files.driverLicense) {
           driver.driverLicensePhoto = req.files.driverLicense[0].path;
         }
+        if (req.files.selfie) {
+          driver.selfiePhoto = req.files.selfie[0].path;
+        }
         if (req.files.vehicleRegistration) {
           if (!driver.vehicle) driver.vehicle = {};
           driver.vehicle.registrationPhoto = req.files.vehicleRegistration[0].path;
         }
+        if (req.files.insurance) {
+          if (!driver.vehicle) driver.vehicle = {};
+          driver.vehicle.insurancePhoto = req.files.insurance[0].path;
+        }
+      }
+
+      if (req.body.nationalIdNumber) {
+        driver.nationalId = req.body.nationalIdNumber;
+      }
+      if (req.body.driverLicenseNumber) {
+        driver.driverLicense = req.body.driverLicenseNumber;
+      }
+      if (req.body.licenseExpiryDate) {
+        driver.licenseExpiryDate = new Date(req.body.licenseExpiryDate);
       }
 
       if (req.body.vehicleMake) {
@@ -488,11 +504,14 @@ exports.getVerificationStatus = function(req, res) {
       res.status(200).json({
         success: true,
         verificationStatus: driver.verificationStatus,
+        rejectionReason: driver.rejectionReason || null,
         hasDocuments: !!(driver.nationalIdPhoto && driver.driverLicensePhoto),
         documents: {
           nationalIdPhoto: driver.nationalIdPhoto || null,
           driverLicensePhoto: driver.driverLicensePhoto || null,
-          vehicleRegistrationPhoto: (driver.vehicle && driver.vehicle.registrationPhoto) || null
+          selfiePhoto: driver.selfiePhoto || null,
+          vehicleRegistrationPhoto: (driver.vehicle && driver.vehicle.registrationPhoto) || null,
+          insurancePhoto: (driver.vehicle && driver.vehicle.insurancePhoto) || null
         }
       });
     })

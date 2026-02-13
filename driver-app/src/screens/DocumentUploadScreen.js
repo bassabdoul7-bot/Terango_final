@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Alert, Image,
-  TouchableOpacity, TextInput, ActivityIndicator,
+  TouchableOpacity, TextInput, ActivityIndicator, Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import GlassButton from '../components/GlassButton';
@@ -10,9 +10,14 @@ import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 
 const DocumentUploadScreen = ({ onComplete }) => {
+  const [selfiePhoto, setSelfiePhoto] = useState(null);
   const [nationalIdPhoto, setNationalIdPhoto] = useState(null);
   const [driverLicensePhoto, setDriverLicensePhoto] = useState(null);
   const [vehicleRegPhoto, setVehicleRegPhoto] = useState(null);
+  const [insurancePhoto, setInsurancePhoto] = useState(null);
+  const [nationalIdNumber, setNationalIdNumber] = useState('');
+  const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
   const [vehicleModel, setVehicleModel] = useState('');
   const [vehicleYear, setVehicleYear] = useState('');
@@ -49,7 +54,11 @@ const DocumentUploadScreen = ({ onComplete }) => {
     if (!result.canceled) setter(result.assets[0]);
   };
 
-  const showImageOptions = (setter) => {
+  const showImageOptions = (setter, cameraOnly) => {
+    if (cameraOnly) {
+      takePhoto(setter);
+      return;
+    }
     Alert.alert('Ajouter une photo', 'Choisissez une option', [
       { text: 'Prendre une photo', onPress: () => takePhoto(setter) },
       { text: 'Galerie', onPress: () => pickImage(setter) },
@@ -58,12 +67,28 @@ const DocumentUploadScreen = ({ onComplete }) => {
   };
 
   const handleSubmit = async () => {
+    if (!selfiePhoto) {
+      Alert.alert('Erreur', 'Prenez un selfie pour verifier votre identite');
+      return;
+    }
     if (!nationalIdPhoto) {
       Alert.alert('Erreur', "Photo de la Carte Nationale d'Identite requise");
       return;
     }
+    if (!nationalIdNumber.trim()) {
+      Alert.alert('Erreur', "Numero de la Carte Nationale d'Identite requis");
+      return;
+    }
     if (!driverLicensePhoto) {
       Alert.alert('Erreur', 'Photo du Permis de conduire requise');
+      return;
+    }
+    if (!driverLicenseNumber.trim()) {
+      Alert.alert('Erreur', 'Numero du Permis de conduire requis');
+      return;
+    }
+    if (!licenseExpiryDate.trim()) {
+      Alert.alert('Erreur', "Date d'expiration du permis requise");
       return;
     }
     if (!vehicleMake.trim() || !licensePlate.trim()) {
@@ -74,6 +99,12 @@ const DocumentUploadScreen = ({ onComplete }) => {
     setLoading(true);
     try {
       const formData = new FormData();
+
+      formData.append('selfie', {
+        uri: selfiePhoto.uri,
+        type: 'image/jpeg',
+        name: 'selfie.jpg',
+      });
       formData.append('nationalId', {
         uri: nationalIdPhoto.uri,
         type: 'image/jpeg',
@@ -91,6 +122,17 @@ const DocumentUploadScreen = ({ onComplete }) => {
           name: 'vehicle_reg.jpg',
         });
       }
+      if (insurancePhoto) {
+        formData.append('insurance', {
+          uri: insurancePhoto.uri,
+          type: 'image/jpeg',
+          name: 'insurance.jpg',
+        });
+      }
+
+      formData.append('nationalIdNumber', nationalIdNumber);
+      formData.append('driverLicenseNumber', driverLicenseNumber);
+      formData.append('licenseExpiryDate', licenseExpiryDate);
       formData.append('vehicleMake', vehicleMake);
       formData.append('vehicleModel', vehicleModel);
       formData.append('vehicleYear', vehicleYear || '2020');
@@ -111,21 +153,23 @@ const DocumentUploadScreen = ({ onComplete }) => {
     }
   };
 
-  const renderImagePicker = (label, photo, setter, required) => (
+  const renderImagePicker = (label, photo, setter, required, cameraOnly) => (
     <View style={styles.imageSection}>
       <Text style={styles.imageLabel}>
         {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
       <TouchableOpacity
         style={[styles.imagePicker, photo && styles.imagePickerWithPhoto]}
-        onPress={() => showImageOptions(setter)}
+        onPress={() => showImageOptions(setter, cameraOnly)}
       >
         {photo ? (
           <Image source={{ uri: photo.uri }} style={styles.previewImage} />
         ) : (
           <View style={styles.imagePickerInner}>
-            <Text style={styles.imagePickerIcon}>📷</Text>
-            <Text style={styles.imagePickerText}>Appuyez pour ajouter</Text>
+            <Text style={styles.imagePickerIcon}>{cameraOnly ? '🤳' : '📷'}</Text>
+            <Text style={styles.imagePickerText}>
+              {cameraOnly ? 'Prendre un selfie' : 'Appuyez pour ajouter'}
+            </Text>
           </View>
         )}
       </TouchableOpacity>
@@ -140,13 +184,35 @@ const DocumentUploadScreen = ({ onComplete }) => {
       <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
       <Text style={styles.subtitle}>Soumettez vos documents pour verification</Text>
 
+      {/* SELFIE SECTION */}
       <GlassCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Documents requis</Text>
-        {renderImagePicker("Carte Nationale d'Identite", nationalIdPhoto, setNationalIdPhoto, true)}
-        {renderImagePicker("Permis de conduire", driverLicensePhoto, setDriverLicensePhoto, true)}
-        {renderImagePicker("Carte grise du vehicule", vehicleRegPhoto, setVehicleRegPhoto, false)}
+        <Text style={styles.sectionTitle}>Verification d'identite</Text>
+        {renderImagePicker("Selfie (photo de vous)", selfiePhoto, setSelfiePhoto, true, true)}
+        <Text style={styles.hintText}>Prenez une photo claire de votre visage. Elle sera comparee avec votre CNI.</Text>
       </GlassCard>
 
+      {/* DOCUMENTS SECTION */}
+      <GlassCard style={styles.card}>
+        <Text style={styles.sectionTitle}>Documents requis</Text>
+
+        {renderImagePicker("Carte Nationale d'Identite (CNI)", nationalIdPhoto, setNationalIdPhoto, true, false)}
+
+        <Text style={styles.label}>Numero CNI <Text style={styles.required}>*</Text></Text>
+        <TextInput style={styles.input} placeholder="Ex: 1234567890123" placeholderTextColor={COLORS.grayLight}
+          value={nationalIdNumber} onChangeText={setNationalIdNumber} keyboardType="number-pad" />
+
+        {renderImagePicker("Permis de conduire", driverLicensePhoto, setDriverLicensePhoto, true, false)}
+
+        <Text style={styles.label}>Numero du permis <Text style={styles.required}>*</Text></Text>
+        <TextInput style={styles.input} placeholder="Ex: PC-12345" placeholderTextColor={COLORS.grayLight}
+          value={driverLicenseNumber} onChangeText={setDriverLicenseNumber} autoCapitalize="characters" />
+
+        <Text style={styles.label}>Date d'expiration du permis <Text style={styles.required}>*</Text></Text>
+        <TextInput style={styles.input} placeholder="JJ/MM/AAAA" placeholderTextColor={COLORS.grayLight}
+          value={licenseExpiryDate} onChangeText={setLicenseExpiryDate} keyboardType="number-pad" maxLength={10} />
+      </GlassCard>
+
+      {/* VEHICLE SECTION */}
       <GlassCard style={styles.card}>
         <Text style={styles.sectionTitle}>Informations du vehicule</Text>
 
@@ -169,6 +235,9 @@ const DocumentUploadScreen = ({ onComplete }) => {
         <Text style={styles.label}>Plaque d'immatriculation <Text style={styles.required}>*</Text></Text>
         <TextInput style={styles.input} placeholder="Ex: DK-1234-AB" placeholderTextColor={COLORS.grayLight}
           value={licensePlate} onChangeText={setLicensePlate} autoCapitalize="characters" />
+
+        {renderImagePicker("Carte grise du vehicule", vehicleRegPhoto, setVehicleRegPhoto, false, false)}
+        {renderImagePicker("Assurance du vehicule", insurancePhoto, setInsurancePhoto, false, false)}
       </GlassCard>
 
       <View style={styles.buttonContainer}>
@@ -212,12 +281,13 @@ const styles = StyleSheet.create({
   imagePickerIcon: { fontSize: 32, marginBottom: 8 },
   imagePickerText: { fontSize: 14, color: COLORS.gray },
   previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  label: { fontSize: 14, fontWeight: '600', color: COLORS.black, marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: '600', color: COLORS.black, marginBottom: 8, marginTop: 4 },
   input: {
     backgroundColor: COLORS.white, borderRadius: 12, padding: 16,
     fontSize: 16, color: COLORS.black, marginBottom: 16,
     borderWidth: 1, borderColor: COLORS.grayLight,
   },
+  hintText: { fontSize: 12, color: COLORS.gray, marginTop: -12, marginBottom: 8, fontStyle: 'italic' },
   buttonContainer: { marginTop: 8, marginBottom: 16 },
 });
 
