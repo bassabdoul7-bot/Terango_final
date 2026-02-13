@@ -1,49 +1,27 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, Alert, Image,
-  TouchableOpacity, TextInput, ActivityIndicator, Platform,
+  TouchableOpacity, TextInput, ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import GlassButton from '../components/GlassButton';
-import GlassCard from '../components/GlassCard';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 
 const DocumentUploadScreen = ({ onComplete }) => {
+  const [step, setStep] = useState(1);
+  const [vehicleType, setVehicleType] = useState(null);
   const [selfiePhoto, setSelfiePhoto] = useState(null);
   const [nationalIdPhoto, setNationalIdPhoto] = useState(null);
   const [driverLicensePhoto, setDriverLicensePhoto] = useState(null);
   const [vehicleRegPhoto, setVehicleRegPhoto] = useState(null);
-  const [insurancePhoto, setInsurancePhoto] = useState(null);
-  const [nationalIdNumber, setNationalIdNumber] = useState('');
-  const [driverLicenseNumber, setDriverLicenseNumber] = useState('');
-  const [licenseExpiryDate, setLicenseExpiryDate] = useState('');
   const [vehicleMake, setVehicleMake] = useState('');
-  const [vehicleModel, setVehicleModel] = useState('');
-  const [vehicleYear, setVehicleYear] = useState('');
-  const [vehicleColor, setVehicleColor] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [loading, setLoading] = useState(false);
-
-  const pickImage = async (setter) => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin de votre permission pour les photos.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 0.8,
-    });
-    if (!result.canceled) setter(result.assets[0]);
-  };
 
   const takePhoto = async (setter) => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Nous avons besoin de la camera.');
+      Alert.alert('Permission requise', 'Activez la camera pour continuer.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -54,243 +32,256 @@ const DocumentUploadScreen = ({ onComplete }) => {
     if (!result.canceled) setter(result.assets[0]);
   };
 
-  const showImageOptions = (setter, cameraOnly) => {
-    if (cameraOnly) {
-      takePhoto(setter);
-      return;
-    }
-    Alert.alert('Ajouter une photo', 'Choisissez une option', [
-      { text: 'Prendre une photo', onPress: () => takePhoto(setter) },
-      { text: 'Galerie', onPress: () => pickImage(setter) },
+  const pickOrTakePhoto = (setter) => {
+    Alert.alert('Photo', '', [
+      { text: 'Camera', onPress: () => takePhoto(setter) },
+      {
+        text: 'Galerie', onPress: async () => {
+          const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') return;
+          const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.8,
+          });
+          if (!result.canceled) setter(result.assets[0]);
+        }
+      },
       { text: 'Annuler', style: 'cancel' },
     ]);
   };
 
   const handleSubmit = async () => {
-    if (!selfiePhoto) {
-      Alert.alert('Erreur', 'Prenez un selfie pour verifier votre identite');
-      return;
-    }
-    if (!nationalIdPhoto) {
-      Alert.alert('Erreur', "Photo de la Carte Nationale d'Identite requise");
-      return;
-    }
-    if (!nationalIdNumber.trim()) {
-      Alert.alert('Erreur', "Numero de la Carte Nationale d'Identite requis");
-      return;
-    }
-    if (!driverLicensePhoto) {
-      Alert.alert('Erreur', 'Photo du Permis de conduire requise');
-      return;
-    }
-    if (!driverLicenseNumber.trim()) {
-      Alert.alert('Erreur', 'Numero du Permis de conduire requis');
-      return;
-    }
-    if (!licenseExpiryDate.trim()) {
-      Alert.alert('Erreur', "Date d'expiration du permis requise");
-      return;
-    }
-    if (!vehicleMake.trim()) {
-      Alert.alert('Erreur', 'Marque du vehicule requise');
-      return;
-    }
-
     setLoading(true);
     try {
       const formData = new FormData();
-
-      formData.append('selfie', {
-        uri: selfiePhoto.uri,
-        type: 'image/jpeg',
-        name: 'selfie.jpg',
-      });
-      formData.append('nationalId', {
-        uri: nationalIdPhoto.uri,
-        type: 'image/jpeg',
-        name: 'national_id.jpg',
-      });
-      formData.append('driverLicense', {
-        uri: driverLicensePhoto.uri,
-        type: 'image/jpeg',
-        name: 'driver_license.jpg',
-      });
+      formData.append('selfie', { uri: selfiePhoto.uri, type: 'image/jpeg', name: 'selfie.jpg' });
+      formData.append('nationalId', { uri: nationalIdPhoto.uri, type: 'image/jpeg', name: 'cni.jpg' });
+      formData.append('driverLicense', { uri: driverLicensePhoto.uri, type: 'image/jpeg', name: 'permis.jpg' });
       if (vehicleRegPhoto) {
-        formData.append('vehicleRegistration', {
-          uri: vehicleRegPhoto.uri,
-          type: 'image/jpeg',
-          name: 'vehicle_reg.jpg',
-        });
+        formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
       }
-      if (insurancePhoto) {
-        formData.append('insurance', {
-          uri: insurancePhoto.uri,
-          type: 'image/jpeg',
-          name: 'insurance.jpg',
-        });
-      }
-
-      formData.append('nationalIdNumber', nationalIdNumber);
-      formData.append('driverLicenseNumber', driverLicenseNumber);
-      formData.append('licenseExpiryDate', licenseExpiryDate);
       formData.append('vehicleMake', vehicleMake);
-      formData.append('vehicleModel', vehicleModel);
-      formData.append('vehicleYear', vehicleYear || '2020');
-      formData.append('vehicleColor', vehicleColor);
-      formData.append('licensePlate', licensePlate);
+      formData.append('vehicleType', vehicleType);
+      if (licensePlate) formData.append('licensePlate', licensePlate);
 
       await driverService.uploadDocuments(formData);
       Alert.alert(
-        'Documents soumis!',
-        'Vos documents sont en cours de verification. Vous serez notifie une fois approuve.',
+        'Documents soumis !',
+        'Votre compte est en cours de verification. Vous recevrez une notification.',
         [{ text: 'OK', onPress: onComplete }]
       );
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Erreur', "Erreur lors de l'envoi. Reessayez.");
+      Alert.alert('Erreur', "Reessayez s'il vous plait.");
     } finally {
       setLoading(false);
     }
   };
 
-  const renderImagePicker = (label, photo, setter, required, cameraOnly) => (
-    <View style={styles.imageSection}>
-      <Text style={styles.imageLabel}>
-        {label} {required && <Text style={styles.required}>*</Text>}
-      </Text>
-      <TouchableOpacity
-        style={[styles.imagePicker, photo && styles.imagePickerWithPhoto]}
-        onPress={() => showImageOptions(setter, cameraOnly)}
-      >
-        {photo ? (
-          <Image source={{ uri: photo.uri }} style={styles.previewImage} />
-        ) : (
-          <View style={styles.imagePickerInner}>
-            <Text style={styles.imagePickerIcon}>{cameraOnly ? 'ðŸ¤³' : 'ðŸ“·'}</Text>
-            <Text style={styles.imagePickerText}>
-              {cameraOnly ? 'Prendre un selfie' : 'Appuyez pour ajouter'}
-            </Text>
-          </View>
-        )}
-      </TouchableOpacity>
-    </View>
+  const PhotoBox = ({ label, photo, onPress, icon }) => (
+    <TouchableOpacity style={[styles.photoBox, photo && styles.photoBoxDone]} onPress={onPress}>
+      {photo ? (
+        <Image source={{ uri: photo.uri }} style={styles.photoPreview} />
+      ) : (
+        <View style={styles.photoPlaceholder}>
+          <Text style={styles.photoIcon}>{icon || '📷'}</Text>
+          <Text style={styles.photoLabel}>{label}</Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.logoCircle}>
-        <Text style={styles.logoText}>ðŸ“‹</Text>
+  // ===== STEP 1: VEHICLE TYPE =====
+  if (step === 1) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.title}>Bienvenue sur TeranGO</Text>
+          <Text style={styles.subtitle}>Quel type de vehicule utilisez-vous ?</Text>
+
+          <TouchableOpacity
+            style={[styles.typeCard, vehicleType === 'car' && styles.typeCardSelected]}
+            onPress={() => setVehicleType('car')}
+          >
+            <Text style={styles.typeIcon}>🚗</Text>
+            <Text style={[styles.typeText, vehicleType === 'car' && styles.typeTextSelected]}>Voiture / Taxi</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.typeCard, vehicleType === 'moto' && styles.typeCardSelected]}
+            onPress={() => setVehicleType('moto')}
+          >
+            <Text style={styles.typeIcon}>🏍️</Text>
+            <Text style={[styles.typeText, vehicleType === 'moto' && styles.typeTextSelected]}>Moto / Jakarta</Text>
+          </TouchableOpacity>
+
+          {vehicleType && (
+            <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(2)}>
+              <Text style={styles.nextBtnText}>Continuer</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
-      <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
-      <Text style={styles.subtitle}>Soumettez vos documents pour verification</Text>
+    );
+  }
 
-      {/* SELFIE SECTION */}
-      <GlassCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Verification d'identite</Text>
-        {renderImagePicker("Selfie (photo de vous)", selfiePhoto, setSelfiePhoto, true, true)}
-        <Text style={styles.hintText}>Prenez une photo claire de votre visage. Elle sera comparee avec votre CNI.</Text>
-      </GlassCard>
+  // ===== STEP 2: PHOTOS =====
+  if (step === 2) {
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>Vos documents</Text>
+        <Text style={styles.subtitle}>Prenez des photos claires</Text>
 
-      {/* DOCUMENTS SECTION */}
-      <GlassCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Documents requis</Text>
+        <Text style={styles.sectionLabel}>Selfie</Text>
+        <PhotoBox label="Prenez un selfie" photo={selfiePhoto} onPress={() => takePhoto(setSelfiePhoto)} icon="🤳" />
 
-        {renderImagePicker("Carte Nationale d'Identite (CNI)", nationalIdPhoto, setNationalIdPhoto, true, false)}
+        <Text style={styles.sectionLabel}>Carte Nationale d'Identite (CNI)</Text>
+        <PhotoBox label="Photo de votre CNI" photo={nationalIdPhoto} onPress={() => pickOrTakePhoto(setNationalIdPhoto)} icon="🪪" />
 
-        <Text style={styles.label}>Numero CNI <Text style={styles.required}>*</Text></Text>
-        <TextInput style={styles.input} placeholder="Ex: 1234567890123" placeholderTextColor={COLORS.grayLight}
-          value={nationalIdNumber} onChangeText={setNationalIdNumber} keyboardType="number-pad" />
+        <Text style={styles.sectionLabel}>Permis de conduire</Text>
+        <PhotoBox label="Photo de votre permis" photo={driverLicensePhoto} onPress={() => pickOrTakePhoto(setDriverLicensePhoto)} icon="📄" />
 
-        {renderImagePicker("Permis de conduire", driverLicensePhoto, setDriverLicensePhoto, true, false)}
+        {vehicleType === 'car' && (
+          <>
+            <Text style={styles.sectionLabel}>Carte grise du vehicule</Text>
+            <PhotoBox label="Photo de la carte grise" photo={vehicleRegPhoto} onPress={() => pickOrTakePhoto(setVehicleRegPhoto)} icon="📋" />
+          </>
+        )}
 
-        <Text style={styles.label}>Numero du permis <Text style={styles.required}>*</Text></Text>
-        <TextInput style={styles.input} placeholder="Ex: PC-12345" placeholderTextColor={COLORS.grayLight}
-          value={driverLicenseNumber} onChangeText={setDriverLicenseNumber} autoCapitalize="characters" />
+        <View style={{ height: 16 }} />
+        {selfiePhoto && nationalIdPhoto && driverLicensePhoto && (vehicleType === 'moto' || vehicleRegPhoto) ? (
+          <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(3)}>
+            <Text style={styles.nextBtnText}>Continuer</Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.hintText}>Ajoutez toutes les photos pour continuer</Text>
+        )}
 
-        <Text style={styles.label}>Date d'expiration du permis <Text style={styles.required}>*</Text></Text>
-        <TextInput style={styles.input} placeholder="JJ/MM/AAAA" placeholderTextColor={COLORS.grayLight}
-          value={licenseExpiryDate} onChangeText={setLicenseExpiryDate} keyboardType="number-pad" maxLength={10} />
-      </GlassCard>
+        <TouchableOpacity onPress={() => setStep(1)} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>Retour</Text>
+        </TouchableOpacity>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    );
+  }
 
-      {/* VEHICLE SECTION */}
-      <GlassCard style={styles.card}>
-        <Text style={styles.sectionTitle}>Informations du vehicule</Text>
+  // ===== STEP 3: VEHICLE INFO =====
+  if (step === 3) {
+    const isCar = vehicleType === 'car';
+    return (
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <Text style={styles.title}>Votre {isCar ? 'vehicule' : 'moto'}</Text>
+        <Text style={styles.subtitle}>Derniere etape !</Text>
 
-        <Text style={styles.label}>Marque <Text style={styles.required}>*</Text></Text>
-        <TextInput style={styles.input} placeholder="Ex: Toyota" placeholderTextColor={COLORS.grayLight}
-          value={vehicleMake} onChangeText={setVehicleMake} />
+        <Text style={styles.sectionLabel}>{isCar ? 'Marque et modele' : 'Marque de la moto'}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={isCar ? 'Ex: Toyota Corolla' : 'Ex: Jakarta Haojue'}
+          placeholderTextColor="#999"
+          value={vehicleMake}
+          onChangeText={setVehicleMake}
+        />
 
-        <Text style={styles.label}>Modele</Text>
-        <TextInput style={styles.input} placeholder="Ex: Corolla" placeholderTextColor={COLORS.grayLight}
-          value={vehicleModel} onChangeText={setVehicleModel} />
+        {isCar ? (
+          <>
+            <Text style={styles.sectionLabel}>Plaque d'immatriculation</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ex: DK-1234-AB"
+              placeholderTextColor="#999"
+              value={licensePlate}
+              onChangeText={setLicensePlate}
+              autoCapitalize="characters"
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.sectionLabel}>Plaque (si disponible)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Optionnel"
+              placeholderTextColor="#999"
+              value={licensePlate}
+              onChangeText={setLicensePlate}
+              autoCapitalize="characters"
+            />
+          </>
+        )}
 
-        <Text style={styles.label}>Annee</Text>
-        <TextInput style={styles.input} placeholder="Ex: 2020" placeholderTextColor={COLORS.grayLight}
-          value={vehicleYear} onChangeText={setVehicleYear} keyboardType="number-pad" maxLength={4} />
-
-        <Text style={styles.label}>Couleur</Text>
-        <TextInput style={styles.input} placeholder="Ex: Blanc" placeholderTextColor={COLORS.grayLight}
-          value={vehicleColor} onChangeText={setVehicleColor} />
-
-        <Text style={styles.label}>Plaque d'immatriculation (optionnel)</Text>
-        <TextInput style={styles.input} placeholder="Ex: DK-1234-AB" placeholderTextColor={COLORS.grayLight}
-          value={licensePlate} onChangeText={setLicensePlate} autoCapitalize="characters" />
-
-        {renderImagePicker("Carte grise du vehicule", vehicleRegPhoto, setVehicleRegPhoto, false, false)}
-        {renderImagePicker("Assurance du vehicule", insurancePhoto, setInsurancePhoto, false, false)}
-      </GlassCard>
-
-      <View style={styles.buttonContainer}>
+        <View style={{ height: 24 }} />
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.green} />
         ) : (
-          <GlassButton title="Soumettre les documents" onPress={handleSubmit} />
+          <TouchableOpacity
+            style={[styles.nextBtn, (!vehicleMake.trim() || (isCar && !licensePlate.trim())) && styles.nextBtnDisabled]}
+            onPress={handleSubmit}
+            disabled={!vehicleMake.trim() || (isCar && !licensePlate.trim())}
+          >
+            <Text style={styles.nextBtnText}>Soumettre</Text>
+          </TouchableOpacity>
         )}
-      </View>
-      <View style={{ height: 40 }} />
-    </ScrollView>
-  );
+
+        <TouchableOpacity onPress={() => setStep(2)} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>Retour</Text>
+        </TouchableOpacity>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    );
+  }
+
+  return null;
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  content: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(0,133,63,0.15)', alignSelf: 'center',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  centered: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
+  scrollContent: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
+  title: {
+    fontSize: 26, fontWeight: '800', color: '#00853F',
+    textAlign: 'center', marginBottom: 8,
   },
-  logoText: { fontSize: 36 },
-  appTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.green, textAlign: 'center', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: COLORS.gray, textAlign: 'center', marginBottom: 24 },
-  card: {
-    backgroundColor: 'rgba(0, 133, 63, 0.08)', borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: 'rgba(0, 133, 63, 0.2)', marginBottom: 16,
+  subtitle: {
+    fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 32,
   },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: COLORS.black, marginBottom: 16 },
-  imageSection: { marginBottom: 20 },
-  imageLabel: { fontSize: 14, fontWeight: '600', color: COLORS.black, marginBottom: 8 },
-  required: { color: COLORS.red },
-  imagePicker: {
-    height: 160, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed',
-    borderColor: COLORS.grayLight, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: COLORS.white, overflow: 'hidden',
+  typeCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F5F5F5', borderRadius: 16, padding: 20,
+    marginBottom: 12, borderWidth: 2, borderColor: 'transparent',
   },
-  imagePickerWithPhoto: { borderStyle: 'solid', borderColor: COLORS.green },
-  imagePickerInner: { alignItems: 'center' },
-  imagePickerIcon: { fontSize: 32, marginBottom: 8 },
-  imagePickerText: { fontSize: 14, color: COLORS.gray },
-  previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  label: { fontSize: 14, fontWeight: '600', color: COLORS.black, marginBottom: 8, marginTop: 4 },
+  typeCardSelected: {
+    borderColor: '#00853F', backgroundColor: 'rgba(0,133,63,0.05)',
+  },
+  typeIcon: { fontSize: 36, marginRight: 16 },
+  typeText: { fontSize: 18, fontWeight: '600', color: '#333' },
+  typeTextSelected: { color: '#00853F' },
+  nextBtn: {
+    backgroundColor: '#00853F', borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', marginTop: 16,
+  },
+  nextBtnDisabled: { opacity: 0.4 },
+  nextBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
+  backBtn: { alignItems: 'center', marginTop: 16, paddingVertical: 12 },
+  backBtnText: { color: '#999', fontSize: 15 },
+  sectionLabel: {
+    fontSize: 15, fontWeight: '700', color: '#333', marginBottom: 8, marginTop: 16,
+  },
+  photoBox: {
+    height: 150, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed',
+    borderColor: '#DDD', overflow: 'hidden', backgroundColor: '#FAFAFA',
+  },
+  photoBoxDone: { borderStyle: 'solid', borderColor: '#00853F' },
+  photoPlaceholder: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+  },
+  photoIcon: { fontSize: 32, marginBottom: 6 },
+  photoLabel: { fontSize: 14, color: '#999' },
+  photoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
   input: {
-    backgroundColor: COLORS.white, borderRadius: 12, padding: 16,
-    fontSize: 16, color: COLORS.black, marginBottom: 16,
-    borderWidth: 1, borderColor: COLORS.grayLight,
+    backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16,
+    fontSize: 16, color: '#333', borderWidth: 1, borderColor: '#EEE',
   },
-  hintText: { fontSize: 12, color: COLORS.gray, marginTop: -12, marginBottom: 8, fontStyle: 'italic' },
-  buttonContainer: { marginTop: 8, marginBottom: 16 },
+  hintText: {
+    fontSize: 13, color: '#999', textAlign: 'center', marginTop: 8,
+  },
 });
 
 export default DocumentUploadScreen;
-
-

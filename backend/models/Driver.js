@@ -5,11 +5,15 @@ var driverSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  vehicleType: {
+    type: String,
+    enum: ['car', 'moto'],
+    default: 'car'
+  },
   nationalId: { type: String, required: false },
   nationalIdPhoto: { type: String, required: false },
   driverLicense: { type: String, required: false },
   driverLicensePhoto: { type: String, required: false },
-  licenseExpiryDate: { type: Date, required: false },
   selfiePhoto: { type: String, required: false },
   vehicle: {
     make: String,
@@ -26,9 +30,6 @@ var driverSchema = new mongoose.Schema({
     default: 'pending'
   },
   rejectionReason: { type: String },
-  verifiedAt: { type: Date },
-  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  adminNotes: { type: String },
   isOnline: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: true },
   acceptedServices: {
