@@ -428,6 +428,9 @@ exports.getServicePreferences = function(req, res) {
     });
 };
 
+
+
+
 // ========== DOCUMENT UPLOAD ==========
 
 exports.uploadDocuments = function(req, res) {
@@ -436,64 +439,36 @@ exports.uploadDocuments = function(req, res) {
       if (!driver) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
-
+      if (req.body.vehicleType) driver.vehicleType = req.body.vehicleType;
       if (req.files) {
-        if (req.files.nationalId) {
-          driver.nationalIdPhoto = req.files.nationalId[0].path;
-        }
-        if (req.files.driverLicense) {
-          driver.driverLicensePhoto = req.files.driverLicense[0].path;
-        }
-        if (req.files.selfie) {
-          driver.selfiePhoto = req.files.selfie[0].path;
-        }
+        if (req.files.selfie) driver.selfiePhoto = req.files.selfie[0].path;
+        if (req.files.nationalId) driver.nationalIdPhoto = req.files.nationalId[0].path;
+        if (req.files.driverLicense) driver.driverLicensePhoto = req.files.driverLicense[0].path;
         if (req.files.vehicleRegistration) {
           if (!driver.vehicle) driver.vehicle = {};
           driver.vehicle.registrationPhoto = req.files.vehicleRegistration[0].path;
         }
-        if (req.files.insurance) {
-          if (!driver.vehicle) driver.vehicle = {};
-          driver.vehicle.insurancePhoto = req.files.insurance[0].path;
-        }
       }
-
-      if (req.body.nationalIdNumber) {
-        driver.nationalId = req.body.nationalIdNumber;
-      }
-      if (req.body.driverLicenseNumber) {
-        driver.driverLicense = req.body.driverLicenseNumber;
-      }
-      if (req.body.licenseExpiryDate) {
-        var parts = req.body.licenseExpiryDate.split('/'); if (parts.length === 3) { driver.licenseExpiryDate = new Date(parts[2] + '-' + parts[1] + '-' + parts[0]); }
-      }
-
       if (req.body.vehicleMake) {
         if (!driver.vehicle) driver.vehicle = {};
         driver.vehicle.make = req.body.vehicleMake;
-        driver.vehicle.model = req.body.vehicleModel || '';
-        driver.vehicle.year = req.body.vehicleYear || 2020;
-        driver.vehicle.color = req.body.vehicleColor || '';
-        driver.vehicle.licensePlate = req.body.licensePlate || '';
       }
-
+      if (req.body.licensePlate) {
+        if (!driver.vehicle) driver.vehicle = {};
+        driver.vehicle.licensePlate = req.body.licensePlate;
+      }
       driver.verificationStatus = 'pending';
       return driver.save();
     })
     .then(function(driver) {
       if (!driver) return;
-      res.status(200).json({
-        success: true,
-        message: 'Documents soumis pour verification',
-        driver: driver
-      });
+      res.status(200).json({ success: true, message: 'Documents soumis', driver: driver });
     })
     .catch(function(error) {
       console.error('Upload Documents Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors du telechargement' });
+      res.status(500).json({ success: false, message: 'Erreur upload' });
     });
 };
-
-// ========== VERIFICATION STATUS ==========
 
 exports.getVerificationStatus = function(req, res) {
   Driver.findOne({ userId: req.user._id })
@@ -507,11 +482,10 @@ exports.getVerificationStatus = function(req, res) {
         rejectionReason: driver.rejectionReason || null,
         hasDocuments: !!(driver.nationalIdPhoto && driver.driverLicensePhoto),
         documents: {
+          selfiePhoto: driver.selfiePhoto || null,
           nationalIdPhoto: driver.nationalIdPhoto || null,
           driverLicensePhoto: driver.driverLicensePhoto || null,
-          selfiePhoto: driver.selfiePhoto || null,
-          vehicleRegistrationPhoto: (driver.vehicle && driver.vehicle.registrationPhoto) || null,
-          insurancePhoto: (driver.vehicle && driver.vehicle.insurancePhoto) || null
+          vehicleRegistrationPhoto: (driver.vehicle && driver.vehicle.registrationPhoto) || null
         }
       });
     })
