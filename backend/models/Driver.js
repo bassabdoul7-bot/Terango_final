@@ -1,5 +1,4 @@
 ﻿var mongoose = require('mongoose');
-
 var driverSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -10,6 +9,8 @@ var driverSchema = new mongoose.Schema({
   nationalIdPhoto: { type: String, required: false },
   driverLicense: { type: String, required: false },
   driverLicensePhoto: { type: String, required: false },
+  licenseExpiryDate: { type: Date, required: false },
+  selfiePhoto: { type: String, required: false },
   vehicle: {
     make: String,
     model: String,
@@ -24,6 +25,10 @@ var driverSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending'
   },
+  rejectionReason: { type: String },
+  verifiedAt: { type: Date },
+  verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  adminNotes: { type: String },
   isOnline: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: true },
   acceptedServices: {
@@ -57,5 +62,4 @@ var driverSchema = new mongoose.Schema({
   },
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
-
 module.exports = mongoose.model('Driver', driverSchema);
