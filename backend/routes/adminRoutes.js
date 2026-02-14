@@ -57,5 +57,6 @@ router.put('/users/:id/reject-photo', rejectPhoto);
 router.post('/partners', createPartner);
 router.get('/partners', getAllPartners);
 router.put('/partners/:id/verify', verifyPartner);
+router.put('/partners/:id/verify', verifyPartner);
 
 module.exports = router;

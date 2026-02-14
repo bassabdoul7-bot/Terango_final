@@ -468,3 +468,29 @@ exports.verifyPartner = async function(req, res) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// @desc    Verify (approve/reject) a partner
+// @route   PUT /api/admin/partners/:id/verify
+// @access  Private (Admin)
+exports.verifyPartner = async function(req, res) {
+  try {
+    var { status, reason } = req.body;
+    var partner = await Partner.findById(req.params.id);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found' });
+    }
+    partner.verificationStatus = status;
+    if (status === 'rejected' && reason) {
+      partner.rejectionReason = reason;
+    }
+    await partner.save();
+    res.json({
+      success: true,
+      message: 'Partner ' + status,
+      partner: { id: partner._id, verificationStatus: partner.verificationStatus }
+    });
+  } catch (error) {
+    console.error('Verify partner error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

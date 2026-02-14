@@ -86,4 +86,29 @@ var partnerUpload = multer({
 var { registerPartner } = require('../controllers/authController');
 router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartner);
 
+
+// Partner registration with ID upload
+var multer = require('multer');
+var cloudinary = require('cloudinary').v2;
+var { CloudinaryStorage } = require('multer-storage-cloudinary');
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+var partnerStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'terango-partners',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
+    transformation: [{ width: 800, height: 800, crop: 'limit' }]
+  }
+});
+var partnerUpload = multer({
+  storage: partnerStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
+var { registerPartner } = require('../controllers/authController');
+router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartner);
+
 module.exports = router;
