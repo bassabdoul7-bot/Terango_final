@@ -382,7 +382,8 @@ exports.createPartner = async (req, res) => {
       businessName: businessName,
       businessPhone: businessPhone || phone,
       businessAddress: businessAddress || '',
-      commissionRate: commissionRate || 3
+      commissionRate: commissionRate || 3,
+      verificationStatus: 'approved'
     });
 
     res.status(201).json({

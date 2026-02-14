@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api';
 
 export default function LoginPage() {
+  var [mode, setMode] = useState('admin');
   var [email, setEmail] = useState('');
   var [password, setPassword] = useState('');
   var [loading, setLoading] = useState(false);
@@ -18,10 +19,18 @@ export default function LoginPage() {
 
     authService.login(email, password).then(function(res) {
       if (res.success) {
-        if (res.user.role === 'partner') {
-          // Check if partner is approved - we let them in and show status on dashboard
+        var userData = res.user;
+        if (mode === 'partner' && userData.role !== 'partner') {
+          setError('Ce compte n\'est pas un compte partenaire');
+          setLoading(false);
+          return;
         }
-        login(res.token, res.user);
+        if (mode === 'admin' && userData.role !== 'admin') {
+          setError('Ce compte n\'est pas un compte administrateur');
+          setLoading(false);
+          return;
+        }
+        login(res.token, userData);
         navigate('/');
       } else {
         setError(res.message || 'Erreur de connexion');
@@ -38,11 +47,29 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-emerald-400 mb-2">TeranGO</h1>
-          <p className="text-gray-500">Connexion</p>
+          <p className="text-gray-500">{mode === 'admin' ? 'Administration' : 'Espace Partenaire'}</p>
         </div>
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
+          <div className="flex mb-6 bg-gray-800 rounded-lg p-1">
+            <button
+              type="button"
+              onClick={function() { setMode('admin'); setError(''); }}
+              className={'flex-1 py-2 rounded-md text-sm font-medium transition-colors ' + (mode === 'admin' ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-white')}
+            >
+              Admin
+            </button>
+            <button
+              type="button"
+              onClick={function() { setMode('partner'); setError(''); }}
+              className={'flex-1 py-2 rounded-md text-sm font-medium transition-colors ' + (mode === 'partner' ? 'bg-emerald-500 text-white' : 'text-gray-400 hover:text-white')}
+            >
+              Partenaire
+            </button>
+          </div>
+
           <h2 className="text-xl font-semibold text-white mb-6">Se connecter</h2>
           {error && <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4 text-red-400 text-sm">{error}</div>}
+
           <form onSubmit={handleSubmit}>
             <label className="block text-sm text-gray-400 mb-2">Email</label>
             <input
@@ -65,14 +92,17 @@ export default function LoginPage() {
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
-          <div className="mt-6 text-center">
-            <p className="text-gray-500 text-sm">
-              Pas de compte partenaire ?{' '}
-              <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">
-                Inscrivez-vous !
-              </Link>
-            </p>
-          </div>
+
+          {mode === 'partner' && (
+            <div className="mt-6 text-center">
+              <p className="text-gray-500 text-sm">
+                Pas de compte partenaire ?{' '}
+                <Link to="/register" className="text-emerald-400 hover:text-emerald-300 font-medium">
+                  Inscrivez-vous !
+                </Link>
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
