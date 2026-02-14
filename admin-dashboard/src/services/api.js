@@ -38,7 +38,18 @@ export var adminService = {
   toggleUserStatus: function(id) { return api.put('/admin/users/' + id + '/status'); },
   getPendingPhotos: function() { return api.get('/admin/pending-photos'); },
   approvePhoto: function(id) { return api.put('/admin/users/' + id + '/approve-photo'); },
-  rejectPhoto: function(id, reason) { return api.put('/admin/users/' + id + '/reject-photo', { reason: reason }); }
+  rejectPhoto: function(id, reason) { return api.put('/admin/users/' + id + '/reject-photo', { reason: reason }); },
+  getPartners: function() { return api.get('/admin/partners'); },
+  createPartner: function(data) { return api.post('/admin/partners', data); },
+  verifyPartner: function(id, status, reason) { return api.put('/admin/partners/' + id + '/verify', { status: status, reason: reason }); }
+};
+
+export var partnerService = {
+  getDashboard: function() { return api.get('/partners/dashboard'); },
+  getDrivers: function() { return api.get('/partners/drivers'); },
+  registerDriver: function(data) { return api.post('/partners/register-driver', data); },
+  getEarnings: function() { return api.get('/partners/earnings'); },
+  getProfile: function() { return api.get('/partners/profile'); }
 };
 
 export default api;

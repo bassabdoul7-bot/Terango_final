@@ -1,3 +1,4 @@
+var Partner = require('../models/Partner');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
@@ -209,7 +210,7 @@ exports.adminLogin = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email et mot de passe requis' });
     }
-    const user = await User.findOne({ email: email.toLowerCase(), role: 'admin' }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase(), role: { $in: ['admin', 'partner'] } }).select('+password');
     if (!user) {
       return res.status(401).json({ success: false, message: 'Identifiants invalides' });
     }
@@ -435,5 +436,72 @@ exports.resetPin = async (req, res) => {
   } catch (error) {
     console.error('Reset PIN Error:', error);
     res.status(500).json({ success: false, message: 'Erreur lors de la réinitialisation' });
+  }
+};
+
+// @desc    Partner self-registration
+// @route   POST /api/auth/register-partner
+// @access  Public
+exports.registerPartner = async (req, res) => {
+  try {
+    var { name, phone, email, password, businessName, businessAddress } = req.body;
+
+    if (!name || !phone || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom, telephone, email et mot de passe sont requis'
+      });
+    }
+
+    // Check existing
+    var existingEmail = await User.findOne({ email: email.toLowerCase() });
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'Email deja utilise' });
+    }
+    var existingPhone = await User.findOne({ phone: phone });
+    if (existingPhone) {
+      return res.status(400).json({ success: false, message: 'Telephone deja utilise' });
+    }
+
+    var salt = await bcrypt.genSalt(10);
+    var hashedPassword = await bcrypt.hash(password, salt);
+
+    var user = await User.create({
+      name: name,
+      phone: phone,
+      email: email.toLowerCase(),
+      password: hashedPassword,
+      role: 'partner',
+      isActive: true
+    });
+
+    // Get ID photo URL from multer/cloudinary if uploaded
+    var idPhotoUrl = '';
+    if (req.file) {
+      idPhotoUrl = req.file.path || req.file.secure_url || '';
+    }
+
+    var partner = await Partner.create({
+      userId: user._id,
+      businessName: businessName || name,
+      businessPhone: phone,
+      businessAddress: businessAddress || '',
+      idPhoto: idPhotoUrl,
+      verificationStatus: 'pending',
+      commissionRate: 3
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Inscription reussie. Votre compte est en attente de validation.',
+      partner: {
+        id: partner._id,
+        name: user.name,
+        verificationStatus: 'pending'
+      }
+    });
+  } catch (error) {
+    console.error('Partner Registration Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
