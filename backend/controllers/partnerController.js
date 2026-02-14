@@ -284,3 +284,65 @@ exports.getProfile = async function(req, res) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+
+// @desc    Partner uploads documents for one of their drivers
+// @route   PUT /api/partners/drivers/:driverId/upload-documents
+// @access  Private (Partner)
+exports.uploadDriverDocuments = async function(req, res) {
+  try {
+    var partner = await Partner.findOne({ userId: req.user._id });
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner profile not found' });
+    }
+
+    var driver = await Driver.findOne({ _id: req.params.driverId, partnerId: partner._id });
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Driver not found or not yours' });
+    }
+
+    // Update vehicle type
+    if (req.body.vehicleType) driver.vehicleType = req.body.vehicleType;
+
+    // Update photos from uploaded files
+    if (req.files) {
+      if (req.files.selfie) driver.selfiePhoto = req.files.selfie[0].path;
+      if (req.files.nationalId) driver.nationalIdPhoto = req.files.nationalId[0].path;
+      if (req.files.driverLicense) driver.driverLicensePhoto = req.files.driverLicense[0].path;
+      if (req.files.vehicleRegistration) {
+        if (!driver.vehicle) driver.vehicle = {};
+        driver.vehicle.registrationPhoto = req.files.vehicleRegistration[0].path;
+      }
+    }
+
+    // Update vehicle info
+    if (req.body.vehicleMake) {
+      if (!driver.vehicle) driver.vehicle = {};
+      driver.vehicle.make = req.body.vehicleMake;
+    }
+    if (req.body.licensePlate) {
+      if (!driver.vehicle) driver.vehicle = {};
+      driver.vehicle.licensePlate = req.body.licensePlate;
+    }
+
+    driver.verificationStatus = 'pending';
+    await driver.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Documents uploaded successfully',
+      driver: {
+        id: driver._id,
+        vehicleType: driver.vehicleType,
+        verificationStatus: driver.verificationStatus,
+        selfiePhoto: driver.selfiePhoto || null,
+        nationalIdPhoto: driver.nationalIdPhoto || null,
+        driverLicensePhoto: driver.driverLicensePhoto || null,
+        vehicleRegistration: driver.vehicle ? driver.vehicle.registrationPhoto : null
+      }
+    });
+  } catch (error) {
+    console.error('Partner upload driver docs error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
