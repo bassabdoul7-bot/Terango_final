@@ -1,4 +1,4 @@
-require('dotenv').config({ override: false });
+﻿require('dotenv').config({ override: false });
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -38,6 +38,7 @@ const driverRoutes = require('./routes/driverRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
+const partnerRoutes = require('./routes/partnerRoutes');
 
 app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
 
@@ -47,6 +48,7 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/partners', partnerRoutes);
 app.use('/api/orders', require('./routes/orderRoutes'));
 
 // Health check
@@ -87,16 +89,16 @@ setInterval(async function() {
     var redisOk = true;
     try { await driverLocationService.getOnlineDriversCount(); } catch(e) { redisOk = false; }
 
-    if (!mongoOk && lastAlertStatus.mongo === 'ok') sendTelegramAlert('ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â¨ TeranGO: MongoDB is DOWN! ' + new Date().toISOString());
-    if (mongoOk && lastAlertStatus.mongo === 'down') sendTelegramAlert('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ TeranGO: MongoDB recovered! ' + new Date().toISOString());
-    if (!redisOk && lastAlertStatus.redis === 'ok') sendTelegramAlert('ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â¨ TeranGO: Redis is DOWN! ' + new Date().toISOString());
-    if (redisOk && lastAlertStatus.redis === 'down') sendTelegramAlert('ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ TeranGO: Redis recovered! ' + new Date().toISOString());
+    if (!mongoOk && lastAlertStatus.mongo === 'ok') sendTelegramAlert('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ TeranGO: MongoDB is DOWN! ' + new Date().toISOString());
+    if (mongoOk && lastAlertStatus.mongo === 'down') sendTelegramAlert('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ TeranGO: MongoDB recovered! ' + new Date().toISOString());
+    if (!redisOk && lastAlertStatus.redis === 'ok') sendTelegramAlert('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨ TeranGO: Redis is DOWN! ' + new Date().toISOString());
+    if (redisOk && lastAlertStatus.redis === 'down') sendTelegramAlert('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ TeranGO: Redis recovered! ' + new Date().toISOString());
 
     lastAlertStatus = { redis: redisOk ? 'ok' : 'down', mongo: mongoOk ? 'ok' : 'down' };
   } catch(e) { console.log('Monitor error:', e.message); }
 }, 2 * 60 * 1000);
 
-setTimeout(function() { sendTelegramAlert('ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚Â¢ TeranGO Server Started!\nRedis: ok\nMongo: ok\nTime: ' + new Date().toISOString()); }, 8000);
+setTimeout(function() { sendTelegramAlert('ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ TeranGO Server Started!\nRedis: ok\nMongo: ok\nTime: ' + new Date().toISOString()); }, 8000);
 
 // Self-ping every 4 minutes to prevent Fly auto-stop
 setInterval(function() {

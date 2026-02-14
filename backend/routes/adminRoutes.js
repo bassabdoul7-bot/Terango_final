@@ -13,7 +13,10 @@ const {
   toggleUserStatus,
   getPendingPhotos,
   approvePhoto,
-  rejectPhoto
+  rejectPhoto,
+  createPartner,
+  getAllPartners,
+  verifyPartner
 } = require('../controllers/adminController');
 
 // All routes are admin-only
@@ -49,5 +52,10 @@ router.put('/users/:id/status', toggleUserStatus);
 router.get('/pending-photos', getPendingPhotos);
 router.put('/users/:id/approve-photo', approvePhoto);
 router.put('/users/:id/reject-photo', rejectPhoto);
+
+// Partner management
+router.post('/partners', createPartner);
+router.get('/partners', getAllPartners);
+router.put('/partners/:id/verify', verifyPartner);
 
 module.exports = router;

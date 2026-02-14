@@ -5,6 +5,16 @@ var driverSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  partnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Partner',
+    default: null
+  },
+  registeredBy: {
+    type: String,
+    enum: ['self', 'partner'],
+    default: 'self'
+  },
   vehicleType: {
     type: String,
     enum: ['car', 'moto'],

@@ -1,3 +1,5 @@
+var Partner = require('../models/Partner');
+var bcrypt = require('bcryptjs');
 ﻿const User = require('../models/User');
 const Driver = require('../models/Driver');
 const Rider = require('../models/Rider');
@@ -338,5 +340,130 @@ exports.rejectPhoto = async (req, res) => {
   } catch (error) {
     console.error('Reject Photo Error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Create a new partner account
+// @route   POST /api/admin/partners
+// @access  Private (Admin)
+exports.createPartner = async (req, res) => {
+  try {
+    var { name, phone, email, pin, businessName, businessPhone, businessAddress, commissionRate } = req.body;
+
+    if (!name || !phone || !pin || !businessName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, phone, PIN, and business name are required'
+      });
+    }
+
+    var existingUser = await User.findOne({ phone: phone });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number already registered'
+      });
+    }
+
+    var salt = await bcrypt.genSalt(10);
+    var hashedPin = await bcrypt.hash(pin, salt);
+
+    var user = await User.create({
+      name: name,
+      phone: phone,
+      email: email || '',
+      pin: hashedPin,
+      role: 'partner',
+      isActive: true
+    });
+
+    var partner = await Partner.create({
+      userId: user._id,
+      businessName: businessName,
+      businessPhone: businessPhone || phone,
+      businessAddress: businessAddress || '',
+      commissionRate: commissionRate || 3
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Partner created successfully',
+      partner: {
+        id: partner._id,
+        userId: user._id,
+        name: user.name,
+        phone: user.phone,
+        businessName: partner.businessName,
+        commissionRate: partner.commissionRate
+      }
+    });
+  } catch (error) {
+    console.error('Create partner error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Get all partners
+// @route   GET /api/admin/partners
+// @access  Private (Admin)
+exports.getAllPartners = async (req, res) => {
+  try {
+    var partners = await Partner.find().populate('userId', 'name phone email').sort({ createdAt: -1 });
+
+    var Driver = require('../models/Driver');
+    var partnerList = [];
+    for (var i = 0; i < partners.length; i++) {
+      var p = partners[i];
+      var driverCount = await Driver.countDocuments({ partnerId: p._id });
+      partnerList.push({
+        id: p._id,
+        name: p.userId ? p.userId.name : '',
+        phone: p.userId ? p.userId.phone : '',
+        email: p.userId ? p.userId.email : '',
+        businessName: p.businessName,
+        commissionRate: p.commissionRate,
+        totalEarnings: p.totalEarnings,
+        totalDrivers: driverCount,
+        isActive: p.isActive,
+        idPhoto: p.idPhoto || '',
+        verificationStatus: p.verificationStatus || 'approved',
+        createdAt: p.createdAt
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      count: partnerList.length,
+      partners: partnerList
+    });
+  } catch (error) {
+    console.error('Get partners error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// @desc    Verify (approve/reject) a partner
+// @route   PUT /api/admin/partners/:id/verify
+// @access  Private (Admin)
+exports.verifyPartner = async function(req, res) {
+  try {
+    var { status, reason } = req.body;
+    var partner = await Partner.findById(req.params.id);
+    if (!partner) {
+      return res.status(404).json({ success: false, message: 'Partner not found' });
+    }
+    partner.verificationStatus = status;
+    if (status === 'rejected' && reason) {
+      partner.rejectionReason = reason;
+    }
+    await partner.save();
+    res.json({
+      success: true,
+      message: 'Partner ' + status,
+      partner: { id: partner._id, verificationStatus: partner.verificationStatus }
+    });
+  } catch (error) {
+    console.error('Verify partner error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

@@ -1,7 +1,8 @@
-const Ride = require('../models/Ride');
+﻿const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
+const Partner = require('../models/Partner');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
 const { calculateFare, calculateEarnings } = require('../utils/fare');
 
@@ -16,7 +17,7 @@ exports.createRide = async (req, res) => {
     if (!rider) {
       return res.status(404).json({
         success: false,
-        message: 'Profil passager non trouvé'
+        message: 'Profil passager non trouvÃ©'
       });
     }
 
@@ -64,7 +65,7 @@ exports.createRide = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Demande de course créée',
+      message: 'Demande de course crÃ©Ã©e',
       ride: {
         id: ride._id,
         pickup: ride.pickup,
@@ -81,7 +82,7 @@ exports.createRide = async (req, res) => {
     console.error('Create Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la création de la course'
+      message: 'Erreur lors de la crÃ©ation de la course'
     });
   }
 };
@@ -98,7 +99,7 @@ exports.getRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
@@ -111,7 +112,7 @@ exports.getRide = async (req, res) => {
     console.error('Get Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération de la course'
+      message: 'Erreur lors de la rÃ©cupÃ©ration de la course'
     });
   }
 };
@@ -138,7 +139,7 @@ exports.getMyRides = async (req, res) => {
     console.error('Get My Rides Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des courses'
+      message: 'Erreur lors de la rÃ©cupÃ©ration des courses'
     });
   }
 };
@@ -153,14 +154,14 @@ exports.acceptRide = async (req, res) => {
     if (!driver) {
       return res.status(404).json({
         success: false,
-        message: 'Profil chauffeur non trouvé'
+        message: 'Profil chauffeur non trouvÃ©'
       });
     }
 
     if (!driver.isOnline) {
       return res.status(400).json({
         success: false,
-        message: 'Vous devez être en ligne pour accepter une course'
+        message: 'Vous devez Ãªtre en ligne pour accepter une course'
       });
     }
 
@@ -182,7 +183,7 @@ exports.acceptRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course acceptée',
+      message: 'Course acceptÃ©e',
       ride: result.ride
     });
 
@@ -206,7 +207,7 @@ exports.rejectRide = async (req, res) => {
     if (!driver) {
       return res.status(404).json({
         success: false,
-        message: 'Profil chauffeur non trouvé'
+        message: 'Profil chauffeur non trouvÃ©'
       });
     }
 
@@ -215,7 +216,7 @@ exports.rejectRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course rejetée'
+      message: 'Course rejetÃ©e'
     });
 
   } catch (error) {
@@ -238,7 +239,7 @@ exports.updateRideStatus = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
@@ -247,7 +248,7 @@ exports.updateRideStatus = async (req, res) => {
     if (ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisé'
+        message: 'Non autorisÃ©'
       });
     }
 
@@ -284,7 +285,7 @@ exports.updateRideStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Statut mis à jour',
+      message: 'Statut mis Ã  jour',
       ride
     });
 
@@ -292,7 +293,7 @@ exports.updateRideStatus = async (req, res) => {
     console.error('Update Ride Status Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise à jour du statut'
+      message: 'Erreur lors de la mise Ã  jour du statut'
     });
   }
 };
@@ -307,7 +308,7 @@ exports.startRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
@@ -316,14 +317,14 @@ exports.startRide = async (req, res) => {
     if (!driver || ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisé'
+        message: 'Non autorisÃ©'
       });
     }
 
     if (ride.status !== 'arrived') {
       return res.status(400).json({
         success: false,
-        message: 'Vous devez d\'abord arriver au point de départ'
+        message: 'Vous devez d\'abord arriver au point de dÃ©part'
       });
     }
 
@@ -345,7 +346,7 @@ exports.startRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course démarrée',
+      message: 'Course dÃ©marrÃ©e',
       ride
     });
 
@@ -353,7 +354,7 @@ exports.startRide = async (req, res) => {
     console.error('Start Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors du démarrage de la course'
+      message: 'Erreur lors du dÃ©marrage de la course'
     });
   }
 };
@@ -368,7 +369,7 @@ exports.completeRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
@@ -378,15 +379,25 @@ exports.completeRide = async (req, res) => {
     if (!driver || ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisé'
+        message: 'Non autorisÃ©'
       });
     }
 
     if (ride.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
-        message: 'La course doit être en cours pour être terminée'
+        message: 'La course doit Ãªtre en cours pour Ãªtre terminÃ©e'
       });
+    }
+
+    // Recalculate commission if driver has a partner
+    var hasPartner = !!(driver.partnerId);
+    var partnerEarnings = calculateEarnings(ride.fare, hasPartner);
+    ride.platformCommission = partnerEarnings.platformCommission;
+    ride.driverEarnings = partnerEarnings.driverEarnings;
+    ride.partnerCommission = partnerEarnings.partnerCommission;
+    if (driver.partnerId) {
+      ride.partnerId = driver.partnerId;
     }
 
     // Complete the ride
@@ -395,9 +406,16 @@ exports.completeRide = async (req, res) => {
     ride.paymentStatus = 'completed';
     await ride.save();
 
+    // Update partner earnings if applicable
+    if (driver.partnerId && partnerEarnings.partnerCommission > 0) {
+      await Partner.findByIdAndUpdate(driver.partnerId, {
+        $inc: { totalEarnings: partnerEarnings.partnerCommission, weeklyEarnings: partnerEarnings.partnerCommission }
+      });
+    }
+
     // Update driver earnings and make available again
-    driver.totalEarnings = (driver.totalEarnings || 0) + (ride.driverEarnings || ride.fare);
-    driver.weeklyEarnings = (driver.weeklyEarnings || 0) + (ride.driverEarnings || ride.fare);
+    driver.totalEarnings = (driver.totalEarnings || 0) + (partnerEarnings.driverEarnings || ride.fare);
+    driver.weeklyEarnings = (driver.weeklyEarnings || 0) + (partnerEarnings.driverEarnings || ride.fare);
     driver.totalRides = (driver.totalRides || 0) + 1;
     driver.isAvailable = true; // Ready for next ride
     await driver.save();
@@ -443,7 +461,7 @@ exports.completeRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course terminée',
+      message: 'Course terminÃ©e',
       ride,
       earnings: {
         thisRide: ride.driverEarnings || ride.fare,
@@ -472,7 +490,7 @@ exports.cancelRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
@@ -486,7 +504,7 @@ exports.cancelRide = async (req, res) => {
     ride.status = 'cancelled';
     ride.cancelledAt = new Date();
     ride.cancelledBy = req.user.role;
-    ride.cancellationReason = reason || 'Non spécifié';
+    ride.cancellationReason = reason || 'Non spÃ©cifiÃ©';
     await ride.save();
 
     const matchingService = req.app.get('matchingService');
@@ -510,12 +528,12 @@ exports.cancelRide = async (req, res) => {
 
     io.to(ride._id.toString()).emit('ride-cancelled', {
       cancelledBy: req.user.role,
-      reason: reason || 'Non spécifié'
+      reason: reason || 'Non spÃ©cifiÃ©'
     });
 
     res.status(200).json({
       success: true,
-      message: 'Course annulée',
+      message: 'Course annulÃ©e',
       ride
     });
 
@@ -539,14 +557,14 @@ exports.rateRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvée'
+        message: 'Course non trouvÃ©e'
       });
     }
 
     if (ride.status !== 'completed') {
       return res.status(400).json({
         success: false,
-        message: 'La course doit être terminée pour être notée'
+        message: 'La course doit Ãªtre terminÃ©e pour Ãªtre notÃ©e'
       });
     }
 
@@ -592,7 +610,7 @@ exports.rateRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Note enregistrée',
+      message: 'Note enregistrÃ©e',
       ride
     });
 

@@ -78,6 +78,15 @@ const rideSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  partnerCommission: {
+    type: Number,
+    default: 0
+  },
+  partnerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Partner",
+    default: null
+  },
   
   // Payment
   paymentMethod: {
