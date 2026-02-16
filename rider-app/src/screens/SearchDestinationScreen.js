@@ -45,7 +45,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
             {!editingPickup ? (
               <TouchableOpacity onPress={() => setEditingPickup(true)} style={styles.addressTouchable}><Text style={styles.addressText} numberOfLines={1}>{pickup?.address}</Text></TouchableOpacity>
             ) : (
-              <GooglePlacesAutocomplete placeholder="Point de d\u00e9part" fetchDetails={true} onPress={handlePickupSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={true} textInputProps={{ defaultValue: pickup?.address }} />
+              <GooglePlacesAutocomplete placeholder="Point de d\u00e9part" fetchDetails={true} onPress={handlePickupSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={true} textInputProps={{ defaultValue: pickup?.address }} />
             )}
           </View>
         </View>
@@ -53,7 +53,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
         <View style={styles.inputRow}>
           <View style={styles.iconContainer}><View style={styles.squareIcon} /></View>
           <View style={styles.autocompleteWrapper}>
-            <GooglePlacesAutocomplete placeholder="O\u00f9 allez-vous?" fetchDetails={true} onPress={handleDropoffSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={!editingPickup} />
+            <GooglePlacesAutocomplete placeholder="O\u00f9 allez-vous?" fetchDetails={true} onPress={handleDropoffSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={!editingPickup} />
           </View>
         </View>
         {editingPickup && (
