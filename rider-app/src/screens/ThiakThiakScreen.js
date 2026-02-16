@@ -31,7 +31,7 @@ function ThiakThiakScreen(props) {
   }
 
   var services = [
-    { type: 'colis', icon: '📦', title: 'Envoyer un Colis', description: 'Envoyez vos colis partout à Dakar. Petit, moyen ou grand format.', priceLabel: 'À partir de 500 FCFA', color: '#4CD964', anim: slideAnim1 },
+    { type: 'colis', icon: '📦', title: 'Envoyer un Colis', description: 'Envoyez vos colis partout à Dakar. Petit, moyen ou grand format.', priceLabel: 'À partir de 500 FCFA', color: COLORS.green, anim: slideAnim1 },
     { type: 'commande', icon: '🛒', title: 'Faire une Commande', description: 'Pharmacie, supermarché, boutique... on va chercher pour vous!', priceLabel: 'À partir de 1000 FCFA', color: '#FF9500', anim: slideAnim2 },
     { type: 'resto', icon: '🍽️', title: 'Commander un Repas', description: 'Vos restaurants préférés livrés chez vous. Thiéboudienne, yassa...', priceLabel: 'Frais de livraison inclus', color: '#FF3B30', anim: slideAnim3 },
   ];

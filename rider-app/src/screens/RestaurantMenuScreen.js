@@ -307,7 +307,7 @@ var styles = StyleSheet.create({
   headerTime: { fontSize: 13, color: COLORS.textLightSub },
   headerMin: { fontSize: 13, color: COLORS.textLightSub },
   openBadge: { backgroundColor: 'rgba(76, 217, 100, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  openText: { fontSize: 12, fontWeight: '600', color: '#4CD964' },
+  openText: { fontSize: 12, fontWeight: '600', color: COLORS.green },
   closedBadge: { backgroundColor: 'rgba(255, 59, 48, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   closedBadgeText: { fontSize: 12, fontWeight: '600', color: '#FF3B30' },
   catScroll: { maxHeight: 50, borderBottomWidth: 1, borderBottomColor: COLORS.grayLight },
