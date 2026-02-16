@@ -42,22 +42,22 @@ var RegisterScreen = function(props) {
               <Text style={styles.cardSubtitle}>{"Rejoignez la communaut\u00e9 TeranGO"}</Text>
 
               <Text style={styles.label}>Nom complet</Text>
-              <TextInput style={styles.input} placeholder='Votre nom' placeholderTextColor=COLORS.gray value={name} onChangeText={setName} />
+              <TextInput style={styles.input} placeholder='Votre nom' placeholderTextColor={COLORS.gray} value={name} onChangeText={setName} />
 
               <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
               <View style={styles.phoneRow}>
                 <View style={styles.prefixBox}><Text style={styles.prefixText}>+221</Text></View>
-                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor=COLORS.gray value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
+                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor={COLORS.gray} value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
               </View>
 
               <Text style={styles.label}>{"Email (r\u00e9cup\u00e9ration PIN)"}</Text>
-              <TextInput style={styles.input} placeholder='votre@email.com' placeholderTextColor=COLORS.gray value={email} onChangeText={setEmail} keyboardType='email-address' autoCapitalize='none' />
+              <TextInput style={styles.input} placeholder='votre@email.com' placeholderTextColor={COLORS.gray} value={email} onChangeText={setEmail} keyboardType='email-address' autoCapitalize='none' />
 
               <Text style={styles.label}>{"Cr\u00e9er un PIN (4 chiffres)"}</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
 
               <Text style={styles.label}>Confirmer le PIN</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
 
               <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
             </View>
