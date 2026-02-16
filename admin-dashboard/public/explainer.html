@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeranGO — Découvrez comment ça marche</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dittpcisb/image/upload/w_64,h_64,c_fill,r_max,f_png/v1771047319/terango-brand/logo-driver.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--green:#00853F;--green-l:#00A650;--yellow:#FDEF42;--yd:#D4AF37;--red:#E31B23;--dark:#001A12}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:#fff}
+
+/* ===== LAYOUT ===== */
+.wrap{position:fixed;inset:0;overflow:hidden}
+.progress{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--green),var(--yellow));z-index:20;width:0;transition:width .1s linear}
+
+/* CONTROLS */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:15;display:flex;justify-content:space-between;align-items:center;padding:16px 24px}
+.skip{color:rgba(255,255,255,.4);font-size:.82rem;font-family:inherit;font-weight:600;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);padding:8px 20px;border-radius:100px;cursor:pointer;transition:all .3s}
+.skip:hover{color:#fff;background:rgba(255,255,255,.1)}
+.sound-toggle{background:none;border:none;color:rgba(255,255,255,.4);font-size:1.3rem;cursor:pointer;transition:color .3s}
+.sound-toggle:hover{color:#fff}
+.sound-toggle.on{color:var(--green)}
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;z-index:15;display:flex;justify-content:center;align-items:center;gap:8px;padding:20px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .3s}
+.dot.active{background:var(--green);width:28px;border-radius:5px}
+
+/* ===== SLIDES ===== */
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateX(60px);transition:all .7s cubic-bezier(.4,0,.2,1);pointer-events:none;padding:80px 24px}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide.exit{opacity:0;transform:translateX(-60px)}
+
+.slide-inner{display:flex;align-items:center;gap:4rem;max-width:1100px;width:100%}
+.slide-text{flex:1;min-width:0}
+.slide-visual{flex:0 0 auto;display:flex;justify-content:center}
+
+.s-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:100px;padding:6px 16px;font-size:.75rem;color:rgba(255,255,255,.5);margin-bottom:1.2rem}
+.s-badge .dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.s-title{font-size:clamp(1.6rem,4.5vw,2.8rem);font-weight:900;line-height:1.1;margin-bottom:.8rem;letter-spacing:-.5px}
+.s-sub{font-size:clamp(.85rem,2vw,1.05rem);color:rgba(255,255,255,.5);line-height:1.6;max-width:500px}
+.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}
+
+/* ===== PHONE MOCKUP ===== */
+.phone{width:260px;height:520px;border-radius:36px;background:#111;border:3px solid #333;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.05) inset}
+.phone-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:28px;background:#111;border-radius:0 0 18px 18px;z-index:5}
+.phone-screen{position:absolute;inset:3px;border-radius:33px;overflow:hidden;background:linear-gradient(180deg,#0a1f14,#0d2b1a)}
+
+/* APP UI ELEMENTS */
+.app-header{padding:36px 16px 12px;display:flex;align-items:center;gap:8px;background:rgba(0,26,18,.95)}
+.app-logo{width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(0,133,63,.4)}
+.app-title{font-size:.75rem;font-weight:800;color:#fff}
+.app-title span{color:var(--yd)}
+.app-status{margin-left:auto;width:8px;height:8px;border-radius:50%;background:#25d366;animation:blink 1.5s infinite}
+
+.app-body{padding:12px;height:calc(100% - 60px);overflow:hidden;position:relative}
+.app-map{position:absolute;inset:0;background:linear-gradient(135deg,#0a1f14 0%,#1a3d2a 50%,#0d2b1a 100%)}
+.app-map-grid{position:absolute;inset:0;opacity:.08}
+.map-line{position:absolute;background:rgba(255,255,255,.3)}
+.map-line.h{height:1px;width:100%;left:0}
+.map-line.v{width:1px;height:100%;top:0}
+
+/* MAP PINS */
+.map-pin{position:absolute;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:.8rem;transform:translate(-50%,-100%);z-index:3;animation:pinDrop .5s ease both}
+.map-pin::after{content:'';position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--green)}
+.pin-a{background:var(--green);border-radius:50% 50% 50% 0;transform:translate(-50%,-100%) rotate(-45deg)}
+.pin-a span{transform:rotate(45deg)}
+.pin-b{background:var(--red);border-radius:50% 50% 50% 0;transform:translate(-50%,-100%) rotate(-45deg)}
+.pin-b span{transform:rotate(45deg)}
+.pin-b::after{border-top-color:var(--red)}
+@keyframes pinDrop{from{opacity:0;transform:translate(-50%,-200%)}to{opacity:1;transform:translate(-50%,-100%)}}
+
+/* ROUTE LINE */
+.route-line{position:absolute;height:3px;background:linear-gradient(90deg,var(--green),var(--yellow));border-radius:2px;z-index:2;transform-origin:left center}
+.route-dash{stroke-dasharray:8 4;animation:dashMove 1s linear infinite}
+@keyframes dashMove{to{stroke-dashoffset:-24}}
+
+/* CAR ON MAP */
+.map-car{position:absolute;z-index:4;font-size:1.4rem;transition:all 2s ease-in-out}
+
+/* NOTIFICATION CARD */
+.app-notif{position:absolute;bottom:80px;left:12px;right:12px;background:rgba(0,40,25,.95);backdrop-filter:blur(10px);border:1px solid rgba(0,133,63,.2);border-radius:16px;padding:14px;z-index:5;opacity:0;transform:translateY(20px);transition:all .4s ease}
+.app-notif.show{opacity:1;transform:translateY(0)}
+.notif-title{font-size:.7rem;color:var(--green);font-weight:700;margin-bottom:4px}
+.notif-detail{font-size:.65rem;color:rgba(255,255,255,.6);margin-bottom:8px;line-height:1.4}
+.notif-row{display:flex;gap:6px}
+.notif-btn{flex:1;padding:8px;border-radius:10px;font-size:.65rem;font-weight:700;border:none;cursor:pointer;font-family:inherit}
+.notif-btn.accept{background:var(--green);color:#fff}
+.notif-btn.decline{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.notif-price{font-size:.85rem;font-weight:800;color:var(--yellow);margin-bottom:4px}
+
+/* APP BOTTOM NAV */
+.app-nav{position:absolute;bottom:0;left:0;right:0;display:flex;justify-content:space-around;padding:10px 0;background:rgba(0,26,18,.95);border-top:1px solid rgba(255,255,255,.06);z-index:6}
+.nav-item{text-align:center;font-size:.55rem;color:rgba(255,255,255,.3)}
+.nav-item.active{color:var(--green)}
+.nav-icon{font-size:1rem;margin-bottom:2px}
+
+/* PAYMENT ANIMATION */
+.payment-anim{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(0,26,18,.95);z-index:7;opacity:0;transition:opacity .5s}
+.payment-anim.show{opacity:1}
+.pay-check{width:60px;height:60px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin-bottom:12px;animation:popIn .5s ease both}
+@keyframes popIn{from{transform:scale(0) rotate(-180deg)}to{transform:scale(1) rotate(0)}}
+.pay-amount{font-size:1.4rem;font-weight:900;color:var(--yellow);margin-bottom:4px}
+.pay-label{font-size:.7rem;color:rgba(255,255,255,.5)}
+
+/* ===== CHARACTERS ===== */
+.character{position:relative}
+.char-body{position:relative;z-index:2}
+
+/* DRIVER CHARACTER */
+.driver-char{display:flex;flex-direction:column;align-items:center;gap:8px}
+.driver-head{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#8B6914,#A0782C);position:relative;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.driver-head::before{content:'';position:absolute;top:-8px;left:-2px;right:-2px;height:25px;background:var(--green);border-radius:20px 20px 0 0}
+.driver-head .eyes{position:absolute;top:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px}
+.driver-head .eye{width:5px;height:5px;background:#fff;border-radius:50%}
+.driver-head .smile{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:14px;height:7px;border-bottom:2px solid #fff;border-radius:0 0 10px 10px}
+.driver-body{width:60px;height:40px;background:var(--green);border-radius:12px 12px 0 0;position:relative}
+.driver-phone{position:absolute;right:-8px;top:5px;width:14px;height:22px;background:#222;border-radius:3px;border:1px solid #444}
+.driver-phone::after{content:'';position:absolute;inset:2px;border-radius:2px;background:var(--green);opacity:.6}
+
+/* RIDER CHARACTER */
+.rider-char{display:flex;flex-direction:column;align-items:center;gap:8px}
+.rider-head{width:45px;height:45px;border-radius:50%;background:linear-gradient(135deg,#6B4423,#8B6914);position:relative;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.rider-head .hair{position:absolute;top:-5px;left:-3px;right:-3px;height:20px;background:#222;border-radius:15px 15px 0 0}
+.rider-head .eyes{position:absolute;top:18px;left:50%;transform:translateX(-50%);display:flex;gap:9px}
+.rider-head .eye{width:4px;height:4px;background:#fff;border-radius:50%}
+.rider-body{width:50px;height:35px;background:var(--yellow);border-radius:10px 10px 0 0}
+.rider-bag{width:24px;height:28px;background:#c2612c;border-radius:4px;position:absolute;right:-16px;top:0}
+.rider-bag::before{content:'';position:absolute;top:-6px;left:4px;right:4px;height:8px;border:2px solid #c2612c;border-bottom:none;border-radius:6px 6px 0 0}
+
+/* ===== SLIDE SPECIFIC ===== */
+
+/* Slide 1: split */
+.s1-chars{display:flex;gap:2rem;align-items:flex-end}
+.s1-wave{animation:wave 1s ease-in-out infinite alternate}
+@keyframes wave{from{transform:rotate(-5deg)}to{transform:rotate(5deg)}}
+
+/* Slide: delivery scene */
+.delivery-scene{position:relative;width:280px;height:200px}
+.delivery-person{position:absolute;left:30px;bottom:0}
+.delivery-receiver{position:absolute;right:30px;bottom:0}
+.delivery-bag{position:absolute;left:50%;bottom:60px;transform:translateX(-50%);font-size:2rem;animation:handover 2s ease-in-out infinite}
+@keyframes handover{0%{transform:translateX(-80%)}50%{transform:translateX(0) scale(1.1)}100%{transform:translateX(80%)}}
+
+/* Slide: earnings coins */
+.coins{display:flex;gap:4px;margin-top:1rem;flex-wrap:wrap}
+.coin{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),var(--yd));display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:900;color:#333;animation:coinFlip .6s ease both;box-shadow:0 2px 8px rgba(212,175,55,.3)}
+@keyframes coinFlip{from{transform:rotateY(180deg) scale(0);opacity:0}to{transform:rotateY(0) scale(1);opacity:1}}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:768px){
+  .slide-inner{flex-direction:column;text-align:center;gap:2rem}
+  .slide-text{order:2}
+  .slide-visual{order:1}
+  .phone{width:200px;height:400px}
+  .s-sub{margin:0 auto}
+  .s1-chars{justify-content:center}
+  .delivery-scene{width:220px;height:160px}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="wrap">
+  <div class="progress" id="prog"></div>
+
+  <div class="topbar">
+    <button class="sound-toggle" id="soundBtn" onclick="toggleSound()">🔇</button>
+    <button class="skip" onclick="location.href='https://terango.sn'">Passer →</button>
+  </div>
+
+  <div class="bottom-bar" id="dots"></div>
+
+  <!-- ====== SLIDE 1: INTRO ====== -->
+  <div class="slide active" data-dur="5500">
+    <div class="slide-inner">
+      <div class="slide-text">
+        <div class="s-badge"><span class="dot-live"></span> 100% Sénégalais</div>
+        <div class="s-title">Bienvenue sur<br>Teran<span class="g">GO</span></div>
+        <div class="s-sub">L'esprit de la Teranga. La plateforme qui redonne le pouvoir aux chauffeurs sénégalais.</div>
+      </div>
+      <div class="slide-visual">
+        <div class="s1-chars">
+          <div class="driver-char s1-wave">
+            <div class="driver-head">
+              <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+              <div class="smile"></div>
+            </div>
+            <div class="driver-body"><div class="driver-phone"></div></div>
+          </div>
+          <div class="phone" id="phone1">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="app-header">
+                <img class="app-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg" alt="">
+                <div class="app-title">Teran<span>GO</span></div>
+                <div class="app-status"></div>
+              </div>
+              <div class="app-body">
+                <div class="app-map">
+                  <div class="app-map-grid" id="mapGrid1"></div>
+                </div>
+                <div class="app-notif" id="notif1" style="bottom:60px">
+                  <div class="notif-title">👋 Bienvenue, Ibrahima !</div>
+                  <div class="notif-detail">Vous êtes en ligne. En attente de courses...</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+                    <div style="width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 1s infinite"></div>
+                    <span style="font-size:.6rem;color:var(--green)">En ligne — Plateau, Dakar</span>
+                  </div>
+                </div>
+                <div class="app-nav">
+                  <div class="nav-item active"><div class="nav-icon">🏠</div>Accueil</div>
+                  <div class="nav-item"><div class="nav-icon">📋</div>Courses</div>
+                  <div class="nav-item"><div class="nav-icon">💰</div>Gains</div>
+                  <div class="nav-item"><div class="nav-icon">👤</div>Profil</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 2: NEW RIDE REQUEST ====== -->
+  <div class="slide" data-dur="6500">
+    <div class="slide-inner">
+      <div class="slide-text">
+        <div class="s-badge">🔔 Nouvelle course !</div>
+        <div class="s-title">Un client vous <span class="y">demande</span></div>
+        <div class="s-sub">Une course apparaît. Vous voyez le trajet, le prix, et vous décidez. Pas d'algorithme qui choisit à votre place.</div>
+      </div>
+      <div class="slide-visual">
+        <div class="phone" id="phone2">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="app-header">
+              <img class="app-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg" alt="">
+              <div class="app-title">Teran<span>GO</span></div>
+              <div class="app-status"></div>
+            </div>
+            <div class="app-body">
+              <div class="app-map">
+                <div class="app-map-grid" id="mapGrid2"></div>
+                <div class="map-pin pin-a" style="top:35%;left:30%;animation-delay:.5s"><span>A</span></div>
+                <div class="map-pin pin-b" style="top:60%;left:70%;animation-delay:1s"><span>B</span></div>
+                <svg style="position:absolute;inset:0;z-index:2" width="100%" height="100%">
+                  <line x1="32%" y1="33%" x2="68%" y2="57%" stroke="url(#routeGrad)" stroke-width="3" stroke-dasharray="8 4" class="route-dash"/>
+                  <defs><linearGradient id="routeGrad"><stop offset="0%" stop-color="#00853F"/><stop offset="100%" stop-color="#FDEF42"/></linearGradient></defs>
+                </svg>
+                <div class="map-car" id="mapCar2" style="top:32%;left:28%">🚗</div>
+              </div>
+              <div class="app-notif show" style="bottom:60px">
+                <div class="notif-title">🔔 Nouvelle course VTC</div>
+                <div class="notif-price">3 500 FCFA</div>
+                <div class="notif-detail">📍 Plateau → Almadies<br>🕐 Estimé: 22 min · 8.4 km</div>
+                <div class="notif-row">
+                  <button class="notif-btn decline">Refuser</button>
+                  <button class="notif-btn accept" id="acceptBtn">✓ Accepter</button>
+                </div>
+              </div>
+              <div class="app-nav">
+                <div class="nav-item active"><div class="nav-icon">🏠</div>Accueil</div>
+                <div class="nav-item"><div class="nav-icon">📋</div>Courses</div>
+                <div class="nav-item"><div class="nav-icon">💰</div>Gains</div>
+                <div class="nav-item"><div class="nav-icon">👤</div>Profil</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 3: DRIVING / EN ROUTE ====== -->
+  <div class="slide" data-dur="6000">
+    <div class="slide-inner">
+      <div class="slide-text">
+        <div class="s-badge">🚗 En route</div>
+        <div class="s-title">Vous conduisez,<br>on <span class="g">s'occupe du reste</span></div>
+        <div class="s-sub">Navigation intégrée, communication avec le client, tout dans l'app. Concentrez-vous sur la route.</div>
+      </div>
+      <div class="slide-visual">
+        <div class="phone" id="phone3">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="app-header" style="background:rgba(0,133,63,.15)">
+              <img class="app-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg" alt="">
+              <div class="app-title" style="font-size:.65rem">Course en cours</div>
+              <div style="margin-left:auto;font-size:.6rem;color:var(--green);font-weight:700">22 min</div>
+            </div>
+            <div class="app-body">
+              <div class="app-map">
+                <div class="app-map-grid" id="mapGrid3"></div>
+                <div class="map-pin pin-b" style="top:25%;left:70%"><span>B</span></div>
+                <svg style="position:absolute;inset:0;z-index:2" width="100%" height="100%">
+                  <path d="M 30 340 Q 100 250 130 180 Q 160 110 178 100" stroke="url(#routeGrad2)" stroke-width="3" fill="none" stroke-dasharray="8 4" class="route-dash"/>
+                  <defs><linearGradient id="routeGrad2"><stop offset="0%" stop-color="#00853F"/><stop offset="100%" stop-color="#FDEF42"/></linearGradient></defs>
+                </svg>
+                <div class="map-car" id="mapCar3" style="bottom:20%;left:10%;font-size:1.6rem;transition:all 3s ease-in-out">🚗</div>
+              </div>
+              <div class="app-notif show" style="bottom:60px;padding:10px 14px">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                  <div>
+                    <div style="font-size:.6rem;color:rgba(255,255,255,.4)">Client</div>
+                    <div style="font-size:.75rem;font-weight:700">Aminata D.</div>
+                  </div>
+                  <div style="display:flex;gap:8px">
+                    <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,133,63,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem">📞</div>
+                    <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,133,63,.15);display:flex;align-items:center;justify-content:center;font-size:.8rem">💬</div>
+                  </div>
+                </div>
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between">
+                  <span style="font-size:.6rem;color:rgba(255,255,255,.4)">📍 Almadies</span>
+                  <span style="font-size:.65rem;color:var(--yellow);font-weight:700">3 500 F</span>
+                </div>
+              </div>
+              <div class="app-nav">
+                <div class="nav-item"><div class="nav-icon">🏠</div>Accueil</div>
+                <div class="nav-item active"><div class="nav-icon">📋</div>Courses</div>
+                <div class="nav-item"><div class="nav-icon">💰</div>Gains</div>
+                <div class="nav-item"><div class="nav-icon">👤</div>Profil</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 4: DELIVERY SCENE ====== -->
+  <div class="slide" data-dur="6000">
+    <div class="slide-inner">
+      <div class="slide-text">
+        <div class="s-badge">📦 Thiak Thiak</div>
+        <div class="s-title">Livraison <span class="y">Colis</span> &<br><span class="g">Commandes</span></div>
+        <div class="s-sub">Pas que du VTC ! Livrez des colis, récupérez des commandes resto. Multipliez vos revenus avec un seul compte.</div>
+      </div>
+      <div class="slide-visual">
+        <div class="delivery-scene">
+          <!-- Delivery driver -->
+          <div class="delivery-person">
+            <div class="driver-char" style="transform:scale(.9)">
+              <div class="driver-head" style="background:linear-gradient(135deg,#6B4423,#8B5E3C)">
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+                <div class="smile"></div>
+              </div>
+              <div class="driver-body" style="background:#2d7a4f"></div>
+            </div>
+          </div>
+          <!-- Bag moving -->
+          <div class="delivery-bag">📦</div>
+          <!-- Receiver -->
+          <div class="delivery-receiver">
+            <div class="rider-char" style="transform:scale(.9)">
+              <div class="rider-head">
+                <div class="hair"></div>
+                <div class="eyes"><div class="eye"></div><div class="eye"></div></div>
+              </div>
+              <div class="rider-body" style="position:relative"><div class="rider-bag"></div></div>
+            </div>
+          </div>
+          <!-- Phone below -->
+          <div style="position:absolute;bottom:-220px;left:50%;transform:translateX(-50%);scale:.7">
+            <div class="phone" style="width:200px;height:380px">
+              <div class="phone-notch" style="width:90px;height:22px"></div>
+              <div class="phone-screen" style="border-radius:28px">
+                <div style="padding:30px 12px 12px;text-align:center">
+                  <div style="font-size:.65rem;color:var(--green);font-weight:700;margin-bottom:8px">📦 LIVRAISON CONFIRMÉE</div>
+                  <div style="font-size:1.1rem;font-weight:900;color:var(--yellow)">2 200 FCFA</div>
+                  <div style="font-size:.55rem;color:rgba(255,255,255,.4);margin-top:4px">Mermoz → Grand Dakar</div>
+                  <div style="margin-top:12px;padding:8px;background:rgba(0,133,63,.1);border-radius:8px;font-size:.6rem;color:var(--green)">88% = 1 936 F pour vous ✓</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 5: GET PAID ====== -->
+  <div class="slide" data-dur="6500">
+    <div class="slide-inner">
+      <div class="slide-text">
+        <div class="s-badge">💰 Cha-ching !</div>
+        <div class="s-title">Gardez <span class="y">88%</span><br>de chaque course</div>
+        <div class="s-sub">Seulement 12% de commission. Yango prend 25%. Faites le calcul — c'est +175 500 F par mois dans votre poche.</div>
+        <div class="coins" id="coins"></div>
+      </div>
+      <div class="slide-visual">
+        <div class="phone" id="phone5">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="app-header">
+              <img class="app-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg" alt="">
+              <div class="app-title">Teran<span>GO</span></div>
+            </div>
+            <div class="app-body" style="padding:16px">
+              <div style="text-align:center;margin-bottom:12px">
+                <div style="font-size:.6rem;color:rgba(255,255,255,.4)">Gains aujourd'hui</div>
+                <div style="font-size:1.6rem;font-weight:900;color:var(--green)" id="gainCounter">0 F</div>
+                <div style="font-size:.55rem;color:rgba(255,255,255,.3)">15 courses complétées</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <div style="flex:1;background:rgba(0,133,63,.1);border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-size:.55rem;color:rgba(255,255,255,.4)">Brut</div>
+                  <div style="font-size:.75rem;font-weight:700">45 000 F</div>
+                </div>
+                <div style="flex:1;background:rgba(227,27,35,.08);border-radius:10px;padding:10px;text-align:center">
+                  <div style="font-size:.55rem;color:rgba(255,255,255,.4)">Commission</div>
+                  <div style="font-size:.75rem;font-weight:700;color:var(--red)">-5 400 F</div>
+                </div>
+              </div>
+              <div style="background:rgba(253,239,66,.05);border:1px solid rgba(253,239,66,.1);border-radius:12px;padding:12px;text-align:center;margin-bottom:12px">
+                <div style="font-size:.55rem;color:rgba(255,255,255,.4)">Économie vs Yango / mois</div>
+                <div style="font-size:1rem;font-weight:900;color:var(--yellow)">+175 500 F</div>
+              </div>
+              <div style="font-size:.55rem;color:rgba(255,255,255,.3);text-align:center">Paiement Wave · Orange Money · Cash</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== SLIDE 6: CTA ====== -->
+  <div class="slide" data-dur="9000">
+    <div class="slide-inner" style="flex-direction:column;text-align:center">
+      <div class="slide-visual">
+        <img src="https://res.cloudinary.com/dittpcisb/image/upload/w_160,h_160,c_fill,r_max,q_80/v1771047319/terango-brand/logo-driver.jpg" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--green);box-shadow:0 0 40px rgba(0,133,63,.3)">
+      </div>
+      <div class="slide-text" style="text-align:center">
+        <div class="s-title">Prêt à garder<br><span class="y">88%</span> de vos gains ?</div>
+        <div class="s-sub" style="margin:0 auto 2rem">TeranGO — L'esprit de la Teranga<br>VTC · Livraison · Commandes · Services</div>
+        <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+          <a href="https://terango.sn#inscription" style="display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:#000;font-weight:700;padding:16px 32px;border-radius:14px;text-decoration:none;font-size:1rem;box-shadow:0 4px 20px rgba(253,239,66,.2);transition:all .3s">Devenir chauffeur</a>
+          <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20rejoindre%20TeranGO" target="_blank" style="display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-weight:700;padding:16px 32px;border-radius:14px;text-decoration:none;font-size:1rem;box-shadow:0 4px 20px rgba(0,133,63,.25);transition:all .3s">💬 WhatsApp</a>
+          <a href="https://terango.sn" style="display:inline-flex;align-items:center;gap:8px;background:transparent;color:#fff;font-weight:600;padding:16px 32px;border-radius:14px;text-decoration:none;border:1px solid rgba(255,255,255,.12);transition:all .3s">Visiter le site →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== SOUND ENGINE =====
+var audioCtx = null;
+var soundOn = false;
+
+function initAudio() {
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playSound(type) {
+  if (!soundOn || !audioCtx) return;
+  var osc = audioCtx.createOscillator();
+  var gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  if (type === 'whoosh') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + .3);
+    gain.gain.setValueAtTime(.15, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + .3);
+    osc.start(); osc.stop(audioCtx.currentTime + .3);
+  }
+  if (type === 'ding') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1600, audioCtx.currentTime + .1);
+    gain.gain.setValueAtTime(.2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + .4);
+    osc.start(); osc.stop(audioCtx.currentTime + .4);
+  }
+  if (type === 'notify') {
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(900, audioCtx.currentTime + .1);
+    osc.frequency.setValueAtTime(1100, audioCtx.currentTime + .15);
+    gain.gain.setValueAtTime(.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + .3);
+    osc.start(); osc.stop(audioCtx.currentTime + .3);
+  }
+  if (type === 'coins') {
+    [0, .1, .2, .3, .4].forEach(function(d) {
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(2000 + Math.random() * 1000, audioCtx.currentTime + d);
+      g.gain.setValueAtTime(.08, audioCtx.currentTime + d);
+      g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + d + .15);
+      o.start(audioCtx.currentTime + d);
+      o.stop(audioCtx.currentTime + d + .15);
+    });
+  }
+  if (type === 'success') {
+    [0, .15, .3].forEach(function(d, i) {
+      var o = audioCtx.createOscillator();
+      var g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime([523, 659, 784][i], audioCtx.currentTime + d);
+      g.gain.setValueAtTime(.15, audioCtx.currentTime + d);
+      g.gain.exponentialRampToValueAtTime(.001, audioCtx.currentTime + d + .3);
+      o.start(audioCtx.currentTime + d);
+      o.stop(audioCtx.currentTime + d + .3);
+    });
+  }
+}
+
+function toggleSound() {
+  if (!audioCtx) initAudio();
+  soundOn = !soundOn;
+  document.getElementById('soundBtn').textContent = soundOn ? '🔊' : '🔇';
+  document.getElementById('soundBtn').classList.toggle('on', soundOn);
+  if (soundOn) playSound('ding');
+}
+
+// ===== MAP GRIDS =====
+['mapGrid1','mapGrid2','mapGrid3'].forEach(function(id) {
+  var g = document.getElementById(id);
+  if (!g) return;
+  for (var i = 0; i < 8; i++) {
+    var h = document.createElement('div');
+    h.className = 'map-line h';
+    h.style.top = (i * 14) + '%';
+    g.appendChild(h);
+    var v = document.createElement('div');
+    v.className = 'map-line v';
+    v.style.left = (i * 14) + '%';
+    g.appendChild(v);
+  }
+});
+
+// ===== SLIDE ENGINE =====
+var slides = document.querySelectorAll('.slide');
+var cur = 0;
+var timer = null;
+var progTimer = null;
+var prog = document.getElementById('prog');
+var dotsEl = document.getElementById('dots');
+
+slides.forEach(function(s, i) {
+  var d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = function() { goTo(i); };
+  dotsEl.appendChild(d);
+});
+
+var slideSounds = ['ding', 'notify', 'whoosh', 'ding', 'coins', 'success'];
+
+function goTo(n) {
+  if (n === cur) return;
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit');
+  setTimeout(function() { slides[cur === n ? cur : (n > 0 ? n - 1 : 0)].classList.remove('exit'); }, 700);
+  dotsEl.children[cur].classList.remove('active');
+  cur = n;
+  slides[cur].classList.remove('exit');
+  slides[cur].classList.add('active');
+  dotsEl.children[cur].classList.add('active');
+
+  playSound(slideSounds[cur] || 'whoosh');
+  onSlideEnter(cur);
+  startTimer();
+}
+
+function next() {
+  if (cur < slides.length - 1) goTo(cur + 1);
+}
+
+function startTimer() {
+  clearTimeout(timer);
+  clearInterval(progTimer);
+  var dur = parseInt(slides[cur].getAttribute('data-dur')) || 5000;
+  var start = Date.now();
+  var sw = 100 / slides.length;
+  var base = cur * sw;
+
+  progTimer = setInterval(function() {
+    var p = Math.min((Date.now() - start) / dur, 1);
+    prog.style.width = (base + p * sw) + '%';
+    if (p >= 1) clearInterval(progTimer);
+  }, 30);
+
+  timer = setTimeout(next, dur);
+}
+
+// ===== SLIDE-SPECIFIC ANIMATIONS =====
+function onSlideEnter(n) {
+  // Slide 2: animate accept button pulse
+  if (n === 1) {
+    setTimeout(function() {
+      var btn = document.getElementById('acceptBtn');
+      if (btn) { btn.style.animation = 'none'; btn.offsetHeight; btn.style.animation = 'pulseBtn 1s ease infinite'; }
+    }, 2000);
+  }
+  // Slide 3: move car
+  if (n === 2) {
+    setTimeout(function() {
+      var car = document.getElementById('mapCar3');
+      if (car) { car.style.bottom = '55%'; car.style.left = '60%'; }
+    }, 500);
+  }
+  // Slide 5: count up gains + coins
+  if (n === 4) {
+    var counter = document.getElementById('gainCounter');
+    var target = 39600;
+    var current = 0;
+    var step = Math.ceil(target / 40);
+    var ci = setInterval(function() {
+      current += step;
+      if (current >= target) { current = target; clearInterval(ci); }
+      counter.textContent = current.toLocaleString('fr-FR') + ' F';
+    }, 50);
+
+    var coinsEl = document.getElementById('coins');
+    coinsEl.innerHTML = '';
+    for (var i = 0; i < 12; i++) {
+      (function(idx) {
+        setTimeout(function() {
+          var c = document.createElement('div');
+          c.className = 'coin';
+          c.textContent = '₣';
+          c.style.animationDelay = '0s';
+          coinsEl.appendChild(c);
+        }, idx * 120);
+      })(i);
+    }
+  }
+}
+
+// Start
+startTimer();
+onSlideEnter(0);
+
+// Keyboard
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight') next();
+  if (e.key === 'ArrowLeft' && cur > 0) goTo(cur - 1);
+  if (e.key === ' ') { e.preventDefault(); toggleSound(); }
+});
+
+// Touch swipe
+var tx = 0;
+document.addEventListener('touchstart', function(e) { tx = e.touches[0].clientX; });
+document.addEventListener('touchend', function(e) {
+  var d = tx - e.changedTouches[0].clientX;
+  if (Math.abs(d) > 50) { d > 0 ? next() : (cur > 0 && goTo(cur - 1)); }
+});
+
+// Pulse animation for accept button
+var style = document.createElement('style');
+style.textContent = '@keyframes pulseBtn{0%,100%{transform:scale(1)}50%{transform:scale(1.05);box-shadow:0 0 15px rgba(0,133,63,.4)}}';
+document.head.appendChild(style);
+</script>
+</body>
+</html>

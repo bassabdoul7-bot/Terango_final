@@ -1,4 +1,4 @@
-﻿require('dotenv').config({ override: false });
+require('dotenv').config({ override: false });
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -50,6 +50,7 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/partners', partnerRoutes);
 app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/services', require('./routes/serviceRoutes'));
 
 // Health check
 async function healthCheck(req, res) {

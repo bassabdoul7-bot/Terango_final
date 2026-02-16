@@ -1,1 +1,101 @@
 @import "tailwindcss";
+
+/* TeranGO Dashboard Theme Overrides */
+/* Cards & panels: white glass instead of dark gray */
+.bg-gray-900 {
+  background: rgba(255, 255, 255, 0.07) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.bg-gray-800 {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.bg-gray-800\/30 {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Borders: soft white instead of dark */
+.border-gray-800,
+.border-gray-800\/50 {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.border-gray-700 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Text adjustments for readability on dark green */
+.text-white {
+  color: #ffffff !important;
+}
+.text-gray-400 {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+.text-gray-500 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.text-gray-300 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+.text-gray-600 {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Inputs & selects */
+.bg-gray-900:is(input, select, textarea),
+input.bg-gray-900,
+select.bg-gray-900,
+textarea.bg-gray-900 {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #fff !important;
+}
+
+/* Hover states */
+.hover\:bg-gray-800:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.hover\:bg-gray-800\/30:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Emerald accent glow */
+.text-emerald-400 {
+  color: #34d399 !important;
+  text-shadow: 0 0 20px rgba(52, 211, 153, 0.15);
+}
+.bg-emerald-500\/10,
+.bg-emerald-400\/10 {
+  background: rgba(0, 133, 63, 0.15) !important;
+}
+
+/* Yellow accent */
+.text-yellow-400 {
+  color: #FDEF42 !important;
+}
+.bg-yellow-400\/10 {
+  background: rgba(253, 239, 66, 0.1) !important;
+}
+
+/* Red accent */
+.text-red-400 {
+  color: #E31B23 !important;
+}
+
+/* Table rows hover */
+tr:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
