@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar } from 'react-native';
 import GlassButton from '../components/GlassButton';
-import GlassCard from '../components/GlassCard';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
@@ -14,7 +13,6 @@ var LoginScreen = function(props) {
   var pinState = useState(''); var pin = pinState[0]; var setPin = pinState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
   var forgotModeState = useState(false); var forgotMode = forgotModeState[0]; var setForgotMode = forgotModeState[1];
-  var forgotStepState = useState('phone'); var forgotStep = forgotStepState[0]; var setForgotStep = forgotStepState[1];
   var otpState = useState(''); var otp = otpState[0]; var setOtp = otpState[1];
   var newPinState = useState(''); var newPin = newPinState[0]; var setNewPin = newPinState[1];
   var confirmPinState = useState(''); var confirmPin = confirmPinState[0]; var setConfirmPin = confirmPinState[1];
@@ -30,7 +28,7 @@ var LoginScreen = function(props) {
   function handleForgotPin() {
     if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Entrez votre num\u00e9ro d\'abord'); return; }
     setLoading(true);
-    authService.forgotPin(fullPhone).then(function(response) { setLoading(false); if (response.success) { setForgotMode(true); setForgotStep('otp'); Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez votre email'); } }).catch(function(error) { setLoading(false); Alert.alert('Erreur', error.message || 'Aucun email associ\u00e9'); });
+    authService.forgotPin(fullPhone).then(function(response) { setLoading(false); if (response.success) { setForgotMode(true); Alert.alert('Code envoy\u00e9', 'V\u00e9rifiez votre email'); } }).catch(function(error) { setLoading(false); Alert.alert('Erreur', error.message || 'Aucun email associ\u00e9'); });
   }
 
   function handleResetPin() {
@@ -43,73 +41,97 @@ var LoginScreen = function(props) {
 
   if (forgotMode) {
     return (
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
-            <View style={styles.logoCircle}><View style={styles.logoImageWrapper}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View></View>
-            <Text style={styles.appTitle}>TeranGO</Text>
-            <GlassCard style={styles.card}>
-              <Text style={styles.title}>{"R\u00e9initialiser PIN"}</Text>
-              <Text style={styles.subtitle}>{"Entrez le code re\u00e7u par email"}</Text>
-              <Text style={styles.label}>Code (6 chiffres)</Text>
-              <TextInput style={styles.input} placeholder='000000' placeholderTextColor='#999' value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
-              <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
-              <Text style={styles.label}>Confirmer PIN</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
-              <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
-              <GlassButton title='Retour' onPress={function() { setForgotMode(false); }} variant='outline' style={{ marginTop: 12 }} />
-            </GlassCard>
-          </ScrollView>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
+        <View style={styles.darkHeader}>
+          <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+          <Text style={styles.appTitle}>TeranGO</Text>
+          <Text style={styles.appSubtitle}>{"R\u00e9initialiser votre PIN"}</Text>
+        </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>{"R\u00e9initialisation"}</Text>
+                <Text style={styles.cardSubtitle}>{"Entrez le code re\u00e7u par email"}</Text>
+                <Text style={styles.label}>Code (6 chiffres)</Text>
+                <TextInput style={styles.input} placeholder='000000' placeholderTextColor='#999' value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
+                <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <Text style={styles.label}>Confirmer PIN</Text>
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
+                <TouchableOpacity onPress={function() { setForgotMode(false); }} style={styles.secondaryBtn}>
+                  <Text style={styles.secondaryBtnText}>Retour</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
+      </View>
     );
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
-          <View style={styles.logoCircle}><View style={styles.logoImageWrapper}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View></View>
-          <Text style={styles.appTitle}>TeranGO</Text>
-          <GlassCard style={styles.card}>
-            <Text style={styles.title}>Connexion</Text>
-            <Text style={styles.subtitle}>Connectez-vous avec votre PIN</Text>
-            <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
-            <TextInput style={styles.input} placeholder='77 123 45 67' placeholderTextColor='#999' value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
-            <Text style={styles.label}>PIN (4 chiffres)</Text>
-            <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
-            <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
-            <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
-              <Text style={{ color: COLORS.green, fontSize: 14 }}>{"PIN oubli\u00e9?"}</Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.darkHeader}>
+        <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+        <Text style={styles.appTitle}>TeranGO</Text>
+        <Text style={styles.appSubtitle}>Votre course, votre chemin</Text>
+      </View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Connexion</Text>
+              <Text style={styles.cardSubtitle}>Connectez-vous avec votre PIN</Text>
+              <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
+              <View style={styles.phoneRow}>
+                <View style={styles.prefixBox}><Text style={styles.prefixText}>+221</Text></View>
+                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor='#999' value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
+              </View>
+              <Text style={styles.label}>PIN (4 chiffres)</Text>
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+              <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
+              <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
+                <Text style={styles.forgotText}>{"PIN oubli\u00e9?"}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity style={styles.registerLink} onPress={function() { navigation.navigate('Register'); }}>
+              <Text style={styles.registerText}>Nouveau? </Text>
+              <Text style={styles.registerBold}>S'inscrire</Text>
             </TouchableOpacity>
-          </GlassCard>
-          <View style={styles.bottomSpacer} />
-          <TouchableOpacity style={styles.registerLink} onPress={function() { navigation.navigate('Register'); }}>
-            <Text style={styles.registerText}>Nouveau? </Text>
-            <Text style={styles.registerBold}>S'inscrire</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+    </View>
   );
 };
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scrollContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 },
-  logoCircle: { width: 100, height: 100, borderRadius: 50, backgroundColor: '#FFFFFF', alignSelf: 'center', alignItems: 'center', justifyContent: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 },
-  logoImageWrapper: { width: 120, height: 120, borderRadius: 60, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  logo: { width: 110, height: 110 },
-  appTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.green, textAlign: 'center', marginBottom: 24 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 32, borderWidth: 1, borderColor: '#E5E5E5', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 20, elevation: 8 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 8 },
-  subtitle: { fontSize: 14, color: '#666', marginBottom: 24 },
-  label: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 8 },
-  input: { backgroundColor: COLORS.background, borderRadius: 12, padding: 16, fontSize: 16, color: '#1A1A1A', marginBottom: 20, borderWidth: 1, borderColor: '#E5E5E5' },
-  bottomSpacer: { height: 20 },
-  registerLink: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
-  registerText: { color: '#666', fontSize: 15 },
+  darkHeader: { backgroundColor: '#001A12', paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
+  logo: { width: 85, height: 85 },
+  appTitle: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
+  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
+  formArea: { flex: 1, marginTop: -20 },
+  scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: '#F0F0F0' },
+  cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: '#1A1A1A', marginBottom: 20, borderWidth: 1, borderColor: '#E8E8E8' },
+  phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
+  prefixBox: { backgroundColor: '#001A12', borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+  prefixText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
+  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: '#1A1A1A', borderWidth: 1, borderColor: '#E8E8E8' },
+  forgotText: { color: COLORS.green, fontSize: 14, fontWeight: '500' },
+  secondaryBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.background, alignItems: 'center', borderWidth: 1, borderColor: '#E5E5E5' },
+  secondaryBtnText: { fontSize: 15, fontWeight: '600', color: '#555' },
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 30 },
+  registerText: { color: '#888', fontSize: 15 },
   registerBold: { color: COLORS.green, fontSize: 15, fontWeight: 'bold' },
 });
 
