@@ -55,11 +55,11 @@ var LoginScreen = function(props) {
                 <Text style={styles.cardTitle}>{"R\u00e9initialisation"}</Text>
                 <Text style={styles.cardSubtitle}>{"Entrez le code re\u00e7u par email"}</Text>
                 <Text style={styles.label}>Code (6 chiffres)</Text>
-                <TextInput style={styles.input} placeholder='000000' placeholderTextColor=COLORS.gray value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
+                <TextInput style={styles.input} placeholder='000000' placeholderTextColor={COLORS.gray} value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
                 <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
-                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
                 <Text style={styles.label}>Confirmer PIN</Text>
-                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
                 <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
                 <TouchableOpacity onPress={function() { setForgotMode(false); }} style={styles.secondaryBtn}>
                   <Text style={styles.secondaryBtnText}>Retour</Text>
@@ -89,10 +89,10 @@ var LoginScreen = function(props) {
               <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
               <View style={styles.phoneRow}>
                 <View style={styles.prefixBox}><Text style={styles.prefixText}>+221</Text></View>
-                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor=COLORS.gray value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
+                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor={COLORS.gray} value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
               </View>
               <Text style={styles.label}>PIN (4 chiffres)</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
               <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
               <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={styles.forgotText}>{"PIN oubli\u00e9?"}</Text>
