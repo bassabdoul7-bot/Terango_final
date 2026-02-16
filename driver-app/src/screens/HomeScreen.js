@@ -17,8 +17,6 @@ import { driverService } from '../services/api.service';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 
-
-
 const HomeScreen = ({ navigation }) => {
   const { driver } = useAuth();
   const [isOnline, setIsOnline] = useState(false);
@@ -28,31 +26,18 @@ const HomeScreen = ({ navigation }) => {
   const [socket, setSocket] = useState(null);
   const pendingGoOnline = useRef(false);
 
-
-
   useEffect(() => {
     initializeLocation();
 
     createAuthSocket().then(function(newSocket) {
       setSocket(newSocket);
-
-      newSocket.on('connect', () => {
-        console.log('Socket connected:', newSocket.id);
-      });
-
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
-      });
+      newSocket.on('connect', () => { console.log('Socket connected:', newSocket.id); });
+      newSocket.on('disconnect', () => { console.log('Socket disconnected'); });
     });
 
-    return () => {
-      if (socket) {
-        socket.disconnect();
-      }
-    };
+    return () => { if (socket) { socket.disconnect(); } };
   }, []);
 
-  // When location becomes available and user wanted to go online
   useEffect(() => {
     if (location && pendingGoOnline.current) {
       pendingGoOnline.current = false;
@@ -65,43 +50,20 @@ const HomeScreen = ({ navigation }) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert(
-          'Permission requise', 
-          'Nous avons besoin de votre localisation pour vous mettre en ligne.',
-          [{ text: 'Réessayer', onPress: initializeLocation }]
-        );
+        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation pour vous mettre en ligne.', [{ text: 'Réessayer', onPress: initializeLocation }]);
         setGettingLocation(false);
         return;
       }
-
-      const currentLocation = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-        timeout: 15000,
-      });
-      
-      setLocation({
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-      });
-      console.log('Location obtained:', currentLocation.coords);
+      const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High, timeout: 15000 });
+      setLocation({ latitude: currentLocation.coords.latitude, longitude: currentLocation.coords.longitude });
     } catch (error) {
       console.error('Location error:', error);
-      // Retry with lower accuracy
       try {
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        setLocation({
-          latitude: currentLocation.coords.latitude,
-          longitude: currentLocation.coords.longitude,
-        });
+        const currentLocation = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        setLocation({ latitude: currentLocation.coords.latitude, longitude: currentLocation.coords.longitude });
       } catch (retryError) {
         console.error('Location retry error:', retryError);
-        Alert.alert(
-          'GPS non disponible',
-          'Impossible d\'obtenir votre position. Vérifiez que le GPS est activé.',
-          [{ text: 'Réessayer', onPress: initializeLocation }]
-        );
+        Alert.alert('GPS non disponible', 'Impossible d\'obtenir votre position. Vérifiez que le GPS est activé.', [{ text: 'Réessayer', onPress: initializeLocation }]);
       }
     } finally {
       setGettingLocation(false);
@@ -109,35 +71,14 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const goOnlineWithLocation = async () => {
-    if (!driver || !driver._id) {
-      Alert.alert('Erreur', 'Profil chauffeur introuvable');
-      setLoading(false);
-      return;
-    }
-
+    if (!driver || !driver._id) { Alert.alert('Erreur', 'Profil chauffeur introuvable'); setLoading(false); return; }
     try {
-      // Send location with online status for Redis tracking
       await driverService.toggleOnlineStatus(true, location.latitude, location.longitude);
       setIsOnline(true);
-
-      // Emit driver-online with location to socket for real-time tracking
       if (socket) {
-        socket.emit('driver-online', {
-          driverId: driver._id,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          vehicle: driver.vehicle,
-          rating: driver.userId?.rating || 5.0
-        });
-        console.log("Driver " + driver._id + " went online at " + location.latitude + ", " + location.longitude);
+        socket.emit('driver-online', { driverId: driver._id, latitude: location.latitude, longitude: location.longitude, vehicle: driver.vehicle, rating: driver.userId?.rating || 5.0 });
       }
-
-      // Navigate based on selected mode
-        navigation.replace("RideRequests", { driverId: driver._id });
-
-
-
-
+      navigation.replace("RideRequests", { driverId: driver._id });
     } catch (error) {
       console.error('Toggle online error:', error);
       Alert.alert('Erreur', error.response?.data?.message || 'Impossible de passer en ligne');
@@ -146,32 +87,10 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
-
-
-
-
-
-
-    const handleGoOnline = async () => {
-    if (!driver || !driver._id) {
-      Alert.alert('Erreur', 'Profil chauffeur introuvable');
-      return;
-    }
-
+  const handleGoOnline = async () => {
+    if (!driver || !driver._id) { Alert.alert('Erreur', 'Profil chauffeur introuvable'); return; }
     setLoading(true);
-
-    if (!location) {
-      // Location not ready, get it first then go online
-      pendingGoOnline.current = true;
-      await initializeLocation();
-      
-      // If still no location after trying, show error
-      if (!location && !pendingGoOnline.current) {
-        setLoading(false);
-      }
-      return;
-    }
-
+    if (!location) { pendingGoOnline.current = true; await initializeLocation(); if (!location && !pendingGoOnline.current) { setLoading(false); } return; }
     await goOnlineWithLocation();
   };
 
@@ -184,26 +103,13 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-
+      <StatusBar barStyle="dark-content" />
       {location ? (
-        <MapView
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          customMapStyle={WAZE_DARK_STYLE}
-          initialRegion={{
-            ...location,
-            latitudeDelta: 0.05,
-            longitudeDelta: 0.05,
-          }}
-          showsUserLocation={false}
-          showsMyLocationButton={false}
-          showsTraffic={true}
-        >
+        <MapView style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE}
+          initialRegion={{ ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
+          showsUserLocation={false} showsMyLocationButton={false} showsTraffic={true}>
           <Marker coordinate={location}>
-            <View style={styles.driverMarker}>
-              <Text style={styles.markerText}>▲</Text>
-            </View>
+            <View style={styles.driverMarker}><Text style={styles.markerText}>▲</Text></View>
           </Marker>
         </MapView>
       ) : (
@@ -214,10 +120,7 @@ const HomeScreen = ({ navigation }) => {
       )}
 
       <View style={styles.topBar}>
-        <TouchableOpacity
-          style={styles.menuButton}
-          onPress={() => navigation.navigate('Menu')}
-        >
+        <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Menu')}>
           <Text style={styles.menuIcon}>☰</Text>
         </TouchableOpacity>
       </View>
@@ -226,58 +129,18 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.offlineContainer}>
           <View style={styles.offlineCard}>
             <View style={styles.iconContainer}>
-              <View style={styles.logoImageWrapper}>
-                <Image
-                  source={require('../../assets/images/logo.png')}
-                  style={styles.logoImage}
-                  resizeMode="contain"
-                />
-              </View>
+              <Image source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
-
             <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
-            <Text style={styles.offlineSubtitle}>
-              {location ? 'Prêt à accepter des courses?' : 'En attente du GPS...'}
-            </Text>
-
-            {/* Location status indicator */}
+            <Text style={styles.offlineSubtitle}>{location ? 'Prêt à accepter des courses?' : 'En attente du GPS...'}</Text>
             <View style={styles.locationStatus}>
               <View style={[styles.statusDot, location ? styles.statusDotGreen : styles.statusDotOrange]} />
-              <Text style={styles.statusText}>
-                {location ? 'GPS actif' : gettingLocation ? 'Recherche GPS...' : 'GPS non disponible'}
-              </Text>
+              <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche GPS...' : 'GPS non disponible'}</Text>
             </View>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-              <TouchableOpacity
-                style={[
-                  styles.goOnlineButton,
-                  (loading || gettingLocation) && styles.buttonDisabled
-                ]}
-              onPress={handleGoOnline}
-                disabled={loading || gettingLocation}
-              >
-                {(loading || gettingLocation) && (
-                  <ActivityIndicator size="small" color="#000" style={{ marginRight: 8 }} />
-                )}
-                <Text style={styles.goOnlineText}>{getButtonText()}</Text>
-              </TouchableOpacity>
-
+            <TouchableOpacity style={[styles.goOnlineButton, (loading || gettingLocation) && styles.buttonDisabled]} onPress={handleGoOnline} disabled={loading || gettingLocation}>
+              {(loading || gettingLocation) && <ActivityIndicator size="small" color={COLORS.darkBg} style={{ marginRight: 8 }} />}
+              <Text style={styles.goOnlineText}>{getButtonText()}</Text>
+            </TouchableOpacity>
             {!location && !gettingLocation && (
               <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
                 <Text style={styles.retryText}>🔄 Réessayer GPS</Text>
@@ -291,195 +154,31 @@ const HomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  map: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  mapPlaceholder: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 16,
-  },
-  driverMarker: {
-    width: 44,
-    height: 44,
-    backgroundColor: COLORS.green,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  markerText: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  topBar: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    right: 20,
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-  },
-  menuButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    borderWidth: 2,
-    borderColor: COLORS.green,
-  },
-  menuIcon: {
-    fontSize: 28,
-    color: '#000',
-  },
-  offlineContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    paddingBottom: 60,
-  },
-  offlineCard: {
-    backgroundColor: 'rgba(179, 229, 206, 0.95)',
-    borderRadius: 20,
-    padding: 32,
-    marginHorizontal: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  iconContainer: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  logoImageWrapper: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-  },
-  logoImage: {
-    width: 80,
-    height: 80,
-  },
-  offlineTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  offlineSubtitle: {
-    fontSize: 15,
-    color: '#333',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  locationStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-  statusDotGreen: {
-    backgroundColor: COLORS.green,
-  },
-  statusDotOrange: {
-    backgroundColor: '#FFA500',
-  },
-  statusText: {
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '500',
-  },
-    goOnlineButton: {
-    backgroundColor: '#FCD116',
-    paddingHorizontal: 48,
-    paddingVertical: 18,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    width: '100%',
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  goOnlineText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  retryButton: {
-    marginTop: 12,
-    padding: 12,
-  },
-  retryText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-  },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  map: { ...StyleSheet.absoluteFillObject },
+  mapPlaceholder: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: COLORS.textDarkSub, fontSize: 16, marginTop: 16 },
+  driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#fff', elevation: 8 },
+  markerText: { fontSize: 18, color: '#fff', fontWeight: 'bold' },
+  topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'flex-start' },
+  menuButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  menuIcon: { fontSize: 28, color: COLORS.textLight },
+  offlineContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', paddingBottom: 60 },
+  offlineCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 32, marginHorizontal: 20, alignItems: 'center', elevation: 12, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  iconContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden', elevation: 8 },
+  logoImage: { width: 80, height: 80 },
+  offlineTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.textLight, marginBottom: 8, textAlign: 'center' },
+  offlineSubtitle: { fontSize: 15, color: COLORS.textLightSub, marginBottom: 16, textAlign: 'center' },
+  locationStatus: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
+  statusDotGreen: { backgroundColor: COLORS.green },
+  statusDotOrange: { backgroundColor: '#FFA500' },
+  statusText: { fontSize: 13, color: COLORS.textLightSub, fontWeight: '500' },
+  goOnlineButton: { backgroundColor: COLORS.yellow, paddingHorizontal: 48, paddingVertical: 18, borderRadius: 16, width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 8 },
+  buttonDisabled: { opacity: 0.6 },
+  goOnlineText: { fontSize: 18, fontWeight: 'bold', color: COLORS.darkBg },
+  retryButton: { marginTop: 12, padding: 12 },
+  retryText: { fontSize: 14, color: COLORS.textLightSub, fontWeight: '500' },
 });
 
 export default HomeScreen;
-
-
-
-
