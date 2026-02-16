@@ -74,7 +74,7 @@ var RegisterScreen = function(props) {
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  darkHeader: { backgroundColor: COLORS.darkBg, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  darkHeader: { backgroundColor: COLORS.darkCard, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
@@ -87,7 +87,7 @@ var styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight },
   phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
-  prefixBox: { backgroundColor: COLORS.darkBg, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+  prefixBox: { backgroundColor: COLORS.darkCard, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   prefixText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
   phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight },
   registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 30 },
