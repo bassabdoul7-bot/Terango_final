@@ -55,11 +55,11 @@ var LoginScreen = function(props) {
                 <Text style={styles.cardTitle}>{"R\u00e9initialisation"}</Text>
                 <Text style={styles.cardSubtitle}>{"Entrez le code re\u00e7u par email"}</Text>
                 <Text style={styles.label}>Code (6 chiffres)</Text>
-                <TextInput style={styles.input} placeholder='000000' placeholderTextColor='#999' value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
+                <TextInput style={styles.input} placeholder='000000' placeholderTextColor=COLORS.gray value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
                 <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
-                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
                 <Text style={styles.label}>Confirmer PIN</Text>
-                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+                <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
                 <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
                 <TouchableOpacity onPress={function() { setForgotMode(false); }} style={styles.secondaryBtn}>
                   <Text style={styles.secondaryBtnText}>Retour</Text>
@@ -89,10 +89,10 @@ var LoginScreen = function(props) {
               <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
               <View style={styles.phoneRow}>
                 <View style={styles.prefixBox}><Text style={styles.prefixText}>+221</Text></View>
-                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor='#999' value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
+                <TextInput style={styles.phoneInput} placeholder='77 123 45 67' placeholderTextColor=COLORS.gray value={phone} onChangeText={setPhone} keyboardType='phone-pad' maxLength={12} />
               </View>
               <Text style={styles.label}>PIN (4 chiffres)</Text>
-              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor='#999' value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022'} placeholderTextColor=COLORS.gray value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={4} secureTextEntry />
               <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
               <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={styles.forgotText}>{"PIN oubli\u00e9?"}</Text>
@@ -111,27 +111,27 @@ var LoginScreen = function(props) {
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  darkHeader: { backgroundColor: '#001A12', paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  darkHeader: { backgroundColor: COLORS.darkBg, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 4 },
   appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)' },
   formArea: { flex: 1, marginTop: -20 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: '#F0F0F0' },
-  cardTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: '#888', marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: '#1A1A1A', marginBottom: 20, borderWidth: 1, borderColor: '#E8E8E8' },
+  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
+  cardTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.textDark, marginBottom: 4 },
+  cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24 },
+  label: { fontSize: 13, fontWeight: '600', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight },
   phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
-  prefixBox: { backgroundColor: '#001A12', borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+  prefixBox: { backgroundColor: COLORS.darkBg, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   prefixText: { fontSize: 16, fontWeight: '700', color: '#FFFFFF' },
-  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: '#1A1A1A', borderWidth: 1, borderColor: '#E8E8E8' },
+  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight },
   forgotText: { color: COLORS.green, fontSize: 14, fontWeight: '500' },
   secondaryBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.background, alignItems: 'center', borderWidth: 1, borderColor: '#E5E5E5' },
-  secondaryBtnText: { fontSize: 15, fontWeight: '600', color: '#555' },
+  secondaryBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.gray },
   registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 30 },
-  registerText: { color: '#888', fontSize: 15 },
+  registerText: { color: COLORS.textDarkSub, fontSize: 15 },
   registerBold: { color: COLORS.green, fontSize: 15, fontWeight: 'bold' },
 });
 
