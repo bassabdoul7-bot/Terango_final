@@ -82,7 +82,7 @@ function CommandeScreen(props) {
               {pickup ? (
                 <TouchableOpacity onPress={function() { setPickup(null); }}><View style={styles.addressSetRow}><View style={styles.dotOrange} /><Text style={styles.addressSetText} numberOfLines={1}>{pickup.address}</Text><Text style={styles.changeText}>Changer</Text></View></TouchableOpacity>
               ) : (
-                <GooglePlacesAutocomplete placeholder="Adresse du magasin" fetchDetails={true} onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} enablePoweredByContainer={false} debounce={300} minLength={2} />
+                <GooglePlacesAutocomplete placeholder="Adresse du magasin" fetchDetails={true} onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} enablePoweredByContainer={false} debounce={300} minLength={2} />
               )}
             </View>
             <Text style={styles.fieldLabel}>Livrer à</Text>
@@ -90,7 +90,7 @@ function CommandeScreen(props) {
               {dropoff ? (
                 <TouchableOpacity onPress={function() { setDropoff(null); }}><View style={styles.addressSetRow}><View style={styles.dotGreen} /><Text style={styles.addressSetText} numberOfLines={1}>{dropoff.address}</Text><Text style={styles.changeText}>Changer</Text></View></TouchableOpacity>
               ) : (
-                <GooglePlacesAutocomplete placeholder="Adresse de livraison" fetchDetails={true} onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} enablePoweredByContainer={false} debounce={300} minLength={2} />
+                <GooglePlacesAutocomplete placeholder="Adresse de livraison" fetchDetails={true} onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} enablePoweredByContainer={false} debounce={300} minLength={2} />
               )}
             </View>
             {pickup && dropoff && <TouchableOpacity style={styles.nextBtn} onPress={function() { setStep(2); }}><Text style={styles.nextBtnText}>Continuer</Text></TouchableOpacity>}

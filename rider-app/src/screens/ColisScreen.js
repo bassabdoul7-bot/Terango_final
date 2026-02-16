@@ -99,7 +99,7 @@ function ColisScreen(props) {
               ) : (
                 <GooglePlacesAutocomplete placeholder="Adresse de retrait" fetchDetails={true}
                   onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
-                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }}
+                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }}
                   styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }}
                   enablePoweredByContainer={false} debounce={300} minLength={2} />
               )}
@@ -117,7 +117,7 @@ function ColisScreen(props) {
               ) : (
                 <GooglePlacesAutocomplete placeholder="Adresse de livraison" fetchDetails={true}
                   onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
-                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn' }}
+                  query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }}
                   styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }}
                   enablePoweredByContainer={false} debounce={300} minLength={2} />
               )}
