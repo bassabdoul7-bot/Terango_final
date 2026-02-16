@@ -41,7 +41,11 @@ export var adminService = {
   rejectPhoto: function(id, reason) { return api.put('/admin/users/' + id + '/reject-photo', { reason: reason }); },
   getPartners: function() { return api.get('/admin/partners'); },
   createPartner: function(data) { return api.post('/admin/partners', data); },
-  verifyPartner: function(id, status, reason) { return api.put('/admin/partners/' + id + '/verify', { status: status, reason: reason }); }
+  verifyPartner: function(id, status, reason) { return api.put('/admin/partners/' + id + '/verify', { status: status, reason: reason }); },
+  getServiceProviders: function(params) { return api.get('/services/admin/providers', { params: params }); },
+  verifyServiceProvider: function(id, status, reason) { return api.put('/services/admin/providers/' + id + '/verify', { status: status, reason: reason }); },
+  getServiceRequests: function(params) { return api.get('/services/admin/requests', { params: params }); },
+  getServiceStats: function() { return api.get('/services/admin/stats'); }
 };
 
 export var partnerService = {

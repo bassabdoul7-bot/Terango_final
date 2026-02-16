@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeranGO Services — Devenez Prestataire</title>
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dittpcisb/image/upload/w_64,h_64,c_fill,r_max,f_png/v1771047319/terango-brand/logo-driver.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --green:#00853F;--yellow:#FDEF42;--red:#E31B23;
+  --dark:#0a1a12;--card:rgba(255,255,255,0.04);
+  --glass:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.08);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--dark);color:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+
+/* ===== FLAG BAR ===== */
+.flag-bar{height:4px;background:linear-gradient(90deg,var(--green) 33%,var(--yellow) 33% 66%,var(--red) 66%);position:fixed;top:0;left:0;right:0;z-index:100}
+
+/* ===== HEADER ===== */
+.header{position:fixed;top:4px;left:0;right:0;z-index:99;padding:0 2rem;transition:all .4s ease}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-radius:16px;background:transparent;transition:all .4s ease}
+.header.scrolled .header-inner{background:rgba(10,26,18,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.header-left{display:flex;align-items:center;gap:12px}
+.header-logo{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,133,63,.4);transition:all .3s}
+.header.scrolled .header-logo{border-color:var(--green)}
+.header-brand{font-size:1.1rem;font-weight:800;letter-spacing:-.5px}
+.header-brand span{color:#D4AF37}
+.header-slogan{font-style:normal;font-size:.6rem;font-weight:500;color:rgba(255,255,255,.4);margin-left:8px;letter-spacing:.5px}
+.header-tag{font-size:.65rem;background:rgba(253,239,66,.15);color:var(--yellow);padding:3px 8px;border-radius:6px;font-weight:600;margin-left:8px}
+.header-nav{display:flex;align-items:center;gap:1.5rem}
+.header-link{font-size:.85rem;color:rgba(255,255,255,.6);font-weight:500;transition:color .3s}
+.header-link:hover{color:#fff}
+.header-cta{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;font-weight:700;font-size:.85rem;padding:10px 22px;border-radius:10px;transition:all .3s;box-shadow:0 2px 12px rgba(0,133,63,.25)}
+.header-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,133,63,.4)}
+@media(max-width:640px){
+  .header{padding:0 1rem}
+  .header-inner{padding:10px 16px}
+  .header-nav{gap:.8rem}
+  .header-link{display:none}
+  .header-tag{display:none}
+  .header-cta{font-size:.8rem;padding:8px 16px}
+}
+
+/* ===== HERO ===== */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:6rem 2rem 2rem}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,#001a12 0%,#003322 40%,#001a12 100%);z-index:0}
+.hero-pattern{position:absolute;inset:0;z-index:1;opacity:.04;
+  background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")}
+.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,133,63,.15) 0%,transparent 70%);top:-200px;right:-200px;z-index:1}
+.hero-glow2{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(253,239,66,.06) 0%,transparent 70%);bottom:-150px;left:-150px;z-index:1}
+
+.hero-content{position:relative;z-index:2;text-align:center;max-width:800px;animation:fadeUp .8s ease}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--glass);border:1px solid var(--border);border-radius:100px;padding:8px 20px;font-size:.8rem;color:rgba(255,255,255,.7);margin-bottom:1.5rem;backdrop-filter:blur(10px)}
+.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+.hero-logo{width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid var(--green);margin-bottom:1.5rem;box-shadow:0 0 40px rgba(0,133,63,.3)}
+.hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;margin-bottom:1rem}
+.hero h1 .accent{color:var(--green);position:relative}
+.hero h1 .accent-y{color:var(--yellow)}
+.hero p{font-size:1.1rem;color:rgba(255,255,255,.65);max-width:600px;margin:0 auto 2rem;line-height:1.6}
+.hero-stats{display:flex;justify-content:center;gap:2rem;margin-bottom:2.5rem;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat .num{font-size:2rem;font-weight:800;color:var(--green)}
+.hero-stat .lab{font-size:.75rem;color:rgba(255,255,255,.5);margin-top:2px}
+.hero-cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.btn-main{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-weight:700;font-size:1rem;padding:16px 36px;border-radius:14px;transition:all .3s;border:none;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(0,133,63,.3)}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,133,63,.4)}
+.btn-outline{display:inline-flex;align-items:center;gap:8px;background:transparent;color:#fff;font-weight:600;font-size:1rem;padding:16px 36px;border-radius:14px;border:1px solid var(--border);transition:all .3s;cursor:pointer;font-family:inherit}
+.btn-outline:hover{background:var(--glass);border-color:rgba(255,255,255,.2)}
+.btn-wa{background:#25d366;color:#fff;box-shadow:0 4px 20px rgba(37,211,102,.3)}
+.btn-wa:hover{box-shadow:0 8px 30px rgba(37,211,102,.4);transform:translateY(-2px)}
+.btn-yellow{background:var(--yellow);color:#0a1a12;box-shadow:0 4px 20px rgba(253,239,66,.2)}
+.btn-yellow:hover{box-shadow:0 8px 30px rgba(253,239,66,.35);transform:translateY(-2px)}
+
+/* ===== CATEGORIES ===== */
+.section-white{background:#fff;color:#1a1a1a}
+.section-white .section-title h2{color:#1a1a1a}
+.section-white .section-title p{color:#666}
+.section-white .cat-card{background:#fff;border-color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.section-white .cat-card:hover{background:rgba(0,133,63,.04);border-color:rgba(0,133,63,.3)}
+.section-white .cat-name{color:#333}
+.section-softgreen{background:#f0f9f4;color:#1a1a1a}
+.section-softgreen .section-title h2{color:#1a1a1a}
+.section-softgreen .section-title p{color:#666}
+.section-softgreen .why-card{background:#fff;border-color:#e0e0e0;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.section-softgreen .why-card:hover{border-color:rgba(0,133,63,.3)}
+.section-softgreen .why-card h3{color:#1a1a1a}
+.section-softgreen .why-card p{color:#666}
+.section-white .step{background:#fff;border:none;box-shadow:none}
+.section-white .step h3{color:#1a1a1a}
+.section-white .step p{color:#666}
+.section{padding:5rem 2rem}
+.section-title{text-align:center;margin-bottom:3rem}
+.section-title h2{font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:800;margin-bottom:.8rem}
+.section-title p{color:rgba(255,255,255,.5);max-width:500px;margin:0 auto;font-size:.95rem}
+.categories{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem;max-width:900px;margin:0 auto}
+.cat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.5rem 1rem;text-align:center;transition:all .3s;cursor:default}
+.cat-card:hover{background:rgba(0,133,63,.08);border-color:rgba(0,133,63,.3);transform:translateY(-3px)}
+.cat-icon{font-size:2rem;margin-bottom:.6rem}
+.cat-name{font-size:.85rem;font-weight:600;color:rgba(255,255,255,.8)}
+
+/* ===== WHY JOIN ===== */
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto}
+.why-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:2rem;transition:all .3s}
+.why-card:hover{border-color:rgba(0,133,63,.3);transform:translateY(-3px)}
+.why-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin-bottom:1rem}
+.why-card h3{font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.why-card p{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.5}
+
+/* ===== HOW IT WORKS ===== */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;max-width:1000px;margin:0 auto}
+.step{text-align:center;padding:2rem 1.5rem}
+.step-num{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;font-size:1.2rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem}
+.step h3{font-size:1rem;font-weight:700;margin-bottom:.5rem}
+.step p{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.5}
+.step-arrow{display:none}
+@media(min-width:768px){
+  .steps{position:relative}
+}
+
+/* ===== REGISTRATION FORM ===== */
+.form-section{background:linear-gradient(180deg,transparent,rgba(0,133,63,.03))}
+.form-container{max-width:650px;margin:0 auto;background:var(--card);border:1px solid var(--border);border-radius:24px;padding:2.5rem;backdrop-filter:blur(10px)}
+.form-container::before{content:'';display:block;height:4px;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));border-radius:4px 4px 0 0;margin:-2.5rem -2.5rem 2rem;border-radius:24px 24px 0 0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.form-group{margin-bottom:1rem}
+.form-group.full{grid-column:1/-1}
+.form-group label{display:block;font-size:.8rem;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:#fff;font-size:.95rem;font-family:inherit;transition:border-color .3s;outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.form-group input::placeholder,.form-group textarea::placeholder{color:rgba(255,255,255,.25)}
+.form-group select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff80' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.form-group select option{background:#1a2a20;color:#fff}
+.form-group textarea{resize:vertical;min-height:80px}
+.checkbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.checkbox-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s;font-size:.85rem}
+.checkbox-item:hover{border-color:rgba(0,133,63,.3);background:rgba(0,133,63,.05)}
+.checkbox-item.checked{border-color:var(--green);background:rgba(0,133,63,.1)}
+.checkbox-item input{display:none}
+.checkbox-dot{width:18px;height:18px;border-radius:6px;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.checkbox-item.checked .checkbox-dot{background:var(--green);border-color:var(--green)}
+.checkbox-item.checked .checkbox-dot::after{content:'✓';color:#fff;font-size:.7rem;font-weight:700}
+.zone-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.zone-tag{padding:8px 14px;border-radius:20px;font-size:.8rem;background:rgba(255,255,255,.05);border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.zone-tag:hover{border-color:rgba(0,133,63,.3)}
+.zone-tag.selected{background:rgba(0,133,63,.15);border-color:var(--green);color:var(--green)}
+.form-submit{width:100%;padding:16px;background:var(--yellow);color:#0a1a12;font-size:1.1rem;font-weight:700;border:none;border-radius:14px;cursor:pointer;font-family:inherit;transition:all .3s;margin-top:1rem;box-shadow:0 4px 20px rgba(253,239,66,.2)}
+.form-submit:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(253,239,66,.35)}
+.form-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.form-msg{text-align:center;margin-top:1rem;font-size:.9rem;padding:12px;border-radius:10px;display:none}
+.form-msg.success{display:block;background:rgba(0,133,63,.1);color:var(--green)}
+.form-msg.error{display:block;background:rgba(227,27,35,.1);color:var(--red)}
+
+/* ===== FOOTER ===== */
+.footer{text-align:center;padding:3rem 2rem;border-top:1px solid var(--border);color:rgba(255,255,255,.4);font-size:.85rem}
+.footer a{color:var(--green);font-weight:600}
+.footer-wa{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;padding:10px 24px;border-radius:100px;font-weight:600;font-size:.9rem;margin-bottom:1rem;transition:all .3s}
+.footer-wa:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(37,211,102,.3)}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.fade-in{opacity:0;transform:translateY(20px);transition:all .6s ease}
+.fade-in.visible{opacity:1;transform:translateY(0)}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:640px){
+  .hero{padding:6rem 1.5rem 3rem}
+  .hero h1{font-size:1.8rem}
+  .hero-stats{gap:1.2rem}
+  .hero-stat .num{font-size:1.5rem}
+  .form-row{grid-template-columns:1fr}
+  .form-container{padding:1.5rem}
+  .form-container::before{margin:-1.5rem -1.5rem 1.5rem}
+  .hero-cta{flex-direction:column;align-items:center}
+  .section{padding:3rem 1.5rem}
+  .categories{grid-template-columns:repeat(3,1fr);gap:.6rem}
+  .cat-card{padding:1rem .6rem}
+  .checkbox-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="flag-bar"></div>
+
+<!-- HEADER -->
+<header class="header" id="mainHeader">
+  <div class="header-inner">
+    <a href="/" class="header-left">
+      <img class="header-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_76,h_76,c_fill,r_max,q_80/v1771047319/terango-brand/logo-driver.jpg" alt="TeranGO">
+      <span class="header-brand">Teran<span>GO</span></span>
+      <span class="header-tag">Services</span>
+    </a>
+    <nav class="header-nav">
+      <a href="/" class="header-link">Accueil</a>
+      <a href="#inscription" class="header-link">Inscription</a>
+      <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20m%27inscrire%20comme%20prestataire%20TeranGO%20Services" target="_blank" class="header-cta">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+        S'inscrire
+      </a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-pattern"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="dot"></span> Nouveau sur TeranGO</div>
+    <h1>Devenez prestataire<br><span class="accent">TeranGO</span> <span class="accent-y">Services</span></h1>
+    <p>TeranGO — <strong>L'esprit de la Teranga.</strong> Plombier, électricien, menuisier... Recevez des clients directement sur votre téléphone. Inscrivez-vous et commencez à gagner plus.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">85%</div><div class="lab">Vos gains</div></div>
+      <div class="hero-stat"><div class="num">0 FCFA</div><div class="lab">Frais d'inscription</div></div>
+      <div class="hero-stat"><div class="num">24/7</div><div class="lab">Demandes clients</div></div>
+    </div>
+    <div class="hero-cta">
+      <a href="#inscription" class="btn-main btn-yellow">S'inscrire maintenant</a>
+      <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20m%27inscrire%20comme%20prestataire%20TeranGO%20Services" target="_blank" class="btn-outline btn-wa">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CATEGORIES -->
+<section class="section section-white fade-in">
+  <div class="section-title">
+    <h2>Quel est votre métier ?</h2>
+    <p>TeranGO Services couvre tous les métiers de dépannage et d'entretien à domicile</p>
+  </div>
+  <div class="categories">
+    <div class="cat-card"><div class="cat-icon">🔧</div><div class="cat-name">Plomberie</div></div>
+    <div class="cat-card"><div class="cat-icon">⚡</div><div class="cat-name">Électricité</div></div>
+    <div class="cat-card"><div class="cat-icon">❄️</div><div class="cat-name">Climatisation</div></div>
+    <div class="cat-card"><div class="cat-icon">🪚</div><div class="cat-name">Menuiserie</div></div>
+    <div class="cat-card"><div class="cat-icon">🎨</div><div class="cat-name">Peinture</div></div>
+    <div class="cat-card"><div class="cat-icon">🧱</div><div class="cat-name">Maçonnerie</div></div>
+    <div class="cat-card"><div class="cat-icon">🔲</div><div class="cat-name">Carrelage</div></div>
+    <div class="cat-card"><div class="cat-icon">🔐</div><div class="cat-name">Serrurerie</div></div>
+    <div class="cat-card"><div class="cat-icon">✨</div><div class="cat-name">Nettoyage</div></div>
+    <div class="cat-card"><div class="cat-icon">🌿</div><div class="cat-name">Jardinage</div></div>
+    <div class="cat-card"><div class="cat-icon">💻</div><div class="cat-name">Informatique</div></div>
+    <div class="cat-card"><div class="cat-icon">🔌</div><div class="cat-name">Électroménager</div></div>
+    <div class="cat-card"><div class="cat-icon">🚚</div><div class="cat-name">Déménagement</div></div>
+    <div class="cat-card"><div class="cat-icon">➕</div><div class="cat-name">Autre</div></div>
+  </div>
+</section>
+
+<!-- WHY JOIN -->
+<section class="section section-softgreen fade-in">
+  <div class="section-title">
+    <h2>Pourquoi rejoindre TeranGO ?</h2>
+    <p>Plus de clients, plus de revenus, zéro tracas</p>
+  </div>
+  <div class="why-grid">
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(0,133,63,.1)">📱</div>
+      <h3>Clients directs sur votre téléphone</h3>
+      <p>Fini l'attente au bord de la route. Les clients viennent à vous via l'application. Notifications instantanées.</p>
+    </div>
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(253,239,66,.1)">💰</div>
+      <h3>85% de vos gains — vous gardez presque tout</h3>
+      <p>Commission de seulement 15%. Pas de frais cachés. Paiement Wave ou Orange Money direct.</p>
+    </div>
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(37,211,102,.1)">⭐</div>
+      <h3>Bâtissez votre réputation</h3>
+      <p>Les clients vous notent et laissent des avis. Un bon profil = plus de demandes = plus de revenus.</p>
+    </div>
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(59,130,246,.1)">🗓️</div>
+      <h3>Choisissez vos horaires</h3>
+      <p>Travaillez quand vous voulez. Activez-vous le matin, le soir, le weekend. Vous êtes votre propre patron.</p>
+    </div>
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(168,85,247,.1)">📍</div>
+      <h3>Choisissez votre zone</h3>
+      <p>Plateau, Almadies, Parcelles, Guédiawaye, Rufisque... Travaillez dans les quartiers que vous connaissez.</p>
+    </div>
+    <div class="why-card">
+      <div class="why-icon" style="background:rgba(227,27,35,.1)">🛡️</div>
+      <h3>Profil vérifié = confiance</h3>
+      <p>Votre badge vérifié rassure les clients. Plus de confiance, plus de missions acceptées.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-white fade-in">
+  <div class="section-title">
+    <h2>Comment ça marche ?</h2>
+    <p>3 étapes simples pour commencer</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Inscrivez-vous</h3>
+      <p>Remplissez le formulaire ci-dessous avec vos informations et vos compétences</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Vérification</h3>
+      <p>Notre équipe vérifie votre profil sous 24h. Vous recevez un SMS de confirmation</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Recevez des clients</h3>
+      <p>Activez-vous et commencez à recevoir des demandes directement sur votre téléphone</p>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTRATION FORM -->
+<section class="section form-section fade-in" id="inscription">
+  <div class="section-title">
+    <h2>Inscription Prestataire</h2>
+    <p>Rejoignez les artisans de confiance au Sénégal</p>
+  </div>
+  <div class="form-container">
+    <form id="artisanForm" onsubmit="return false">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prénom & Nom</label>
+          <input type="text" id="fullName" placeholder="Ibrahima Diop" required>
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" id="phone" placeholder="+221 77 000 00 00" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Adresse email (optionnel)</label>
+        <input type="email" id="email" placeholder="votre@email.com">
+      </div>
+
+      <div class="form-group">
+        <label>Vos métiers (choisissez un ou plusieurs)</label>
+        <div class="checkbox-grid" id="categoryGrid">
+          <label class="checkbox-item" data-cat="plomberie"><input type="checkbox"><span class="checkbox-dot"></span>🔧 Plomberie</label>
+          <label class="checkbox-item" data-cat="electricite"><input type="checkbox"><span class="checkbox-dot"></span>⚡ Électricité</label>
+          <label class="checkbox-item" data-cat="climatisation"><input type="checkbox"><span class="checkbox-dot"></span>❄️ Climatisation</label>
+          <label class="checkbox-item" data-cat="menuiserie"><input type="checkbox"><span class="checkbox-dot"></span>🪚 Menuiserie</label>
+          <label class="checkbox-item" data-cat="peinture"><input type="checkbox"><span class="checkbox-dot"></span>🎨 Peinture</label>
+          <label class="checkbox-item" data-cat="maconnerie"><input type="checkbox"><span class="checkbox-dot"></span>🧱 Maçonnerie</label>
+          <label class="checkbox-item" data-cat="carrelage"><input type="checkbox"><span class="checkbox-dot"></span>🔲 Carrelage</label>
+          <label class="checkbox-item" data-cat="serrurerie"><input type="checkbox"><span class="checkbox-dot"></span>🔐 Serrurerie</label>
+          <label class="checkbox-item" data-cat="nettoyage"><input type="checkbox"><span class="checkbox-dot"></span>✨ Nettoyage</label>
+          <label class="checkbox-item" data-cat="jardinage"><input type="checkbox"><span class="checkbox-dot"></span>🌿 Jardinage</label>
+          <label class="checkbox-item" data-cat="informatique"><input type="checkbox"><span class="checkbox-dot"></span>💻 Informatique</label>
+          <label class="checkbox-item" data-cat="electromenager"><input type="checkbox"><span class="checkbox-dot"></span>🔌 Électroménager</label>
+          <label class="checkbox-item" data-cat="demenagement"><input type="checkbox"><span class="checkbox-dot"></span>🚚 Déménagement</label>
+          <label class="checkbox-item" data-cat="autre"><input type="checkbox"><span class="checkbox-dot"></span>➕ Autre</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Années d'expérience</label>
+        <select id="experience">
+          <option value="1">Moins de 2 ans</option>
+          <option value="3">2 à 5 ans</option>
+          <option value="7" selected>5 à 10 ans</option>
+          <option value="12">Plus de 10 ans</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Vos zones d'intervention</label>
+        <div class="zone-tags" id="zoneGrid">
+          <span class="zone-tag" data-zone="Plateau">Plateau</span>
+          <span class="zone-tag" data-zone="Almadies">Almadies</span>
+          <span class="zone-tag" data-zone="Mermoz">Mermoz</span>
+          <span class="zone-tag" data-zone="Ouakam">Ouakam</span>
+          <span class="zone-tag" data-zone="Ngor">Ngor</span>
+          <span class="zone-tag" data-zone="Medina">Médina</span>
+          <span class="zone-tag" data-zone="Grand Dakar">Grand Dakar</span>
+          <span class="zone-tag" data-zone="Parcelles Assainies">Parcelles</span>
+          <span class="zone-tag" data-zone="Guediawaye">Guédiawaye</span>
+          <span class="zone-tag" data-zone="Pikine">Pikine</span>
+          <span class="zone-tag" data-zone="Rufisque">Rufisque</span>
+          <span class="zone-tag" data-zone="Keur Massar">Keur Massar</span>
+          <span class="zone-tag" data-zone="Thies">Thiès</span>
+          <span class="zone-tag" data-zone="Mbour">Mbour</span>
+          <span class="zone-tag" data-zone="Saint-Louis">Saint-Louis</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tarification préférée</label>
+        <select id="pricing">
+          <option value="quote">Sur devis (recommandé)</option>
+          <option value="hourly">Tarif horaire</option>
+          <option value="fixed">Tarif fixe par type</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Décrivez vos compétences (optionnel)</label>
+        <textarea id="description" placeholder="Ex: 15 ans d'expérience en plomberie. Spécialisé dans les installations sanitaires et le débouchage. Disponible 7j/7."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Méthode de paiement préférée</label>
+        <select id="paymentMethod">
+          <option value="wave">Wave</option>
+          <option value="orange_money">Orange Money</option>
+          <option value="cash">Espèces</option>
+        </select>
+      </div>
+
+      <button type="button" class="form-submit" id="submitBtn" onclick="submitForm()">
+        S'inscrire comme prestataire
+      </button>
+      <div class="form-msg" id="formMsg"></div>
+    </form>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <a href="https://wa.me/17047263959" target="_blank" class="footer-wa">
+    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+    +1 (704) 726-3959
+  </a>
+  <p>© 2026 TeranGO — L'esprit de la Teranga · Helyx Technologies · Made in Senegal 🇸🇳</p>
+  <p style="margin-top:.6rem"><a href="/">Recrutement Chauffeurs</a> · <a href="https://prof-sn.netlify.app">Espace Partenaire</a></p>
+</footer>
+
+<script>
+// Header scroll effect
+var header = document.getElementById('mainHeader');
+window.addEventListener('scroll', function() {
+  if (window.scrollY > 60) {
+    header.classList.add('scrolled');
+  } else {
+    header.classList.remove('scrolled');
+  }
+});
+
+// Checkbox toggle
+document.querySelectorAll('.checkbox-item').forEach(function(el) {
+  el.addEventListener('click', function(e) {
+    e.preventDefault();
+    var cb = el.querySelector('input');
+    cb.checked = !cb.checked;
+    el.classList.toggle('checked', cb.checked);
+  });
+});
+
+// Zone tag toggle
+document.querySelectorAll('.zone-tag').forEach(function(el) {
+  el.addEventListener('click', function() {
+    el.classList.toggle('selected');
+  });
+});
+
+// Scroll fade-in
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) e.target.classList.add('visible');
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+
+// Form submission via WhatsApp
+function submitForm() {
+  var name = document.getElementById('fullName').value.trim();
+  var phone = document.getElementById('phone').value.trim();
+  var email = document.getElementById('email').value.trim();
+  var exp = document.getElementById('experience').value;
+  var pricing = document.getElementById('pricing').value;
+  var desc = document.getElementById('description').value.trim();
+  var payment = document.getElementById('paymentMethod').value;
+  var msg = document.getElementById('formMsg');
+  var btn = document.getElementById('submitBtn');
+
+  // Get selected categories
+  var categories = [];
+  document.querySelectorAll('.checkbox-item.checked').forEach(function(el) {
+    categories.push(el.getAttribute('data-cat'));
+  });
+
+  // Get selected zones
+  var zones = [];
+  document.querySelectorAll('.zone-tag.selected').forEach(function(el) {
+    zones.push(el.getAttribute('data-zone'));
+  });
+
+  // Validation
+  if (!name) { showMsg('error', 'Veuillez entrer votre nom'); return; }
+  if (!phone) { showMsg('error', 'Veuillez entrer votre numéro'); return; }
+  if (categories.length === 0) { showMsg('error', 'Veuillez sélectionner au moins un métier'); return; }
+  if (zones.length === 0) { showMsg('error', 'Veuillez sélectionner au moins une zone'); return; }
+
+  // Build WhatsApp message
+  var expLabels = {'1':'Moins de 2 ans','3':'2-5 ans','7':'5-10 ans','12':'Plus de 10 ans'};
+  var pricingLabels = {'quote':'Sur devis','hourly':'Tarif horaire','fixed':'Tarif fixe'};
+  var payLabels = {'wave':'Wave','orange_money':'Orange Money','cash':'Espèces'};
+
+  var text = '🔧 INSCRIPTION PRESTATAIRE TERANGO SERVICES\n\n';
+  text += '👤 Nom: ' + name + '\n';
+  text += '📞 Tel: ' + phone + '\n';
+  if (email) text += '📧 Email: ' + email + '\n';
+  text += '🛠️ Métiers: ' + categories.join(', ') + '\n';
+  text += '📍 Zones: ' + zones.join(', ') + '\n';
+  text += '📅 Expérience: ' + expLabels[exp] + '\n';
+  text += '💰 Tarification: ' + pricingLabels[pricing] + '\n';
+  text += '💳 Paiement: ' + payLabels[payment] + '\n';
+  if (desc) text += '📝 Description: ' + desc + '\n';
+
+  // Show success
+  btn.disabled = true;
+  btn.textContent = 'Redirection vers WhatsApp...';
+  showMsg('success', '✅ Inscription envoyée ! Redirection vers WhatsApp...');
+
+  // Open WhatsApp
+  setTimeout(function() {
+    window.open('https://wa.me/17047263959?text=' + encodeURIComponent(text), '_blank');
+    btn.disabled = false;
+    btn.textContent = "S'inscrire comme prestataire";
+  }, 1000);
+}
+
+function showMsg(type, text) {
+  var msg = document.getElementById('formMsg');
+  msg.className = 'form-msg ' + type;
+  msg.textContent = text;
+  msg.style.display = 'block';
+}
+</script>
+</body>
+</html>

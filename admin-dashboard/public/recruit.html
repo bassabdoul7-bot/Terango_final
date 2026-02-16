@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TeranGO — Devenez Chauffeur VTC au Sénégal | 88% pour vous</title>
+<meta name="description" content="Devenez chauffeur TeranGO. Seulement 12% de commission vs 25% chez Yango. VTC, livraison Thiak Thiak. Rejoignez la révolution du transport au Sénégal.">
+<link rel="icon" type="image/png" href="https://res.cloudinary.com/dittpcisb/image/upload/w_64,h_64,c_fill,r_max,f_png/v1771047319/terango-brand/logo-driver.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green:#00853F;--green-light:#00A650;--yellow:#FDEF42;--yellow-dark:#D4AF37;--red:#E31B23;
+  --dark:#001A12;--darker:#000F0A;
+  --glass:rgba(255,255,255,0.04);--glass2:rgba(255,255,255,0.06);--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--dark);color:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+
+/* FLAG BAR */
+.flag-bar{height:4px;background:linear-gradient(90deg,var(--green) 33%,var(--yellow) 33% 66%,var(--red) 66%);position:fixed;top:0;left:0;right:0;z-index:100}
+
+/* HEADER */
+.header{position:fixed;top:4px;left:0;right:0;z-index:99;padding:0 2rem;transition:all .4s}
+.header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-radius:16px;transition:all .4s}
+.header.scrolled .header-inner{background:rgba(0,26,18,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-logo{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid rgba(0,133,63,.4)}
+.header-brand{font-size:1.15rem;font-weight:800;letter-spacing:-.5px}
+.header-brand span{color:var(--yellow-dark)}
+.header-slogan{font-style:normal;font-size:.6rem;font-weight:500;color:rgba(255,255,255,.4);margin-left:8px;letter-spacing:.5px}
+.header-nav{display:flex;align-items:center;gap:1.5rem}
+.header-link{font-size:.85rem;color:rgba(255,255,255,.55);font-weight:500;transition:color .3s}
+.header-link:hover{color:#fff}
+.header-cta{display:inline-flex;align-items:center;gap:6px;background:var(--yellow);color:#000;font-weight:700;font-size:.85rem;padding:10px 22px;border-radius:10px;transition:all .3s;box-shadow:0 2px 12px rgba(253,239,66,.2)}
+.header-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(253,239,66,.35)}
+@media(max-width:768px){
+  .header{padding:0 1rem}
+  .header-inner{padding:10px 16px}
+  .header-link{display:none}
+  .header-cta{font-size:.8rem;padding:8px 16px}
+}
+
+/* HERO */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;padding:7rem 2rem 4rem}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(145deg,#001A12 0%,#002418 40%,#003322 100%);z-index:0}
+.hero-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(145deg,rgba(0,26,18,.85) 0%,rgba(0,36,24,.7) 40%,rgba(0,51,34,.8) 100%);z-index:1}
+.hero-particles{position:absolute;inset:0;z-index:1;overflow:hidden}
+.hp{position:absolute;border-radius:50%;animation:hpFloat linear infinite}
+.hp:nth-child(1){width:120px;height:120px;top:10%;left:5%;background:rgba(0,133,63,.1);animation-duration:20s}
+.hp:nth-child(2){width:80px;height:80px;top:60%;right:10%;background:rgba(253,239,66,.05);animation-duration:15s;animation-delay:-5s}
+.hp:nth-child(3){width:60px;height:60px;top:30%;right:30%;background:rgba(0,133,63,.07);animation-duration:18s;animation-delay:-3s}
+@keyframes hpFloat{0%{transform:translateY(0) rotate(0);opacity:.3}50%{transform:translateY(-30px) rotate(180deg);opacity:.6}100%{transform:translateY(0) rotate(360deg);opacity:.3}}
+
+.hero-content{position:relative;z-index:2;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.hero-text{animation:fadeUp .8s ease}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--glass2);border:1px solid var(--border);border-radius:100px;padding:6px 16px;font-size:.78rem;color:rgba(255,255,255,.65);margin-bottom:1.5rem;backdrop-filter:blur(10px)}
+.hero-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hero h1{font-size:clamp(2.2rem,4.5vw,3.4rem);font-weight:900;line-height:1.08;margin-bottom:1.2rem;letter-spacing:-1px}
+.hero h1 .g{color:var(--green)}
+.hero h1 .y{color:var(--yellow)}
+.hero-sub{font-size:1.05rem;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:2rem}
+.hero-stats{display:flex;gap:2rem;margin-bottom:2.5rem;flex-wrap:wrap}
+.hero-stat{text-align:center;padding:1rem 1.5rem;border-radius:16px;background:var(--glass);border:1px solid var(--border)}
+.hero-stat .num{font-size:1.8rem;font-weight:900}
+.hero-stat .num.green{color:var(--green)}
+.hero-stat .num.yellow{color:var(--yellow)}
+.hero-stat .lab{font-size:.72rem;color:rgba(255,255,255,.45);margin-top:2px}
+.hero-cta{display:flex;gap:1rem;flex-wrap:wrap}
+.btn-y{display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:#000;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:14px;transition:all .3s;box-shadow:0 4px 20px rgba(253,239,66,.2)}
+.btn-y:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(253,239,66,.35)}
+.btn-g{display:inline-flex;align-items:center;gap:8px;background:var(--green);color:#fff;font-weight:700;font-size:1rem;padding:16px 32px;border-radius:14px;transition:all .3s;box-shadow:0 4px 20px rgba(0,133,63,.25)}
+.btn-g:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,133,63,.35)}
+.btn-out{display:inline-flex;align-items:center;gap:8px;background:transparent;color:#fff;font-weight:600;padding:16px 32px;border-radius:14px;border:1px solid var(--border2);transition:all .3s}
+.btn-out:hover{background:var(--glass2);border-color:rgba(255,255,255,.2)}
+
+.hero-visual{display:flex;justify-content:center;animation:fadeUp .8s ease .2s both}
+.hero-img-wrap{position:relative}
+.hero-img{width:100%;max-width:420px;border-radius:24px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.hero-float-card{position:absolute;background:rgba(0,26,18,.9);backdrop-filter:blur(16px);border:1px solid var(--border2);border-radius:14px;padding:12px 18px;font-size:.82rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);animation:cardFloat 3s ease-in-out infinite}
+.hero-float-card.top{top:-10px;right:-20px}
+.hero-float-card.bot{bottom:20px;left:-20px;animation-delay:-1.5s}
+.hero-float-card .val{font-size:1.3rem;font-weight:800}
+@keyframes cardFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+
+@media(max-width:768px){
+  .hero{padding:6rem 1.5rem 3rem}
+  .hero-content{grid-template-columns:1fr;gap:2rem;text-align:center}
+  .hero-stats{justify-content:center}
+  .hero-cta{justify-content:center}
+  .hero-visual{display:none}
+}
+
+/* SECTIONS */
+.section{padding:5rem 2rem}
+.section-alt{background:rgba(0,36,24,.3)}
+.section-white{background:#fff;color:#1a1a1a}
+.section-white .section-header h2{color:#1a1a1a}
+.section-white .section-header p{color:#666}
+.section-white .what-text p{color:#555}
+.section-white .what-text h3{color:#1a1a1a}
+.section-white .what-hl{background:rgba(0,133,63,.05);border-color:rgba(0,133,63,.1)}
+.section-white .what-hl span{color:#333}
+.section-white .svc-card{background:#fff;border-color:#eee;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.section-white .svc-card:hover{border-color:rgba(0,133,63,.3);box-shadow:0 8px 30px rgba(0,0,0,.1)}
+.section-white .svc-card h3{color:#1a1a1a}
+.section-white .svc-card p{color:#666}
+.section-white .step{background:#fff;border-color:#eee;box-shadow:0 2px 16px rgba(0,0,0,.06)}
+.section-white .step:hover{border-color:rgba(0,133,63,.3)}
+.section-white .step h3{color:#1a1a1a}
+.section-white .step p{color:#666}
+.section-white .req-card{background:#fff;border-color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.section-white .req-card h4{color:#1a1a1a}
+.section-white .req-card p{color:#666}
+.section-white .faq-q{color:#1a1a1a}
+.section-white .faq-q:hover{color:var(--green)}
+.section-white .faq-q .arrow{color:#ccc}
+.section-white .faq-item.open .faq-q .arrow{color:var(--green)}
+.section-white .faq-a p{color:#555}
+.section-white .faq-item{border-color:#eee}
+.section-softgreen{background:#f0f9f4;color:#1a1a1a}
+.section-softgreen .section-header h2{color:#1a1a1a}
+.section-softgreen .section-header p{color:#666}
+.section-softgreen .comp-table{background:#fff;border-color:#e0e0e0}
+.section-softgreen .comp-row{border-color:#eee}
+.section-softgreen .comp-row.head{background:rgba(0,133,63,.08)}
+.section-softgreen .comp-cell{color:#333}
+.section-softgreen .comp-cell.label{color:#888}
+.section-softgreen .comp-cell.win{color:var(--green)}
+.section-softgreen .comp-cell.lose{color:var(--red)}
+.section-softgreen .comp-cell.head-cell{color:#1a1a1a}
+.section-softgreen .comp-cell.tg{color:var(--green)}
+.section-softgreen .calc-card{background:#fff;border-color:#e0e0e0}
+.section-softgreen .calc-row{border-color:#eee}
+.section-softgreen .calc-row .k{color:#666}
+.section-softgreen .calc-row .v{color:#1a1a1a}
+.section-softgreen .calc-note{color:#999}
+.section-softgreen .what-text p{color:#555}
+.section-softgreen .what-text h3{color:#1a1a1a}
+.section-softgreen .form-wrap{background:#fff;border-color:#e0e0e0}
+.section-softgreen .form-wrap::before{margin:-2.5rem -2.5rem 2rem}
+.section-softgreen .form-group label{color:#888}
+.section-softgreen .form-group input,.section-softgreen .form-group select,.section-softgreen .form-group textarea{background:#f8f8f8;border-color:#e0e0e0;color:#1a1a1a}
+.section-softgreen .form-group input::placeholder,.section-softgreen .form-group textarea::placeholder{color:#aaa}
+.section-softgreen .form-group input:focus,.section-softgreen .form-group select:focus,.section-softgreen .form-group textarea:focus{border-color:var(--green)}
+.section-softgreen .form-group select option{background:#fff;color:#1a1a1a}
+.section-softgreen .form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2333333380' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")}
+.section-softgreen .what-hl{background:#fff;border-color:#e0e0e0}
+.section-softgreen .what-hl span{color:#333}
+.section-white .form-wrap{background:#fff;border-color:#e0e0e0;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+.section-white .form-group label{color:#888}
+.section-white .form-group input,.section-white .form-group select,.section-white .form-group textarea{background:#f8f8f8;border-color:#e0e0e0;color:#1a1a1a}
+.section-white .form-group input::placeholder,.section-white .form-group textarea::placeholder{color:#aaa}
+.section-white .form-group input:focus,.section-white .form-group select:focus,.section-white .form-group textarea:focus{border-color:var(--green)}
+.section-white .form-group select option{background:#fff;color:#1a1a1a}
+.section-white .form-group select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2333333380' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E")}
+.container{max-width:1100px;margin:0 auto}
+.section-header{text-align:center;margin-bottom:3.5rem}
+.section-header h2{font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:800;margin-bottom:.8rem;letter-spacing:-.5px}
+.section-header p{color:rgba(255,255,255,.5);max-width:550px;margin:0 auto;font-size:.95rem;line-height:1.6}
+.reveal{opacity:0;transform:translateY(20px);transition:all .6s ease}.reveal.visible{opacity:1;transform:translateY(0)}
+
+/* WHAT IS */
+.what-grid{display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.what-text h3{font-size:1.4rem;font-weight:800;margin-bottom:1rem}
+.what-text p{color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:1rem;font-size:.95rem}
+.what-highlights{display:flex;flex-direction:column;gap:.8rem;margin-top:1.5rem}
+.what-hl{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;background:var(--glass);border:1px solid var(--border)}
+.what-hl .ico{font-size:1.2rem}
+.what-hl span{font-size:.9rem;font-weight:500;color:rgba(255,255,255,.75)}
+.what-img{border-radius:20px;overflow:hidden;border:1px solid var(--border)}
+.what-img img{width:100%;display:block}
+@media(max-width:768px){.what-grid{grid-template-columns:1fr;gap:2rem}}
+
+/* COMPARISON */
+.comp-table{background:var(--glass);border:1px solid var(--border);border-radius:20px;overflow:hidden}
+.comp-row{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--border)}
+.comp-row:last-child{border-bottom:none}
+.comp-row.head{background:rgba(0,133,63,.1)}
+.comp-cell{padding:1rem 1.5rem;font-size:.9rem}
+.comp-cell.label{color:rgba(255,255,255,.5);font-weight:600;font-size:.82rem}
+.comp-cell.win{color:var(--green);font-weight:700}
+.comp-cell.lose{color:var(--red);font-weight:500;opacity:.7}
+.comp-cell.head-cell{font-weight:800;font-size:1rem;padding:1.2rem 1.5rem}
+.comp-cell.tg{color:var(--green)}
+@media(max-width:640px){.comp-cell{padding:.7rem .8rem;font-size:.78rem}.comp-cell.head-cell{font-size:.85rem}}
+
+/* EARNINGS CALC */
+.calc-card{background:var(--glass);border:1px solid var(--border);border-radius:20px;padding:2.5rem;max-width:700px;margin:0 auto}
+.calc-row{display:flex;justify-content:space-between;align-items:center;padding:.8rem 0;border-bottom:1px solid var(--border)}
+.calc-row:last-child{border-bottom:none}
+.calc-row .k{color:rgba(255,255,255,.55);font-size:.9rem}
+.calc-row .v{font-weight:700;font-size:1rem}
+.calc-row .v.big{font-size:1.4rem;color:var(--green)}
+.calc-row .v.red{color:var(--red);font-size:.9rem}
+.calc-note{text-align:center;margin-top:1.5rem;color:rgba(255,255,255,.4);font-size:.8rem}
+
+/* SERVICES */
+.services-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1.5rem}
+.svc-card{background:var(--glass);border:1px solid var(--border);border-radius:20px;padding:2rem;transition:all .3s}
+.svc-card:hover{border-color:rgba(0,133,63,.3);transform:translateY(-3px)}
+.svc-icon{font-size:2.5rem;margin-bottom:1rem}
+.svc-card h3{font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.svc-card p{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.5}
+.svc-tag{display:inline-block;margin-top:.8rem;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:700}
+.svc-tag.live{background:rgba(0,133,63,.15);color:var(--green)}
+.svc-tag.soon{background:rgba(253,239,66,.1);color:var(--yellow)}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem}
+.step{text-align:center;padding:2rem 1.5rem;background:var(--glass);border:1px solid var(--border);border-radius:20px;transition:all .3s}
+.step:hover{border-color:rgba(0,133,63,.2);transform:translateY(-3px)}
+.step-num{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;font-size:1.2rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem}
+.step h3{font-size:1rem;font-weight:700;margin-bottom:.5rem}
+.step p{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.5}
+
+/* REQUIREMENTS */
+.req-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.req-card{padding:1.5rem;border-radius:16px;background:var(--glass);border:1px solid var(--border)}
+.req-card h4{font-size:.95rem;font-weight:700;margin-bottom:.5rem;display:flex;align-items:center;gap:8px}
+.req-card p{font-size:.85rem;color:rgba(255,255,255,.5);line-height:1.5}
+@media(max-width:640px){.req-grid{grid-template-columns:1fr}}
+
+/* FAQ */
+.faq-list{max-width:800px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--border);overflow:hidden}
+.faq-q{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 0;cursor:pointer;font-weight:600;font-size:.95rem;color:rgba(255,255,255,.85);transition:color .3s}
+.faq-q:hover{color:var(--green)}
+.faq-q .arrow{font-size:1.2rem;transition:transform .3s;color:rgba(255,255,255,.3)}
+.faq-item.open .faq-q .arrow{transform:rotate(180deg);color:var(--green)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .4s ease}
+.faq-item.open .faq-a{max-height:500px;padding:0 0 1.2rem}
+.faq-a p{color:rgba(255,255,255,.55);font-size:.9rem;line-height:1.7}
+
+/* CTA FINAL */
+.cta-section{text-align:center;padding:5rem 2rem;position:relative;overflow:hidden}
+.cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,133,63,.1) 0%,transparent 70%)}
+.cta-content{position:relative;z-index:1}
+.cta-logo{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--green);margin-bottom:1.5rem;box-shadow:0 0 40px rgba(0,133,63,.2)}
+.cta-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-top:2rem}
+
+/* FORM */
+.form-wrap{max-width:650px;margin:0 auto;background:var(--glass);border:1px solid var(--border);border-radius:24px;padding:2.5rem;backdrop-filter:blur(10px)}
+.form-wrap::before{content:'';display:block;height:4px;background:linear-gradient(90deg,var(--green),var(--yellow),var(--red));margin:-2.5rem -2.5rem 2rem;border-radius:24px 24px 0 0}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.form-group{margin-bottom:1rem}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:rgba(255,255,255,.55);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:#fff;font-size:.95rem;font-family:inherit;transition:border-color .3s;outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--green)}
+.form-group input::placeholder,.form-group textarea::placeholder{color:rgba(255,255,255,.25)}
+.form-group select{cursor:pointer;-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23ffffff80' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
+.form-group select option{background:#1a2a20;color:#fff}
+.form-submit{width:100%;padding:16px;background:var(--yellow);color:#000;font-size:1.1rem;font-weight:700;border:none;border-radius:14px;cursor:pointer;font-family:inherit;transition:all .3s;margin-top:.5rem;box-shadow:0 4px 20px rgba(253,239,66,.2)}
+.form-submit:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(253,239,66,.35)}
+.form-msg{text-align:center;margin-top:1rem;font-size:.9rem;padding:12px;border-radius:10px;display:none}
+.form-msg.success{display:block;background:rgba(0,133,63,.1);color:var(--green)}
+.form-msg.error{display:block;background:rgba(227,27,35,.1);color:var(--red)}
+@media(max-width:640px){.form-row{grid-template-columns:1fr}.form-wrap{padding:1.5rem}.form-wrap::before{margin:-1.5rem -1.5rem 1.5rem}}
+
+/* DEMO EXPLAINER */
+.demo-wrap{max-width:900px;margin:0 auto}
+.demo-content{display:flex;gap:3rem;align-items:center}
+.demo-phone-area{flex:0 0 auto}
+.demo-phone{width:240px;height:480px;border-radius:32px;background:#111;border:3px solid #333;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.dp-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:100px;height:24px;background:#111;border-radius:0 0 14px 14px;z-index:5}
+.dp-screen{position:absolute;inset:3px;border-radius:29px;overflow:hidden;background:#0a1f14}
+.dp-scene{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;transition:opacity .5s ease;pointer-events:none}
+.dp-scene.active{opacity:1;pointer-events:auto}
+.dp-head{padding:30px 12px 8px;display:flex;align-items:center;gap:6px;background:rgba(0,26,18,.95)}
+.dp-logo{width:22px;height:22px;border-radius:50%;object-fit:cover;border:1.5px solid rgba(0,133,63,.4)}
+.dp-brand{font-size:.68rem;font-weight:800}
+.dp-online{margin-left:auto;width:7px;height:7px;border-radius:50%;background:#25d366;animation:dblink 1.5s infinite}
+@keyframes dblink{0%,100%{opacity:1}50%{opacity:.3}}
+.dp-map{flex:1;position:relative;background:linear-gradient(135deg,#0a1f14,#1a3d2a,#0d2b1a);overflow:hidden}
+.dp-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:30px 30px}
+.dp-car{position:absolute;font-size:1.2rem;z-index:3;transition:all 2.5s ease-in-out}
+.dp-car-move{animation:none}
+.dp-pin{position:absolute;width:22px;height:22px;border-radius:50% 50% 50% 0;display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:800;color:#fff;z-index:3;transform:rotate(-45deg);animation:dpinDrop .5s ease both}
+.dp-pin span{transform:rotate(45deg)}
+.dp-pin-a{background:var(--green)}
+.dp-pin-b{background:var(--red)}
+@keyframes dpinDrop{from{opacity:0;margin-top:-20px}to{opacity:1;margin-top:0}}
+.dp-route{position:absolute;inset:0;width:100%;height:100%;z-index:2}
+.dp-card{position:absolute;left:10px;right:10px;background:rgba(0,40,25,.95);backdrop-filter:blur(10px);border:1px solid rgba(0,133,63,.15);border-radius:14px;padding:12px;z-index:5}
+.dp-card-request{animation:slideUp .4s ease both}
+@keyframes slideUp{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:translateY(0)}}
+.dp-card-title{font-size:.65rem;color:var(--green);font-weight:700;margin-bottom:3px}
+.dp-card-sub{font-size:.55rem;color:rgba(255,255,255,.5);line-height:1.4}
+.dp-price{font-size:.85rem;font-weight:900;color:var(--yellow);margin:2px 0}
+.dp-status{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:.55rem;color:var(--green)}
+.dp-dot-live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:dblink 1s infinite}
+.dp-btns{display:flex;gap:6px;margin-top:8px}
+.dp-btn-no{flex:1;padding:7px;border-radius:8px;font-size:.6rem;font-weight:700;border:none;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5);cursor:pointer;font-family:inherit}
+.dp-btn-yes{flex:1;padding:7px;border-radius:8px;font-size:.6rem;font-weight:700;border:none;background:var(--green);color:#fff;cursor:pointer;font-family:inherit}
+.dp-pulse{animation:dpulse 1.5s ease infinite}
+@keyframes dpulse{0%,100%{box-shadow:0 0 0 rgba(0,133,63,0)}50%{box-shadow:0 0 12px rgba(0,133,63,.4)}}
+.dp-nav{display:flex;justify-content:space-around;padding:8px 0;background:rgba(0,26,18,.95);border-top:1px solid rgba(255,255,255,.06)}
+.dp-nav-item{text-align:center;font-size:.8rem;color:rgba(255,255,255,.25)}
+.dp-nav-item span{font-size:.45rem;display:block;margin-top:1px}
+.dp-nav-item.dp-active{color:var(--green)}
+.dp-gain-num{font-size:1.5rem;font-weight:900;color:var(--green);margin:4px 0}
+.dp-delivery-anim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1rem}
+.dp-person-l,.dp-person-r{font-size:2.5rem}
+.dp-package{font-size:2rem;animation:dpkg 2s ease-in-out infinite}
+@keyframes dpkg{0%{transform:translateX(-30px)}50%{transform:translateX(30px) scale(1.1)}100%{transform:translateX(-30px)}}
+.dp-coin{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,var(--yellow),#D4AF37);display:inline-flex;align-items:center;justify-content:center;font-size:.45rem;font-weight:900;color:#333;animation:dcoinPop .4s ease both;box-shadow:0 1px 4px rgba(212,175,55,.3)}
+@keyframes dcoinPop{from{transform:scale(0) rotateY(180deg)}to{transform:scale(1) rotateY(0)}}
+
+/* DEMO TEXT */
+.demo-text{flex:1;min-width:0}
+.demo-step{display:none;animation:fadeIn .4s ease}
+.demo-step.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.demo-step-num{width:36px;height:36px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;font-size:.9rem;display:flex;align-items:center;justify-content:center;margin-bottom:.8rem}
+.demo-step h3{font-size:1.3rem;font-weight:800;margin-bottom:.5rem}
+.demo-step p{font-size:.9rem;color:rgba(255,255,255,.5);line-height:1.6}
+.demo-dots{display:flex;gap:6px;margin-top:1.5rem}
+.demo-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .3s}
+.demo-dot.active{background:var(--green);width:24px;border-radius:4px}
+.demo-progress{height:3px;background:rgba(255,255,255,.06);border-radius:2px;margin-top:.8rem;overflow:hidden}
+.demo-progress-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--yellow));width:0;transition:width .1s linear}
+
+@media(max-width:768px){
+  .demo-content{flex-direction:column;text-align:center}
+  .demo-phone{width:200px;height:400px}
+  .demo-step h3{font-size:1.1rem}
+  .demo-dots{justify-content:center}
+}
+
+/* FOOTER */
+.footer{text-align:center;padding:3rem 2rem;border-top:1px solid var(--border);color:rgba(255,255,255,.4);font-size:.85rem}
+.footer a{color:var(--green);font-weight:600}
+.footer-wa{display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;padding:10px 24px;border-radius:100px;font-weight:600;font-size:.9rem;margin-bottom:1rem;transition:all .3s}
+.footer-wa:hover{transform:translateY(-2px);box-shadow:0 4px 15px rgba(37,211,102,.3)}
+.footer-links{display:flex;gap:1.5rem;justify-content:center;flex-wrap:wrap;margin-top:.8rem}
+</style>
+</head>
+<body>
+<div class="flag-bar"></div>
+
+<!-- HEADER -->
+<header class="header" id="mainHeader">
+  <div class="header-inner">
+    <a href="/" class="header-left">
+      <img class="header-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_76,h_76,c_fill,r_max,q_80/v1771047319/terango-brand/logo-driver.jpg" alt="TeranGO">
+      <span class="header-brand">Teran<span>GO</span></span>
+    </a>
+    <nav class="header-nav">
+      <a href="#chauffeurs" class="header-link">Chauffeurs</a>
+      <a href="/login" class="header-link">Partenaires</a>
+      <a href="#investir" class="header-link">Investisseurs</a>
+      <a href="/artisan" class="header-link">Services</a>
+      <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20rejoindre%20TeranGO" target="_blank" class="header-cta">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+        Rejoindre
+      </a>
+    </nav>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero" id="chauffeurs">
+  <div class="hero-bg"></div>
+  <video class="hero-video" autoplay muted loop playsinline poster="https://res.cloudinary.com/dittpcisb/image/upload/c_fill,w_1200,h_700,q_60/v1771100833/terango-brand/car-vtc.jpg">
+    <source src="https://res.cloudinary.com/dittpcisb/video/upload/so_0,eo_45,q_auto/v1771131518/terango-brand/hero-dakar.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+  <div class="hero-particles"><div class="hp"></div><div class="hp"></div><div class="hp"></div></div>
+  <div class="hero-content">
+    <div class="hero-text">
+      <div class="hero-badge"><span class="dot"></span> Plateforme 100% sénégalaise</div>
+      <h1>Conduisez avec <span class="g">TeranGO</span>,<br>gardez <span class="y">88%</span> de vos gains</h1>
+      <p class="hero-sub">TeranGO — <strong>L'esprit de la Teranga.</strong> La plateforme de transport créée au Sénégal, pour les chauffeurs sénégalais. Seulement 12% de commission — le taux le plus bas du marché.</p>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="num green" data-target="12">0%</div><div class="lab">Commission</div></div>
+        <div class="hero-stat"><div class="num yellow" data-target="88">0%</div><div class="lab">Pour vous</div></div>
+        <div class="hero-stat"><div class="num green">0 F</div><div class="lab">Inscription</div></div>
+      </div>
+      <div class="hero-cta">
+        <a href="#inscription" class="btn-y">Devenir chauffeur</a>
+        <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20devenir%20chauffeur%20TeranGO" target="_blank" class="btn-out">
+          <svg width="18" height="18" fill="#25d366" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="hero-img-wrap">
+        <img class="hero-img" src="https://res.cloudinary.com/dittpcisb/image/upload/c_fill,w_500,h_600,q_80/v1771100833/terango-brand/car-vtc.jpg" alt="TeranGO VTC Dakar">
+        <div class="hero-float-card top"><span style="color:rgba(255,255,255,.5)">Commission</span><div class="val" style="color:var(--green)">12% seulement</div></div>
+        <div class="hero-float-card bot"><span style="color:rgba(255,255,255,.5)">Vos gains</span><div class="val" style="color:var(--yellow)">88% pour vous</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT IS TERANGO -->
+<section class="section section-white reveal">
+  <div class="container">
+    <div class="what-grid">
+      <div class="what-text">
+        <h3>Pourquoi TeranGO ?</h3>
+        <p>TeranGO est né d'un constat simple : les chauffeurs au Sénégal donnent trop à des plateformes qui ne les respectent pas. <strong>20-25% de commission ?</strong> C'est fini.</p>
+        <p>Avec TeranGO, vous gardez <strong>88% de chaque course</strong>. On ne vous impose pas d'algorithme opaque ni de tarifs qu'on décide à votre place. Vous conduisez, vous gagnez, vous décidez.</p>
+        <div class="what-highlights">
+          <div class="what-hl"><span class="ico">💰</span><span>12% commission — le plus bas du Sénégal</span></div>
+          <div class="what-hl"><span class="ico">🚗</span><span>VTC, livraison colis, commandes resto</span></div>
+          <div class="what-hl"><span class="ico">📱</span><span>Application simple et intuitive</span></div>
+          <div class="what-hl"><span class="ico">💳</span><span>Paiement Wave, Orange Money, espèces</span></div>
+          <div class="what-hl"><span class="ico">🇸🇳</span><span>Plateforme 100% sénégalaise</span></div>
+        </div>
+      </div>
+      <div class="what-img">
+        <img src="https://res.cloudinary.com/dittpcisb/image/upload/c_fill,w_600,h_500,q_80/v1771099828/terango-brand/delivery-moto.png" alt="TeranGO livraison">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ANIMATED EXPLAINER -->
+<section class="section" id="demo" style="padding:3rem 1rem 4rem;background:linear-gradient(180deg,var(--dark) 0%,#001a14 100%)">
+  <div class="container">
+    <div class="section-header" style="margin-bottom:2rem">
+      <h2>Découvrez <span style="color:var(--green)">TeranGO</span> en action</h2>
+      <p>Voyez comment les chauffeurs gagnent plus chaque jour</p>
+    </div>
+    <div class="demo-wrap">
+      <!-- PHONE + TEXT SIDE BY SIDE -->
+      <div class="demo-content">
+        <div class="demo-phone-area">
+          <div class="demo-phone">
+            <div class="dp-notch"></div>
+            <div class="dp-screen" id="demoScreen">
+              <!-- SCENE 1: Home -->
+              <div class="dp-scene active" id="scene0">
+                <div class="dp-head"><img class="dp-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg"><span class="dp-brand">Teran<span style="color:#D4AF37">GO</span></span><span class="dp-online"></span></div>
+                <div class="dp-map">
+                  <div class="dp-grid"></div>
+                  <div class="dp-car" style="top:45%;left:40%">🚗</div>
+                </div>
+                <div class="dp-card" style="bottom:50px"><div class="dp-card-title">👋 Bienvenue, Ibrahima</div><div class="dp-card-sub">Vous êtes en ligne · Plateau, Dakar</div><div class="dp-status"><span class="dp-dot-live"></span> En attente de courses...</div></div>
+                <div class="dp-nav"><div class="dp-nav-item dp-active">🏠<br><span>Accueil</span></div><div class="dp-nav-item">📋<br><span>Courses</span></div><div class="dp-nav-item">💰<br><span>Gains</span></div><div class="dp-nav-item">👤<br><span>Profil</span></div></div>
+              </div>
+              <!-- SCENE 2: New request -->
+              <div class="dp-scene" id="scene1">
+                <div class="dp-head"><img class="dp-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg"><span class="dp-brand">Teran<span style="color:#D4AF37">GO</span></span><span class="dp-online"></span></div>
+                <div class="dp-map">
+                  <div class="dp-grid"></div>
+                  <div class="dp-pin dp-pin-a" style="top:30%;left:25%">A</div>
+                  <div class="dp-pin dp-pin-b" style="top:55%;left:68%">B</div>
+                  <svg class="dp-route" viewBox="0 0 100 100" preserveAspectRatio="none"><line x1="27" y1="30" x2="70" y2="55" stroke="url(#dg)" stroke-width="1.5" stroke-dasharray="3 2"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/></line><defs><linearGradient id="dg"><stop offset="0%" stop-color="#00853F"/><stop offset="100%" stop-color="#FDEF42"/></linearGradient></defs></svg>
+                  <div class="dp-car" style="top:28%;left:22%">🚗</div>
+                </div>
+                <div class="dp-card dp-card-request" style="bottom:50px">
+                  <div class="dp-card-title">🔔 Nouvelle course VTC</div>
+                  <div class="dp-price">3 500 FCFA</div>
+                  <div class="dp-card-sub">📍 Plateau → Almadies · 22 min · 8.4 km</div>
+                  <div class="dp-btns"><button class="dp-btn-no">Refuser</button><button class="dp-btn-yes dp-pulse">✓ Accepter</button></div>
+                </div>
+                <div class="dp-nav"><div class="dp-nav-item dp-active">🏠<br><span>Accueil</span></div><div class="dp-nav-item">📋<br><span>Courses</span></div><div class="dp-nav-item">💰<br><span>Gains</span></div><div class="dp-nav-item">👤<br><span>Profil</span></div></div>
+              </div>
+              <!-- SCENE 3: Driving -->
+              <div class="dp-scene" id="scene2">
+                <div class="dp-head" style="background:rgba(0,133,63,.12)"><img class="dp-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg"><span class="dp-brand" style="font-size:.6rem">Course en cours</span><span style="margin-left:auto;font-size:.6rem;color:var(--green);font-weight:700">18 min</span></div>
+                <div class="dp-map">
+                  <div class="dp-grid"></div>
+                  <div class="dp-pin dp-pin-b" style="top:20%;left:72%">B</div>
+                  <svg class="dp-route" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M 15 80 Q 40 50 55 35 Q 70 20 74 18" stroke="url(#dg2)" stroke-width="1.5" fill="none" stroke-dasharray="3 2"><animate attributeName="stroke-dashoffset" from="0" to="-10" dur="1s" repeatCount="indefinite"/></path><defs><linearGradient id="dg2"><stop offset="0%" stop-color="#00853F"/><stop offset="100%" stop-color="#FDEF42"/></linearGradient></defs></svg>
+                  <div class="dp-car dp-car-move" id="demoCar" style="bottom:18%;left:12%">🚗</div>
+                </div>
+                <div class="dp-card" style="bottom:50px;padding:10px 14px">
+                  <div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-size:.5rem;color:rgba(255,255,255,.4)">Client</div><div style="font-size:.7rem;font-weight:700">Aminata D.</div></div><div style="display:flex;gap:6px"><span style="font-size:.9rem">📞</span><span style="font-size:.9rem">💬</span></div></div>
+                  <div style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between"><span style="font-size:.55rem;color:rgba(255,255,255,.4)">📍 Almadies</span><span style="font-size:.6rem;color:var(--yellow);font-weight:700">3 500 F</span></div>
+                </div>
+                <div class="dp-nav"><div class="dp-nav-item">🏠<br><span>Accueil</span></div><div class="dp-nav-item dp-active">📋<br><span>Courses</span></div><div class="dp-nav-item">💰<br><span>Gains</span></div><div class="dp-nav-item">👤<br><span>Profil</span></div></div>
+              </div>
+              <!-- SCENE 4: Delivery -->
+              <div class="dp-scene" id="scene3">
+                <div class="dp-head"><img class="dp-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg"><span class="dp-brand">Thiak Thiak</span></div>
+                <div class="dp-map">
+                  <div class="dp-grid"></div>
+                  <div class="dp-delivery-anim">
+                    <span class="dp-person-l">🧑</span>
+                    <span class="dp-package">📦</span>
+                    <span class="dp-person-r">🙋‍♀️</span>
+                  </div>
+                </div>
+                <div class="dp-card" style="bottom:50px;text-align:center">
+                  <div style="font-size:.6rem;color:var(--green);font-weight:700">📦 LIVRAISON CONFIRMÉE</div>
+                  <div style="font-size:1rem;font-weight:900;color:var(--yellow);margin:4px 0">2 200 FCFA</div>
+                  <div style="font-size:.5rem;color:rgba(255,255,255,.4)">Mermoz → Grand Dakar</div>
+                  <div style="margin-top:6px;padding:6px;background:rgba(0,133,63,.1);border-radius:6px;font-size:.55rem;color:var(--green)">88% = 1 936 F pour vous ✓</div>
+                </div>
+                <div class="dp-nav"><div class="dp-nav-item">🏠<br><span>Accueil</span></div><div class="dp-nav-item dp-active">📋<br><span>Courses</span></div><div class="dp-nav-item">💰<br><span>Gains</span></div><div class="dp-nav-item">👤<br><span>Profil</span></div></div>
+              </div>
+              <!-- SCENE 5: Earnings -->
+              <div class="dp-scene" id="scene4">
+                <div class="dp-head"><img class="dp-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_56,h_56,c_fill,r_max/v1771047319/terango-brand/logo-driver.jpg"><span class="dp-brand">Teran<span style="color:#D4AF37">GO</span></span></div>
+                <div style="padding:12px;text-align:center;flex:1;display:flex;flex-direction:column;justify-content:center">
+                  <div style="font-size:.55rem;color:rgba(255,255,255,.4)">Gains aujourd'hui</div>
+                  <div class="dp-gain-num" id="demoGain">0 F</div>
+                  <div style="font-size:.5rem;color:rgba(255,255,255,.3);margin-bottom:10px">15 courses complétées</div>
+                  <div style="display:flex;gap:6px;margin-bottom:10px">
+                    <div style="flex:1;background:rgba(0,133,63,.1);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.5rem;color:rgba(255,255,255,.4)">Brut</div><div style="font-size:.7rem;font-weight:700">45 000 F</div></div>
+                    <div style="flex:1;background:rgba(227,27,35,.08);border-radius:8px;padding:8px;text-align:center"><div style="font-size:.5rem;color:rgba(255,255,255,.4)">Commission 12%</div><div style="font-size:.7rem;font-weight:700;color:var(--red)">-5 400 F</div></div>
+                  </div>
+                  <div style="background:rgba(253,239,66,.05);border:1px solid rgba(253,239,66,.1);border-radius:10px;padding:10px;margin-bottom:8px"><div style="font-size:.5rem;color:rgba(255,255,255,.4)">Économie vs Yango / mois</div><div style="font-size:.9rem;font-weight:900;color:var(--yellow)">+175 500 F</div></div>
+                  <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap" id="demoCoins"></div>
+                </div>
+                <div class="dp-nav"><div class="dp-nav-item">🏠<br><span>Accueil</span></div><div class="dp-nav-item">📋<br><span>Courses</span></div><div class="dp-nav-item dp-active">💰<br><span>Gains</span></div><div class="dp-nav-item">👤<br><span>Profil</span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- TEXT SIDE -->
+        <div class="demo-text">
+          <div class="demo-step active" id="dt0">
+            <div class="demo-step-num">1</div>
+            <h3>Connectez-vous</h3>
+            <p>Ouvrez l'app, passez en ligne. Vous êtes prêt à recevoir des courses dans votre zone.</p>
+          </div>
+          <div class="demo-step" id="dt1">
+            <div class="demo-step-num">2</div>
+            <h3>Recevez une demande</h3>
+            <p>Un client demande un VTC. Vous voyez le trajet, le prix, la distance. Vous acceptez ou refusez — c'est vous qui décidez.</p>
+          </div>
+          <div class="demo-step" id="dt2">
+            <div class="demo-step-num">3</div>
+            <h3>Conduisez le client</h3>
+            <p>Navigation, communication avec le client, tout est dans l'app. Concentrez-vous sur la route.</p>
+          </div>
+          <div class="demo-step" id="dt3">
+            <div class="demo-step-num">4</div>
+            <h3>Livrez aussi des colis</h3>
+            <p>Thiak Thiak — livraison colis et commandes resto. Un deuxième revenu avec le même compte.</p>
+          </div>
+          <div class="demo-step" id="dt4">
+            <div class="demo-step-num">5</div>
+            <h3>Gardez 88% de vos gains</h3>
+            <p>Seulement 12% de commission. C'est +175 500 F par mois de plus qu'avec Yango. Wave, Orange Money ou cash.</p>
+          </div>
+          <!-- DOTS -->
+          <div class="demo-dots" id="demoDots">
+            <div class="demo-dot active" onclick="goDemo(0)"></div>
+            <div class="demo-dot" onclick="goDemo(1)"></div>
+            <div class="demo-dot" onclick="goDemo(2)"></div>
+            <div class="demo-dot" onclick="goDemo(3)"></div>
+            <div class="demo-dot" onclick="goDemo(4)"></div>
+          </div>
+          <div class="demo-progress"><div class="demo-progress-fill" id="demoProgress"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- COMMISSION COMPARISON -->
+<section class="section section-softgreen reveal">
+  <div class="container">
+    <div class="section-header">
+      <h2>Comparez et décidez</h2>
+      <p>TeranGO vs Yango — les chiffres parlent d'eux-mêmes</p>
+    </div>
+    <div class="comp-table">
+      <div class="comp-row head">
+        <div class="comp-cell head-cell label"></div>
+        <div class="comp-cell head-cell tg">TeranGO</div>
+        <div class="comp-cell head-cell" style="color:var(--red)">Yango</div>
+      </div>
+      <div class="comp-row"><div class="comp-cell label">Commission</div><div class="comp-cell win">12%</div><div class="comp-cell lose">20-25%</div></div>
+      <div class="comp-row"><div class="comp-cell label">Vos gains sur 10 000 F</div><div class="comp-cell win">8 800 F</div><div class="comp-cell lose">7 500 F</div></div>
+      <div class="comp-row"><div class="comp-cell label">Paiement mobile</div><div class="comp-cell win">Wave + OM + Free</div><div class="comp-cell lose">Limité</div></div>
+      <div class="comp-row"><div class="comp-cell label">Services</div><div class="comp-cell win">VTC + Colis + Resto</div><div class="comp-cell lose">VTC + Livraison</div></div>
+      <div class="comp-row"><div class="comp-cell label">Inscription</div><div class="comp-cell win">Gratuite</div><div class="comp-cell lose">Gratuite</div></div>
+      <div class="comp-row"><div class="comp-cell label">Support</div><div class="comp-cell win">Local, WhatsApp</div><div class="comp-cell lose">Centre d'appel étranger</div></div>
+      <div class="comp-row"><div class="comp-cell label">Origine</div><div class="comp-cell win">🇸🇳 Sénégal</div><div class="comp-cell lose">🇷🇺 Russie</div></div>
+    </div>
+
+    <!-- EARNINGS EXAMPLE -->
+    <div style="margin-top:3rem">
+      <div class="section-header"><h2>Exemple de gains journaliers</h2><p>Pour un chauffeur faisant 15 courses à 3 000 F en moyenne</p></div>
+      <div class="calc-card">
+        <div class="calc-row"><span class="k">Nombre de courses / jour</span><span class="v">15</span></div>
+        <div class="calc-row"><span class="k">Tarif moyen par course</span><span class="v">3 000 F</span></div>
+        <div class="calc-row"><span class="k">Recette brute / jour</span><span class="v">45 000 F</span></div>
+        <div class="calc-row"><span class="k">Commission TeranGO (12%)</span><span class="v red">-5 400 F</span></div>
+        <div class="calc-row"><span class="k">💰 Vos gains TeranGO / jour</span><span class="v big">39 600 F</span></div>
+        <div class="calc-row" style="opacity:.5"><span class="k">Comparaison: gains Yango (25%)</span><span class="v" style="color:var(--red)">33 750 F</span></div>
+        <div class="calc-row" style="border:1px solid rgba(0,133,63,.2);border-radius:12px;background:rgba(0,133,63,.05);margin-top:.5rem">
+          <span class="k" style="color:var(--green);font-weight:700">Économie avec TeranGO / jour</span>
+          <span class="v" style="color:var(--green);font-size:1.2rem">+5 850 F</span>
+        </div>
+      </div>
+      <p class="calc-note">Soit +175 500 F d'économie par mois en choisissant TeranGO</p>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section class="section section-white reveal">
+  <div class="container">
+    <div class="section-header">
+      <h2>Multipliez vos sources de revenus</h2>
+      <p>Un seul compte, plusieurs façons de gagner</p>
+    </div>
+    <div class="services-grid">
+      <div class="svc-card">
+        <div class="svc-icon">🚗</div>
+        <h3>Courses VTC</h3>
+        <p>Transport de passagers en voiture. Standard, confort ou XL. Tarification transparente avec 88% pour vous.</p>
+        <span class="svc-tag live">Disponible</span>
+      </div>
+      <div class="svc-card">
+        <div class="svc-icon">🛵</div>
+        <h3>Thiak Thiak Colis</h3>
+        <p>Livraison de colis en moto ou voiture. Petit, moyen ou grand — les clients envoient directement via l'app.</p>
+        <span class="svc-tag live">Disponible</span>
+      </div>
+      <div class="svc-card">
+        <div class="svc-icon">🍽️</div>
+        <h3>Thiak Thiak Commande</h3>
+        <p>Commandes restaurants, pharmacies, supermarchés. Récupérez et livrez — les courses shopping à la demande.</p>
+        <span class="svc-tag live">Disponible</span>
+      </div>
+      <div class="svc-card">
+        <div class="svc-icon">🔧</div>
+        <h3>TeranGO Services</h3>
+        <p>Plombier, électricien, menuisier... Recevez des demandes de dépannage à domicile directement sur votre téléphone. Un revenu supplémentaire pour les artisans.</p>
+        <span class="svc-tag live">Disponible</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-softgreen reveal">
+  <div class="container">
+    <div class="section-header">
+      <h2>Comment devenir chauffeur TeranGO ?</h2>
+      <p>4 étapes simples pour commencer à gagner</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><h3>Inscrivez-vous</h3><p>Remplissez le formulaire ci-dessous ou contactez-nous sur WhatsApp. C'est gratuit et rapide.</p></div>
+      <div class="step"><div class="step-num">2</div><h3>Envoyez vos documents</h3><p>CNI, permis de conduire, carte grise, assurance. Tout se fait en ligne via l'application.</p></div>
+      <div class="step"><div class="step-num">3</div><h3>Vérification 24h</h3><p>Notre équipe vérifie votre dossier. Vous recevez une notification dès l'approbation.</p></div>
+      <div class="step"><div class="step-num">4</div><h3>Commencez à gagner</h3><p>Activez-vous, recevez des courses et gardez 88% de vos gains. C'est parti !</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<section class="section section-white reveal">
+  <div class="container">
+    <div class="section-header">
+      <h2>Ce qu'il vous faut</h2>
+      <p>Les conditions pour devenir chauffeur TeranGO</p>
+    </div>
+    <div class="req-grid">
+      <div class="req-card"><h4>📋 Pièce d'identité</h4><p>Carte nationale d'identité (CNI) valide. Photo recto/verso claire.</p></div>
+      <div class="req-card"><h4>🪪 Permis de conduire</h4><p>Permis valide adapté à votre véhicule (catégorie B minimum pour les voitures).</p></div>
+      <div class="req-card"><h4>🚗 Véhicule en bon état</h4><p>Voiture ou moto en état correct, propre et sûre pour transporter des passagers ou colis.</p></div>
+      <div class="req-card"><h4>📄 Carte grise</h4><p>Certificat d'immatriculation du véhicule à jour.</p></div>
+      <div class="req-card"><h4>🛡️ Assurance</h4><p>Assurance véhicule valide couvrant le transport de personnes.</p></div>
+      <div class="req-card"><h4>📱 Smartphone</h4><p>Téléphone Android ou iPhone avec connexion internet pour recevoir les courses.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNER SECTION -->
+<section class="section section-softgreen reveal">
+  <div class="container">
+    <div class="what-grid">
+      <div class="what-img">
+        <img src="https://res.cloudinary.com/dittpcisb/image/upload/c_fill,w_600,h_450,q_80/v1771100833/terango-brand/car-vtc.jpg" alt="TeranGO Partenaire">
+      </div>
+      <div class="what-text">
+        <h3>Devenez Partenaire TeranGO</h3>
+        <p>Vous avez des véhicules, ou vous connaissez des chauffeurs qui veulent gagner plus ? Le programme <strong>Partenaire TeranGO</strong> est fait pour vous.</p>
+        <p>Propriétaire de flotte, gestionnaire de chauffeurs, ou simplement quelqu'un qui peut recruter et accompagner des chauffeurs — inscrivez-les via votre espace dédié et recevez <strong>3% de commission</strong> sur chaque course qu'ils réalisent.</p>
+        <div class="what-highlights">
+          <div class="what-hl"><span class="ico">💼</span><span>3% de commission sur chaque course de vos chauffeurs</span></div>
+          <div class="what-hl"><span class="ico">📊</span><span>Dashboard dédié pour suivre vos revenus en temps réel</span></div>
+          <div class="what-hl"><span class="ico">👥</span><span>Recrutez et gérez vos chauffeurs en un seul endroit</span></div>
+          <div class="what-hl"><span class="ico">🤝</span><span>Pas besoin d'être propriétaire — accompagnez des chauffeurs</span></div>
+          <div class="what-hl"><span class="ico">📸</span><span>Upload des documents chauffeur directement en ligne</span></div>
+        </div>
+        <div style="margin-top:1.5rem">
+          <a href="/register" class="btn-g">Devenir Partenaire</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section-white reveal">
+  <div class="container">
+    <div class="section-header">
+      <h2>Questions fréquentes</h2>
+      <p>Tout ce que vous devez savoir avant de vous inscrire</p>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Pourquoi TeranGO prend seulement 12% ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Nous croyons que le chauffeur mérite la plus grande part. Notre modèle est optimisé pour maintenir des coûts bas tout en offrant un excellent service. 12% nous permet de couvrir nos frais techniques et de support tout en vous laissant 88% — le meilleur taux du marché au Sénégal.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Est-ce que l'inscription est vraiment gratuite ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Oui, 100% gratuite. Pas de frais d'inscription, pas de caution, pas de frais cachés. Vous vous inscrivez, vous envoyez vos documents, et une fois approuvé vous commencez à gagner immédiatement.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Comment suis-je payé ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Les clients paient en espèces, Wave, Orange Money ou Free Money. Pour les paiements mobiles, votre part (88%) est transférée directement sur votre compte Wave ou Orange Money. Pour les paiements en espèces, vous gardez le montant et la commission est déduite de votre prochain paiement mobile.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Puis-je travailler avec d'autres applications en même temps ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Absolument. TeranGO n'impose aucune exclusivité. Vous pouvez utiliser Yango, Heetch ou d'autres plateformes en parallèle. Nous sommes convaincus qu'une fois que vous aurez comparé les commissions, vous préférerez TeranGO.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Quelles zones sont couvertes ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>TeranGO est disponible dans la région de Dakar : Plateau, Almadies, Mermoz, Ouakam, Parcelles, Guédiawaye, Pikine, Rufisque, Keur Massar. Nous nous étendons bientôt à Thiès, Mbour et Saint-Louis.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Puis-je conduire une moto ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Oui ! Les motos sont acceptées pour les livraisons Thiak Thiak (colis et commandes). Pour le transport de passagers (VTC), une voiture est requise.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Combien puis-je gagner par jour ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Ça dépend de votre activité ! En moyenne, un chauffeur actif sur Dakar fait entre 30 000 et 50 000 F par jour. Avec seulement 12% de commission, vous gardez la grande majorité. Plus vous êtes actif, plus vous gagnez — et vous choisissez vos horaires.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Comment devenir partenaire TeranGO ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Le programme partenaire est ouvert à tous : propriétaires de flotte, gestionnaires de chauffeurs, ou toute personne capable de recruter et accompagner des chauffeurs. Vous inscrivez vos chauffeurs via votre espace dédié et recevez 3% sur chaque course. Pas besoin d'être propriétaire de véhicules — si vous pouvez aider des chauffeurs à s'inscrire et les accompagner, vous pouvez devenir partenaire. <a href="/register" style="color:var(--green)">Inscription partenaire →</a></p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>L'application fonctionne-t-elle avec une connexion faible ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Oui. TeranGO est optimisée pour consommer très peu de données. Même avec une connexion 3G faible, vous pouvez recevoir des courses, naviguer et communiquer avec les clients. Le GPS doit rester actif.</p></div></div>
+      <div class="faq-item"><div class="faq-q" onclick="this.parentElement.classList.toggle('open')"><span>Comment contacter le support ?</span><span class="arrow">▼</span></div><div class="faq-a"><p>Notre support est 100% local et disponible via WhatsApp au <a href="https://wa.me/17047263959" style="color:var(--green)">+1 (704) 726-3959</a>. Pas de centre d'appel étranger — vous parlez à quelqu'un qui connaît Dakar.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- INVESTOR FORM -->
+<section class="section section-softgreen reveal" id="investir">
+  <div class="container">
+    <div class="section-header">
+      <h2>Investisseurs</h2>
+      <p>Intéressé par TeranGO ? Contactez-nous</p>
+    </div>
+    <div class="form-wrap">
+      <form onsubmit="return false">
+        <div class="form-row">
+          <div class="form-group"><label>Nom complet</label><input type="text" id="invName" placeholder="Votre nom" required></div>
+          <div class="form-group"><label>Email</label><input type="email" id="invEmail" placeholder="votre@email.com" required></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="invPhone" placeholder="+221 77 000 00 00" required></div>
+          <div class="form-group"><label>Montant envisagé</label><input type="text" id="invAmount" placeholder="Ex: 5 000 000 FCFA"></div>
+        </div>
+        <div class="form-group"><label>Message</label><textarea id="invMsg" rows="3" placeholder="Parlez-nous de votre intérêt pour TeranGO..."></textarea></div>
+        <button type="button" class="form-submit" onclick="sendInvestor()">Envoyer</button>
+        <div class="form-msg" id="invFormMsg"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTRATION FORM -->
+<section class="section reveal" id="inscription">
+  <div class="container">
+    <div class="section-header">
+      <h2>Inscription Chauffeur</h2>
+      <p>Rejoignez TeranGO et gardez 88% de vos gains</p>
+    </div>
+    <div class="form-wrap">
+      <form onsubmit="return false">
+        <div class="form-row">
+          <div class="form-group"><label>Prénom & Nom</label><input type="text" id="dName" placeholder="Ibrahima Diop" required></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="dPhone" placeholder="+221 77 000 00 00" required></div>
+        </div>
+        <div class="form-group"><label>Email (optionnel)</label><input type="email" id="dEmail" placeholder="votre@email.com"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Type de véhicule</label>
+            <select id="dVehicle"><option value="car">Voiture</option><option value="moto">Moto</option></select>
+          </div>
+          <div class="form-group">
+            <label>Services souhaités</label>
+            <select id="dService"><option value="all">Tout (VTC + Livraison)</option><option value="rides">Courses VTC uniquement</option><option value="colis">Livraison Colis uniquement</option><option value="commande">Commandes uniquement</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Marque du véhicule</label><input type="text" id="dMake" placeholder="Toyota, Renault..."></div>
+          <div class="form-group"><label>Modèle & Année</label><input type="text" id="dModel" placeholder="Corolla 2018"></div>
+        </div>
+        <div class="form-group"><label>Votre zone principale</label>
+          <select id="dZone"><option value="Plateau">Plateau / Centre-ville</option><option value="Almadies">Almadies / Ngor / Ouakam</option><option value="Mermoz">Mermoz / Sacré-Cœur</option><option value="Parcelles">Parcelles Assainies / Grand Yoff</option><option value="Guediawaye">Guédiawaye / Pikine</option><option value="Rufisque">Rufisque / Keur Massar</option><option value="Thies">Thiès</option><option value="Mbour">Mbour / Saly</option><option value="Autre">Autre</option></select>
+        </div>
+        <div class="form-group"><label>Expérience & disponibilités (optionnel)</label><textarea id="dMsg" rows="2" placeholder="Ex: 5 ans d'expérience VTC, disponible 7j/7, ancien chauffeur Yango..."></textarea></div>
+        <button type="button" class="form-submit" onclick="sendDriver()">S'inscrire comme chauffeur</button>
+        <div class="form-msg" id="dFormMsg"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <div class="cta-content">
+    <img class="cta-logo" src="https://res.cloudinary.com/dittpcisb/image/upload/w_160,h_160,c_fill,r_max,q_80/v1771047319/terango-brand/logo-driver.jpg" alt="TeranGO">
+    <h2>Prêt à garder <span style="color:var(--yellow)">88%</span> de vos gains ?</h2>
+    <p style="color:rgba(255,255,255,.5);margin-bottom:0">Rejoignez les chauffeurs qui ont fait le bon choix.</p>
+    <div class="cta-buttons">
+      <a href="#inscription" class="btn-y">Devenir chauffeur</a>
+      <a href="https://wa.me/17047263959?text=Bonjour%2C%20je%20veux%20rejoindre%20TeranGO" target="_blank" class="btn-g">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+        WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <a href="https://wa.me/17047263959" target="_blank" class="footer-wa">
+    <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.11.546 4.093 1.504 5.818L0 24l6.335-1.463A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.82c-1.87 0-3.63-.5-5.14-1.38l-.37-.22-3.8.88.96-3.71-.24-.38C2.39 15.53 1.82 13.81 1.82 12 1.82 6.39 6.39 1.82 12 1.82S22.18 6.39 22.18 12 17.61 21.82 12 21.82z"/></svg>
+    +1 (704) 726-3959
+  </a>
+  <p>© 2026 TeranGO — L'esprit de la Teranga · Helyx Technologies · Made in Senegal 🇸🇳</p>
+  <div class="footer-links">
+    <a href="/artisan">Prestataires Services</a>
+    <a href="/login">Espace Partenaire</a>
+    <a href="#investir">Investisseurs</a>
+  </div>
+</footer>
+
+<script>
+// Header scroll
+var hdr = document.getElementById('mainHeader');
+window.addEventListener('scroll', function() { hdr.classList.toggle('scrolled', window.scrollY > 60); });
+
+// Reveal on scroll
+var rv = document.querySelectorAll('.reveal');
+var ob = new IntersectionObserver(function(e) { e.forEach(function(x) { if (x.isIntersecting) x.target.classList.add('visible'); }); }, { threshold: .1 });
+rv.forEach(function(el) { ob.observe(el); });
+
+// Counter animation
+function animateCounters() {
+  document.querySelectorAll('[data-target]').forEach(function(el) {
+    var target = parseInt(el.getAttribute('data-target'));
+    var current = 0;
+    var step = Math.ceil(target / 25);
+    var timer = setInterval(function() {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = current + '%';
+    }, 40);
+  });
+}
+setTimeout(animateCounters, 600);
+
+// Driver form → WhatsApp
+function sendDriver() {
+  var n = document.getElementById('dName').value.trim();
+  var p = document.getElementById('dPhone').value.trim();
+  var e = document.getElementById('dEmail').value.trim();
+  var v = document.getElementById('dVehicle').value;
+  var s = document.getElementById('dService').value;
+  var mk = document.getElementById('dMake').value.trim();
+  var md = document.getElementById('dModel').value.trim();
+  var z = document.getElementById('dZone').value;
+  var msg = document.getElementById('dMsg').value.trim();
+  var fm = document.getElementById('dFormMsg');
+
+  if (!n) { showMsg(fm, 'error', 'Veuillez entrer votre nom'); return; }
+  if (!p) { showMsg(fm, 'error', 'Veuillez entrer votre numéro'); return; }
+
+  var svcLabels = { rides: 'Courses VTC', colis: 'Livraison Colis', commande: 'Commandes', all: 'Tout (VTC + Livraison)' };
+  var vLabels = { car: 'Voiture', moto: 'Moto' };
+
+  var text = '🚗 INSCRIPTION CHAUFFEUR TERANGO\n\n';
+  text += '👤 Nom: ' + n + '\n';
+  text += '📞 Tel: ' + p + '\n';
+  if (e) text += '📧 Email: ' + e + '\n';
+  text += '🚘 Véhicule: ' + vLabels[v] + (mk ? ' ' + mk : '') + (md ? ' ' + md : '') + '\n';
+  text += '📍 Zone: ' + z + '\n';
+  text += '🛠️ Services: ' + svcLabels[s] + '\n';
+  if (msg) text += '📝 Note: ' + msg + '\n';
+
+  showMsg(fm, 'success', '✅ Redirection vers WhatsApp...');
+  setTimeout(function() { window.open('https://wa.me/17047263959?text=' + encodeURIComponent(text), '_blank'); }, 800);
+}
+
+// Investor form → WhatsApp
+function sendInvestor() {
+  var n = document.getElementById('invName').value.trim();
+  var e = document.getElementById('invEmail').value.trim();
+  var p = document.getElementById('invPhone').value.trim();
+  var a = document.getElementById('invAmount').value.trim();
+  var m = document.getElementById('invMsg').value.trim();
+  var fm = document.getElementById('invFormMsg');
+
+  if (!n || !e || !p) { showMsg(fm, 'error', 'Veuillez remplir les champs obligatoires'); return; }
+
+  var text = '💼 INVESTISSEUR TERANGO\n\n';
+  text += '👤 Nom: ' + n + '\n📧 Email: ' + e + '\n📞 Tel: ' + p + '\n';
+  if (a) text += '💰 Montant: ' + a + '\n';
+  if (m) text += '📝 Message: ' + m + '\n';
+
+  showMsg(fm, 'success', '✅ Redirection vers WhatsApp...');
+  setTimeout(function() { window.open('https://wa.me/17047263959?text=' + encodeURIComponent(text), '_blank'); }, 800);
+}
+
+// ===== DEMO EXPLAINER =====
+var demoScenes = document.querySelectorAll('.dp-scene');
+var demoTexts = [document.getElementById('dt0'),document.getElementById('dt1'),document.getElementById('dt2'),document.getElementById('dt3'),document.getElementById('dt4')];
+var demoDots = document.querySelectorAll('.demo-dot');
+var demoProgFill = document.getElementById('demoProgress');
+var dCur = 0;
+var dTimer = null;
+var dProgTimer = null;
+var dDurations = [4000, 5000, 5000, 5000, 6000];
+var dAudioCtx = null;
+
+function dPlaySound(type) {
+  if (!dAudioCtx) return;
+  try {
+    var o = dAudioCtx.createOscillator();
+    var g = dAudioCtx.createGain();
+    o.connect(g); g.connect(dAudioCtx.destination);
+    if (type === 'notify') { o.type='triangle'; o.frequency.setValueAtTime(600,dAudioCtx.currentTime); o.frequency.setValueAtTime(1100,dAudioCtx.currentTime+.15); g.gain.setValueAtTime(.1,dAudioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.001,dAudioCtx.currentTime+.3); o.start(); o.stop(dAudioCtx.currentTime+.3); }
+    if (type === 'whoosh') { o.type='sine'; o.frequency.setValueAtTime(600,dAudioCtx.currentTime); o.frequency.exponentialRampToValueAtTime(150,dAudioCtx.currentTime+.25); g.gain.setValueAtTime(.1,dAudioCtx.currentTime); g.gain.exponentialRampToValueAtTime(.001,dAudioCtx.currentTime+.25); o.start(); o.stop(dAudioCtx.currentTime+.25); }
+    if (type === 'coins') { [0,.08,.16,.24,.32].forEach(function(d){ var o2=dAudioCtx.createOscillator(); var g2=dAudioCtx.createGain(); o2.connect(g2); g2.connect(dAudioCtx.destination); o2.type='sine'; o2.frequency.setValueAtTime(1800+Math.random()*800,dAudioCtx.currentTime+d); g2.gain.setValueAtTime(.06,dAudioCtx.currentTime+d); g2.gain.exponentialRampToValueAtTime(.001,dAudioCtx.currentTime+d+.12); o2.start(dAudioCtx.currentTime+d); o2.stop(dAudioCtx.currentTime+d+.12); }); return; }
+  } catch(e) {}
+}
+
+function goDemo(n) {
+  demoScenes[dCur].classList.remove('active');
+  demoTexts[dCur].classList.remove('active');
+  demoDots[dCur].classList.remove('active');
+  dCur = n;
+  demoScenes[dCur].classList.add('active');
+  demoTexts[dCur].classList.add('active');
+  demoDots[dCur].classList.add('active');
+  onDemoEnter(dCur);
+  startDemoTimer();
+}
+
+function nextDemo() {
+  goDemo((dCur + 1) % demoScenes.length);
+}
+
+function onDemoEnter(n) {
+  var sounds = ['whoosh','notify','whoosh','notify','coins'];
+  dPlaySound(sounds[n]);
+  if (n === 2) {
+    setTimeout(function() {
+      var car = document.getElementById('demoCar');
+      if (car) { car.style.bottom = '52%'; car.style.left = '55%'; }
+    }, 400);
+  }
+  if (n === 4) {
+    var gc = document.getElementById('demoGain');
+    var target = 39600; var cur2 = 0; var step = Math.ceil(target/30);
+    var ci = setInterval(function() { cur2 += step; if (cur2 >= target) { cur2 = target; clearInterval(ci); } gc.textContent = cur2.toLocaleString('fr-FR') + ' F'; }, 60);
+    var coinsEl = document.getElementById('demoCoins');
+    coinsEl.innerHTML = '';
+    for (var i = 0; i < 8; i++) {
+      (function(idx) { setTimeout(function() { var c = document.createElement('div'); c.className = 'dp-coin'; c.textContent = '₣'; coinsEl.appendChild(c); }, idx * 100); })(i);
+    }
+  }
+}
+
+function startDemoTimer() {
+  clearTimeout(dTimer);
+  clearInterval(dProgTimer);
+  var dur = dDurations[dCur];
+  var start = Date.now();
+  dProgTimer = setInterval(function() {
+    var p = Math.min((Date.now() - start) / dur, 1);
+    demoProgFill.style.width = (p * 100) + '%';
+    if (p >= 1) clearInterval(dProgTimer);
+  }, 30);
+  dTimer = setTimeout(nextDemo, dur);
+}
+
+// Init demo when visible
+var demoObs = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) {
+      if (!dAudioCtx) { try { dAudioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(err) {} }
+      startDemoTimer();
+      demoObs.disconnect();
+    }
+  });
+}, { threshold: .3 });
+var demoSection = document.getElementById('demo');
+if (demoSection) demoObs.observe(demoSection);
+
+function showMsg(el, type, text) {
+  el.className = 'form-msg ' + type;
+  el.textContent = text;
+  el.style.display = 'block';
+}
+</script>
+</body>
+</html>

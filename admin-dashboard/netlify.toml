@@ -1,0 +1,80 @@
+[[redirects]]
+  from = "/"
+  to = "/recruit.html"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/artisan"
+  to = "/artisan.html"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/register"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/drivers"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/riders"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/rides"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/revenue"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/photos"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/services"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/service-requests"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/partners"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/my-drivers"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/my-earnings"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/explainer"
+  to = "/explainer.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
