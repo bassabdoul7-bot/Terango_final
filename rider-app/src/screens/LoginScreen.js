@@ -45,7 +45,7 @@ var LoginScreen = function(props) {
         <StatusBar barStyle="light-content" />
         <View style={styles.darkHeader}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
-          <Text style={styles.appTitle}>TeranGO</Text>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
           <Text style={styles.appSubtitle}>{"R\u00e9initialiser votre PIN"}</Text>
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
@@ -77,7 +77,7 @@ var LoginScreen = function(props) {
       <StatusBar barStyle="light-content" />
       <View style={styles.darkHeader}>
         <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
-        <Text style={styles.appTitle}>TeranGO</Text>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
         <Text style={styles.appSubtitle}>Votre course, votre chemin</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>

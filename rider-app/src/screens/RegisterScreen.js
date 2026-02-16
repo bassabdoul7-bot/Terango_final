@@ -31,7 +31,7 @@ var RegisterScreen = function(props) {
       <StatusBar barStyle="light-content" />
       <View style={styles.darkHeader}>
         <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
-        <Text style={styles.appTitle}>TeranGO</Text>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
         <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>

@@ -43,7 +43,7 @@ const LoginScreen = ({ navigation }) => {
         <StatusBar barStyle="light-content" />
         <View style={styles.darkHeader}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-          <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Chauffeur</Text>
           <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
@@ -73,7 +73,7 @@ const LoginScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <View style={styles.darkHeader}>
         <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-        <Text style={styles.appTitle}>TeranGO Chauffeur</Text>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Chauffeur</Text>
         <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
