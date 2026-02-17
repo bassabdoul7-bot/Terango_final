@@ -1,5 +1,6 @@
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('./pushService');
+const User = require('../models/User');
 const Ride = require('../models/Ride');
 const { calculateDistance } = require('../utils/distance');
 

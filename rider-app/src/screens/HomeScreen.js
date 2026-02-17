@@ -423,11 +423,11 @@ function HomeScreen(props) {
         </View>
 
         <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>{'\u0053\u00e9curit\u00e9'}</Text>
+          <Text style={styles.profileSectionTitle}>{'Sécurité'}</Text>
           <View style={styles.profileGroup}>
             <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={toggleSecurityPin}>
               <Text style={styles.profileEmoji}>{'\uD83D\uDD12'}</Text>
-              <Text style={styles.profileLabel}>Code de s\u00e9curit\u00e9</Text>
+              <Text style={styles.profileLabel}>Code de sécurité</Text>
               <View style={[styles.pinToggle, securityPinEnabled && styles.pinToggleOn]}>
                 <View style={[styles.pinToggleDot, securityPinEnabled && styles.pinToggleDotOn]} />
               </View>
