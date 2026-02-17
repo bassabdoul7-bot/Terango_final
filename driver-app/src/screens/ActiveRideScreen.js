@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as PolylineUtil from '@mapbox/polyline';
@@ -65,6 +65,10 @@ function ActiveRideScreen(props) {
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
   var initState = useState(true); var initializing = initState[0]; var setInitializing = initState[1];
   var navStartState = useState(false); var navigationStarted = navStartState[0]; var setNavigationStarted = navStartState[1];
+  var pinModalState = useState(false); var showPinModal = pinModalState[0]; var setShowPinModal = pinModalState[1];
+  var pinInputState = useState(''); var pinInput = pinInputState[0]; var setPinInput = pinInputState[1];
+  var pinErrorState = useState(''); var pinError = pinErrorState[0]; var setPinError = pinErrorState[1];
+  var pinVerifiedState = useState(false); var pinVerified = pinVerifiedState[0]; var setPinVerified = pinVerifiedState[1];
   var voiceState = useState(true); var voiceEnabled = voiceState[0]; var setVoiceEnabled = voiceState[1];
   var lastStepState = useState(null); var lastAnnouncedStep = lastStepState[0]; var setLastAnnouncedStep = lastStepState[1];
   var nearDestState = useState(false); var isNearDestination = nearDestState[0]; var setIsNearDestination = nearDestState[1];
@@ -101,14 +105,25 @@ function ActiveRideScreen(props) {
   function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(){Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
   function handleContactSupport(){Alert.alert('Contacter le Support','Choisissez',[{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:function(){Linking.openURL('tel:+221338234567');}},{text:'WhatsApp',onPress:function(){Linking.openURL('https://wa.me/221778234567');}}]);}
   var handleArrived = useCallback(function(){setLoading(true);driverService.updateRideStatus(rideId,'arrived').then(function(){setRide(function(prev){return Object.assign({},prev,{status:'arrived'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement("Vous etes arrive au point de depart");}).catch(function(e){Alert.alert('Erreur',(e.response&&e.response.data&&e.response.data.message)||'Erreur');}).finally(function(){setLoading(false);});},[rideId]);
-  var handleStartRide = useCallback(function(){setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId]);
+  var handleVerifyPin = useCallback(function(){
+    if(pinInput.length !== 4){setPinError('Entrez 4 chiffres');return;}
+    setLoading(true);setPinError('');
+    driverService.verifyPin(rideId, pinInput).then(function(){
+      setPinVerified(true);setShowPinModal(false);setPinInput('');
+      setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});
+    }).catch(function(e){setPinError('Code incorrect');setLoading(false);});
+  },[rideId,pinInput]);
+  var handleStartRide = useCallback(function(){
+    if(ride && ride.pinRequired && !pinVerified){setShowPinModal(true);return;}
+    setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId]);
   var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Vous avez gagne '+(ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
 
   if(initializing||!driverLocation||!ride){return(<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green}/><Text style={styles.loadingText}>Chargement...</Text></View>);}
 
   var destination=(ride.status==='accepted'||ride.status==='arrived')?(ride.pickup?ride.pickup.coordinates:null):(ride.dropoff?ride.dropoff.coordinates:null);
   function getStatusText(){switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return 'Course en cours';default:return '';}}
-  function getActionButton(){switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);default:return null;}}
+  function getActionButton(){switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}
+    </View>);default:return null;}}
 
   return (
     <View style={styles.container}>
@@ -130,17 +145,60 @@ function ActiveRideScreen(props) {
       </View>)}
       <Modal visible={showChat} animationType="slide" onRequestClose={function(){setShowChat(false);}}><ChatScreen socket={socketRef.current} rideId={deliveryMode?null:rideId} deliveryId={deliveryMode?deliveryId:null} myRole="driver" myUserId={auth.user?auth.user._id:null} otherName={ride&&ride.rider?ride.rider.name:'Passager'} onClose={function(){setShowChat(false);}}/></Modal>
       <CancelReasonModal visible={showCancelModal} onClose={function(){setShowCancelModal(false);}} onConfirm={handleConfirmCancel} onSupport={handleContactSupport}/>
+            {showPinModal && <Modal transparent animationType='fade' visible={showPinModal} onRequestClose={function(){setShowPinModal(false);}}>
+        <View style={styles.pinOverlay}>
+          <View style={styles.pinModal}>
+            <Text style={styles.pinModalIcon}>{'\uD83D\uDD12'}</Text>
+            <Text style={styles.pinModalTitle}>Code de s\u00e9curit\u00e9</Text>
+            <Text style={styles.pinModalSub}>Demandez le code au passager</Text>
+            <TextInput style={styles.pinModalInput} value={pinInput} onChangeText={function(t){setPinInput(t.replace(/[^0-9]/g,'').slice(0,4));setPinError('');}} keyboardType='number-pad' maxLength={4} placeholder='_ _ _ _' placeholderTextColor='#999' autoFocus={true} />
+            {pinError ? <Text style={styles.pinModalError}>{pinError}</Text> : null}
+            <TouchableOpacity style={styles.pinModalBtn} onPress={handleVerifyPin}><Text style={styles.pinModalBtnText}>V\u00e9rifier</Text></TouchableOpacity>
+            <TouchableOpacity onPress={function(){setShowPinModal(false);setPinInput('');setPinError('');}}><Text style={styles.pinModalCancel}>Annuler</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>}
       <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
     </View>
   );
 }
 
 var queueStyles = StyleSheet.create({
-  bannerContainer: { position: 'absolute', top: 130, left: 20, right: 20 },
+  banner  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { position: 'absolute', top: 130, left: 20, right: 20 },
   banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.yellow, borderRadius: 12, padding: 12, elevation: 4 },
-  iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  icon  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   icon: { fontSize: 20 },
-  textContainer: { flex: 1 },
+  text  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { flex: 1 },
   title: { fontSize: 14, fontWeight: 'bold', color: COLORS.darkBg },
   subtitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)' },
   arrow: { fontSize: 20, fontWeight: 'bold', color: COLORS.darkBg },
@@ -170,8 +228,28 @@ var cancelStyles = StyleSheet.create({
 });
 
 var styles = StyleSheet.create({
+    pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
   container: { flex: 1, backgroundColor: COLORS.background },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
+  loading  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub },
   map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#fff' },
@@ -186,13 +264,43 @@ var styles = StyleSheet.create({
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 15, fontWeight: '700', color: COLORS.textLight },
   turnInstruction: { position: 'absolute', top: 120, left: 20, right: 20, flexDirection: 'row', backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  turnIconContainer: { width: 60, height: 60, borderRadius: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  turnIcon  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { width: 60, height: 60, borderRadius: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
   turnIcon: { fontSize: 32, color: '#fff', fontWeight: 'bold' },
-  turnTextContainer: { flex: 1 },
+  turnText  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { flex: 1 },
   turnDistance: { fontSize: 22, fontWeight: 'bold', color: COLORS.textLight, marginBottom: 4 },
   turnText: { fontSize: 15, color: COLORS.textLightSub },
   wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: COLORS.darkCard, paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
-  etaContainer: { flex: 1 },
+  eta  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { flex: 1 },
   etaTime: { fontSize: 32, fontWeight: 'bold', color: COLORS.textLight, marginBottom: 4 },
   etaDistance: { fontSize: 16, color: COLORS.textLightSub },
   stopNavButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
@@ -208,10 +316,30 @@ var styles = StyleSheet.create({
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
-  addressTextContainer: { flex: 1 },
+  addressText  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { flex: 1 },
   addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4 },
   addressText: { fontSize: 15, color: COLORS.textLight, fontWeight: '500' },
-  actionContainer: { marginTop: 8 },
+  action  pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
+  pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12 },
+  pinModalTitle: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 },
+  pinModalInput: { fontSize: 36, fontWeight: 'bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 },
+  pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
+  pinModalBtnText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 },
+  Container: { marginTop: 8 },
   navButton: { backgroundColor: COLORS.yellow, borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, elevation: 6 },
   navIcon: { fontSize: 20, marginRight: 8 },
   navText: { fontSize: 16, fontWeight: 'bold', color: COLORS.darkBg },

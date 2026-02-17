@@ -58,6 +58,7 @@ function HomeScreen(props) {
   var setSaveType = saveTypeState[1];
 
   var saveAddrState = useState('');
+  var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
   var saveAddress = saveAddrState[0];
   var setSaveAddress = saveAddrState[1];
 
@@ -357,6 +358,11 @@ function HomeScreen(props) {
   }
 
   // ========== PROFILE TAB ==========
+    function toggleSecurityPin() {
+    var newVal = !securityPinEnabled;
+    setSecurityPinEnabled(newVal);
+    rideService.updateSecurityPin(newVal).catch(function() { setSecurityPinEnabled(!newVal); });
+  }
   function renderProfileTab() {
     var userName = (user && user.name) ? user.name : 'Utilisateur';
     var userPhone = (user && user.phone) ? user.phone : '-';
@@ -416,6 +422,18 @@ function HomeScreen(props) {
           </View>
         </View>
 
+        <View style={styles.profileSection}>
+          <Text style={styles.profileSectionTitle}>{'\u0053\u00e9curit\u00e9'}</Text>
+          <View style={styles.profileGroup}>
+            <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={toggleSecurityPin}>
+              <Text style={styles.profileEmoji}>{'\uD83D\uDD12'}</Text>
+              <Text style={styles.profileLabel}>Code de s\u00e9curit\u00e9</Text>
+              <View style={[styles.pinToggle, securityPinEnabled && styles.pinToggleOn]}>
+                <View style={[styles.pinToggleDot, securityPinEnabled && styles.pinToggleDotOn]} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutIcon}>{"👋"}</Text>
           <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
@@ -826,6 +844,10 @@ var styles = StyleSheet.create({
   profileLabel: { flex: 1, fontSize: 15, color: COLORS.textLight },
   profileValue: { fontSize: 14, color: COLORS.textLightMuted, marginRight: 8, maxWidth: 180 },
   profileChevron: { fontSize: 22, color: COLORS.green, fontWeight: '600' },
+  pinToggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.grayLight, justifyContent: 'center', paddingHorizontal: 3 },
+  pinToggleOn: { backgroundColor: COLORS.green },
+  pinToggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
+  pinToggleDotOn: { alignSelf: 'flex-end' },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     padding: 18, borderRadius: 16, backgroundColor: 'rgba(227, 27, 35, 0.08)',

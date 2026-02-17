@@ -51,6 +51,7 @@ export var authService = {
 export var rideService = {
   createRide: function(rideData) { return api.post('/rides', rideData); },
   getRide: function(rideId) { return api.get('/rides/' + rideId); },
+  updateSecurityPin: function(enabled) { return api.put('/auth/security-pin', { securityPinEnabled: enabled }); },
   getMyRides: function() { return api.get('/rides/my-rides'); },
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
