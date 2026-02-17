@@ -89,6 +89,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   
   getEarnings: () => api.get('/drivers/earnings'),
   
+  getRide: (rideId) => api.get('/rides/' + rideId),
   getRideHistory: () => api.get('/drivers/ride-history'),
   uploadProfilePhoto: (formData) => api.put('/drivers/profile-photo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
