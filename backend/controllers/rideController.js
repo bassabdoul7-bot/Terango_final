@@ -336,14 +336,6 @@ exports.startRide = async (req, res) => {
       });
     }
 
-        // Check PIN if required
-    if (ride.pinRequired && !ride.pinVerified) {
-      return res.status(400).json({
-        success: false,
-        message: 'Veuillez verifier le code de securite avant de demarrer'
-      });
-    }
-
     ride.status = 'in_progress';
     ride.startedAt = new Date();
     await ride.save();

@@ -139,10 +139,6 @@ const rideSchema = new mongoose.Schema({
   pinRequired: { type: Boolean, default: false },
   pinVerified: { type: Boolean, default: false },
 
-  // Security PIN
-  securityPin: { type: String, default: null },
-  pinRequired: { type: Boolean, default: false },
-  pinVerified: { type: Boolean, default: false }
   
 }, { timestamps: true });
 
