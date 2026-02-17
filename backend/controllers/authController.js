@@ -580,3 +580,14 @@ exports.registerPartner = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
+
+
+exports.updateSecurityPin = async (req, res) => {
+  try {
+    const { securityPinEnabled } = req.body;
+    await User.findByIdAndUpdate(req.user._id, { securityPinEnabled });
+    res.status(200).json({ success: true, message: 'Parametre mis a jour' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};

@@ -1,4 +1,4 @@
-ï»¿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
@@ -13,7 +13,8 @@ const {
   cancelRide,
   rateRide,
   startRide,
-  completeRide
+  completeRide,
+  verifyPin
 } = require('../controllers/rideController');
 
 // Create new ride (Rider only)
@@ -22,14 +23,14 @@ router.post(
   protect,
   restrictTo('rider'),
   [
-    body('pickup.address').notEmpty().withMessage('Adresse de dÃ©part requise'),
-    body('pickup.coordinates.latitude').isFloat().withMessage('Latitude de dÃ©part invalide'),
-    body('pickup.coordinates.longitude').isFloat().withMessage('Longitude de dÃ©part invalide'),
-    body('dropoff.address').notEmpty().withMessage('Adresse d\'arrivÃ©e requise'),
-    body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivÃ©e invalide'),
-    body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivÃ©e invalide'),
+    body('pickup.address').notEmpty().withMessage('Adresse de départ requise'),
+    body('pickup.coordinates.latitude').isFloat().withMessage('Latitude de départ invalide'),
+    body('pickup.coordinates.longitude').isFloat().withMessage('Longitude de départ invalide'),
+    body('dropoff.address').notEmpty().withMessage('Adresse d\'arrivée requise'),
+    body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivée invalide'),
+    body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivée invalide'),
     body('rideType').isIn(['standard', 'comfort', 'xl']).withMessage('Type de course invalide'),
-    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash']).withMessage('MÃ©thode de paiement invalide')
+    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash']).withMessage('Méthode de paiement invalide')
   ],
   validate,
   createRide
@@ -65,6 +66,7 @@ router.put(
 );
 
 // Start ride (Driver only) - shortcut
+router.put('/:id/verify-pin', protect, restrictTo('driver'), verifyPin);
 router.put('/:id/start', protect, restrictTo('driver'), startRide);
 
 // Complete ride (Driver only) - shortcut
@@ -82,7 +84,7 @@ router.put(
   '/:id/rate',
   protect,
   [
-    body('rating').isInt({ min: 1, max: 5 }).withMessage('Note doit Ãªtre entre 1 et 5'),
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Note doit être entre 1 et 5'),
     body('review').optional().isString()
   ],
   validate,

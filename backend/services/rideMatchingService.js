@@ -1,4 +1,4 @@
-﻿const Driver = require('../models/Driver');
+const Driver = require('../models/Driver');
 const { sendPushNotification } = require('./pushService');
 const Ride = require('../models/Ride');
 const { calculateDistance } = require('../utils/distance');
@@ -91,7 +91,7 @@ class RideMatchingService {
       const startTime = Date.now();
 
       const maxSearchTimeout = setTimeout(async () => {
-        console.log(`⏱️ Max search time reached for ride ${rideId}`);
+        console.log(`?? Max search time reached for ride ${rideId}`);
         await this.markNoDriversAvailable(rideId);
       }, this.MAX_SEARCH_TIME);
 
@@ -106,13 +106,13 @@ class RideMatchingService {
     try {
       // CRITICAL: Check if search was cancelled (ride accepted/cancelled)
       if (!this.isRideStillSearching(rideId)) {
-        console.log(`🛑 Search cancelled for ride ${rideId}, stopping`);
+        console.log(`?? Search cancelled for ride ${rideId}, stopping`);
         return;
       }
 
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') {
-        console.log(`🛑 Ride ${rideId} is ${ride?.status}, stopping search`);
+        console.log(`?? Ride ${rideId} is ${ride?.status}, stopping search`);
         this.cleanupSearch(rideId);
         return;
       }
@@ -123,7 +123,7 @@ class RideMatchingService {
       if (attempt >= 2) radius = 15;
       if (attempt >= 3) radius = 20;
 
-      console.log(`🔍 Search attempt ${attempt + 1} for ride ${rideId}, radius: ${radius}km`);
+      console.log(`?? Search attempt ${attempt + 1} for ride ${rideId}, radius: ${radius}km`);
 
       let nearbyDrivers = await this.findNearbyDrivers(pickupCoords, radius);
 
@@ -132,7 +132,7 @@ class RideMatchingService {
       nearbyDrivers = nearbyDrivers.filter(d => !rejectedDrivers.includes(d.driverId));
 
       if (nearbyDrivers.length === 0) {
-        console.log(`❌ No drivers found (attempt ${attempt + 1}) for ride ${rideId}`);
+        console.log(`? No drivers found (attempt ${attempt + 1}) for ride ${rideId}`);
 
         const searchData = this.searchTimeouts.get(rideId);
         const elapsedTime = Date.now() - (searchData?.startTime || Date.now());
@@ -142,7 +142,7 @@ class RideMatchingService {
           return;
         }
 
-        console.log(`🔄 Retrying search in ${this.SEARCH_RETRY_INTERVAL / 1000}s for ride ${rideId}`);
+        console.log(`?? Retrying search in ${this.SEARCH_RETRY_INTERVAL / 1000}s for ride ${rideId}`);
         const retryTimeout = setTimeout(() => {
           this.searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt + 1);
         }, this.SEARCH_RETRY_INTERVAL);
@@ -153,7 +153,7 @@ class RideMatchingService {
         return;
       }
 
-      console.log(`✅ Found ${nearbyDrivers.length} nearby drivers for ride ${rideId}`);
+      console.log(`? Found ${nearbyDrivers.length} nearby drivers for ride ${rideId}`);
 
       if (!this.pendingOffers.has(rideId)) {
         this.pendingOffers.set(rideId, { rejectedDrivers: [] });
@@ -169,19 +169,19 @@ class RideMatchingService {
     try {
       // CRITICAL: Check if search was cancelled
       if (!this.isRideStillSearching(rideId)) {
-        console.log(`🛑 Search cancelled for ride ${rideId}, stopping offers`);
+        console.log(`?? Search cancelled for ride ${rideId}, stopping offers`);
         return;
       }
 
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') {
-        console.log(`🛑 Ride ${rideId} is ${ride?.status}, stopping offers`);
+        console.log(`?? Ride ${rideId} is ${ride?.status}, stopping offers`);
         this.cleanupSearch(rideId);
         return;
       }
 
       if (currentIndex >= driversList.length) {
-        console.log(`⏭️ All drivers in batch rejected ride ${rideId}, searching again...`);
+        console.log(`?? All drivers in batch rejected ride ${rideId}, searching again...`);
 
         const offerData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
         driversList.forEach(d => {
@@ -203,7 +203,7 @@ class RideMatchingService {
       }
 
       const { driver, distance, driverId } = driversList[currentIndex];
-      console.log(`📤 Offering ride ${rideId} to driver ${driverId} (${distance.toFixed(2)}km away)`);
+      console.log(`?? Offering ride ${rideId} to driver ${driverId} (${distance.toFixed(2)}km away)`);
 
       const offerData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
       offerData.currentDriverId = driverId;
@@ -230,7 +230,7 @@ class RideMatchingService {
       const timeout = setTimeout(async () => {
         if (!this.isRideStillSearching(rideId)) return;
 
-        console.log(`⏰ Driver ${driverId} did not respond to ride ${rideId}, moving to next`);
+        console.log(`? Driver ${driverId} did not respond to ride ${rideId}, moving to next`);
 
         const currentOfferData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
         if (!currentOfferData.rejectedDrivers.includes(driverId)) {
@@ -251,12 +251,12 @@ class RideMatchingService {
     try {
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') {
-        console.log(`🛑 Ride ${rideId} is ${ride?.status}, NOT marking no-drivers`);
+        console.log(`?? Ride ${rideId} is ${ride?.status}, NOT marking no-drivers`);
         this.cleanupSearch(rideId);
         return;
       }
 
-      console.log(`❌ No drivers available for ride ${rideId} after exhaustive search`);
+      console.log(`? No drivers available for ride ${rideId} after exhaustive search`);
       await Ride.findByIdAndUpdate(rideId, { status: 'no_drivers_available' });
 
       // FIXED: Use room instead of dynamic event name
@@ -279,21 +279,31 @@ class RideMatchingService {
   async handleDriverAcceptance(rideId, driverId) {
     try {
       // Use atomic update - only accept if still pending
+            // Check if either rider or driver has PIN enabled
+      const riderUser = await User.findOne({ _id: (await Ride.findById(rideId)).riderId }).populate('userId') || null;
+      const rideDoc = await Ride.findById(rideId).populate('riderId');
+      const driverDoc = await Driver.findById(driverId).populate('userId');
+      const riderUserId = rideDoc?.riderId?.userId || rideDoc?.riderId;
+      const riderUserDoc = await User.findById(riderUserId);
+      const driverUserDoc = driverDoc?.userId;
+      const pinRequired = !!(riderUserDoc?.securityPinEnabled || driverUserDoc?.securityPinEnabled);
+      const securityPin = pinRequired ? String(Math.floor(1000 + Math.random() * 9000)) : null;
+
       const ride = await Ride.findOneAndUpdate(
         { _id: rideId, status: 'pending' },
-        { driver: driverId, status: 'accepted', acceptedAt: new Date() },
+        { driver: driverId, status: 'accepted', acceptedAt: new Date(), pinRequired, securityPin },
         { new: true }
       );
 
       if (!ride) {
-        console.log(`⚠️ Ride ${rideId} already accepted by another driver`);
+        console.log(`?? Ride ${rideId} already accepted by another driver`);
         return {
           success: false,
-          message: 'Cette course a déjà été acceptée par un autre chauffeur'
+          message: 'Cette course a d�j� �t� accept�e par un autre chauffeur'
         };
       }
 
-      console.log(`✅ Driver ${driverId} accepted ride ${rideId}`);
+      console.log(`? Driver ${driverId} accepted ride ${rideId}`);
 
       // CRITICAL: Cleanup ALL timeouts immediately
       this.cleanupSearch(rideId);
@@ -337,7 +347,7 @@ class RideMatchingService {
       const offerData = this.pendingOffers.get(rideId);
       if (!offerData || offerData.currentDriverId !== driverId) return;
 
-      console.log(`❌ Driver ${driverId} rejected ride ${rideId}`);
+      console.log(`? Driver ${driverId} rejected ride ${rideId}`);
 
       if (!offerData.rejectedDrivers.includes(driverId)) {
         offerData.rejectedDrivers.push(driverId);
@@ -362,7 +372,7 @@ class RideMatchingService {
    * CRITICAL: Cleanup ALL timeouts for a ride
    */
   cleanupSearch(rideId) {
-    console.log(`🧹 Cleaning up all timeouts for ride ${rideId}`);
+    console.log(`?? Cleaning up all timeouts for ride ${rideId}`);
 
     // Clear offer timeout
     this.clearOfferTimeout(rideId);
@@ -394,7 +404,7 @@ class RideMatchingService {
   async cancelRideOffers(rideId) {
     this.cleanupSearch(rideId);
     // FIXED: Use room
-    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annulée' });
+    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annul�e' });
   }
 }
 

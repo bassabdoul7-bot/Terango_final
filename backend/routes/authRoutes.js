@@ -1,4 +1,4 @@
-ï»¿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
@@ -13,14 +13,15 @@ const {
   register,
   loginWithPin,
   forgotPin,
-  resetPin
+  resetPin,
+  updateSecurityPin
 } = require('../controllers/authController');
 
 // Send OTP
 router.post(
   '/send-otp',
   [
-    body('phone').notEmpty().withMessage('NumÃ©ro de tÃ©lÃ©phone requis')
+    body('phone').notEmpty().withMessage('Numéro de téléphone requis')
   ],
   validate,
   sendOTP
@@ -30,7 +31,7 @@ router.post(
 router.post(
   '/verify-otp',
   [
-    body('phone').notEmpty().withMessage('NumÃ©ro de tÃ©lÃ©phone requis'),
+    body('phone').notEmpty().withMessage('Numéro de téléphone requis'),
     body('otp').isLength({ min: 6, max: 6 }).withMessage('Code OTP invalide')
   ],
   validate,
@@ -87,28 +88,7 @@ var { registerPartner } = require('../controllers/authController');
 router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartner);
 
 
-// Partner registration with ID upload
-var multer = require('multer');
-var cloudinary = require('cloudinary').v2;
-var { CloudinaryStorage } = require('multer-storage-cloudinary');
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-var partnerStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'terango-partners',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
-    transformation: [{ width: 800, height: 800, crop: 'limit' }]
-  }
-});
-var partnerUpload = multer({
-  storage: partnerStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }
-});
-var { registerPartner } = require('../controllers/authController');
-router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartner);
+// Security PIN toggle
+router.put('/security-pin', protect, updateSecurityPin);
 
 module.exports = router;

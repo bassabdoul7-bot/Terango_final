@@ -101,6 +101,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
             <View style={styles.contactRow}><TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+ride.driver.userId.phone)}><View style={styles.contactIconBg}><Text>{String.fromCodePoint(0x1F4DE)}</Text></View><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity><TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><View style={styles.contactIconBg}><Text>{String.fromCodePoint(0x1F4AC)}</Text></View><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity></View>
           </View>
         )}
+        {ride.pinRequired && ride.securityPin && ride.status !== 'pending' && (
+          <View style={styles.pinCard}>
+            <Text style={styles.pinLabel}>{'\uD83D\uDD12 Code de s\u00e9curit\u00e9'}</Text>
+            <Text style={styles.pinCode}>{ride.securityPin}</Text>
+            <Text style={styles.pinHint}>Donnez ce code \u00e0 votre chauffeur</Text>
+          </View>
+        )}
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride.pickup.address}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride.dropoff.address}</Text></View></View></View>
         <View style={styles.fareCard}><Text style={styles.fareLabel}>{"\uD83D\uDCB5 Esp\u00e8ces"}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
         {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
@@ -202,6 +209,10 @@ const styles = StyleSheet.create({
   addressContent: { flex: 1 },
   addressLabel: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 1 },
   addressText: { fontSize: 14, fontWeight: '500', color: COLORS.textLight },
+    pinCard: { backgroundColor: 'rgba(252,209,22,0.1)', borderRadius: 16, padding: 20, marginBottom: 12, alignItems: 'center', borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.3)' },
+  pinLabel: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 8 },
+  pinCode: { fontSize: 42, fontWeight: 'bold', color: COLORS.yellow, letterSpacing: 12 },
+  pinHint: { fontSize: 12, color: COLORS.textDarkSub, marginTop: 8 },
   fareCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   fareLabel: { fontSize: 14, color: COLORS.textLightSub },
   fareAmount: { fontSize: 18, fontWeight: 'bold', color: COLORS.yellow },

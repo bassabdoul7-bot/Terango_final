@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_URL = 'https://terango-api.fly.dev/api';
@@ -77,6 +77,8 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   cancelDelivery: (deliveryId, reason) =>
     api.put('/deliveries/' + deliveryId + '/cancel', { reason }),
   startRide: (rideId) => api.put('/rides/' + rideId + '/start'),
+  verifyPin: (rideId, pin) => api.put('/rides/' + rideId + '/verify-pin', { pin }),
+  updateSecurityPin: (enabled) => api.put('/auth/security-pin', { securityPinEnabled: enabled }),
 
   completeRide: (rideId) => api.put('/rides/' + rideId + '/complete'),
   
