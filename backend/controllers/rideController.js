@@ -4,7 +4,7 @@ const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
 const Partner = require('../models/Partner');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
-const { calculateFare, calculateEarnings } = require('../utils/fare');
+const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils/fare');
 
 // @desc    Create a new ride request
 // @route   POST /api/rides
@@ -400,7 +400,7 @@ exports.completeRide = async (req, res) => {
 
     // Recalculate commission if driver has a partner
     var hasPartner = !!(driver.partnerId);
-    var partnerEarnings = calculateEarnings(ride.fare, hasPartner);
+    var partnerEarnings = calculateEarnings(ride.fare, hasPartner, driver.tier || 'goorgoorlu');
     ride.platformCommission = partnerEarnings.platformCommission;
     ride.driverEarnings = partnerEarnings.driverEarnings;
     ride.partnerCommission = partnerEarnings.partnerCommission;
@@ -425,7 +425,9 @@ exports.completeRide = async (req, res) => {
     driver.totalEarnings = (driver.totalEarnings || 0) + (partnerEarnings.driverEarnings || ride.fare);
     driver.weeklyEarnings = (driver.weeklyEarnings || 0) + (partnerEarnings.driverEarnings || ride.fare);
     driver.totalRides = (driver.totalRides || 0) + 1;
-    driver.isAvailable = true; // Ready for next ride
+    driver.completedRides = (driver.completedRides || 0) + 1;
+    driver.tier = getTierFromRides(driver.completedRides);
+    driver.isAvailable = true;
     await driver.save();
 
     // Update rider stats

@@ -1,4 +1,4 @@
-﻿var mongoose = require('mongoose');
+var mongoose = require('mongoose');
 var driverSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -59,6 +59,12 @@ var driverSchema = new mongoose.Schema({
   totalEarnings: { type: Number, default: 0 },
   weeklyEarnings: { type: Number, default: 0 },
   totalRides: { type: Number, default: 0 },
+  tier: {
+    type: String,
+    enum: ['goorgoorlu', 'jambaar', 'ndaanaan'],
+    default: 'goorgoorlu'
+  },
+  completedRides: { type: Number, default: 0 },
   totalDeliveries: { type: Number, default: 0 },
   totalOrders: { type: Number, default: 0 },
   acceptanceRate: { type: Number, default: 100 },
