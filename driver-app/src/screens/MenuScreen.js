@@ -22,6 +22,7 @@ var MenuScreen = function(props) {
   var notifState = useState(true); var notificationsEnabled = notifState[0]; var setNotificationsEnabled = notifState[1];
   var soundState = useState(true); var soundEnabled = soundState[0]; var setSoundEnabled = soundState[1];
   var langState = useState('Fran\u00e7ais'); var language = langState[0]; var setLanguage = langState[1];
+  var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
 
   useEffect(function() { fetchEarnings(); fetchHistory(); }, []);
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0], weeklyRides: e.weeklyRides||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
@@ -256,6 +257,7 @@ var styles = StyleSheet.create({
   settingsRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.grayLight },
   settingsEmoji: { fontSize: 20, marginRight: 14 },
   settingsLabel: { flex: 1, fontSize: 15, color: COLORS.textDark },
+  settingsSub: { fontSize: 12, color: COLORS.textDarkMuted, flex: 1, marginLeft: 4 },
   settingsValue: { fontSize: 14, color: COLORS.textDarkMuted, marginRight: 8 },
   toggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.grayLight, justifyContent: 'center', paddingHorizontal: 3 },
   toggleOn: { backgroundColor: COLORS.green },
