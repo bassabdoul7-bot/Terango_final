@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { GooglePlacesAutocomplete } from 'react-native-google-places-autocomplete';
 import * as Location from 'expo-location';
@@ -7,6 +7,9 @@ import COLORS from '../constants/colors';
 
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const RECENT_SEARCHES_KEY = '@recent_searches';
+
+// Cache pour éviter de refaire le reverseGeocode si la position n'a pas changé
+const locationCache = {};
 
 const SearchDestinationScreen = ({ route, navigation }) => {
   const { currentLocation } = route.params;
@@ -23,7 +26,27 @@ const SearchDestinationScreen = ({ route, navigation }) => {
   const saveRecentSearch = async (location) => { try { const ns = { address: location.address, coordinates: location.coordinates, timestamp: Date.now() }; let searches = [...recentSearches].filter(s => s.address !== ns.address); searches.unshift(ns); searches = searches.slice(0, 10); await AsyncStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(searches)); setRecentSearches(searches); } catch (e) {} };
 
   const getCurrentLocationAddress = async () => {
-    try { const result = await Location.reverseGeocodeAsync({ latitude: currentLocation.latitude, longitude: currentLocation.longitude }); if (result && result[0]) { const addr = result[0]; const address = `${addr.street || ''} ${addr.city || ''}, ${addr.region || ''}`.trim(); setPickup({ address: address || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } }); } } catch (e) { setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } }); } finally { setLoadingPickup(false); }
+    try {
+      // Vérifier le cache d'abord
+      const cacheKey = `${currentLocation.latitude.toFixed(4)},${currentLocation.longitude.toFixed(4)}`;
+      if (locationCache[cacheKey]) {
+        setPickup(locationCache[cacheKey]);
+        setLoadingPickup(false);
+        return;
+      }
+      const result = await Location.reverseGeocodeAsync({ latitude: currentLocation.latitude, longitude: currentLocation.longitude });
+      if (result && result[0]) {
+        const addr = result[0];
+        const address = `${addr.street || ''} ${addr.city || ''}, ${addr.region || ''}`.trim();
+        const pickupData = { address: address || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } };
+        locationCache[cacheKey] = pickupData;
+        setPickup(pickupData);
+      }
+    } catch (e) {
+      setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
+    } finally {
+      setLoadingPickup(false);
+    }
   };
 
   const handlePickupSelect = (data, details) => { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); setEditingPickup(false); };
@@ -45,7 +68,21 @@ const SearchDestinationScreen = ({ route, navigation }) => {
             {!editingPickup ? (
               <TouchableOpacity onPress={() => setEditingPickup(true)} style={styles.addressTouchable}><Text style={styles.addressText} numberOfLines={1}>{pickup?.address}</Text></TouchableOpacity>
             ) : (
-              <GooglePlacesAutocomplete placeholder="Point de d\u00e9part" fetchDetails={true} onPress={handlePickupSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={true} textInputProps={{ defaultValue: pickup?.address }} />
+              <GooglePlacesAutocomplete
+                placeholder="Point de départ"
+                fetchDetails={true}
+                onPress={handlePickupSelect}
+                query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn|country:us' }}
+                styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }}
+                enablePoweredByContainer={false}
+                nearbyPlacesAPI="GooglePlacesSearch"
+                debounce={600}
+                minLength={3}
+                autoFocus={true}
+                textInputProps={{ defaultValue: pickup?.address }}
+                listViewDisplayed="auto"
+                keyboardShouldPersistTaps="handled"
+              />
             )}
           </View>
         </View>
@@ -53,7 +90,20 @@ const SearchDestinationScreen = ({ route, navigation }) => {
         <View style={styles.inputRow}>
           <View style={styles.iconContainer}><View style={styles.squareIcon} /></View>
           <View style={styles.autocompleteWrapper}>
-            <GooglePlacesAutocomplete placeholder="O\u00f9 allez-vous?" fetchDetails={true} onPress={handleDropoffSelect} query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:us' }} styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }} enablePoweredByContainer={false} nearbyPlacesAPI="GooglePlacesSearch" debounce={300} minLength={2} autoFocus={!editingPickup} />
+            <GooglePlacesAutocomplete
+              placeholder="Où allez-vous?"
+              fetchDetails={true}
+              onPress={handleDropoffSelect}
+              query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn|country:us' }}
+              styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }}
+              enablePoweredByContainer={false}
+              nearbyPlacesAPI="GooglePlacesSearch"
+              debounce={600}
+              minLength={3}
+              autoFocus={!editingPickup}
+              listViewDisplayed="auto"
+              keyboardShouldPersistTaps="handled"
+            />
           </View>
         </View>
         {editingPickup && (
@@ -112,3 +162,5 @@ const styles = StyleSheet.create({
 });
 
 export default SearchDestinationScreen;
+
+

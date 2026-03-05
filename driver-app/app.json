@@ -1,6 +1,6 @@
-﻿{
+{
   "expo": {
-    "name": "TeranGO Driver",
+    "name": "TeranGO Chauffeur",
     "slug": "terango-driver",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,9 +26,13 @@
       "package": "com.terango.driver",
       "config": {
         "googleMaps": {
-          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+          "apiKey": "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
         }
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -40,6 +44,11 @@
           "locationAlwaysAndWhenInUsePermission": "Allow TeranGO to use your location to show you nearby rides."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a5a7e340-92fd-41a2-a046-8d9941134dda"
+      }
+    }
   }
 }
