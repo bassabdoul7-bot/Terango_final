@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -205,16 +205,36 @@ function HomeScreen(props) {
     });
   }
 
-  function handleSavePlace() {
+  async function handleSavePlace() {
     if (!saveAddress.trim()) {
       Alert.alert('Adresse requise', 'Veuillez entrer une adresse.');
       return;
     }
 
-    var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' +
-      encodeURIComponent(saveAddress) + '&key=' + GOOGLE_MAPS_KEY + '&region=sn';
+    try {
+      // Check cache first to avoid unnecessary Google API calls
+      var cacheKey = 'geocode_' + saveAddress.trim().toLowerCase();
+      var cached = await AsyncStorage.getItem(cacheKey);
 
-    fetch(url).then(function(res) { return res.json(); }).then(function(data) {
+      if (cached) {
+        var cachedPlace = JSON.parse(cached);
+        var updatedFromCache = Object.assign({}, savedPlaces);
+        if (saveType === 'home') updatedFromCache.home = cachedPlace;
+        else if (saveType === 'work') updatedFromCache.work = cachedPlace;
+        else { updatedFromCache.favorites = (updatedFromCache.favorites || []).concat([cachedPlace]); }
+        savePlacesToStorage(updatedFromCache);
+        setShowSaveModal(false);
+        setSaveAddress('');
+        Alert.alert('Enregistré', (saveType === 'home' ? 'Maison' : saveType === 'work' ? 'Travail' : 'Favori') + ' enregistré avec succès!');
+        return;
+      }
+
+      var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' +
+        encodeURIComponent(saveAddress) + '&key=' + GOOGLE_MAPS_KEY + '&region=sn';
+
+      var res = await fetch(url);
+      var data = await res.json();
+
       if (data.results && data.results.length > 0) {
         var result = data.results[0];
         var place = {
@@ -222,6 +242,9 @@ function HomeScreen(props) {
           latitude: result.geometry.location.lat,
           longitude: result.geometry.location.lng,
         };
+
+        // Save to cache for future use
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(place));
 
         var updated = Object.assign({}, savedPlaces);
         if (saveType === 'home') updated.home = place;
@@ -237,9 +260,9 @@ function HomeScreen(props) {
       } else {
         Alert.alert('Adresse introuvable', "Veuillez vérifier l'adresse.");
       }
-    }).catch(function(err) {
+    } catch (err) {
       Alert.alert('Erreur', "Impossible de trouver l'adresse.");
-    });
+    }
   }
 
   function handleLogout() {
@@ -358,11 +381,12 @@ function HomeScreen(props) {
   }
 
   // ========== PROFILE TAB ==========
-    function toggleSecurityPin() {
+  function toggleSecurityPin() {
     var newVal = !securityPinEnabled;
     setSecurityPinEnabled(newVal);
     rideService.updateSecurityPin(newVal).catch(function() { setSecurityPinEnabled(!newVal); });
   }
+
   function renderProfileTab() {
     var userName = (user && user.name) ? user.name : 'Utilisateur';
     var userPhone = (user && user.phone) ? user.phone : '-';
@@ -434,6 +458,7 @@ function HomeScreen(props) {
             </TouchableOpacity>
           </View>
         </View>
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutIcon}>{"👋"}</Text>
           <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
@@ -487,7 +512,7 @@ function HomeScreen(props) {
             initialRegion={location}
             showsUserLocation={false}
             showsMyLocationButton={false}
-            showsTraffic={true}
+            showsTraffic={false}
           >
             <Marker coordinate={location}>
               <View style={styles.userMarker}>

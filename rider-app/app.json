@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "rider-app",
-    "slug": "rider-app",
+    "name": "TeranGO Passager",
+    "slug": "terango-rider",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,20 +10,44 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#00853F"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.terango.rider"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#00853F"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.terango.rider",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
+        }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow TeranGO to use your location to find rides near you."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "424c8f48-0e23-489f-9a51-4f6e28cd7e95"
+      }
     }
   }
 }

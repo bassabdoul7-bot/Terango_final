@@ -20,6 +20,9 @@ var screenHeight = Dimensions.get('window').height;
 var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
 
+// Cache for directions to avoid duplicate API calls
+var directionsCache = {};
+
 function CancelReasonModal(props) {
   var visible = props.visible; var onClose = props.onClose; var onConfirm = props.onConfirm; var onSupport = props.onSupport;
   var reasonState = useState(null); var selectedReason = reasonState[0]; var setSelectedReason = reasonState[1];
@@ -81,11 +84,63 @@ function ActiveRideScreen(props) {
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(){setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(){});}
 
-  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]); 
+  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]); 
 
   useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:3000,distanceInterval:5},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
-  useEffect(function(){if(!ride||!driverLocation||hasFetchedRoute.current)return;var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;if(!destination)return;var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr';fetch(url).then(function(r){return r.json();}).then(function(data){if(data.status==='OK'&&data.routes.length>0){var leg=data.routes[0].legs[0];setTotalDistance(leg.distance.text);setTotalDuration(leg.duration.text);var steps=leg.steps.map(function(step,index){return{id:index,instruction:step.html_instructions.replace(/<[^>]*>/g,''),distance:step.distance.text,distanceValue:step.distance.value,maneuver:step.maneuver,startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};});setAllSteps(steps);if(steps.length>0)setCurrentStep(steps[0]);var points=PolylineUtil.decode(data.routes[0].overview_polyline.points);var coords=points.map(function(p){return{latitude:p[0],longitude:p[1]};});setRouteCoordinates(coords);hasFetchedRoute.current=true;setTimeout(function(){if(mapRef.current&&!navigationStarted){mapRef.current.fitToCoordinates(coords,{edgePadding:{top:200,right:50,bottom:400,left:50},animated:true});}},1000);}}).catch(function(){});},[ride,driverLocation]);
+  useEffect(function(){
+    if(!ride||!driverLocation||hasFetchedRoute.current)return;
+    var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;
+    if(!destination)return;
+
+    // Build cache key — round to 3 decimals (~100m precision) to reuse nearby routes
+    var cacheKey = [
+      Math.round(driverLocation.latitude*1000)/1000,
+      Math.round(driverLocation.longitude*1000)/1000,
+      destination.latitude,
+      destination.longitude,
+      ride.status
+    ].join('_');
+
+    if(directionsCache[cacheKey]){
+      // Use cached route — no API call needed
+      var cached = directionsCache[cacheKey];
+      setTotalDistance(cached.totalDistance);
+      setTotalDuration(cached.totalDuration);
+      setAllSteps(cached.steps);
+      if(cached.steps.length>0) setCurrentStep(cached.steps[0]);
+      setRouteCoordinates(cached.coords);
+      hasFetchedRoute.current=true;
+      setTimeout(function(){if(mapRef.current&&!navigationStarted){mapRef.current.fitToCoordinates(cached.coords,{edgePadding:{top:200,right:50,bottom:400,left:50},animated:true});}},1000);
+      return;
+    }
+
+    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr';
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      if(data.status==='OK'&&data.routes.length>0){
+        var leg=data.routes[0].legs[0];
+        var steps=leg.steps.map(function(step,index){return{id:index,instruction:step.html_instructions.replace(/<[^>]*>/g,''),distance:step.distance.text,distanceValue:step.distance.value,maneuver:step.maneuver,startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};});
+        var points=PolylineUtil.decode(data.routes[0].overview_polyline.points);
+        var coords=points.map(function(p){return{latitude:p[0],longitude:p[1]};});
+
+        // Save to cache
+        directionsCache[cacheKey]={
+          totalDistance:leg.distance.text,
+          totalDuration:leg.duration.text,
+          steps:steps,
+          coords:coords
+        };
+
+        setTotalDistance(leg.distance.text);
+        setTotalDuration(leg.duration.text);
+        setAllSteps(steps);
+        if(steps.length>0)setCurrentStep(steps[0]);
+        setRouteCoordinates(coords);
+        hasFetchedRoute.current=true;
+        setTimeout(function(){if(mapRef.current&&!navigationStarted){mapRef.current.fitToCoordinates(coords,{edgePadding:{top:200,right:50,bottom:400,left:50},animated:true});}},1000);
+      }
+    }).catch(function(err){console.error('Directions error:',err);hasFetchedRoute.current=false;});
+  },[ride,driverLocation]);
 
   var announceInstruction = useCallback(function(instruction){if(!voiceEnabled)return;speakNavigation(instruction);},[voiceEnabled]);
   var handleRecenter = useCallback(function(){if(mapRef.current&&driverLocation){mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:navigationStarted?30:0,heading:navigationStarted?heading:0},{duration:500});}},[driverLocation,heading,navigationStarted]);
@@ -100,6 +155,7 @@ function ActiveRideScreen(props) {
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
   function getManeuverIcon(m){if(!m)return '^';if(m.indexOf('left')!==-1)return '<';if(m.indexOf('right')!==-1)return '>';if(m.indexOf('uturn')!==-1)return 'U';return '^';}
 
+  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:30,heading:heading},{duration:500});},[driverLocation,navigationStarted,heading]);
   var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:30,heading:heading},{duration:1000});}},[driverLocation,heading]);
   function handleCancelRide(){setShowCancelModal(true);}
   function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(){Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
@@ -126,7 +182,7 @@ function ActiveRideScreen(props) {
 
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={true} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
+      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={false} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
         <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}><View style={styles.driverMarker}><Text style={styles.driverText}>{"\u25B2"}</Text></View></Marker>
         {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'?COLORS.red:COLORS.green}/>}
         {routeCoordinates.length>0&&(<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round"/><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round"/></>)}
@@ -262,3 +318,6 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
+

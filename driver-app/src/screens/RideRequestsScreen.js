@@ -71,7 +71,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {location ? (
-        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={location} showsUserLocation={false} showsMyLocationButton={false} showsTraffic={true}>
+        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={location} showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
           {location && <Marker coordinate={location} title="Votre position"><View style={styles.driverMarker}><Text style={styles.driverMarkerText}>{"\u25B2"}</Text></View></Marker>}
           {currentRequest && (<><Marker coordinate={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} pinColor={COLORS.green} title="D\u00e9part" /><Marker coordinate={{ latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }} pinColor={COLORS.red} title="Arriv\u00e9e" /><Circle center={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} radius={500} strokeColor="rgba(0,133,63,0.3)" fillColor="rgba(0,133,63,0.1)" /></>)}
         </MapView>

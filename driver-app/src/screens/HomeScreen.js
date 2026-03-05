@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -63,7 +63,7 @@ const HomeScreen = ({ navigation }) => {
         setLocation({ latitude: currentLocation.coords.latitude, longitude: currentLocation.coords.longitude });
       } catch (retryError) {
         console.error('Location retry error:', retryError);
-        Alert.alert('GPS non disponible', 'Impossible d\'obtenir votre position. Vérifiez que le GPS est activé.', [{ text: 'Réessayer', onPress: initializeLocation }]);
+        Alert.alert('GPS non disponible', "Impossible d'obtenir votre position. Vérifiez que le GPS est activé.", [{ text: 'Réessayer', onPress: initializeLocation }]);
       }
     } finally {
       setGettingLocation(false);
@@ -107,7 +107,7 @@ const HomeScreen = ({ navigation }) => {
       {location ? (
         <MapView style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE}
           initialRegion={{ ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
-          showsUserLocation={false} showsMyLocationButton={false} showsTraffic={true}>
+          showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
           <Marker coordinate={location}>
             <View style={styles.driverMarker}><Text style={styles.markerText}>▲</Text></View>
           </Marker>
