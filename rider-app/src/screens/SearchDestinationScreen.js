@@ -72,7 +72,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
                 placeholder="Point de départ"
                 fetchDetails={true}
                 onPress={handlePickupSelect}
-                query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn|country:us' }}
+                query={{ key: GOOGLE_MAPS_KEY, language: 'en', components: '' }}
                 styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }}
                 enablePoweredByContainer={false}
                 nearbyPlacesAPI="GooglePlacesSearch"
@@ -94,7 +94,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
               placeholder="Où allez-vous?"
               fetchDetails={true}
               onPress={handleDropoffSelect}
-              query={{ key: GOOGLE_MAPS_KEY, language: 'fr', components: 'country:sn|country:us' }}
+              query={{ key: GOOGLE_MAPS_KEY, language: 'en', components: '' }}
               styles={{ textInput: styles.autocompleteInput, listView: styles.autocompleteList, container: styles.autocompleteContainer }}
               enablePoweredByContainer={false}
               nearbyPlacesAPI="GooglePlacesSearch"
@@ -162,5 +162,7 @@ const styles = StyleSheet.create({
 });
 
 export default SearchDestinationScreen;
+
+
 
 
