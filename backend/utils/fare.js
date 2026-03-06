@@ -18,9 +18,9 @@ exports.calculateFare = (distance, rideType = 'standard') => {
 
 // Tier commission rates
 var TIER_RATES = {
-  goorgoorlu: 13,
-  jambaar: 12,
-  ndaanaan: 11
+  goorgoorlu: 5,
+  jambaar: 5,
+  ndaanaan: 5
 };
 
 // Get tier from completed rides
@@ -49,3 +49,4 @@ exports.calculateEarnings = function(fare, hasPartner, driverTier) {
     tier: driverTier
   };
 };
+

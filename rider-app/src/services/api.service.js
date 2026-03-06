@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-var API_URL = 'https://terango-api.fly.dev/api';
+var API_URL = 'http://178.104.14.252/api';
 
 var api = axios.create({
   baseURL: API_URL,
@@ -93,6 +93,7 @@ export var restaurantService = {
 };
 
 export default api;
+
 
 
 
