@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
 
-var SOCKET_URL = 'http://178.104.14.252';
+var SOCKET_URL = 'https://api.terango.sn';
 
 export async function createAuthSocket(options) {
   var token = await AsyncStorage.getItem('token');
@@ -17,4 +17,8 @@ export async function createAuthSocket(options) {
 }
 
 export { SOCKET_URL };
+
+
+
+
 
