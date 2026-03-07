@@ -93,7 +93,7 @@ function ActiveRideScreen(props) {
     var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;
     if(!destination)return;
 
-    // Build cache key — round to 3 decimals (~100m precision) to reuse nearby routes
+    // Build cache key â€” round to 3 decimals (~100m precision) to reuse nearby routes
     var cacheKey = [
       Math.round(driverLocation.latitude*1000)/1000,
       Math.round(driverLocation.longitude*1000)/1000,
@@ -103,7 +103,7 @@ function ActiveRideScreen(props) {
     ].join('_');
 
     if(directionsCache[cacheKey]){
-      // Use cached route — no API call needed
+      // Use cached route â€” no API call needed
       var cached = directionsCache[cacheKey];
       setTotalDistance(cached.totalDistance);
       setTotalDuration(cached.totalDuration);
@@ -182,7 +182,7 @@ function ActiveRideScreen(props) {
 
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={false} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
+      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={true} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
         <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}><View style={styles.driverMarker}><Text style={styles.driverText}>{"\u25B2"}</Text></View></Marker>
         {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'?COLORS.red:COLORS.green}/>}
         {routeCoordinates.length>0&&(<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round"/><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round"/></>)}
