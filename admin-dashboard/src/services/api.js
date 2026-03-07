@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'https://terango-api.fly.dev/api';
+const API_URL = 'https://api.terango.sn/api';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -57,3 +57,4 @@ export var partnerService = {
 };
 
 export default api;
+

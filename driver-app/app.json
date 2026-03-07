@@ -24,6 +24,7 @@
         "backgroundColor": "#00853F"
       },
       "package": "com.terango.driver",
+      "usesCleartextTraffic": true,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
@@ -52,3 +53,5 @@
     }
   }
 }
+
+
