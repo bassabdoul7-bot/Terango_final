@@ -8,7 +8,7 @@ import COLORS from '../constants/colors';
 const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 const RECENT_SEARCHES_KEY = '@recent_searches';
 
-// Cache pour éviter de refaire le reverseGeocode si la position n'a pas changé
+// Cache pour Ã©viter de refaire le reverseGeocode si la position n'a pas changÃ©
 const locationCache = {};
 
 const SearchDestinationScreen = ({ route, navigation }) => {
@@ -27,7 +27,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
 
   const getCurrentLocationAddress = async () => {
     try {
-      // Vérifier le cache d'abord
+      // VÃ©rifier le cache d'abord
       const cacheKey = `${currentLocation.latitude.toFixed(4)},${currentLocation.longitude.toFixed(4)}`;
       if (locationCache[cacheKey]) {
         setPickup(locationCache[cacheKey]);
@@ -69,7 +69,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
               <TouchableOpacity onPress={() => setEditingPickup(true)} style={styles.addressTouchable}><Text style={styles.addressText} numberOfLines={1}>{pickup?.address}</Text></TouchableOpacity>
             ) : (
               <GooglePlacesAutocomplete
-                placeholder="Point de départ"
+                placeholder="Point de dÃ©part"
                 fetchDetails={true}
                 onPress={handlePickupSelect}
                 query={{ key: GOOGLE_MAPS_KEY, language: 'en', components: '' }}
@@ -91,7 +91,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
           <View style={styles.iconContainer}><View style={styles.squareIcon} /></View>
           <View style={styles.autocompleteWrapper}>
             <GooglePlacesAutocomplete
-              placeholder="Où allez-vous?"
+              placeholder="OÃ¹ allez-vous?"
               fetchDetails={true}
               onPress={handleDropoffSelect}
               query={{ key: GOOGLE_MAPS_KEY, language: 'en', components: '' }}
