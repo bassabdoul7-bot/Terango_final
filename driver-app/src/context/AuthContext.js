@@ -1,4 +1,4 @@
-﻿import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService, driverService } from '../services/api.service';
 import { registerForPushNotifications } from '../services/notifications';
@@ -84,7 +84,8 @@ export const AuthProvider = ({ children }) => {
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
         setUser(response.user);
         setIsAuthenticated(true);
-        await fetchDriverProfile();
+        // Don't block registration if profile fetch fails
+        fetchDriverProfile().catch(function(err) { console.log('Profile fetch after register:', err); });
         registerForPushNotifications().then(function(token) {
           if (token) authService.registerPushToken(token);
         });
