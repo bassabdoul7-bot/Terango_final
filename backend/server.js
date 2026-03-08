@@ -23,7 +23,7 @@ connectDB();
 const matchingService = new RideMatchingService(io);
 matchingService.setDriverLocationService(driverLocationService);
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
