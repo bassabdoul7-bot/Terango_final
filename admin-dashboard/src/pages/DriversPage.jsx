@@ -41,6 +41,14 @@ export default function DriversPage() {
     });
   }
 
+  function markPaid(id, name) {
+    if (!confirm('Confirmer le paiement de commission pour ' + name + '?')) return;
+    adminService.markCommissionPaid(id).then(function(res) {
+      alert('Commission de ' + name + ' marquee comme payee!');
+      load();
+    }).catch(function() { alert('Erreur'); });
+  }
+
   var filtered = drivers.filter(function(d) {
     if (!search) return true;
     var n = (d.userId && d.userId.name) || '';
@@ -132,6 +140,33 @@ export default function DriversPage() {
                 <DocImage label="Carte grise" url={selected.vehicle.registrationPhoto} />
               )}
 
+              {/* Commission */}
+              {(selected.commissionBalance || 0) > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-800">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Commission</h3>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <span className="text-xs text-gray-500">Solde du</span>
+                      <p className={"text-lg font-bold " + (selected.isBlockedForPayment ? "text-red-400" : "text-yellow-400")}>{(selected.commissionBalance || 0).toLocaleString()} FCFA</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <span className="text-xs text-gray-500">Total paye</span>
+                      <p className="text-lg font-bold text-emerald-400">{(selected.totalCommissionPaid || 0).toLocaleString()} FCFA</p>
+                    </div>
+                    <div className="bg-gray-800 rounded-lg p-3">
+                      <span className="text-xs text-gray-500">Statut</span>
+                      <p className={"text-lg font-bold " + (selected.isBlockedForPayment ? "text-red-400" : "text-emerald-400")}>{selected.isBlockedForPayment ? "Bloque" : "OK"}</p>
+                    </div>
+                  </div>
+                  {selected.isBlockedForPayment && (
+                    <button onClick={function() { markPaid(selected._id, (selected.userId && selected.userId.name) || 'N/A'); }}
+                      className="w-full py-3 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600">
+                      Marquer comme paye
+                    </button>
+                  )}
+                </div>
+              )}
+
               {/* Actions */}
               <div className="mt-6 pt-4 border-t border-gray-800">
                 {selected.verificationStatus === 'pending' && (
@@ -201,6 +236,7 @@ export default function DriversPage() {
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">VEHICULE</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DOCS</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">STATUT</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">COMMISSION DUE</th>
                 <th className="text-right text-xs text-gray-500 font-medium px-6 py-4">ACTIONS</th>
               </tr>
             </thead>
@@ -229,12 +265,26 @@ export default function DriversPage() {
                     <td className="px-6 py-4">
                       <span className={'px-3 py-1 rounded-full text-xs font-medium ' + (statusColors[st] || '')}>{statusLabels[st] || st}</span>
                     </td>
+                    <td className="px-6 py-4">
+                      {(d.commissionBalance || 0) > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <span className={"text-sm font-bold " + ((d.commissionBalance || 0) >= (d.commissionCap || 2000) ? "text-red-400" : "text-yellow-400")}>{(d.commissionBalance || 0).toLocaleString()} F</span>
+                          {d.isBlockedForPayment && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">Bloque</span>}
+                        </div>
+                      ) : <span className="text-gray-600 text-sm">0</span>}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 justify-end">
                         <button onClick={function(e) { e.stopPropagation(); setSelected(d); }}
                           className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20">
                           <Eye size={18} />
                         </button>
+                        {d.isBlockedForPayment && (
+                          <button onClick={function(e) { e.stopPropagation(); markPaid(d._id, (d.userId && d.userId.name) || 'N/A'); }}
+                            className="p-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs font-medium px-3">
+                            Paye
+                          </button>
+                        )}
                         {st === 'pending' && (
                           <>
                             <button onClick={function(e) { e.stopPropagation(); verify(d._id, 'approved'); }}
