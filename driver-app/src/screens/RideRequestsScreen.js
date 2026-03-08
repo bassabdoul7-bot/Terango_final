@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -28,6 +28,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const [activeServices, setActiveServices] = useState({ rides: true, colis: false, commande: false, resto: false });
   const activeServicesRef = useRef({ rides: true, colis: false, commande: false, resto: false });
   const [showFilters, setShowFilters] = useState(false);
+  const [blockedForPayment, setBlockedForPayment] = useState(null);
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef(null);
@@ -90,6 +91,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       newSocket.on('ride-taken', () => { Alert.alert('Course prise', 'Un autre chauffeur a accept\u00e9 cette course'); if (currentRequest) { setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); const next = rideRequests.find(r => r.rideId !== currentRequest.rideId); setCurrentRequest(next || null); } });
       newSocket.on('new-delivery', (d) => { var sType = d.serviceType || 'colis'; if (sType === 'colis' && !activeServicesRef.current.colis) return; if (sType === 'commande' && !activeServicesRef.current.commande) return; if ((sType === 'resto' || sType === 'restaurant') && !activeServicesRef.current.resto) return; var offerData = { rideId: d.deliveryId, _offerType: d.serviceType || 'colis', _isDelivery: true, pickup: d.pickup, dropoff: d.dropoff, fare: d.fare, packageDetails: d.packageDetails, restaurantName: d.restaurantName, serviceType: d.serviceType, offerExpiresIn: 60000 }; setRideRequests(prev => [...prev, offerData]); if (!currentRequest) { setCurrentRequest(offerData); const t = setTimeout(() => { handleReject(); }, 60000); setOfferTimeout(t); } });
       newSocket.on('delivery-taken', () => { Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9.'); if (currentRequest && currentRequest._isDelivery) setCurrentRequest(null); });
+      newSocket.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
       newSocket.on('disconnect', () => {});
     });
   };
@@ -159,6 +161,23 @@ const RideRequestsScreen = ({ navigation, route }) => {
         )}
       </Animated.View>
 
+      {blockedForPayment && (
+        <View style={styles.blockedOverlay}>
+          <View style={styles.blockedCard}>
+            <Text style={styles.blockedIcon}>{'\u26A0\uFE0F'}</Text>
+            <Text style={styles.blockedTitle}>Commission impay\u00e9e</Text>
+            <Text style={styles.blockedAmount}>{blockedForPayment.balance.toLocaleString() + ' FCFA'}</Text>
+            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer \u00e0 recevoir des courses.'}</Text>
+            <View style={styles.blockedPayInfo}>
+              <Text style={styles.blockedPayTitle}>Payer via Wave ou Orange Money :</Text>
+              <Text style={styles.blockedPayNumber}>+221 77 807 91 03</Text>
+              <Text style={styles.blockedPayNote}>{'Envoyez ' + blockedForPayment.balance.toLocaleString() + ' FCFA puis contactez le support pour d\u00e9bloquer votre compte.'}</Text>
+            </View>
+            <TouchableOpacity style={styles.blockedSupportBtn} onPress={() => { Linking.openURL('https://wa.me/17047263959'); }}><Text style={styles.blockedSupportText}>Contacter Support WhatsApp</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.blockedCloseBtn} onPress={() => { navigation.replace('Home'); }}><Text style={styles.blockedCloseText}>Retour</Text></TouchableOpacity>
+          </View>
+        </View>
+      )}
       <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arr\u00eaterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
     </View>
   );
@@ -221,6 +240,20 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 60, marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: 'bold', color: COLORS.textLight, marginBottom: 8 },
   emptySubtitle: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center' },
+  blockedOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 999 },
+  blockedCard: { backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  blockedIcon: { fontSize: 48, marginBottom: 16 },
+  blockedTitle: { fontSize: 22, fontWeight: 'bold', color: '#FF3B30', marginBottom: 8 },
+  blockedAmount: { fontSize: 36, fontWeight: 'bold', color: COLORS.yellow, marginBottom: 12 },
+  blockedSub: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24 },
+  blockedPayInfo: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 20, width: '100%', marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  blockedPayTitle: { fontSize: 14, fontWeight: '600', color: COLORS.textLight, marginBottom: 8 },
+  blockedPayNumber: { fontSize: 24, fontWeight: 'bold', color: COLORS.green, textAlign: 'center', marginBottom: 8 },
+  blockedPayNote: { fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center' },
+  blockedSupportBtn: { backgroundColor: '#25D366', borderRadius: 14, paddingVertical: 16, paddingHorizontal: 32, width: '100%', alignItems: 'center', marginBottom: 12 },
+  blockedSupportText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  blockedCloseBtn: { paddingVertical: 12 },
+  blockedCloseText: { fontSize: 14, color: COLORS.textLightMuted },
 });
 
 export default RideRequestsScreen;
