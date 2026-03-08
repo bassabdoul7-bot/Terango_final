@@ -153,6 +153,17 @@ io.on('connection', function(socket) {
     // driverId will be validated by Redis/MongoDB operations
 
 
+    // Check commission debt before allowing online
+    var DriverModel = require('./models/Driver');
+    DriverModel.findById(driverId).then(function(drv) {
+      if (drv && drv.isBlockedForPayment) {
+        socket.emit('blocked-for-payment', {
+          balance: drv.commissionBalance,
+          cap: drv.commissionCap || 2000,
+          message: 'Veuillez payer votre solde de commission pour continuer'
+        });
+      }
+    }).catch(function() {});
     socket.join('driver-' + driverId);
     socket.join('online-drivers');
     socket.driverId = driverId;

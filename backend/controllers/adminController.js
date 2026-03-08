@@ -494,3 +494,31 @@ exports.verifyPartner = async function(req, res) {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+async (req, res) => {
+  try {
+    var Driver = require('../models/Driver');
+    var driver = await Driver.findById(req.params.id).populate('userId', 'name phone');
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    }
+    var amountPaid = driver.commissionBalance;
+    driver.totalCommissionPaid = (driver.totalCommissionPaid || 0) + amountPaid;
+    driver.commissionBalance = 0;
+    driver.isBlockedForPayment = false;
+    driver.lastCommissionPayment = new Date();
+    await driver.save();
+    res.json({
+      success: true,
+      message: 'Commission marquee comme payee',
+      driver: {
+        id: driver._id,
+        name: driver.userId ? driver.userId.name : 'N/A',
+        amountPaid: amountPaid,
+        totalPaid: driver.totalCommissionPaid
+      }
+    });
+  } catch (error) {
+    console.error('Mark Commission Paid Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+}
