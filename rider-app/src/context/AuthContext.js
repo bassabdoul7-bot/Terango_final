@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api.service';
 import { registerForPushNotifications } from '../services/notifications';
@@ -12,6 +13,10 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAuth();
+    var sub = DeviceEventEmitter.addListener('force-logout', function() {
+      setUser(null); setIsAuthenticated(false);
+    });
+    return function() { sub.remove(); };
   }, []);
 
   const checkAuth = async () => {
