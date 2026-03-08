@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration } from 'react-native';
+import { Audio } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
@@ -29,9 +31,44 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef(null);
+  const soundRef = useRef(null);
+  const vibrationInterval = useRef(null);
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); }; }, []);
-  useEffect(() => { if (currentRequest) showRequestCard(); else hideRequestCard(); }, [currentRequest]);
+  const playRideAlert = async () => {
+    try {
+      await Audio.setAudioModeAsync({ playsInSilentModeIOS: true, staysActiveInBackground: true, shouldDuckAndroid: false });
+      // Create a repeating beep using expo-av tone
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
+        { shouldPlay: true, isLooping: true, volume: 1.0 }
+      );
+      soundRef.current = sound;
+      // Pulse vibration pattern like Uber
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      vibrationInterval.current = setInterval(() => {
+        Vibration.vibrate([0, 400, 200, 400]);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      }, 1500);
+      // Pulse animation for the card
+      Animated.loop(Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.03, duration: 500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true })
+      ])).start();
+    } catch (e) { console.log('Sound error:', e); }
+  };
+
+  const stopRideAlert = async () => {
+    try {
+      if (soundRef.current) { await soundRef.current.stopAsync(); await soundRef.current.unloadAsync(); soundRef.current = null; }
+      if (vibrationInterval.current) { clearInterval(vibrationInterval.current); vibrationInterval.current = null; }
+      Vibration.cancel();
+      pulseAnim.setValue(1);
+    } catch (e) {}
+  };
+
+  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); stopRideAlert(); }; }, []);
+  useEffect(() => { if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
   useEffect(() => { if (!currentRequest) { Animated.loop(Animated.sequence([Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }), Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true })])).start(); } else { scanAnim.setValue(0); } }, [currentRequest]);
   useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
 
@@ -62,11 +99,11 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const handleGoOffline = async () => { setShowOfflineModal(false); try { await driverService.toggleOnlineStatus(false); if (socket && driverId) socket.emit('driver-offline', driverId); navigation.replace('Home'); } catch (e) { Alert.alert('Erreur', 'Impossible de passer hors ligne'); } };
 
   const handleAccept = async () => {
-    if (!currentRequest) return; if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } setLoading(true);
+    if (!currentRequest) return; stopRideAlert(); if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } setLoading(true);
     try { if (currentRequest._isDelivery) { await deliveryService.acceptDelivery(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest, deliveryMode: true, deliveryData: currentRequest }); } else { await driverService.acceptRide(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest }); } setCurrentRequest(null); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || "Impossible d'accepter"); } finally { setLoading(false); }
   };
 
-  const handleReject = async () => { if (!currentRequest) return; if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!currentRequest._isDelivery) await driverService.rejectRide(currentRequest.rideId, 'Trop loin'); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); const next = rideRequests.find(r => r.rideId !== currentRequest.rideId); setCurrentRequest(next || null); } catch (e) {} };
+  const handleReject = async () => { if (!currentRequest) return; stopRideAlert(); if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!currentRequest._isDelivery) await driverService.rejectRide(currentRequest.rideId, 'Trop loin'); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); const next = rideRequests.find(r => r.rideId !== currentRequest.rideId); setCurrentRequest(next || null); } catch (e) {} };
 
   return (
     <View style={styles.container}>
@@ -101,7 +138,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       )}
       {currentRequest && (<View style={styles.menuBarWhenRequest}><TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Menu')}><Text style={styles.menuIcon}>{"\u2630"}</Text></TouchableOpacity></View>)}
 
-      <Animated.View style={[styles.requestCard, { transform: [{ translateY: slideAnim }] }]}>
+      <Animated.View style={[styles.requestCard, { transform: [{ translateY: slideAnim }, { scale: pulseAnim }] }]}>
         {currentRequest ? (
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
