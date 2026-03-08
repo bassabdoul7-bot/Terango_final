@@ -68,6 +68,11 @@ var driverSchema = new mongoose.Schema({
   totalDeliveries: { type: Number, default: 0 },
   totalOrders: { type: Number, default: 0 },
   acceptanceRate: { type: Number, default: 100 },
+  commissionBalance: { type: Number, default: 0 },
+  commissionCap: { type: Number, default: 2000 },
+  totalCommissionPaid: { type: Number, default: 0 },
+  lastCommissionPayment: { type: Date },
+  isBlockedForPayment: { type: Boolean, default: false },
   payoutMethod: {
     type: {
       type: String,

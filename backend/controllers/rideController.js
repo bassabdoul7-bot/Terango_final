@@ -266,6 +266,12 @@ exports.updateRideStatus = async (req, res) => {
       driver.weeklyEarnings += ride.driverEarnings;
       driver.totalRides += 1;
       driver.isAvailable = true;
+
+    // Track commission debt
+    driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
+    if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
+      driver.isBlockedForPayment = true;
+    }
       await driver.save();
 
       const rider = await Rider.findById(ride.riderId);

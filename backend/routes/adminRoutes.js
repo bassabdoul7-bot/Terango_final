@@ -59,4 +59,7 @@ router.get('/partners', getAllPartners);
 router.put('/partners/:id/verify', verifyPartner);
 router.put('/partners/:id/verify', verifyPartner);
 
+// Commission management
+router.put('/drivers/:id/commission-paid', require('../controllers/adminController').markCommissionPaid);
+
 module.exports = router;
