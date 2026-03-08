@@ -16,7 +16,7 @@ var PRICING = {
     perKm: 150,
     sizeSurcharge: { petit: 0, moyen: 0, grand: 0 }
   },
-  commissionRate: 0.12
+  commissionRate: 0.05
 };
 
 function calculateDeliveryPrice(serviceType, distance, size) {

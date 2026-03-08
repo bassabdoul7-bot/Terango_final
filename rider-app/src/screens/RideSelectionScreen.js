@@ -35,10 +35,18 @@ const RideSelectionScreen = ({ route, navigation }) => {
   };
 
   const calculateFares = (distance, duration) => {
+    // Yango-matched pricing with 5% reduction
+    var isSuburb = distance > 10;
+    function calcFare(base, cityRate, subRate, minRate, minFare) {
+      var distFare = isSuburb ? (10 * cityRate) + ((distance - 10) * subRate) : (distance * cityRate);
+      var timeFare = duration * minRate;
+      var total = Math.ceil((base + distFare + timeFare) / 100) * 100;
+      return Math.max(total, minFare);
+    }
     setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Standard', description: 'Trajet \u00e9conomique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: Math.round(500 + (distance * 300)), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: 'V\u00e9hicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: Math.round(800 + (distance * 400)), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: 'V\u00e9hicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: Math.round(1200 + (distance * 550)), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      standard: { type: 'standard', name: 'TeranGO Standard', description: 'Trajet \u00e9conomique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(460, 73, 142, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: 'V\u00e9hicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(700, 100, 180, 35, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      xl: { type: 'xl', name: 'TeranGO XL', description: 'V\u00e9hicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1000, 140, 220, 45, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
     });
     setCalculatingFare(false);
   };
@@ -48,7 +56,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const handleBookRide = async () => {
     if (!selectedType || !fareEstimates) return Alert.alert('Erreur', 'S\u00e9lectionnez un type');
     setLoading(true);
-    try { const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: 'cash' }); if (r.success) navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id }); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Impossible de cr\u00e9er la course'); } finally { setLoading(false); }
+    try { const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: 'cash', distance: realDistance, estimatedDuration: realDuration }); if (r.success) navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id }); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || 'Impossible de cr\u00e9er la course'); } finally { setLoading(false); }
   };
 
   if (calculatingFare) return (<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>{"Calcul de l'itin\u00e9raire..."}</Text></View>);
