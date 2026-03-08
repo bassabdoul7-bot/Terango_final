@@ -1,3 +1,4 @@
+import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -30,6 +31,7 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       AsyncStorage.removeItem('token');
       AsyncStorage.removeItem('user');
+      DeviceEventEmitter.emit('force-logout');
     }
     return Promise.reject(error);
   }
