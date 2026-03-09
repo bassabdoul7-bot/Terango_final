@@ -1,4 +1,4 @@
-const Ride = require('../models/Ride');
+﻿const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
@@ -17,19 +17,19 @@ exports.createRide = async (req, res) => {
     if (!rider) {
       return res.status(404).json({
         success: false,
-        message: 'Profil passager non trouvÃ©'
+        message: 'Profil passager non trouv\u00e9'
+      });
+    }
 
     // Prevent duplicate active rides
     const activeRide = await Ride.findOne({
       riderId: rider._id,
-      status: { $in: ["pending", "accepted", "arrived", "in_progress"] }
+      status: { $in: ['pending', 'accepted', 'arrived', 'in_progress'] }
     });
     if (activeRide) {
       return res.status(400).json({
         success: false,
-        message: "Vous avez déjà une course en cours"
-      });
-    }
+        message: 'Vous avez d\u00e9j\u00e0 une course en cours'
       });
     }
 
@@ -77,7 +77,7 @@ exports.createRide = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Demande de course crÃ©Ã©e',
+      message: 'Demande de course cr\u00e9\u00e9e',
       ride: {
         id: ride._id,
         pickup: ride.pickup,
@@ -94,7 +94,7 @@ exports.createRide = async (req, res) => {
     console.error('Create Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la crÃ©ation de la course'
+      message: 'Erreur lors de la cr\u00e9ation de la course'
     });
   }
 };
@@ -111,7 +111,7 @@ exports.getRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
@@ -124,7 +124,7 @@ exports.getRide = async (req, res) => {
     console.error('Get Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la rÃ©cupÃ©ration de la course'
+      message: 'Erreur lors de la r\u00e9cup\u00e9ration de la course'
     });
   }
 };
@@ -151,7 +151,7 @@ exports.getMyRides = async (req, res) => {
     console.error('Get My Rides Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la rÃ©cupÃ©ration des courses'
+      message: 'Erreur lors de la r\u00e9cup\u00e9ration des courses'
     });
   }
 };
@@ -166,14 +166,14 @@ exports.acceptRide = async (req, res) => {
     if (!driver) {
       return res.status(404).json({
         success: false,
-        message: 'Profil chauffeur non trouvÃ©'
+        message: 'Profil chauffeur non trouv\u00e9'
       });
     }
 
     if (!driver.isOnline) {
       return res.status(400).json({
         success: false,
-        message: 'Vous devez Ãªtre en ligne pour accepter une course'
+        message: 'Vous devez \u00eatre en ligne pour accepter une course'
       });
     }
 
@@ -195,7 +195,7 @@ exports.acceptRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course acceptÃ©e',
+      message: 'Course accept\u00e9e',
       ride: result.ride
     });
 
@@ -203,7 +203,7 @@ exports.acceptRide = async (req, res) => {
     console.error('Accept Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de l\'acceptation de la course'
+      message: "Erreur lors de l'acceptation de la course"
     });
   }
 };
@@ -219,7 +219,7 @@ exports.rejectRide = async (req, res) => {
     if (!driver) {
       return res.status(404).json({
         success: false,
-        message: 'Profil chauffeur non trouvÃ©'
+        message: 'Profil chauffeur non trouv\u00e9'
       });
     }
 
@@ -228,7 +228,7 @@ exports.rejectRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course rejetÃ©e'
+      message: 'Course rejet\u00e9e'
     });
 
   } catch (error) {
@@ -251,7 +251,7 @@ exports.updateRideStatus = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
@@ -260,7 +260,7 @@ exports.updateRideStatus = async (req, res) => {
     if (ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisÃ©'
+        message: 'Non autoris\u00e9'
       });
     }
 
@@ -279,11 +279,13 @@ exports.updateRideStatus = async (req, res) => {
       driver.totalRides += 1;
       driver.isAvailable = true;
 
-    // Track commission debt
-    driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
-    if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
-      driver.isBlockedForPayment = true;
-    }
+      // Track commission debt
+      var earningsData = calculateEarnings(ride.fare, !!(driver.partnerId), driver.tier || 'goorgoorlu');
+      driver.commissionBalance = (driver.commissionBalance || 0) + (earningsData.platformCommission || 0);
+      if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
+        driver.isBlockedForPayment = true;
+      }
+
       await driver.save();
 
       const rider = await Rider.findById(ride.riderId);
@@ -303,7 +305,7 @@ exports.updateRideStatus = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Statut mis Ã  jour',
+      message: 'Statut mis \u00e0 jour',
       ride
     });
 
@@ -311,7 +313,7 @@ exports.updateRideStatus = async (req, res) => {
     console.error('Update Ride Status Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise Ã  jour du statut'
+      message: 'Erreur lors de la mise \u00e0 jour du statut'
     });
   }
 };
@@ -326,7 +328,7 @@ exports.startRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
@@ -335,22 +337,22 @@ exports.startRide = async (req, res) => {
     if (!driver || ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisÃ©'
+        message: 'Non autoris\u00e9'
       });
     }
 
     if (ride.status !== 'arrived') {
       return res.status(400).json({
         success: false,
-        message: 'Vous devez d\'abord arriver au point de dÃ©part'
+        message: "Vous devez d'abord arriver au point de d\u00e9part"
       });
     }
 
-        // Check PIN if required
+    // Check PIN if required
     if (ride.pinRequired && !ride.pinVerified) {
       return res.status(400).json({
         success: false,
-        message: 'Veuillez vérifier le code de sécurité avant de démarrer'
+        message: 'Veuillez v\u00e9rifier le code de s\u00e9curit\u00e9 avant de d\u00e9marrer'
       });
     }
 
@@ -364,7 +366,6 @@ exports.startRide = async (req, res) => {
       timestamp: new Date()
     });
 
-    // Also emit to the ride room
     io.to(ride._id.toString()).emit('ride-started', {
       rideId: ride._id,
       startedAt: ride.startedAt
@@ -372,7 +373,7 @@ exports.startRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course dÃ©marrÃ©e',
+      message: 'Course d\u00e9marr\u00e9e',
       ride
     });
 
@@ -380,7 +381,7 @@ exports.startRide = async (req, res) => {
     console.error('Start Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors du dÃ©marrage de la course'
+      message: 'Erreur lors du d\u00e9marrage de la course'
     });
   }
 };
@@ -395,7 +396,7 @@ exports.completeRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
@@ -405,14 +406,14 @@ exports.completeRide = async (req, res) => {
     if (!driver || ride.driver.toString() !== driver._id.toString()) {
       return res.status(403).json({
         success: false,
-        message: 'Non autorisÃ©'
+        message: 'Non autoris\u00e9'
       });
     }
 
     if (ride.status !== 'in_progress') {
       return res.status(400).json({
         success: false,
-        message: 'La course doit Ãªtre en cours pour Ãªtre terminÃ©e'
+        message: 'La course doit \u00eatre en cours pour \u00eatre termin\u00e9e'
       });
     }
 
@@ -446,6 +447,13 @@ exports.completeRide = async (req, res) => {
     driver.completedRides = (driver.completedRides || 0) + 1;
     driver.tier = getTierFromRides(driver.completedRides);
     driver.isAvailable = true;
+
+    // Track commission debt
+    driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
+    if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
+      driver.isBlockedForPayment = true;
+    }
+
     await driver.save();
 
     // Update rider stats
@@ -456,17 +464,17 @@ exports.completeRide = async (req, res) => {
     }
 
     // Update Redis - driver is available again
-    if (driver.currentLocation?.coordinates) {
+    if (driver.currentLocation && driver.currentLocation.coordinates) {
       await driverLocationService.updateDriverLocation(
         driver._id.toString(),
         driver.currentLocation.coordinates.latitude,
         driver.currentLocation.coordinates.longitude,
-        { vehicle: driver.vehicle, rating: driver.userId?.rating || 5.0 }
+        { vehicle: driver.vehicle, rating: driver.userId ? driver.userId.rating : 5.0 }
       );
     }
 
     const io = req.app.get('io');
-    
+
     // Notify rider
     io.to(ride._id.toString()).emit('ride-status', {
       status: 'completed',
@@ -489,7 +497,7 @@ exports.completeRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Course terminÃ©e',
+      message: 'Course termin\u00e9e',
       ride,
       earnings: {
         thisRide: ride.driverEarnings || ride.fare,
@@ -518,21 +526,21 @@ exports.cancelRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
     if (ride.status === 'completed' || ride.status === 'cancelled') {
       return res.status(400).json({
         success: false,
-        message: 'Impossible d\'annuler cette course'
+        message: "Impossible d'annuler cette course"
       });
     }
 
     ride.status = 'cancelled';
     ride.cancelledAt = new Date();
     ride.cancelledBy = req.user.role;
-    ride.cancellationReason = reason || 'Non spÃ©cifiÃ©';
+    ride.cancellationReason = reason || 'Non sp\u00e9cifi\u00e9';
     await ride.save();
 
     const matchingService = req.app.get('matchingService');
@@ -556,12 +564,12 @@ exports.cancelRide = async (req, res) => {
 
     io.to(ride._id.toString()).emit('ride-cancelled', {
       cancelledBy: req.user.role,
-      reason: reason || 'Non spÃ©cifiÃ©'
+      reason: reason || 'Non sp\u00e9cifi\u00e9'
     });
 
     res.status(200).json({
       success: true,
-      message: 'Course annulÃ©e',
+      message: 'Course annul\u00e9e',
       ride
     });
 
@@ -569,7 +577,7 @@ exports.cancelRide = async (req, res) => {
     console.error('Cancel Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de l\'annulation de la course'
+      message: "Erreur lors de l'annulation de la course"
     });
   }
 };
@@ -585,14 +593,14 @@ exports.rateRide = async (req, res) => {
     if (!ride) {
       return res.status(404).json({
         success: false,
-        message: 'Course non trouvÃ©e'
+        message: 'Course non trouv\u00e9e'
       });
     }
 
     if (ride.status !== 'completed') {
       return res.status(400).json({
         success: false,
-        message: 'La course doit Ãªtre terminÃ©e pour Ãªtre notÃ©e'
+        message: 'La course doit \u00eatre termin\u00e9e pour \u00eatre not\u00e9e'
       });
     }
 
@@ -604,13 +612,13 @@ exports.rateRide = async (req, res) => {
       await ride.save();
 
       const driverDoc = await Driver.findById(ride.driver).populate('userId');
-      if (driverDoc?.userId) {
+      if (driverDoc && driverDoc.userId) {
         const allRatings = await Ride.find({
           driver: ride.driver,
           'driverRating.rating': { $exists: true }
         });
 
-        const avgRating = allRatings.reduce((sum, r) => sum + r.driverRating.rating, 0) / allRatings.length;
+        const avgRating = allRatings.reduce(function(sum, r) { return sum + r.driverRating.rating; }, 0) / allRatings.length;
 
         driverDoc.userId.rating = avgRating;
         driverDoc.userId.totalRatings = allRatings.length;
@@ -622,13 +630,13 @@ exports.rateRide = async (req, res) => {
       await ride.save();
 
       const riderDoc = await Rider.findById(ride.riderId).populate('userId');
-      if (riderDoc?.userId) {
+      if (riderDoc && riderDoc.userId) {
         const allRatings = await Ride.find({
           riderId: ride.riderId,
           'riderRating.rating': { $exists: true }
         });
 
-        const avgRating = allRatings.reduce((sum, r) => sum + r.riderRating.rating, 0) / allRatings.length;
+        const avgRating = allRatings.reduce(function(sum, r) { return sum + r.riderRating.rating; }, 0) / allRatings.length;
 
         riderDoc.userId.rating = avgRating;
         riderDoc.userId.totalRatings = allRatings.length;
@@ -638,7 +646,7 @@ exports.rateRide = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Note enregistrÃ©e',
+      message: 'Note enregistr\u00e9e',
       ride
     });
 
@@ -646,23 +654,23 @@ exports.rateRide = async (req, res) => {
     console.error('Rate Ride Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de l\'enregistrement de la note'
+      message: "Erreur lors de l'enregistrement de la note"
     });
   }
 };
 
-
-
-
+// @desc    Verify security PIN
+// @route   PUT /api/rides/:id/verify-pin
+// @access  Private (Driver only)
 exports.verifyPin = async (req, res) => {
   try {
     const ride = await Ride.findById(req.params.id);
     if (!ride) {
-      return res.status(404).json({ success: false, message: 'Course non trouvée' });
+      return res.status(404).json({ success: false, message: 'Course non trouv\u00e9e' });
     }
     const driver = await Driver.findOne({ userId: req.user._id });
     if (!driver || ride.driver.toString() !== driver._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Non autorisé' });
+      return res.status(403).json({ success: false, message: 'Non autoris\u00e9' });
     }
     if (!ride.pinRequired) {
       return res.status(200).json({ success: true, message: 'PIN non requis' });
@@ -673,35 +681,9 @@ exports.verifyPin = async (req, res) => {
     }
     ride.pinVerified = true;
     await ride.save();
-    res.status(200).json({ success: true, message: 'Code vérifié' });
+    res.status(200).json({ success: true, message: 'Code v\u00e9rifi\u00e9' });
   } catch (error) {
     console.error('Verify PIN Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur de vérification' });
-  }
-};
-
-exports.verifyPin = async (req, res) => {
-  try {
-    const ride = await Ride.findById(req.params.id);
-    if (!ride) {
-      return res.status(404).json({ success: false, message: 'Course non trouvee' });
-    }
-    const driver = await Driver.findOne({ userId: req.user._id });
-    if (!driver || ride.driver.toString() !== driver._id.toString()) {
-      return res.status(403).json({ success: false, message: 'Non autorise' });
-    }
-    if (!ride.pinRequired) {
-      return res.status(200).json({ success: true, message: 'PIN non requis' });
-    }
-    const { pin } = req.body;
-    if (!pin || pin !== ride.securityPin) {
-      return res.status(400).json({ success: false, message: 'Code incorrect' });
-    }
-    ride.pinVerified = true;
-    await ride.save();
-    res.status(200).json({ success: true, message: 'Code verifie' });
-  } catch (error) {
-    console.error('Verify PIN Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur de verification' });
+    res.status(500).json({ success: false, message: 'Erreur de v\u00e9rification' });
   }
 };
