@@ -22,7 +22,7 @@ class RideMatchingService {
     this.driverLocationService = driverLocationService;
   }
 
-  async findNearbyDrivers(pickupCoords, maxRadius = 10) {
+  async findNearbyDrivers(pickupCoords, maxRadius = 10, rideType = null) {
     try {
       if (this.driverLocationService) {
         const redisDrivers = await this.driverLocationService.getNearbyDrivers(
@@ -34,10 +34,11 @@ class RideMatchingService {
         if (redisDrivers.length > 0) {
           // FIXED: Batch query instead of N+1
           const driverIds = redisDrivers.map(rd => rd.driverId);
-          const drivers = await Driver.find({
-            _id: { $in: driverIds },
-            isAvailable: true
-          }).populate('userId', 'name phone rating');
+          var driverQuery = { _id: { $in: driverIds }, isAvailable: true };
+          if (rideType === 'comfort') driverQuery.vehicleClass = 'comfort';
+          else if (rideType === 'xl') driverQuery.vehicleClass = 'xl';
+          else if (rideType === 'standard') driverQuery.vehicleType = 'car';
+          const drivers = await Driver.find(driverQuery).populate('userId', 'name phone rating');
 
           const driverMap = new Map(
             drivers.map(d => [d._id.toString(), d])
@@ -55,10 +56,11 @@ class RideMatchingService {
       }
 
       console.log('Using MongoDB fallback for driver search');
-      const onlineDrivers = await Driver.find({
-        isOnline: true,
-        isAvailable: true
-      }).populate('userId', 'name phone rating');
+      var fallbackQuery = { isOnline: true, isAvailable: true };
+      if (rideType === 'comfort') fallbackQuery.vehicleClass = 'comfort';
+      else if (rideType === 'xl') fallbackQuery.vehicleClass = 'xl';
+      else if (rideType === 'standard') fallbackQuery.vehicleType = 'car';
+      const onlineDrivers = await Driver.find(fallbackQuery).populate('userId', 'name phone rating');
 
       const driversWithDistance = onlineDrivers
         .map(driver => {
@@ -104,6 +106,7 @@ class RideMatchingService {
   }
 
   async searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt) {
+    var rideType = rideData.rideType || null;
     try {
       // CRITICAL: Check if search was cancelled (ride accepted/cancelled)
       if (!this.isRideStillSearching(rideId)) {
@@ -126,7 +129,7 @@ class RideMatchingService {
 
       console.log(`?? Search attempt ${attempt + 1} for ride ${rideId}, radius: ${radius}km`);
 
-      let nearbyDrivers = await this.findNearbyDrivers(pickupCoords, radius);
+      let nearbyDrivers = await this.findNearbyDrivers(pickupCoords, radius, rideType);
 
       // Filter out rejected drivers
       const rejectedDrivers = this.pendingOffers.get(rideId)?.rejectedDrivers || [];
@@ -300,7 +303,7 @@ class RideMatchingService {
         console.log(`?? Ride ${rideId} already accepted by another driver`);
         return {
           success: false,
-          message: 'Cette course a déjà été acceptée par un autre chauffeur'
+          message: 'Cette course a dï¿½jï¿½ ï¿½tï¿½ acceptï¿½e par un autre chauffeur'
         };
       }
 
@@ -405,7 +408,7 @@ class RideMatchingService {
   async cancelRideOffers(rideId) {
     this.cleanupSearch(rideId);
     // FIXED: Use room
-    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annulée' });
+    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annulï¿½e' });
   }
 }
 
