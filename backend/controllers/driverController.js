@@ -457,6 +457,12 @@ exports.uploadDocuments = function(req, res) {
         if (!driver.vehicle) driver.vehicle = {};
         driver.vehicle.licensePlate = req.body.licensePlate;
       }
+      // Vehicle class
+      if (req.body.vehicleClass) driver.vehicleClass = req.body.vehicleClass;
+      // Vehicle photos
+      if (req.files && req.files.vehicleFront) driver.vehicleFrontPhoto = req.files.vehicleFront[0].path;
+      if (req.files && req.files.vehicleBack) driver.vehicleBackPhoto = req.files.vehicleBack[0].path;
+      if (req.files && req.files.vehicleInterior) driver.vehicleInteriorPhoto = req.files.vehicleInterior[0].path;
       driver.verificationStatus = 'pending';
       return driver.save();
     })
