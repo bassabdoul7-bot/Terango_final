@@ -20,6 +20,9 @@ var driverSchema = new mongoose.Schema({
     enum: ['car', 'moto'],
     default: 'car'
   },
+  vehicleFrontPhoto: { type: String },
+  vehicleBackPhoto: { type: String },
+  vehicleInteriorPhoto: { type: String },
   vehicleClass: {
     type: String,
     enum: ['standard', 'comfort', 'xl'],

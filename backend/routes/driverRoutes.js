@@ -67,7 +67,10 @@ router.put('/upload-documents', protect, restrictTo('driver'),
     { name: 'driverLicense', maxCount: 1 },
     { name: 'selfie', maxCount: 1 },
     { name: 'vehicleRegistration', maxCount: 1 },
-    { name: 'insurance', maxCount: 1 }
+    { name: 'insurance', maxCount: 1 },
+    { name: 'vehicleFront', maxCount: 1 },
+    { name: 'vehicleBack', maxCount: 1 },
+    { name: 'vehicleInterior', maxCount: 1 }
   ]),
   ctrl.uploadDocuments
 );

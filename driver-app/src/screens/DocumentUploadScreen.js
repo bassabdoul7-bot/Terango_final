@@ -124,14 +124,14 @@ const DocumentUploadScreen = ({ onComplete }) => {
 
           {vehicleType === "car" && (
             <>
-              <Text style={[styles.subtitle, {marginTop: 24, marginBottom: 16}]}>{"Classe du v\u00e9hicule"}</Text>
+              <Text style={[styles.subtitle, {marginTop: 24, marginBottom: 16}]}>{"Classe du véhicule"}</Text>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "standard" && styles.typeCardSelected]} onPress={() => setVehicleClass("standard")}>
                 <Text style={styles.typeIcon}>{"\uD83D\uDE97"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Standard</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"V\u00e9hicule sans climatisation"}</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Standard</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"Véhicule sans climatisation"}</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "comfort" && styles.typeCardSelected]} onPress={() => setVehicleClass("comfort")}>
                 <Text style={styles.typeIcon}>{"\u2744\uFE0F"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "comfort" && styles.typeTextSelected]}>Comfort</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"V\u00e9hicule avec climatisation"}</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "comfort" && styles.typeTextSelected]}>Comfort</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"Véhicule avec climatisation"}</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "xl" && styles.typeCardSelected]} onPress={() => setVehicleClass("xl")}>
                 <Text style={styles.typeIcon}>{"\uD83D\uDE99"}</Text>
@@ -174,13 +174,13 @@ const DocumentUploadScreen = ({ onComplete }) => {
         )}
 
 
-        <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F"}]}>{"Photos du v\u00e9hicule"}</Text>
+        <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F"}]}>{"Photos du véhicule"}</Text>
         <Text style={{fontSize: 13, color: "#999", marginBottom: 12}}>Ces photos seront visibles par les passagers</Text>
-        <PhotoBox label="Vue avant du v\u00e9hicule" photo={vehicleFrontPhoto} onPress={() => pickOrTakePhoto(setVehicleFrontPhoto)} icon="\uD83D\uDCF7" />
+        <PhotoBox label="Vue avant du véhicule" photo={vehicleFrontPhoto} onPress={() => pickOrTakePhoto(setVehicleFrontPhoto)} icon="\uD83D\uDCF7" />
         <View style={{height: 8}} />
-        <PhotoBox label="Vue arri\u00e8re du v\u00e9hicule" photo={vehicleBackPhoto} onPress={() => pickOrTakePhoto(setVehicleBackPhoto)} icon="\uD83D\uDCF7" />
+        <PhotoBox label="Vue arrière du véhicule" photo={vehicleBackPhoto} onPress={() => pickOrTakePhoto(setVehicleBackPhoto)} icon="\uD83D\uDCF7" />
         {vehicleType === "car" && (<><View style={{height: 8}} />
-        <PhotoBox label="Int\u00e9rieur du v\u00e9hicule" photo={vehicleInteriorPhoto} onPress={() => pickOrTakePhoto(setVehicleInteriorPhoto)} icon="\uD83D\uDCBA" /></>)}
+        <PhotoBox label="Intérieur du véhicule" photo={vehicleInteriorPhoto} onPress={() => pickOrTakePhoto(setVehicleInteriorPhoto)} icon="\uD83D\uDCBA" /></>)}
 
         <View style={{ height: 16 }} />
         {selfiePhoto && nationalIdPhoto && driverLicensePhoto && vehicleFrontPhoto && vehicleBackPhoto && (vehicleType === 'moto' || (vehicleRegPhoto && vehicleInteriorPhoto)) ? (
