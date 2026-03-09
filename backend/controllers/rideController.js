@@ -18,6 +18,18 @@ exports.createRide = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Profil passager non trouvÃ©'
+
+    // Prevent duplicate active rides
+    const activeRide = await Ride.findOne({
+      riderId: rider._id,
+      status: { $in: ["pending", "accepted", "arrived", "in_progress"] }
+    });
+    if (activeRide) {
+      return res.status(400).json({
+        success: false,
+        message: "Vous avez déjà une course en cours"
+      });
+    }
       });
     }
 
