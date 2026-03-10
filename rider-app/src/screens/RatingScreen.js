@@ -67,7 +67,7 @@ function RatingScreen(props) {
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 24, paddingTop: 80, alignItems: 'center' },
   successBanner: { alignItems: 'center', marginBottom: 32 },
-  successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.green, textAlign: 'center', lineHeight: 64, fontSize: 32, color: '#fff', overflow: 'hidden', marginBottom: 16 },
+  successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.green, textAlign: 'center', lineHeight: 64, fontSize: 32, color: '#fff', overflow: 'hidden', marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
   successTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8 },
   successFare: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   driverCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', marginBottom: 32, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 8 },
@@ -75,19 +75,19 @@ var styles = StyleSheet.create({
   driverAvatarFallback: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center' },
   driverAvatarLetter: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   driverName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  driverMeta: { fontSize: 14, color: COLORS.textLightSub, marginBottom: 4 },
-  vehicleText: { fontSize: 13, color: COLORS.textLightMuted },
+  driverMeta: { fontSize: 14, color: COLORS.textLightSub, marginBottom: 4 , fontFamily: 'LexendDeca_400Regular' },
+  vehicleText: { fontSize: 13, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
   ratingPrompt: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDark, marginBottom: 16, textAlign: 'center' },
   starsRow: { flexDirection: 'row', marginBottom: 24 },
   starTouch: { padding: 8 },
-  star: { fontSize: 44, color: COLORS.grayLight },
+  star: { fontSize: 44, color: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
   starFilled: { color: COLORS.yellow },
-  reviewInput: { width: '100%', minHeight: 80, backgroundColor: COLORS.backgroundWhite, borderRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight, padding: 16, color: COLORS.textDark, fontSize: 15, textAlignVertical: 'top', marginBottom: 24 },
+  reviewInput: { width: '100%', minHeight: 80, backgroundColor: COLORS.backgroundWhite, borderRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight, padding: 16, color: COLORS.textDark, fontSize: 15, textAlignVertical: 'top', marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
   submitBtn: { width: '100%', padding: 18, borderRadius: 16, backgroundColor: COLORS.green, alignItems: 'center', marginBottom: 12 },
   submitBtnDisabled: { backgroundColor: 'rgba(0, 133, 63, 0.3)' },
   submitBtnText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   skipBtn: { padding: 16 },
-  skipBtnText: { fontSize: 15, color: COLORS.textDarkMuted },
+  skipBtnText: { fontSize: 15, color: COLORS.textDarkMuted , fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default RatingScreen;

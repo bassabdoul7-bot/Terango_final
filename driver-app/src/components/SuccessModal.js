@@ -36,9 +36,9 @@ const styles = StyleSheet.create({
   checkmark: { fontSize: 42, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   title: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 12 },
   amountContainer: { backgroundColor: 'rgba(255,255,255,0.06)', paddingHorizontal: 24, paddingVertical: 16, borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  amountLabel: { fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 4 },
+  amountLabel: { fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 4 , fontFamily: 'LexendDeca_400Regular' },
   amount: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, textAlign: 'center' },
-  message: { fontSize: 15, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+  message: { fontSize: 15, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24, lineHeight: 22 , fontFamily: 'LexendDeca_400Regular' },
   button: { width: '100%', paddingVertical: 16, borderRadius: 12, backgroundColor: COLORS.yellow, alignItems: 'center', elevation: 4 },
   buttonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
 });
