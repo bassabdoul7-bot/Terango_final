@@ -406,11 +406,21 @@ class RideMatchingService {
   }
 
   async cancelRideOffers(rideId) {
-    // Notify currently offered driver before cleanup
+    // Notify currently offered driver BEFORE cleanup
     var offerData = this.pendingOffers.get(rideId);
     if (offerData && offerData.currentDriverId) {
+      console.log('Notifying driver ' + offerData.currentDriverId + ' of cancellation');
       this.io.to('driver-' + offerData.currentDriverId).emit('ride-cancelled', { rideId: rideId, message: 'Le passager a annul\u00e9 la course' });
     }
+    // Also notify all drivers that were offered this ride
+    if (offerData && offerData.driversList) {
+      offerData.driversList.forEach(function(d) {
+        this.io.to('driver-' + d.driverId).emit('ride-cancelled', { rideId: rideId, message: 'Course annul\u00e9e' });
+      }.bind(this));
+    }
+    this.cleanupSearch(rideId);
+    this.io.to(rideId).emit('ride-cancelled', { rideId: rideId, message: 'Course annul\u00e9e' });
+  }
     this.cleanupSearch(rideId);
     // FIXED: Use room
     this.io.to(rideId).emit('ride-cancelled', { message: 'Course annul�e' });
