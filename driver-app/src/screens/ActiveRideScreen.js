@@ -61,6 +61,7 @@ function ActiveRideScreen(props) {
   var headingState = useState(0); var heading = headingState[0]; var setHeading = headingState[1];
   var speedState = useState(0); var currentSpeed = speedState[0]; var setCurrentSpeed = speedState[1];
   var offRouteCount = useRef(0);
+  var [routeProgress, setRouteProgress] = useState(0);
   var lastRerouteTime = useRef(0);
   var routeState = useState([]); var routeCoordinates = routeState[0]; var setRouteCoordinates = routeState[1];
   var stepsState = useState([]); var allSteps = stepsState[0]; var setAllSteps = stepsState[1];
@@ -153,6 +154,17 @@ function ActiveRideScreen(props) {
   var toggleVoice = useCallback(function(){var ns=!voiceEnabled;setVoiceEnabled(ns);speak(ns?"Navigation vocale activee":"Navigation vocale desactivee");},[voiceEnabled]);
 
   useEffect(function(){if(!driverLocation||!currentStep||!allSteps.length)return;var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);setDistanceToStep(formatDistance(distance));if(distance<50&&currentStep.id<allSteps.length-1){setCurrentStep(allSteps[currentStep.id+1]);}var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;if(destination){var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);setIsNearDestination(distToDest<=ARRIVAL_THRESHOLD);}},[driverLocation,currentStep,allSteps,ride]);
+    // Calculate route progress
+    if (routeCoordinates.length > 0) {
+      var closestIdx = 0;
+      var closestDist = Infinity;
+      for (var pi = 0; pi < routeCoordinates.length; pi += 3) {
+        var pd = calcDistance(driverLocation.latitude, driverLocation.longitude, routeCoordinates[pi].latitude, routeCoordinates[pi].longitude);
+        if (pd < closestDist) { closestDist = pd; closestIdx = pi; }
+      }
+      setRouteProgress(Math.min(closestIdx / routeCoordinates.length, 1));
+    }
+
     // Off-route detection - check distance to nearest route point
     if (routeCoordinates.length > 0 && navigationStarted) {
       var minDistToRoute = Infinity;
@@ -211,8 +223,8 @@ function ActiveRideScreen(props) {
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
       <View style={styles.topBar}><TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
-      {navigationStarted&&(<View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View>)}
-      {!navigationStarted&&(<View style={styles.bottomSheet}>
+      {navigationStarted&&(<View style={styles.wazeBottomBar}><View style={styles.progressBarContainer}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View>)}
+      {!navigationStarted&&(<View style={styles.bottomSheet}><View style={styles.progressBarContainer}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={ride.status==='in_progress'?styles.redSquare:styles.greenDot}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{ride.status==='in_progress'?'Destination':'Point de depart'}</Text><Text style={styles.addressText} numberOfLines={2}>{ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')}</Text></View></View></View>
         <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{ride&&ride.rider&&ride.rider.phone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+ride.rider.phone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
@@ -303,6 +315,9 @@ var styles = StyleSheet.create({
   speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
   speedText: { fontSize: 20, fontWeight: 'bold', color: COLORS.darkBg },
   speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2 },
+  progressBarContainer: { position: 'absolute', top: 0, left: 16, right: 16, height: 6, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3, overflow: 'hidden' },
+  progressBarFill: { position: 'absolute', top: 0, left: 0, height: 6, backgroundColor: COLORS.green, borderRadius: 3 },
+  progressBarDot: { position: 'absolute', top: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: COLORS.green, marginLeft: -6 },
   bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   etaRow: { flexDirection: 'row', alignItems: 'center' },
