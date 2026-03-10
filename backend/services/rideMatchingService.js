@@ -406,6 +406,11 @@ class RideMatchingService {
   }
 
   async cancelRideOffers(rideId) {
+    // Notify currently offered driver before cleanup
+    var offerData = this.pendingOffers.get(rideId);
+    if (offerData && offerData.currentDriverId) {
+      this.io.to('driver-' + offerData.currentDriverId).emit('ride-cancelled', { rideId: rideId, message: 'Le passager a annul\u00e9 la course' });
+    }
     this.cleanupSearch(rideId);
     // FIXED: Use room
     this.io.to(rideId).emit('ride-cancelled', { message: 'Course annul�e' });

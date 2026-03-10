@@ -176,11 +176,11 @@ const DocumentUploadScreen = ({ onComplete }) => {
 
         <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F"}]}>{"Photos du véhicule"}</Text>
         <Text style={{fontSize: 13, color: "#999", marginBottom: 12}}>Ces photos seront visibles par les passagers</Text>
-        <PhotoBox label="Vue avant du véhicule" photo={vehicleFrontPhoto} onPress={() => pickOrTakePhoto(setVehicleFrontPhoto)} icon="\uD83D\uDCF7" />
+        <PhotoBox label="Vue avant du véhicule" photo={vehicleFrontPhoto} onPress={() => pickOrTakePhoto(setVehicleFrontPhoto)} icon="📷" />
         <View style={{height: 8}} />
-        <PhotoBox label="Vue arrière du véhicule" photo={vehicleBackPhoto} onPress={() => pickOrTakePhoto(setVehicleBackPhoto)} icon="\uD83D\uDCF7" />
+        <PhotoBox label="Vue arrière du véhicule" photo={vehicleBackPhoto} onPress={() => pickOrTakePhoto(setVehicleBackPhoto)} icon="📷" />
         {vehicleType === "car" && (<><View style={{height: 8}} />
-        <PhotoBox label="Intérieur du véhicule" photo={vehicleInteriorPhoto} onPress={() => pickOrTakePhoto(setVehicleInteriorPhoto)} icon="\uD83D\uDCBA" /></>)}
+        <PhotoBox label="Intérieur du véhicule" photo={vehicleInteriorPhoto} onPress={() => pickOrTakePhoto(setVehicleInteriorPhoto)} icon="💺" /></>)}
 
         <View style={{ height: 16 }} />
         {selfiePhoto && nationalIdPhoto && driverLicensePhoto && vehicleFrontPhoto && vehicleBackPhoto && (vehicleType === 'moto' || (vehicleRegPhoto && vehicleInteriorPhoto)) ? (
