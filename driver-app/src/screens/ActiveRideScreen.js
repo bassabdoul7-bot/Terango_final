@@ -59,6 +59,9 @@ function ActiveRideScreen(props) {
   var rideState = useState(null); var ride = rideState[0]; var setRide = rideState[1];
   var driverLocState = useState(null); var driverLocation = driverLocState[0]; var setDriverLocation = driverLocState[1];
   var headingState = useState(0); var heading = headingState[0]; var setHeading = headingState[1];
+  var speedState = useState(0); var currentSpeed = speedState[0]; var setCurrentSpeed = speedState[1];
+  var offRouteCount = useRef(0);
+  var lastRerouteTime = useRef(0);
   var routeState = useState([]); var routeCoordinates = routeState[0]; var setRouteCoordinates = routeState[1];
   var stepsState = useState([]); var allSteps = stepsState[0]; var setAllSteps = stepsState[1];
   var currentStepState = useState(null); var currentStep = currentStepState[0]; var setCurrentStep = currentStepState[1];
@@ -86,7 +89,7 @@ function ActiveRideScreen(props) {
 
   useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]); 
 
-  useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:3000,distanceInterval:5},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
+  useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:3000,distanceInterval:5},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);setCurrentSpeed(Math.round((loc.coords.speed||0)*3.6));driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
@@ -115,7 +118,7 @@ function ActiveRideScreen(props) {
       return;
     }
 
-    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr';
+    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr&alternatives=true';
     fetch(url).then(function(r){return r.json();}).then(function(data){
       if(data.status==='OK'&&data.routes.length>0){
         var leg=data.routes[0].legs[0];
@@ -150,6 +153,23 @@ function ActiveRideScreen(props) {
   var toggleVoice = useCallback(function(){var ns=!voiceEnabled;setVoiceEnabled(ns);speak(ns?"Navigation vocale activee":"Navigation vocale desactivee");},[voiceEnabled]);
 
   useEffect(function(){if(!driverLocation||!currentStep||!allSteps.length)return;var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);setDistanceToStep(formatDistance(distance));if(distance<50&&currentStep.id<allSteps.length-1){setCurrentStep(allSteps[currentStep.id+1]);}var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;if(destination){var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);setIsNearDestination(distToDest<=ARRIVAL_THRESHOLD);}},[driverLocation,currentStep,allSteps,ride]);
+    // Off-route detection - check distance to nearest route point
+    if (routeCoordinates.length > 0 && navigationStarted) {
+      var minDistToRoute = Infinity;
+      for (var ri = 0; ri < routeCoordinates.length; ri += 5) {
+        var d = calcDistance(driverLocation.latitude, driverLocation.longitude, routeCoordinates[ri].latitude, routeCoordinates[ri].longitude);
+        if (d < minDistToRoute) minDistToRoute = d;
+      }
+      if (minDistToRoute > 100) {
+        offRouteCount.current++;
+        if (offRouteCount.current >= 3 && Date.now() - lastRerouteTime.current > 30000) {
+          lastRerouteTime.current = Date.now();
+          offRouteCount.current = 0;
+          hasFetchedRoute.current = false;
+          speakAnnouncement("Recalcul de l'itineraire");
+        }
+      } else { offRouteCount.current = 0; }
+    }
 
   function calcDistance(lat1,lon1,lat2,lon2){var R=6371e3;var p1=lat1*Math.PI/180;var p2=lat2*Math.PI/180;var dp=(lat2-lat1)*Math.PI/180;var dl=(lon2-lon1)*Math.PI/180;var a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
@@ -191,7 +211,7 @@ function ActiveRideScreen(props) {
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
       <View style={styles.topBar}><TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
-      {navigationStarted&&(<View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View>)}
+      {navigationStarted&&(<View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={ride.status==='in_progress'?styles.redSquare:styles.greenDot}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{ride.status==='in_progress'?'Destination':'Point de depart'}</Text><Text style={styles.addressText} numberOfLines={2}>{ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')}</Text></View></View></View>
@@ -280,6 +300,9 @@ var styles = StyleSheet.create({
   etaDistance: { fontSize: 16, color: COLORS.textLightSub },
   stopNavButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
   stopNavText: { fontSize: 28, color: '#fff', fontWeight: 'bold' },
+  speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
+  speedText: { fontSize: 20, fontWeight: 'bold', color: COLORS.darkBg },
+  speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2 },
   bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   etaRow: { flexDirection: 'row', alignItems: 'center' },
