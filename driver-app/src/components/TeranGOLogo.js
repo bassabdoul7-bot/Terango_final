@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 28,
-    fontWeight: 'bold',
+    fontFamily: 'LexendDeca_700Bold',
     marginBottom: 4,
   },
   teran: {

@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', paddingHorizontal: 32 },
   scrollContent: { paddingHorizontal: 24, paddingTop: 60, paddingBottom: 40 },
   title: {
-    fontSize: 26, fontWeight: '800', color: '#00853F',
+    fontSize: 26, fontFamily: 'LexendDeca_800ExtraBold', color: '#00853F',
     textAlign: 'center', marginBottom: 8,
   },
   subtitle: {
@@ -286,18 +286,18 @@ const styles = StyleSheet.create({
     borderColor: '#00853F', backgroundColor: 'rgba(0,133,63,0.05)',
   },
   typeIcon: { fontSize: 36, marginRight: 16 },
-  typeText: { fontSize: 18, fontWeight: '600', color: '#333' },
+  typeText: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: '#333' },
   typeTextSelected: { color: '#00853F' },
   nextBtn: {
     backgroundColor: '#00853F', borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', marginTop: 16,
   },
   nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText: { color: '#FFF', fontSize: 17, fontWeight: '700' },
+  nextBtnText: { color: '#FFF', fontSize: 17, fontFamily: 'LexendDeca_700Bold' },
   backBtn: { alignItems: 'center', marginTop: 16, paddingVertical: 12 },
   backBtnText: { color: '#999', fontSize: 15 },
   sectionLabel: {
-    fontSize: 15, fontWeight: '700', color: '#333', marginBottom: 8, marginTop: 16,
+    fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#333', marginBottom: 8, marginTop: 16,
   },
   photoBox: {
     height: 150, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed',
