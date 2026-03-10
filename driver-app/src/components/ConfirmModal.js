@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   iconContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(252,209,22,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: COLORS.yellow },
   icon: { fontSize: 36, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   title: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 8 },
-  message: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  message: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 20, lineHeight: 20 , fontFamily: 'LexendDeca_400Regular' },
   buttonContainer: { flexDirection: 'row', width: '100%', gap: 10 },
   cancelButton: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   cancelButtonText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },

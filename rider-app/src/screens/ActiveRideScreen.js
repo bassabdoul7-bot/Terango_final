@@ -37,7 +37,7 @@ const SearchingAnimation = ({ searchTime }) => {
       <Animated.View style={[searchStyles.pulseCircle, searchStyles.pulseCircle1, { transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[searchStyles.pulseCircle, searchStyles.pulseCircle2, { transform: [{ scale: Animated.multiply(pulseAnim, 0.85) }] }]} />
       <View style={searchStyles.centerCircle} />
-      <Animated.View style={[searchStyles.carContainer, { transform: [{ translateX: orbitAnim.interpolate({ inputRange: [0, 1], outputRange: [-35, 35] }) }, { translateY: orbitAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: carPulseAnim }] }]}><View style={searchStyles.carIcon}><Text style={{ fontSize: 24 }}>{"\uD83D\uDE97"}</Text></View></Animated.View>
+      <Animated.View style={[searchStyles.carContainer, { transform: [{ translateX: orbitAnim.interpolate({ inputRange: [0, 1], outputRange: [-35, 35] }) }, { translateY: orbitAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: carPulseAnim }] }]}><View style={searchStyles.carIcon}><Text style={{ fontSize: 24 , fontFamily: 'LexendDeca_400Regular' }}>{"\uD83D\uDE97"}</Text></View></Animated.View>
       <View style={searchStyles.timerContainer}><Text style={searchStyles.timerText}>{formatTime(searchTime)}</Text></View>
       <Text style={searchStyles.statusText}>{getStatus()}</Text>
       {searchTime >= 30 && <Text style={searchStyles.tipText}>{"\uD83D\uDCA1 Essayez aux heures de pointe"}</Text>}
@@ -80,7 +80,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
 
   const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arrivée dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arrivé!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
-  const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12 }}>{"\u2605"}</Text>));
+  const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12 , fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
 
   if (showNoDrivers) return <NoDriversScreen ride={ride} onRetry={handleRetry} onGoHome={() => navigation.replace('Home')} retrying={retrying} />;
   if (loading || !ride) return (<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>Chargement...</Text></View>);
@@ -90,7 +90,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{ latitude: ride.pickup.coordinates.latitude, longitude: ride.pickup.coordinates.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }}>
         <Marker coordinate={ride.pickup.coordinates}><View style={styles.pickupMarker}><View style={styles.pickupDot} /></View></Marker>
         <Marker coordinate={ride.dropoff.coordinates}><View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View></Marker>
-        {driverLocation && <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }}><View style={styles.driverMarker}><Text style={{ fontSize: 22 }}>{"\uD83D\uDE97"}</Text></View></Marker>}
+        {driverLocation && <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }}><View style={styles.driverMarker}><Text style={{ fontSize: 22 , fontFamily: 'LexendDeca_400Regular' }}>{"\uD83D\uDE97"}</Text></View></Marker>}
         {routeCoordinates.length > 0 && <Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={5} />}
       </MapView>
       <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
@@ -142,14 +142,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
 const noDriversStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center', padding: 24 },
   content: { alignItems: 'center', width: '100%' },
-  icon: { fontSize: 60, marginBottom: 16 },
+  icon: { fontSize: 60, marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
   title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  subtitle: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24, lineHeight: 20 , fontFamily: 'LexendDeca_400Regular' },
   rideInfo: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 16, width: '100%', marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   addressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   greenDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 12, height: 12, backgroundColor: COLORS.red, marginRight: 12 },
-  addressText: { flex: 1, fontSize: 14, color: COLORS.textLightSub },
+  addressText: { flex: 1, fontSize: 14, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   fareText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, textAlign: 'center', marginTop: 8 },
   retryButton: { backgroundColor: COLORS.green, paddingVertical: 16, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 12 },
   retryButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
@@ -162,13 +162,13 @@ const cancelStyles = StyleSheet.create({
   modal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: height * 0.7, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   handle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   title: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 },
+  subtitle: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 , fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 280 },
   reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 8, borderWidth: 2, borderColor: 'transparent' },
   reasonItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252,209,22,0.08)' },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.textLightMuted, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.yellow },
-  reasonText: { fontSize: 14, color: COLORS.textLight, flex: 1 },
+  reasonText: { fontSize: 14, color: COLORS.textLight, flex: 1 , fontFamily: 'LexendDeca_400Regular' },
   actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
   backButton: { flex: 1, padding: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   backButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
@@ -188,13 +188,13 @@ const searchStyles = StyleSheet.create({
   timerContainer: { marginTop: 85, backgroundColor: 'rgba(0,133,63,0.12)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
   timerText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.green },
   statusText: { marginTop: 10, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, textAlign: 'center' },
-  tipText: { marginTop: 6, fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', paddingHorizontal: 20 },
+  tipText: { marginTop: 6, fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', paddingHorizontal: 20 , fontFamily: 'LexendDeca_400Regular' },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub },
+  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
   map: { ...StyleSheet.absoluteFillObject },
   pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
   backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
   statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  statusIcon: { fontSize: 18, marginRight: 8 },
+  statusIcon: { fontSize: 18, marginRight: 8 , fontFamily: 'LexendDeca_400Regular' },
   statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
   bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '55%' },
   bottomScroll: { flexGrow: 0 },
@@ -217,14 +217,14 @@ const styles = StyleSheet.create({
   driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
   ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
-  vehicleText: { fontSize: 12, color: COLORS.textLightMuted },
+  vehicleText: { fontSize: 12, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
   contactRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 10 },
   contactButton: { alignItems: 'center', flex: 1 },
-  contactBtnIcon: { fontSize: 22, marginBottom: 2 },
+  contactBtnIcon: { fontSize: 22, marginBottom: 2 , fontFamily: 'LexendDeca_400Regular' },
   contactLabel: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
   fareTag: { alignItems: 'flex-end' },
   fareTagAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-  fareTagCurrency: { fontSize: 11, color: COLORS.textLightMuted },
+  fareTagCurrency: { fontSize: 11, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
   addressCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   addressIconWrap: { width: 28, alignItems: 'center', marginRight: 10 },
@@ -232,16 +232,16 @@ const styles = StyleSheet.create({
   redSquare: { width: 12, height: 12, backgroundColor: COLORS.red },
   addressDivider: { height: 20, marginLeft: 14, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', marginVertical: 6 },
   addressContent: { flex: 1 },
-  addressLabel: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 1 },
+  addressLabel: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 1 , fontFamily: 'LexendDeca_400Regular' },
   addressText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
     pinCard: { backgroundColor: 'rgba(252,209,22,0.1)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.3)' },
   pinRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  pinIcon: { fontSize: 16, marginRight: 6 },
-  pinLabel: { fontSize: 13, color: COLORS.textLightSub },
+  pinIcon: { fontSize: 16, marginRight: 6 , fontFamily: 'LexendDeca_400Regular' },
+  pinLabel: { fontSize: 13, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   pinCode: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, letterSpacing: 8, textAlign: 'center' },
-  pinHint: { fontSize: 11, color: COLORS.textLightMuted, textAlign: 'center', marginTop: 4 },
+  pinHint: { fontSize: 11, color: COLORS.textLightMuted, textAlign: 'center', marginTop: 4 , fontFamily: 'LexendDeca_400Regular' },
   fareCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  fareLabel: { fontSize: 14, color: COLORS.textLightSub },
+  fareLabel: { fontSize: 14, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
 });
 

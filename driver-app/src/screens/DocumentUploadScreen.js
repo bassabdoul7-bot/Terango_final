@@ -127,15 +127,15 @@ const DocumentUploadScreen = ({ onComplete }) => {
               <Text style={[styles.subtitle, {marginTop: 24, marginBottom: 16}]}>{"Classe du véhicule"}</Text>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "standard" && styles.typeCardSelected]} onPress={() => setVehicleClass("standard")}>
                 <Text style={styles.typeIcon}>{"\uD83D\uDE97"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Standard</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"Véhicule sans climatisation"}</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Standard</Text><Text style={{fontSize:12,color:"#999",marginTop:2, fontFamily: 'LexendDeca_400Regular' }}>{"Véhicule sans climatisation"}</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "comfort" && styles.typeCardSelected]} onPress={() => setVehicleClass("comfort")}>
                 <Text style={styles.typeIcon}>{"\u2744\uFE0F"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "comfort" && styles.typeTextSelected]}>Comfort</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>{"Véhicule avec climatisation"}</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "comfort" && styles.typeTextSelected]}>Comfort</Text><Text style={{fontSize:12,color:"#999",marginTop:2, fontFamily: 'LexendDeca_400Regular' }}>{"Véhicule avec climatisation"}</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "xl" && styles.typeCardSelected]} onPress={() => setVehicleClass("xl")}>
                 <Text style={styles.typeIcon}>{"\uD83D\uDE99"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "xl" && styles.typeTextSelected]}>XL</Text><Text style={{fontSize:12,color:"#999",marginTop:2}}>SUV / Minivan / Grand véhicule</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "xl" && styles.typeTextSelected]}>XL</Text><Text style={{fontSize:12,color:"#999",marginTop:2, fontFamily: 'LexendDeca_400Regular' }}>SUV / Minivan / Grand véhicule</Text></View>
               </TouchableOpacity>
             </>
           )}
@@ -174,8 +174,8 @@ const DocumentUploadScreen = ({ onComplete }) => {
         )}
 
 
-        <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F"}]}>{"Photos du véhicule"}</Text>
-        <Text style={{fontSize: 13, color: "#999", marginBottom: 12}}>Ces photos seront visibles par les passagers</Text>
+        <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F", fontFamily: 'LexendDeca_400Regular' }]}>{"Photos du véhicule"}</Text>
+        <Text style={{fontSize: 13, color: "#999", marginBottom: 12, fontFamily: 'LexendDeca_400Regular' }}>Ces photos seront visibles par les passagers</Text>
         <PhotoBox label="Vue avant du véhicule" photo={vehicleFrontPhoto} onPress={() => pickOrTakePhoto(setVehicleFrontPhoto)} icon="📷" />
         <View style={{height: 8}} />
         <PhotoBox label="Vue arrière du véhicule" photo={vehicleBackPhoto} onPress={() => pickOrTakePhoto(setVehicleBackPhoto)} icon="📷" />
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 32,
-  },
+  , fontFamily: 'LexendDeca_400Regular' },
   typeCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#F5F5F5', borderRadius: 16, padding: 20,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   typeCardSelected: {
     borderColor: '#00853F', backgroundColor: 'rgba(0,133,63,0.05)',
   },
-  typeIcon: { fontSize: 36, marginRight: 16 },
+  typeIcon: { fontSize: 36, marginRight: 16 , fontFamily: 'LexendDeca_400Regular' },
   typeText: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: '#333' },
   typeTextSelected: { color: '#00853F' },
   nextBtn: {
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
   nextBtnDisabled: { opacity: 0.4 },
   nextBtnText: { color: '#FFF', fontSize: 17, fontFamily: 'LexendDeca_700Bold' },
   backBtn: { alignItems: 'center', marginTop: 16, paddingVertical: 12 },
-  backBtnText: { color: '#999', fontSize: 15 },
+  backBtnText: { color: '#999', fontSize: 15 , fontFamily: 'LexendDeca_400Regular' },
   sectionLabel: {
     fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#333', marginBottom: 8, marginTop: 16,
   },
@@ -307,16 +307,16 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     flex: 1, alignItems: 'center', justifyContent: 'center',
   },
-  photoIcon: { fontSize: 32, marginBottom: 6 },
-  photoLabel: { fontSize: 14, color: '#999' },
+  photoIcon: { fontSize: 32, marginBottom: 6 , fontFamily: 'LexendDeca_400Regular' },
+  photoLabel: { fontSize: 14, color: '#999' , fontFamily: 'LexendDeca_400Regular' },
   photoPreview: { width: '100%', height: '100%', resizeMode: 'cover' },
   input: {
     backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16,
     fontSize: 16, color: '#333', borderWidth: 1, borderColor: '#EEE',
-  },
+  , fontFamily: 'LexendDeca_400Regular' },
   hintText: {
     fontSize: 13, color: '#999', textAlign: 'center', marginTop: 8,
-  },
+  , fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default DocumentUploadScreen;

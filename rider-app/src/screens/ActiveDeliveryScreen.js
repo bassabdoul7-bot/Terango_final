@@ -28,7 +28,7 @@ var SearchingAnimation = function(props) {
   useEffect(function() { Animated.loop(Animated.sequence([Animated.timing(pulseAnim, { toValue: 1.3, duration: 800, useNativeDriver: true }), Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })])).start(); }, []);
   return (
     <View style={styles.searchingContainer}>
-      <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]}><Text style={{ fontSize: 40 }}>{'\uD83D\uDEB5'}</Text></Animated.View>
+      <Animated.View style={[styles.pulseCircle, { transform: [{ scale: pulseAnim }] }]}><Text style={{ fontSize: 40 , fontFamily: 'LexendDeca_400Regular' }}>{'\uD83D\uDEB5'}</Text></Animated.View>
       <Text style={styles.searchingTitle}>{"Recherche d'un livreur..."}</Text>
       <Text style={styles.searchingTime}>{searchTime + 's'}</Text>
     </View>
@@ -101,23 +101,23 @@ var ActiveDeliveryScreen = function(props) {
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={initialRegion} showsUserLocation={true}>
         {delivery && (<><Marker coordinate={{ latitude: delivery.pickup.coordinates.latitude, longitude: delivery.pickup.coordinates.longitude }} title="Collecte" pinColor={COLORS.green} /><Marker coordinate={{ latitude: delivery.dropoff.coordinates.latitude, longitude: delivery.dropoff.coordinates.longitude }} title="Livraison" pinColor={COLORS.red} /></>)}
         {routeCoords.length > 0 && <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#4285F4" />}
-        {driverLocation && <Marker coordinate={driverLocation}><View style={styles.driverMarker}><Text style={{ fontSize: 20 }}>{'\uD83D\uDEB5'}</Text></View></Marker>}
+        {driverLocation && <Marker coordinate={driverLocation}><View style={styles.driverMarker}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{'\uD83D\uDEB5'}</Text></View></Marker>}
       </MapView>
 
-      <View style={styles.statusBar}><Text style={{ fontSize: 18 }}>{statusInfo.icon}</Text><Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>{eta && delivery && delivery.status !== 'no_drivers_available' && delivery.status !== 'pending' && <Text style={styles.etaText}>{eta}</Text>}</View>
+      <View style={styles.statusBar}><Text style={{ fontSize: 18 , fontFamily: 'LexendDeca_400Regular' }}>{statusInfo.icon}</Text><Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>{eta && delivery && delivery.status !== 'no_drivers_available' && delivery.status !== 'pending' && <Text style={styles.etaText}>{eta}</Text>}</View>
 
       {delivery && delivery.status === 'pending' && !showNoDrivers && <SearchingAnimation searchTime={searchTime} />}
 
       {showNoDrivers && (
-        <View style={styles.noDriverCard}><Text style={{ fontSize: 48, marginBottom: 12 }}>{'\uD83D\uDE1E'}</Text><Text style={styles.noDriverTitle}>Aucun livreur disponible</Text><Text style={styles.noDriverSub}>Veuillez reessayer dans quelques minutes</Text>
+        <View style={styles.noDriverCard}><Text style={{ fontSize: 48, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' }}>{'\uD83D\uDE1E'}</Text><Text style={styles.noDriverTitle}>Aucun livreur disponible</Text><Text style={styles.noDriverSub}>Veuillez reessayer dans quelques minutes</Text>
           <TouchableOpacity style={styles.retryBtn} onPress={function() { navigation.replace('Home'); }}><Text style={styles.retryBtnText}>Retour</Text></TouchableOpacity>
         </View>
       )}
 
       {driverInfo && delivery && delivery.status !== 'pending' && delivery.status !== 'no_drivers_available' && (
-        <View style={styles.driverCard}><View style={styles.driverAvatar}><Text style={{ fontSize: 24, color: '#fff' }}>{(driverInfo.firstName || 'L')[0]}</Text></View>
+        <View style={styles.driverCard}><View style={styles.driverAvatar}><Text style={{ fontSize: 24, color: '#fff' , fontFamily: 'LexendDeca_400Regular' }}>{(driverInfo.firstName || 'L')[0]}</Text></View>
           <View style={styles.driverDetails}><Text style={styles.driverName}>{(driverInfo.firstName || '') + ' ' + (driverInfo.lastName || '')}</Text><Text style={styles.driverVehicle}>{driverInfo.vehicleType || 'Moto'}</Text></View>
-          <View style={{ flexDirection: 'row', gap: 8 }}><TouchableOpacity style={styles.chatBtnSmall} onPress={function() { setShowChat(true); }}><Text style={{ fontSize: 20 }}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity><TouchableOpacity style={styles.callBtn} onPress={callDriver}><Text style={{ fontSize: 20 }}>{String.fromCodePoint(0x1F4DE)}</Text></TouchableOpacity></View>
+          <View style={{ flexDirection: 'row', gap: 8 }}><TouchableOpacity style={styles.chatBtnSmall} onPress={function() { setShowChat(true); }}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity><TouchableOpacity style={styles.callBtn} onPress={callDriver}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4DE)}</Text></TouchableOpacity></View>
         </View>
       )}
 
@@ -150,24 +150,24 @@ var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   map: { flex: 1 },
   loadingScreen: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: COLORS.textDarkSub, marginTop: 16, fontSize: 16 },
+  loadingText: { color: COLORS.textDarkSub, marginTop: 16, fontSize: 16 , fontFamily: 'LexendDeca_400Regular' },
   statusBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.darkCard, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', flex: 1 },
   etaText: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
   searchingContainer: { position: 'absolute', top: height * 0.3, alignSelf: 'center', alignItems: 'center' },
   pulseCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(252,209,22,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.yellow, marginBottom: 16 },
   searchingTitle: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark },
-  searchingTime: { fontSize: 14, color: COLORS.textDarkMuted, marginTop: 4 },
+  searchingTime: { fontSize: 14, color: COLORS.textDarkMuted, marginTop: 4 , fontFamily: 'LexendDeca_400Regular' },
   noDriverCard: { position: 'absolute', top: height * 0.25, left: 30, right: 30, backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 30, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
   noDriverTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
-  noDriverSub: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 },
+  noDriverSub: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 , fontFamily: 'LexendDeca_400Regular' },
   retryBtn: { backgroundColor: COLORS.yellow, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
   retryBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   driverCard: { position: 'absolute', bottom: 290, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   driverAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  driverVehicle: { fontSize: 13, color: COLORS.textLightMuted, marginTop: 2 },
+  driverVehicle: { fontSize: 13, color: COLORS.textLightMuted, marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
   chatBtnSmall: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(66,133,244,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(66,133,244,0.3)' },
   callBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center' },
   driverMarker: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center' },
@@ -185,7 +185,7 @@ var styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
   modalCard: { backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 30, width: width - 60, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
   modalTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
-  modalSub: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 24, textAlign: 'center' },
+  modalSub: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 24, textAlign: 'center' , fontFamily: 'LexendDeca_400Regular' },
   modalConfirmBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, backgroundColor: '#E31B23', alignItems: 'center', marginBottom: 12 },
   modalConfirmText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
   modalCancelBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },

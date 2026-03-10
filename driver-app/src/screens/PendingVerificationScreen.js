@@ -68,9 +68,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(252, 209, 22, 0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 24,
   },
-  icon: { fontSize: 48 },
+  icon: { fontSize: 48 , fontFamily: 'LexendDeca_400Regular' },
   title: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.black, marginBottom: 12, textAlign: 'center' },
-  subtitle: { fontSize: 15, color: COLORS.gray, textAlign: 'center', lineHeight: 22, marginBottom: 12 },
+  subtitle: { fontSize: 15, color: COLORS.gray, textAlign: 'center', lineHeight: 22, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
   hint: { fontSize: 13, color: COLORS.green, textAlign: 'center', fontFamily: 'LexendDeca_600SemiBold', marginBottom: 32 },
   buttons: { width: '100%' },
 });
