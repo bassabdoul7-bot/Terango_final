@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 32,
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
   typeCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#F5F5F5', borderRadius: 16, padding: 20,
@@ -313,10 +313,10 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F5F5F5', borderRadius: 14, padding: 16,
     fontSize: 16, color: '#333', borderWidth: 1, borderColor: '#EEE',
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
   hintText: {
     fontSize: 13, color: '#999', textAlign: 'center', marginTop: 8,
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default DocumentUploadScreen;
