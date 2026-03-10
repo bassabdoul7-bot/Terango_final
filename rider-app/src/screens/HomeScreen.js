@@ -896,7 +896,7 @@ var styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16,
     fontSize: 16, color: COLORS.textLight, marginBottom: 20,
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
   modalActions: { flexDirection: 'row', gap: 12 },
   modalCancel: {
     flex: 1, padding: 16, backgroundColor: 'rgba(255,255,255,0.08)',

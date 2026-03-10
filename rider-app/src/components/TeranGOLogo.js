@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     color: '#DAA520',
     textAlign: 'center',
     fontStyle: 'italic',
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default TeranGOLogo;

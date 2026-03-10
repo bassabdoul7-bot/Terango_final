@@ -56,12 +56,12 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
     color: COLORS.black,
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
   errorText: {
     fontSize: 12,
     color: COLORS.red,
     marginTop: 4,
-  , fontFamily: 'LexendDeca_400Regular' },
+  fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default GlassInput;
