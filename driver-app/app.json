@@ -44,7 +44,8 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow TeranGO to use your location to show you nearby rides."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
@@ -53,5 +54,3 @@
     }
   }
 }
-
-
