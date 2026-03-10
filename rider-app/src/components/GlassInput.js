@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: 'LexendDeca_600SemiBold',
     color: COLORS.black,
     marginBottom: 8,
   },

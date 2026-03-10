@@ -698,7 +698,7 @@ var styles = StyleSheet.create({
     backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
     borderWidth: 1, borderColor: COLORS.darkCardBorder,
   },
-  driverCountText: { color: COLORS.textLight, fontSize: 13, fontWeight: '600' },
+  driverCountText: { color: COLORS.textLight, fontSize: 13, fontFamily: 'LexendDeca_600SemiBold' },
 
   // Top bar
   topBar: {
@@ -717,7 +717,7 @@ var styles = StyleSheet.create({
     borderWidth: 1, borderColor: COLORS.darkCardBorder,
   },
   greeting: { fontSize: 12, color: COLORS.textLightSub },
-  userName: { fontSize: 16, fontWeight: 'bold', color: COLORS.textLight },
+  userName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   profileButton: {
     width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', elevation: 4,
@@ -741,12 +741,12 @@ var styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   searchIcon: { fontSize: 20 },
-  searchTitle: { flex: 1, fontSize: 18, fontWeight: '600', color: COLORS.textLight },
+  searchTitle: { flex: 1, fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
   arrowContainer: {
     width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center',
   },
-  arrow: { fontSize: 20, color: COLORS.textLight, fontWeight: 'bold' },
+  arrow: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
 
   // Quick actions
   quickActions: { flexDirection: 'row', justifyContent: 'space-around' },
@@ -758,12 +758,12 @@ var styles = StyleSheet.create({
   },
   quickActionIconSaved: { borderColor: COLORS.green, borderWidth: 2, backgroundColor: 'rgba(0, 133, 63, 0.2)' },
   quickActionEmoji: { fontSize: 24 },
-  quickActionText: { fontSize: 12, color: COLORS.textLightSub, fontWeight: '500' },
-  quickActionSet: { fontSize: 10, color: COLORS.green, fontWeight: 'bold', marginTop: 2 },
+  quickActionText: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+  quickActionSet: { fontSize: 10, color: COLORS.green, fontFamily: 'LexendDeca_700Bold', marginTop: 2 },
 
   // Services section
   servicesSection: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  servicesTitle: { fontSize: 13, fontWeight: '700', color: COLORS.textLightSub, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+  servicesTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLightSub, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
   servicesGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   serviceCard: { alignItems: 'center', flex: 1 },
   serviceIconWrap: {
@@ -771,7 +771,7 @@ var styles = StyleSheet.create({
     marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
   },
   serviceEmoji: { fontSize: 26 },
-  serviceLabel: { fontSize: 11, fontWeight: '600', color: COLORS.textLightSub },
+  serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
 
   // Bottom nav - DARK
   bottomNav: {
@@ -791,17 +791,17 @@ var styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
   },
   navIconText: { fontSize: 24 },
-  navLabel: { fontSize: 11, color: COLORS.textLightSub, fontWeight: '500' },
-  navLabelActive: { fontSize: 11, color: COLORS.yellow, fontWeight: 'bold' },
+  navLabel: { fontSize: 11, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+  navLabelActive: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
 
   // Tab screens - WHITE BACKGROUND
   tabScreen: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 70 },
-  tabHeader: { fontSize: 24, fontWeight: '700', color: COLORS.textDark, marginBottom: 20, marginTop: 10 },
+  tabHeader: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 20, marginTop: 10 },
 
   // Empty state
   emptyState: { alignItems: 'center', marginTop: 100 },
   emptyIcon: { fontSize: 60, marginBottom: 16 },
-  emptyTitle: { fontSize: 20, fontWeight: '700', color: COLORS.textDark, marginBottom: 8 },
+  emptyTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8 },
   emptySub: { fontSize: 14, color: COLORS.textDarkSub },
 
   // History cards - DARK on white
@@ -811,7 +811,7 @@ var styles = StyleSheet.create({
   },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
   historyDate: { fontSize: 13, color: COLORS.textLightMuted },
-  historyFare: { fontSize: 16, fontWeight: 'bold', color: COLORS.yellow },
+  historyFare: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   historyRoute: { flexDirection: 'row', marginBottom: 14 },
   dotLine: { alignItems: 'center', marginRight: 12, paddingTop: 4 },
   gDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
@@ -822,7 +822,7 @@ var styles = StyleSheet.create({
   historyFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   historyMeta: { fontSize: 12, color: COLORS.textLightMuted },
   typeBadge: { backgroundColor: 'rgba(252, 209, 22, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  typeText: { fontSize: 11, color: COLORS.yellow, fontWeight: '600' },
+  typeText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
 
   // Payment cards - DARK on white
   paymentCard: {
@@ -832,10 +832,10 @@ var styles = StyleSheet.create({
   },
   paymentIcon: { fontSize: 28, marginRight: 14 },
   paymentInfo: { flex: 1 },
-  paymentTitle: { fontSize: 16, fontWeight: '600', color: COLORS.textLight, marginBottom: 2 },
+  paymentTitle: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, marginBottom: 2 },
   paymentSub: { fontSize: 12, color: COLORS.textLightMuted },
   paymentActive: { backgroundColor: COLORS.green, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  paymentActiveText: { fontSize: 12, fontWeight: '700', color: COLORS.textLight },
+  paymentActiveText: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   paymentSoon: { fontSize: 12, color: COLORS.textLightMuted, fontStyle: 'italic' },
 
   // Profile - dark hero card on white bg
@@ -847,14 +847,14 @@ var styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.green,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  profileAvatarText: { fontSize: 30, fontWeight: 'bold', color: COLORS.textLight },
-  profileName: { fontSize: 22, fontWeight: '700', color: COLORS.textLight, marginBottom: 4 },
+  profileAvatarText: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  profileName: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   profileRatingRow: { flexDirection: 'row', alignItems: 'center' },
-  profileRatingVal: { fontSize: 15, fontWeight: '700', color: COLORS.textLight, marginLeft: 4, marginRight: 6 },
+  profileRatingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginLeft: 4, marginRight: 6 },
   profileRatingMeta: { fontSize: 13, color: COLORS.textLightSub },
   profileSection: { marginBottom: 20 },
   profileSectionTitle: {
-    fontSize: 13, fontWeight: '600', color: COLORS.textDarkSub,
+    fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub,
     textTransform: 'uppercase', marginBottom: 10, marginLeft: 4,
   },
   profileGroup: {
@@ -868,7 +868,7 @@ var styles = StyleSheet.create({
   profileEmoji: { fontSize: 20, marginRight: 14 },
   profileLabel: { flex: 1, fontSize: 15, color: COLORS.textLight },
   profileValue: { fontSize: 14, color: COLORS.textLightMuted, marginRight: 8, maxWidth: 180 },
-  profileChevron: { fontSize: 22, color: COLORS.green, fontWeight: '600' },
+  profileChevron: { fontSize: 22, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
   pinToggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.grayLight, justifyContent: 'center', paddingHorizontal: 3 },
   pinToggleOn: { backgroundColor: COLORS.green },
   pinToggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
@@ -879,7 +879,7 @@ var styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(227, 27, 35, 0.2)', marginBottom: 16, marginTop: 10,
   },
   logoutIcon: { fontSize: 20, marginRight: 10 },
-  logoutTxt: { fontSize: 16, fontWeight: '600', color: COLORS.red },
+  logoutTxt: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.red },
   versionTxt: { textAlign: 'center', fontSize: 12, color: COLORS.textDarkMuted, marginBottom: 20 },
 
   // Modal - DARK
@@ -890,7 +890,7 @@ var styles = StyleSheet.create({
     backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%',
     borderWidth: 1, borderColor: COLORS.darkCardBorder,
   },
-  modalTitle: { fontSize: 22, fontWeight: 'bold', color: COLORS.textLight, marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
   modalSub: { fontSize: 14, color: COLORS.textLightSub, marginBottom: 16 },
   modalInput: {
     backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16,
@@ -902,11 +902,11 @@ var styles = StyleSheet.create({
     flex: 1, padding: 16, backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  modalCancelText: { fontSize: 16, fontWeight: '600', color: COLORS.textLightSub },
+  modalCancelText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
   modalSave: {
     flex: 2, padding: 16, backgroundColor: COLORS.green, borderRadius: 12, alignItems: 'center',
   },
-  modalSaveText: { fontSize: 16, fontWeight: 'bold', color: COLORS.textLight },
+  modalSaveText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
 });
 
 export default HomeScreen;

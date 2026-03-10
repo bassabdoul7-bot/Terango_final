@@ -77,7 +77,7 @@ var styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   backArrow: { fontSize: 22, color: COLORS.green },
   headerInfo: { flex: 1 },
-  headerName: { fontSize: 17, fontWeight: '700', color: COLORS.textLight },
+  headerName: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   headerSub: { fontSize: 12, color: COLORS.green, marginTop: 2 },
   messageList: { flex: 1 },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
