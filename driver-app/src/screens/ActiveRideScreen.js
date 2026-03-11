@@ -1,7 +1,55 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput } from 'react-native';
+import React, { useState, useEffect, use
+
+  var takeDeliveryPhoto = function() {
+    ImagePicker.requestCameraPermissionsAsync().then(function(perm) {
+      if (perm.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera'); return; }
+      ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.6 }).then(function(result) {
+        if (!result.canceled) {
+          var uri = result.assets[0].uri;
+          setDeliveryPhoto(uri);
+        }
+      });
+    });
+  };
+
+  var confirmDeliveryStatus = function() {
+    if (!deliveryPhoto) { Alert.alert('Photo requise', 'Prenez une photo avant de confirmer'); return; }
+    setLoading(true);
+    deliveryService.updateDeliveryStatus(deliveryId, pendingDeliveryStatus, deliveryPhoto).then(function() {
+      setRide(function(prev) { return Object.assign({}, prev, { status: pendingDeliveryStatus }); });
+      hasFetchedRoute.current = false;
+      setNavigationStarted(false);
+      setShowPhotoModal(false);
+      setDeliveryPhoto(null);
+      setPendingDeliveryStatus(null);
+      if (pendingDeliveryStatus === 'delivered') {
+        speakAnnouncement('Livraison terminee');
+        Alert.alert('Livraison terminee!', 'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA', [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]);
+      } else if (pendingDeliveryStatus === 'picked_up') {
+        speakAnnouncement('Colis recupere. En route vers la destination.');
+      }
+    }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+  };
+
+  var handleDeliveryAction = function(status) {
+    if (status === 'picked_up' || status === 'delivered') {
+      setPendingDeliveryStatus(status);
+      setDeliveryPhoto(null);
+      setShowPhotoModal(true);
+    } else {
+      setLoading(true);
+      deliveryService.updateDeliveryStatus(deliveryId, status).then(function() {
+        setRide(function(prev) { return Object.assign({}, prev, { status: status }); });
+        hasFetchedRoute.current = false;
+        setNavigationStarted(false);
+      }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+    }
+  };
+Ref, useCallback } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 import * as PolylineUtil from '@mapbox/polyline';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
@@ -63,6 +111,9 @@ function ActiveRideScreen(props) {
   var offRouteCount = useRef(0);
   var [routeProgress, setRouteProgress] = useState(0);
   var lastProgress = useRef(0);
+  var [showPhotoModal, setShowPhotoModal] = useState(false);
+  var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
+  var [deliveryPhoto, setDeliveryPhoto] = useState(null);
   var lastRerouteTime = useRef(0);
   var routeState = useState([]); var routeCoordinates = routeState[0]; var setRouteCoordinates = routeState[1];
   var stepsState = useState([]); var allSteps = stepsState[0]; var setAllSteps = stepsState[1];
@@ -212,7 +263,7 @@ function ActiveRideScreen(props) {
 
   var destination=(ride.status==='accepted'||ride.status==='arrived')?(ride.pickup?ride.pickup.coordinates:null):(ride.dropoff?ride.dropoff.coordinates:null);
   function getStatusText(){switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return 'Course en cours';default:return '';}}
-  function getActionButton(){switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);default:return null;}}
+  function getActionButton(){if(deliveryMode){switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F4E6)}</Text><Text style={styles.navText}>{'Naviguer vers le point de retrait'}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title='Arrive au point de retrait' onPress={function(){handleDeliveryAction('at_pickup');}} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{'Le bouton apparaitra a 50m du retrait'}</Text></View>}</View>);case 'at_pickup':return <GlassButton title='Colis recupere - Prendre photo' onPress={function(){handleDeliveryAction('picked_up');}} loading={loading}/>;case 'picked_up':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{'Naviguer vers la livraison'}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title='Arrive - Livrer' onPress={function(){handleDeliveryAction('at_dropoff');}} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{'Le bouton apparaitra a 50m de la livraison'}</Text></View>}</View>);case 'at_dropoff':return <GlassButton title='Confirmer livraison - Prendre photo' onPress={function(){handleDeliveryAction('delivered');}} loading={loading}/>;default:return null;}}switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);default:return null;}}
 
   return (
     <View style={styles.container}>
@@ -247,7 +298,8 @@ function ActiveRideScreen(props) {
           </View>
         </View>
       </Modal>}
-      <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
+      <Modal visible={showPhotoModal} transparent animationType='slide'><View style={{flex:1,backgroundColor:'rgba(0,0,0,0.8)',justifyContent:'flex-end'}}><View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:24}}><Text style={{fontSize:20,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,textAlign:'center',marginBottom:8}}>{pendingDeliveryStatus==='picked_up'?'Photo du colis recupere':'Photo de la livraison'}</Text><Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightSub,textAlign:'center',marginBottom:20}}>{pendingDeliveryStatus==='picked_up'?'Prenez une photo du colis avant de partir':'Prenez une photo comme preuve de livraison'}</Text>{deliveryPhoto?<View><Image source={{uri:deliveryPhoto}} style={{width:'100%',height:250,borderRadius:16,marginBottom:16}} /><TouchableOpacity onPress={takeDeliveryPhoto} style={{alignItems:'center',marginBottom:12}}><Text style={{color:COLORS.green,fontFamily:'LexendDeca_600SemiBold',fontSize:15}}>Reprendre la photo</Text></TouchableOpacity></View>:<TouchableOpacity onPress={takeDeliveryPhoto} style={{width:'100%',height:200,borderRadius:16,borderWidth:2,borderStyle:'dashed',borderColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center',marginBottom:16}}><Text style={{fontSize:48}}>{'\uD83D\uDCF7'}</Text><Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_400Regular',marginTop:8}}>Appuyez pour prendre une photo</Text></TouchableOpacity>}<View style={{flexDirection:'row',gap:12}}><TouchableOpacity onPress={function(){setShowPhotoModal(false);setDeliveryPhoto(null);setPendingDeliveryStatus(null);}} style={{flex:1,padding:16,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:14,alignItems:'center'}}><Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_600SemiBold',fontSize:16}}>Annuler</Text></TouchableOpacity><TouchableOpacity onPress={confirmDeliveryStatus} style={{flex:1,padding:16,backgroundColor:COLORS.green,borderRadius:14,alignItems:'center',opacity:deliveryPhoto?1:0.4}} disabled={!deliveryPhoto}>{loading?<ActivityIndicator color='#FFF'/>:<Text style={{color:'#FFF',fontFamily:'LexendDeca_700Bold',fontSize:16}}>Confirmer</Text>}</TouchableOpacity></View></View></View></Modal>
+    <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
     </View>
   );
 }
