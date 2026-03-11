@@ -105,7 +105,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
 export const deliveryService = {
   getActiveDelivery: function() { return api.get('/deliveries/driver-active'); },
   acceptDelivery: function(deliveryId) { return api.put('/deliveries/' + deliveryId + '/accept'); },
-  updateDeliveryStatus: function(deliveryId, status) { return api.put('/deliveries/' + deliveryId + '/status', { status: status }); },
+  updateDeliveryStatus: function(deliveryId, status, photo) { return api.put('/deliveries/' + deliveryId + '/status', { status: status, photo: photo || null }); },
 };
 
 export const orderService = {
