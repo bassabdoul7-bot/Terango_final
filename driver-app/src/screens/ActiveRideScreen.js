@@ -381,8 +381,8 @@ function ActiveRideScreen(props) {
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
-      <View style={styles.topBar}><TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
-      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View></>)}
+      <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
+      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress'?styles.redSquare:styles.greenDot)}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress'?'Destination':'Point de depart')}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:''))}</Text></View></View></View>
@@ -484,33 +484,33 @@ var styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  driverMarkerOuter: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center' },
-  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)' },
-  driverMarkerArrow: { width: 40, height: 40, alignItems: 'center' },
-  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 28, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
-  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
-  driverMarkerDot: { position: 'absolute', top: 18, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FCD115' },
+  driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
+  driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
-  cancelButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,59,48,0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
-  cancelIcon: { fontSize: 24, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
-  voiceButton: { position: 'absolute', top: 60, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
+  cancelButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  cancelIcon: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_600SemiBold' },
+  voiceButton: { position: 'absolute', top: 130, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   voiceIcon: { fontSize: 24, fontFamily: 'LexendDeca_400Regular' },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  turnInstruction: { position: 'absolute', top: 120, left: 20, right: 20, flexDirection: 'row', backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 16, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  turnIconContainer: { width: 60, height: 60, borderRadius: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FCD115', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10 },
+  turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: '#D4A900', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
-  turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  turnText: { fontSize: 15, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
+  turnText: { fontSize: 15, color: 'rgba(0,0,0,0.7)', fontFamily: 'LexendDeca_400Regular' },
   wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: COLORS.darkCard, paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaContainer: { flex: 1 },
   etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   etaDistance: { fontSize: 16, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
-  stopNavButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
-  stopNavText: { fontSize: 28, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
+  stopNavButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  stopNavText: { fontSize: 20, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
   speedText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2, fontFamily: 'LexendDeca_400Regular' },
