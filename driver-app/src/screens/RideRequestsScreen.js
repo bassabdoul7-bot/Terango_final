@@ -112,7 +112,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     <View style={styles.container}>
       {location ? (
         <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={location} showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
-          {location && <Marker coordinate={location} title="Votre position"><View style={styles.driverMarker}><Text style={styles.driverMarkerText}>{"\u25B2"}</Text></View></Marker>}
+          {location && <Marker coordinate={location} anchor={{x:0.5,y:0.5}} flat title="Votre position"><View style={styles.driverMarkerOuter}><View style={styles.driverMarkerShadow} /><View style={styles.driverMarkerArrow}><View style={styles.driverArrowTop} /><View style={styles.driverArrowBottom} /></View><View style={styles.driverMarkerDot} /></View></Marker>}
           {currentRequest && (<><Marker coordinate={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} pinColor={COLORS.green} title="D\u00e9part" /><Marker coordinate={{ latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }} pinColor={COLORS.red} title="Arriv\u00e9e" /><Circle center={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} radius={500} strokeColor="rgba(0,133,63,0.3)" fillColor="rgba(0,133,63,0.1)" /></>)}
         </MapView>
       ) : (<View style={styles.loadingContainer}><Text style={styles.loadingText}>Chargement de la carte...</Text></View>)}
@@ -189,8 +189,12 @@ const styles = StyleSheet.create({
   map: { ...StyleSheet.absoluteFillObject },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { fontSize: 16, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
-  driverMarker: { width: 40, height: 40, backgroundColor: COLORS.green, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
-  driverMarkerText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
+  driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
+  driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   earningsCard: { backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 2 },
