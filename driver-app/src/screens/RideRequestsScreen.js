@@ -168,7 +168,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             <Text style={styles.blockedIcon}>{'\u26A0\uFE0F'}</Text>
             <Text style={styles.blockedTitle}>Commission impay\u00e9e</Text>
             <Text style={styles.blockedAmount}>{blockedForPayment.balance.toLocaleString() + ' FCFA'}</Text>
-            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer \u00e0 recevoir des courses.'}</Text>
+            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer à recevoir des courses.'}</Text>
             <View style={styles.blockedPayInfo}>
               <Text style={styles.blockedPayTitle}>Payer via Wave ou Orange Money :</Text>
               <Text style={styles.blockedPayNumber}>+221 77 807 91 03</Text>
@@ -179,7 +179,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arr\u00eaterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
+      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrêterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
     </View>
   );
 };
