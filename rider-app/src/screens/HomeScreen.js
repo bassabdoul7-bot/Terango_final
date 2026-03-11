@@ -793,11 +793,11 @@ var styles = StyleSheet.create({
   servicesGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   serviceCard: { alignItems: 'center', flex: 1 },
   serviceIconWrap: {
-    width: 62, height: 62, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', elevation: 3,
+    width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 6, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', elevation: 3,
   },
-  serviceEmoji: { fontSize: 30, fontFamily: 'LexendDeca_400Regular' },
-  serviceLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  serviceEmoji: { fontSize: 28, fontFamily: 'LexendDeca_400Regular' },
+  serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, textAlign: 'center' },
 
   // Bottom nav - DARK
   bottomNav: {
