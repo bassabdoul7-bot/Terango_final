@@ -1,52 +1,5 @@
-import React, { useState, useEffect, use
-
-  var takeDeliveryPhoto = function() {
-    ImagePicker.requestCameraPermissionsAsync().then(function(perm) {
-      if (perm.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera'); return; }
-      ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.6 }).then(function(result) {
-        if (!result.canceled) {
-          var uri = result.assets[0].uri;
-          setDeliveryPhoto(uri);
-        }
-      });
-    });
-  };
-
-  var confirmDeliveryStatus = function() {
-    if (!deliveryPhoto) { Alert.alert('Photo requise', 'Prenez une photo avant de confirmer'); return; }
-    setLoading(true);
-    deliveryService.updateDeliveryStatus(deliveryId, pendingDeliveryStatus, deliveryPhoto).then(function() {
-      setRide(function(prev) { return Object.assign({}, prev, { status: pendingDeliveryStatus }); });
-      hasFetchedRoute.current = false;
-      setNavigationStarted(false);
-      setShowPhotoModal(false);
-      setDeliveryPhoto(null);
-      setPendingDeliveryStatus(null);
-      if (pendingDeliveryStatus === 'delivered') {
-        speakAnnouncement('Livraison terminee');
-        Alert.alert('Livraison terminee!', 'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA', [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]);
-      } else if (pendingDeliveryStatus === 'picked_up') {
-        speakAnnouncement('Colis recupere. En route vers la destination.');
-      }
-    }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
-  };
-
-  var handleDeliveryAction = function(status) {
-    if (status === 'picked_up' || status === 'delivered') {
-      setPendingDeliveryStatus(status);
-      setDeliveryPhoto(null);
-      setShowPhotoModal(true);
-    } else {
-      setLoading(true);
-      deliveryService.updateDeliveryStatus(deliveryId, status).then(function() {
-        setRide(function(prev) { return Object.assign({}, prev, { status: status }); });
-        hasFetchedRoute.current = false;
-        setNavigationStarted(false);
-      }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
-    }
-  };
-Ref, useCallback } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
@@ -111,9 +64,6 @@ function ActiveRideScreen(props) {
   var offRouteCount = useRef(0);
   var [routeProgress, setRouteProgress] = useState(0);
   var lastProgress = useRef(0);
-  var [showPhotoModal, setShowPhotoModal] = useState(false);
-  var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
-  var [deliveryPhoto, setDeliveryPhoto] = useState(null);
   var lastRerouteTime = useRef(0);
   var routeState = useState([]); var routeCoordinates = routeState[0]; var setRouteCoordinates = routeState[1];
   var stepsState = useState([]); var allSteps = stepsState[0]; var setAllSteps = stepsState[1];
@@ -135,21 +85,35 @@ function ActiveRideScreen(props) {
   var successModalState = useState(false); var showSuccessModal = successModalState[0]; var setShowSuccessModal = successModalState[1];
   var queueState = useState(null); var queuedRide = queueState[0]; var setQueuedRide = queueState[1];
 
+  // Delivery photo states
+  var [showPhotoModal, setShowPhotoModal] = useState(false);
+  var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
+  var [deliveryPhoto, setDeliveryPhoto] = useState(null);
+
   useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.fare?rideData.fare.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee par le passager','Le passager a annule la course.'+(data.reason?'\nRaison: '+data.reason:''),[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
 
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(){setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(){});}
 
-  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]); 
+  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]);
 
   useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:1000,distanceInterval:2},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);setCurrentSpeed(Math.max(0, Math.round((loc.coords.speed||0)*3.6)));driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
-    var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;
+    var destination;
+    if (deliveryMode) {
+      // Delivery: navigate to pickup first, then dropoff after picked_up
+      if (ride.status === 'accepted' || ride.status === 'at_pickup') {
+        destination = ride.pickup ? ride.pickup.coordinates : null;
+      } else {
+        destination = ride.dropoff ? ride.dropoff.coordinates : null;
+      }
+    } else {
+      destination = (ride.status==='accepted'||ride.status==='arrived') ? ride.pickup.coordinates : ride.dropoff.coordinates;
+    }
     if(!destination)return;
 
-    // Build cache key â€” round to 3 decimals (~100m precision) to reuse nearby routes
     var cacheKey = [
       Math.round(driverLocation.latitude*1000)/1000,
       Math.round(driverLocation.longitude*1000)/1000,
@@ -159,7 +123,6 @@ function ActiveRideScreen(props) {
     ].join('_');
 
     if(directionsCache[cacheKey]){
-      // Use cached route â€” no API call needed
       var cached = directionsCache[cacheKey];
       setTotalDistance(cached.totalDistance);
       setTotalDuration(cached.totalDuration);
@@ -179,7 +142,6 @@ function ActiveRideScreen(props) {
         var points=PolylineUtil.decode(data.routes[0].overview_polyline.points);
         var coords=points.map(function(p){return{latitude:p[0],longitude:p[1]};});
 
-        // Save to cache
         directionsCache[cacheKey]={
           totalDistance:leg.distance.text,
           totalDuration:leg.duration.text,
@@ -205,8 +167,28 @@ function ActiveRideScreen(props) {
 
   var toggleVoice = useCallback(function(){var ns=!voiceEnabled;setVoiceEnabled(ns);speak(ns?"Navigation vocale activee":"Navigation vocale desactivee");},[voiceEnabled]);
 
-  useEffect(function(){if(!driverLocation||!currentStep||!allSteps.length)return;var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);setDistanceToStep(formatDistance(distance));if(distance<50&&currentStep.id<allSteps.length-1){setCurrentStep(allSteps[currentStep.id+1]);}var destination=(ride.status==='accepted'||ride.status==='arrived')?ride.pickup.coordinates:ride.dropoff.coordinates;if(destination){var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);setIsNearDestination(distToDest<=ARRIVAL_THRESHOLD);}},[driverLocation,currentStep,allSteps,ride]);
-    // Calculate route progress (only update if changed by 2%+)
+  useEffect(function(){
+    if(!driverLocation||!currentStep||!allSteps.length)return;
+    var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);
+    setDistanceToStep(formatDistance(distance));
+    if(distance<50&&currentStep.id<allSteps.length-1){setCurrentStep(allSteps[currentStep.id+1]);}
+
+    var destination;
+    if (deliveryMode) {
+      if (ride.status === 'accepted' || ride.status === 'at_pickup') {
+        destination = ride.pickup ? ride.pickup.coordinates : null;
+      } else {
+        destination = ride.dropoff ? ride.dropoff.coordinates : null;
+      }
+    } else {
+      destination = (ride.status==='accepted'||ride.status==='arrived') ? ride.pickup.coordinates : ride.dropoff.coordinates;
+    }
+    if(destination){
+      var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);
+      setIsNearDestination(distToDest<=ARRIVAL_THRESHOLD);
+    }
+
+    // Calculate route progress
     if (routeCoordinates.length > 0) {
       var closestIdx = 0;
       var closestDist = Infinity;
@@ -218,7 +200,7 @@ function ActiveRideScreen(props) {
       if (Math.abs(newProgress - lastProgress.current) > 0.02) { lastProgress.current = newProgress; setRouteProgress(newProgress); }
     }
 
-    // Off-route detection - check distance to nearest route point
+    // Off-route detection
     if (routeCoordinates.length > 0 && navigationStarted) {
       var minDistToRoute = Infinity;
       for (var ri = 0; ri < routeCoordinates.length; ri += 5) {
@@ -235,6 +217,7 @@ function ActiveRideScreen(props) {
         }
       } else { offRouteCount.current = 0; }
     }
+  },[driverLocation,currentStep,allSteps,ride]);
 
   function calcDistance(lat1,lon1,lat2,lon2){var R=6371e3;var p1=lat1*Math.PI/180;var p2=lat2*Math.PI/180;var dp=(lat2-lat1)*Math.PI/180;var dl=(lon2-lon1)*Math.PI/180;var a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
@@ -259,17 +242,116 @@ function ActiveRideScreen(props) {
     setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId,ride,pinVerified]);
   var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Vous avez gagne '+(ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
 
+  // ========== DELIVERY PHOTO FUNCTIONS ==========
+  var takeDeliveryPhoto = function() {
+    ImagePicker.requestCameraPermissionsAsync().then(function(perm) {
+      if (perm.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera'); return; }
+      ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.6 }).then(function(result) {
+        if (!result.canceled) {
+          setDeliveryPhoto(result.assets[0].uri);
+        }
+      });
+    });
+  };
+
+  var confirmDeliveryStatus = function() {
+    if (!deliveryPhoto) { Alert.alert('Photo requise', 'Prenez une photo avant de confirmer'); return; }
+    setLoading(true);
+    deliveryService.updateDeliveryStatus(deliveryId, pendingDeliveryStatus, deliveryPhoto).then(function() {
+      setRide(function(prev) { return Object.assign({}, prev, { status: pendingDeliveryStatus }); });
+      hasFetchedRoute.current = false;
+      setNavigationStarted(false);
+      setShowPhotoModal(false);
+      setDeliveryPhoto(null);
+      setPendingDeliveryStatus(null);
+      if (pendingDeliveryStatus === 'delivered') {
+        speakAnnouncement('Livraison terminee');
+        Alert.alert('Livraison terminee!', 'Gains: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA', [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]);
+      } else if (pendingDeliveryStatus === 'picked_up') {
+        speakAnnouncement('Colis recupere. En route vers la destination.');
+      }
+    }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+  };
+
+  var handleDeliveryAction = function(status) {
+    if (status === 'picked_up' || status === 'delivered') {
+      setPendingDeliveryStatus(status);
+      setDeliveryPhoto(null);
+      setShowPhotoModal(true);
+    } else {
+      setLoading(true);
+      deliveryService.updateDeliveryStatus(deliveryId, status).then(function() {
+        setRide(function(prev) { return Object.assign({}, prev, { status: status }); });
+        hasFetchedRoute.current = false;
+        setNavigationStarted(false);
+        if (status === 'at_pickup') speakAnnouncement('Arrive au point de retrait');
+        if (status === 'at_dropoff') speakAnnouncement('Arrive au point de livraison');
+      }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+    }
+  };
+
   if(initializing||!driverLocation||!ride){return(<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green}/><Text style={styles.loadingText}>Chargement...</Text></View>);}
 
-  var destination=(ride.status==='accepted'||ride.status==='arrived')?(ride.pickup?ride.pickup.coordinates:null):(ride.dropoff?ride.dropoff.coordinates:null);
-  function getStatusText(){switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return 'Course en cours';default:return '';}}
-  function getActionButton(){if(deliveryMode){switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F4E6)}</Text><Text style={styles.navText}>{'Naviguer vers le point de retrait'}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title='Arrive au point de retrait' onPress={function(){handleDeliveryAction('at_pickup');}} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{'Le bouton apparaitra a 50m du retrait'}</Text></View>}</View>);case 'at_pickup':return <GlassButton title='Colis recupere - Prendre photo' onPress={function(){handleDeliveryAction('picked_up');}} loading={loading}/>;case 'picked_up':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{'Naviguer vers la livraison'}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title='Arrive - Livrer' onPress={function(){handleDeliveryAction('at_dropoff');}} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{'Le bouton apparaitra a 50m de la livraison'}</Text></View>}</View>);case 'at_dropoff':return <GlassButton title='Confirmer livraison - Prendre photo' onPress={function(){handleDeliveryAction('delivered');}} loading={loading}/>;default:return null;}}switch(ride.status){case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);default:return null;}}
+  var destination;
+  if (deliveryMode) {
+    if (ride.status === 'accepted' || ride.status === 'at_pickup') {
+      destination = ride.pickup ? ride.pickup.coordinates : null;
+    } else {
+      destination = ride.dropoff ? ride.dropoff.coordinates : null;
+    }
+  } else {
+    destination = (ride.status==='accepted'||ride.status==='arrived') ? (ride.pickup?ride.pickup.coordinates:null) : (ride.dropoff?ride.dropoff.coordinates:null);
+  }
+
+  function getStatusText(){
+    if (deliveryMode) {
+      switch(ride.status){
+        case 'accepted': return 'En route vers le retrait';
+        case 'at_pickup': return 'Au point de retrait';
+        case 'picked_up': return 'En route vers la livraison';
+        case 'at_dropoff': return 'Au point de livraison';
+        default: return '';
+      }
+    }
+    switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return 'Course en cours';default:return '';}
+  }
+
+  function getActionButton(){
+    // ===== DELIVERY MODE =====
+    if (deliveryMode) {
+      switch(ride.status) {
+        case 'accepted':
+          return (<View>
+            {!navigationStarted && <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F4E6)}</Text><Text style={styles.navText}>{'Naviguer vers le retrait'}</Text></TouchableOpacity>}
+            {isNearDestination ? <GlassButton title="Arrive au point de retrait" onPress={function(){handleDeliveryAction('at_pickup');}} loading={loading}/> : <View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du retrait"}</Text></View>}
+          </View>);
+        case 'at_pickup':
+          return <GlassButton title={String.fromCodePoint(0x1F4F7) + " Colis recupere - Prendre photo"} onPress={function(){handleDeliveryAction('picked_up');}} loading={loading}/>;
+        case 'picked_up':
+          return (<View>
+            {!navigationStarted && <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{'Naviguer vers la livraison'}</Text></TouchableOpacity>}
+            {isNearDestination ? <GlassButton title="Arrive au point de livraison" onPress={function(){handleDeliveryAction('at_dropoff');}} loading={loading}/> : <View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la livraison"}</Text></View>}
+          </View>);
+        case 'at_dropoff':
+          return <GlassButton title={String.fromCodePoint(0x1F4F7) + " Confirmer livraison - Photo"} onPress={function(){handleDeliveryAction('delivered');}} loading={loading}/>;
+        default: return null;
+      }
+    }
+
+    // ===== RIDE MODE =====
+    switch(ride.status){
+      case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);
+      case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;
+      case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);
+      default:return null;
+    }
+  }
 
   return (
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={true} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
         <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}><View style={styles.driverMarker}><Text style={styles.driverText}>{"\u25B2"}</Text></View></Marker>
-        {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'?COLORS.red:COLORS.green}/>}
+        {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'||ride.status==='picked_up'||ride.status==='at_dropoff'?COLORS.red:COLORS.green}/>}
         {routeCoordinates.length>0&&(<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round"/><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round"/></>)}
       </MapView>
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
@@ -279,10 +361,46 @@ function ActiveRideScreen(props) {
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{"||"}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}><View style={styles.progressBarContainer}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
-        <View style={styles.addressCard}><View style={styles.addressRow}><View style={ride.status==='in_progress'?styles.redSquare:styles.greenDot}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{ride.status==='in_progress'?'Destination':'Point de depart'}</Text><Text style={styles.addressText} numberOfLines={2}>{ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')}</Text></View></View></View>
+        <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress'?styles.redSquare:styles.greenDot)}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress'?'Destination':'Point de depart')}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:''))}</Text></View></View></View>
         <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{ride&&ride.rider&&ride.rider.phone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+ride.rider.phone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
         <View style={styles.actionContainer}>{getActionButton()}</View>
       </View>)}
+
+      {/* ===== DELIVERY PHOTO MODAL ===== */}
+      <Modal visible={showPhotoModal} transparent animationType='slide'>
+        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.85)',justifyContent:'flex-end'}}>
+          <View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:24}}>
+            <Text style={{fontSize:22,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,textAlign:'center',marginBottom:8}}>
+              {pendingDeliveryStatus==='picked_up' ? String.fromCodePoint(0x1F4E6)+' Photo du colis' : String.fromCodePoint(0x2705)+' Preuve de livraison'}
+            </Text>
+            <Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightSub,textAlign:'center',marginBottom:20}}>
+              {pendingDeliveryStatus==='picked_up' ? 'Prenez une photo du colis avant de partir' : 'Prenez une photo comme preuve de livraison'}
+            </Text>
+            {deliveryPhoto ? (
+              <View>
+                <Image source={{uri:deliveryPhoto}} style={{width:'100%',height:250,borderRadius:16,marginBottom:16}} />
+                <TouchableOpacity onPress={takeDeliveryPhoto} style={{alignItems:'center',marginBottom:12}}>
+                  <Text style={{color:COLORS.green,fontFamily:'LexendDeca_600SemiBold',fontSize:15}}>Reprendre la photo</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={takeDeliveryPhoto} style={{width:'100%',height:200,borderRadius:16,borderWidth:2,borderStyle:'dashed',borderColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center',marginBottom:16}}>
+                <Text style={{fontSize:48}}>{String.fromCodePoint(0x1F4F7)}</Text>
+                <Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_400Regular',marginTop:8}}>Appuyez pour prendre une photo</Text>
+              </TouchableOpacity>
+            )}
+            <View style={{flexDirection:'row',gap:12}}>
+              <TouchableOpacity onPress={function(){setShowPhotoModal(false);setDeliveryPhoto(null);setPendingDeliveryStatus(null);}} style={{flex:1,padding:16,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:14,alignItems:'center'}}>
+                <Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_600SemiBold',fontSize:16}}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmDeliveryStatus} style={{flex:1,padding:16,backgroundColor:COLORS.green,borderRadius:14,alignItems:'center',opacity:deliveryPhoto?1:0.4}} disabled={!deliveryPhoto}>
+                {loading ? <ActivityIndicator color='#FFF'/> : <Text style={{color:'#FFF',fontFamily:'LexendDeca_700Bold',fontSize:16}}>Confirmer</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={showChat} animationType="slide" onRequestClose={function(){setShowChat(false);}}><ChatScreen socket={socketRef.current} rideId={deliveryMode?null:rideId} deliveryId={deliveryMode?deliveryId:null} myRole="driver" myUserId={auth.user?auth.user._id:null} otherName={ride&&ride.rider?ride.rider.name:'Passager'} onClose={function(){setShowChat(false);}}/></Modal>
       <CancelReasonModal visible={showCancelModal} onClose={function(){setShowCancelModal(false);}} onConfirm={handleConfirmCancel} onSupport={handleContactSupport}/>
       {showPinModal && <Modal transparent animationType='fade' visible={showPinModal} onRequestClose={function(){setShowPinModal(false);}}>
@@ -298,8 +416,7 @@ function ActiveRideScreen(props) {
           </View>
         </View>
       </Modal>}
-      <Modal visible={showPhotoModal} transparent animationType='slide'><View style={{flex:1,backgroundColor:'rgba(0,0,0,0.8)',justifyContent:'flex-end'}}><View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:24}}><Text style={{fontSize:20,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,textAlign:'center',marginBottom:8}}>{pendingDeliveryStatus==='picked_up'?'Photo du colis recupere':'Photo de la livraison'}</Text><Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightSub,textAlign:'center',marginBottom:20}}>{pendingDeliveryStatus==='picked_up'?'Prenez une photo du colis avant de partir':'Prenez une photo comme preuve de livraison'}</Text>{deliveryPhoto?<View><Image source={{uri:deliveryPhoto}} style={{width:'100%',height:250,borderRadius:16,marginBottom:16}} /><TouchableOpacity onPress={takeDeliveryPhoto} style={{alignItems:'center',marginBottom:12}}><Text style={{color:COLORS.green,fontFamily:'LexendDeca_600SemiBold',fontSize:15}}>Reprendre la photo</Text></TouchableOpacity></View>:<TouchableOpacity onPress={takeDeliveryPhoto} style={{width:'100%',height:200,borderRadius:16,borderWidth:2,borderStyle:'dashed',borderColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center',marginBottom:16}}><Text style={{fontSize:48}}>{'\uD83D\uDCF7'}</Text><Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_400Regular',marginTop:8}}>Appuyez pour prendre une photo</Text></TouchableOpacity>}<View style={{flexDirection:'row',gap:12}}><TouchableOpacity onPress={function(){setShowPhotoModal(false);setDeliveryPhoto(null);setPendingDeliveryStatus(null);}} style={{flex:1,padding:16,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:14,alignItems:'center'}}><Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_600SemiBold',fontSize:16}}>Annuler</Text></TouchableOpacity><TouchableOpacity onPress={confirmDeliveryStatus} style={{flex:1,padding:16,backgroundColor:COLORS.green,borderRadius:14,alignItems:'center',opacity:deliveryPhoto?1:0.4}} disabled={!deliveryPhoto}>{loading?<ActivityIndicator color='#FFF'/>:<Text style={{color:'#FFF',fontFamily:'LexendDeca_700Bold',fontSize:16}}>Confirmer</Text>}</TouchableOpacity></View></View></View></Modal>
-    <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
+      <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
     </View>
   );
 }
@@ -308,10 +425,10 @@ var queueStyles = StyleSheet.create({
   bannerContainer: { position: 'absolute', top: 130, left: 20, right: 20 },
   banner: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.yellow, borderRadius: 12, padding: 12, elevation: 4 },
   iconContainer: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  icon: { fontSize: 20 , fontFamily: 'LexendDeca_400Regular' },
+  icon: { fontSize: 20, fontFamily: 'LexendDeca_400Regular' },
   textContainer: { flex: 1 },
   title: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  subtitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)' , fontFamily: 'LexendDeca_400Regular' },
+  subtitle: { fontSize: 12, color: 'rgba(0,0,0,0.6)', fontFamily: 'LexendDeca_400Regular' },
   arrow: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
 });
 
@@ -319,7 +436,7 @@ var cancelStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modal: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%', maxHeight: '80%', borderWidth: 1, borderColor: COLORS.darkCardBorder },
   title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
-  subtitle: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 20 , fontFamily: 'LexendDeca_400Regular' },
+  subtitle: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 300, marginBottom: 20 },
   reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' },
   reasonItemSelected: { backgroundColor: 'rgba(252,209,22,0.1)', borderColor: COLORS.yellow, borderWidth: 2 },
@@ -328,7 +445,7 @@ var cancelStyles = StyleSheet.create({
   reasonText: { flex: 1, fontSize: 16, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
   actions: { gap: 12 },
   supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  supportIcon: { fontSize: 20, marginRight: 8 , fontFamily: 'LexendDeca_400Regular' },
+  supportIcon: { fontSize: 20, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   supportText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
   mainActions: { flexDirection: 'row', gap: 12 },
   backButton: { flex: 1, padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
@@ -341,7 +458,7 @@ var cancelStyles = StyleSheet.create({
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
-  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
+  loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#fff' },
   driverText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
@@ -349,7 +466,7 @@ var styles = StyleSheet.create({
   cancelButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,59,48,0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
   cancelIcon: { fontSize: 24, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
   voiceButton: { position: 'absolute', top: 60, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
-  voiceIcon: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
+  voiceIcon: { fontSize: 24, fontFamily: 'LexendDeca_400Regular' },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -359,16 +476,16 @@ var styles = StyleSheet.create({
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
   turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  turnText: { fontSize: 15, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  turnText: { fontSize: 15, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: COLORS.darkCard, paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaContainer: { flex: 1 },
   etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  etaDistance: { fontSize: 16, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  etaDistance: { fontSize: 16, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   stopNavButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FF3B30', alignItems: 'center', justifyContent: 'center' },
   stopNavText: { fontSize: 28, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
   speedText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2 , fontFamily: 'LexendDeca_400Regular' },
+  speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2, fontFamily: 'LexendDeca_400Regular' },
   progressBarFloat: { position: 'absolute', bottom: 80, left: 20, right: 20, height: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 5, overflow: 'visible', zIndex: 10 },
   progressBarContainer: { left: 16, right: 16, height: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 5, overflow: 'visible', marginBottom: 16 },
   progressBarFill: { position: 'absolute', top: 0, left: 0, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
@@ -378,39 +495,36 @@ var styles = StyleSheet.create({
   etaRow: { flexDirection: 'row', alignItems: 'center' },
   etaItem: { flex: 1, alignItems: 'center' },
   etaValue: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  etaLabel: { fontSize: 12, color: COLORS.textLightMuted, textTransform: 'uppercase' , fontFamily: 'LexendDeca_400Regular' },
+  etaLabel: { fontSize: 12, color: COLORS.textLightMuted, textTransform: 'uppercase', fontFamily: 'LexendDeca_400Regular' },
   etaDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
   addressCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
   addressTextContainer: { flex: 1 },
-  addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4 , fontFamily: 'LexendDeca_400Regular' },
+  addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
   addressText: { fontSize: 15, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
   actionContainer: { marginTop: 8 },
   navButton: { backgroundColor: COLORS.yellow, borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, elevation: 6 },
-  navIcon: { fontSize: 20, marginRight: 8 , fontFamily: 'LexendDeca_400Regular' },
+  navIcon: { fontSize: 20, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   navText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   proximityHint: { backgroundColor: 'rgba(255,255,255,0.06)', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  proximityText: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center' , fontFamily: 'LexendDeca_400Regular' },
+  proximityText: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', fontFamily: 'LexendDeca_400Regular' },
   chatButtonRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   chatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.15)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(66,133,244,0.3)' },
   callBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76,217,100,0.15)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(76,217,100,0.3)' },
-  chatBtnIcon: { fontSize: 24, marginRight: 8 , fontFamily: 'LexendDeca_400Regular' },
+  chatBtnIcon: { fontSize: 24, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   chatBtnText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
   pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
-  pinModalIcon: { fontSize: 48, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
+  pinModalIcon: { fontSize: 48, marginBottom: 12, fontFamily: 'LexendDeca_400Regular' },
   pinModalTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 6 },
-  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
+  pinModalSub: { fontSize: 14, color: '#888', marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   pinModalInput: { fontSize: 36, fontFamily: 'LexendDeca_700Bold', letterSpacing: 16, textAlign: 'center', backgroundColor: '#F5F5F5', borderRadius: 16, padding: 16, width: '80%', marginBottom: 12, color: '#1A1A1A', borderWidth: 2, borderColor: COLORS.green },
-  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
+  pinModalError: { fontSize: 14, color: '#FF3B30', marginBottom: 12, fontFamily: 'LexendDeca_400Regular' },
   pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
   pinModalBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
-  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4 , fontFamily: 'LexendDeca_400Regular' },
+  pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default ActiveRideScreen;
-
-
-
