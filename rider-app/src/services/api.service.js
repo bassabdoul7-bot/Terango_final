@@ -6,7 +6,7 @@ var API_URL = 'https://api.terango.sn/api';
 
 var api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
