@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 var MenuScreen = function(props) {
   var navigation = props.navigation;
   var auth = useAuth(); var user = auth.user; var driver = auth.driver; var logout = auth.logout; var updateUser = auth.updateUser;
-  var TIERS = { goorgoorlu: { name: 'Goorgoorlu', icon: '\uD83D\uDFE1', color: 'rgba(252,209,22,0.15)', textColor: '#FCD115', rate: '13%' }, jambaar: { name: 'J\u00e0mbaar', icon: '\u2694\uFE0F', color: 'rgba(0,133,63,0.15)', textColor: '#00853F', rate: '12%' }, ndaanaan: { name: 'Ndaanaan', icon: '\uD83D\uDC51', color: 'rgba(255,149,0,0.15)', textColor: '#FF9500', rate: '11%' } };
+  var TIERS = { goorgoorlu: { name: 'Goorgoorlu', icon: '\uD83D\uDFE1', color: 'rgba(252,209,22,0.15)', textColor: '#FCD115', rate: '5%' }, jambaar: { name: 'J\u00e0mbaar', icon: '\u2694\uFE0F', color: 'rgba(0,133,63,0.15)', textColor: '#00853F', rate: '5%' }, ndaanaan: { name: 'Ndaanaan', icon: '\uD83D\uDC51', color: 'rgba(255,149,0,0.15)', textColor: '#FF9500', rate: '5%' } };
   var currentTier = TIERS[driver && driver.tier || 'goorgoorlu'] || TIERS.goorgoorlu;
   var completedRides = driver && driver.completedRides || 0;
   var nextTierAt = completedRides < 100 ? 100 : completedRides < 500 ? 500 : null;
@@ -56,7 +56,7 @@ var MenuScreen = function(props) {
   }
 
   function renderSupportTab() {
-    var faqs = [{q:'Comment sont calcul\u00e9s mes gains?',a:'Vous recevez 88-90% du tarif. Commission TeranGO: 10-12%.'},{q:'Quand suis-je pay\u00e9?',a:'Paiements chaque semaine via Wave ou Orange Money.'},{q:'Comment am\u00e9liorer ma note?',a:'Ponctualit\u00e9, conduite prudente, v\u00e9hicule propre.'},{q:"Que faire en cas d'accident?",a:"Contactez le support et les urgences."}];
+    var faqs = [{q:'Comment sont calcul\u00e9s mes gains?',a:'Vous recevez 95% du tarif. Commission TeranGO: 5% seulement.'},{q:'Quand suis-je pay\u00e9?',a:'Paiements chaque semaine via Wave ou Orange Money.'},{q:'Comment am\u00e9liorer ma note?',a:'Ponctualit\u00e9, conduite prudente, v\u00e9hicule propre.'},{q:"Que faire en cas d'accident?",a:"Contactez le support et les urgences."}];
     return (<ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
       <View style={styles.supportHero}><Text style={styles.supportIcon}>{'\uD83C\uDFA7'}</Text><Text style={styles.supportTitle}>Comment pouvons-nous vous aider?</Text></View>
       <TouchableOpacity style={styles.supportItem} onPress={function(){Linking.openURL('tel:+221338234567');}}><View style={[styles.sIconBox,{backgroundColor:'rgba(76,217,100,0.15)'}]}><Text style={styles.sIcon}>{'\uD83D\uDCDE'}</Text></View><View style={styles.sText}><Text style={styles.sTitle}>Appeler le support</Text><Text style={styles.sDesc}>{"Disponible 7j/7 de 6h \u00e0 22h"}</Text></View><Text style={styles.sChevron}>{'\u203A'}</Text></TouchableOpacity>
