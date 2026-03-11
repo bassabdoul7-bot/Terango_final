@@ -546,9 +546,23 @@ exports.cancelRide = async (req, res) => {
     const matchingService = req.app.get('matchingService');
     await matchingService.cancelRideOffers(ride._id);
 
-    // Make driver available again
+    // Make driver available again and track cancellation
     if (ride.driver) {
-      await Driver.findByIdAndUpdate(ride.driver, { isAvailable: true });
+      if (req.user.role === 'driver') {
+        var cancelDriver = await Driver.findById(ride.driver);
+        if (cancelDriver) {
+          var today = new Date().toDateString();
+          var lastCancel = cancelDriver.lastCancellationDate ? cancelDriver.lastCancellationDate.toDateString() : null;
+          cancelDriver.totalCancellations = (cancelDriver.totalCancellations || 0) + 1;
+          cancelDriver.dailyCancellations = (lastCancel === today) ? (cancelDriver.dailyCancellations || 0) + 1 : 1;
+          cancelDriver.lastCancellationDate = new Date();
+          cancelDriver.cancellationRate = cancelDriver.totalRides > 0 ? Math.round((cancelDriver.totalCancellations / (cancelDriver.totalRides + cancelDriver.totalCancellations)) * 100) : 0;
+          cancelDriver.isAvailable = true;
+          await cancelDriver.save();
+        }
+      } else {
+        await Driver.findByIdAndUpdate(ride.driver, { isAvailable: true });
+      }
     }
 
     const io = req.app.get('io');

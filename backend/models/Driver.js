@@ -20,6 +20,10 @@ var driverSchema = new mongoose.Schema({
     enum: ['car', 'moto'],
     default: 'car'
   },
+  dailyCancellations: { type: Number, default: 0 },
+  totalCancellations: { type: Number, default: 0 },
+  lastCancellationDate: { type: Date },
+  cancellationRate: { type: Number, default: 0 },
   vehicleFrontPhoto: { type: String },
   vehicleBackPhoto: { type: String },
   vehicleInteriorPhoto: { type: String },

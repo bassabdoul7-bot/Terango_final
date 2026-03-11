@@ -134,7 +134,7 @@ function ActiveRideScreen(props) {
       return;
     }
 
-    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr&alternatives=true';
+    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr&alternatives=true&departure_time=now&traffic_model=best_guess';
     fetch(url).then(function(r){return r.json();}).then(function(data){
       if(data.status==='OK'&&data.routes.length>0){
         var leg=data.routes[0].legs[0];
@@ -218,6 +218,21 @@ function ActiveRideScreen(props) {
       } else { offRouteCount.current = 0; }
     }
   },[driverLocation,currentStep,allSteps,ride]);
+
+  // Periodic reroute check every 2 minutes during navigation for traffic changes
+  var trafficRerouteInterval = useRef(null);
+  useEffect(function(){
+    if (navigationStarted) {
+      trafficRerouteInterval.current = setInterval(function(){
+        hasFetchedRoute.current = false;
+        // Clear cache for current route to get fresh traffic data
+        Object.keys(directionsCache).forEach(function(key){ if(key.indexOf(ride.status) !== -1) delete directionsCache[key]; });
+      }, 120000); // every 2 minutes
+    } else {
+      if (trafficRerouteInterval.current) { clearInterval(trafficRerouteInterval.current); trafficRerouteInterval.current = null; }
+    }
+    return function(){ if (trafficRerouteInterval.current) clearInterval(trafficRerouteInterval.current); };
+  },[navigationStarted]);
 
   function calcDistance(lat1,lon1,lat2,lon2){var R=6371e3;var p1=lat1*Math.PI/180;var p2=lat2*Math.PI/180;var dp=(lat2-lat1)*Math.PI/180;var dl=(lon2-lon1)*Math.PI/180;var a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
@@ -350,7 +365,16 @@ function ActiveRideScreen(props) {
   return (
     <View style={styles.container}>
       <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={true} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
-        <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}><View style={styles.driverMarker}><Text style={styles.driverText}>{"\u25B2"}</Text></View></Marker>
+        <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}>
+          <View style={styles.driverMarkerOuter}>
+            <View style={styles.driverMarkerShadow} />
+            <View style={styles.driverMarkerArrow}>
+              <View style={styles.driverArrowTop} />
+              <View style={styles.driverArrowBottom} />
+            </View>
+            <View style={styles.driverMarkerDot} />
+          </View>
+        </Marker>
         {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'||ride.status==='picked_up'||ride.status==='at_dropoff'?COLORS.red:COLORS.green}/>}
         {routeCoordinates.length>0&&(<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round"/><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round"/></>)}
       </MapView>
@@ -460,8 +484,12 @@ var styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#fff' },
-  driverText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
+  driverMarkerOuter: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.2)' },
+  driverMarkerArrow: { width: 40, height: 40, alignItems: 'center' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 28, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
+  driverMarkerDot: { position: 'absolute', top: 18, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FCD115' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
   cancelButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,59,48,0.95)', alignItems: 'center', justifyContent: 'center', elevation: 8 },
   cancelIcon: { fontSize: 24, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
