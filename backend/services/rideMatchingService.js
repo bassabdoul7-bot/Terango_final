@@ -421,10 +421,6 @@ class RideMatchingService {
     this.cleanupSearch(rideId);
     this.io.to(rideId).emit('ride-cancelled', { rideId: rideId, message: 'Course annul\u00e9e' });
   }
-    this.cleanupSearch(rideId);
-    // FIXED: Use room
-    this.io.to(rideId).emit('ride-cancelled', { message: 'Course annul�e' });
-  }
 }
 
 module.exports = RideMatchingService;
