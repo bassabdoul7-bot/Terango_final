@@ -10,6 +10,8 @@ import {
   TextInput,
   ScrollView,
   StatusBar,
+  Animated,
+  Easing,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -65,9 +67,31 @@ function HomeScreen(props) {
   var socketRef = useRef(null);
   var fetchInterval = useRef(null);
 
+  // Welcome animation
+  var welcomeOpacity = useRef(new Animated.Value(0)).current;
+  var welcomeSlide = useRef(new Animated.Value(50)).current;
+  var searchCardSlide = useRef(new Animated.Value(100)).current;
+  var searchCardOpacity = useRef(new Animated.Value(0)).current;
+  var driverPulse = useRef(new Animated.Value(1)).current;
+
   useEffect(function() {
     loadSavedPlaces();
     loadRideHistory();
+  }, []);
+
+  useEffect(function() {
+    // Welcome animation
+    Animated.parallel([
+      Animated.timing(welcomeOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
+      Animated.timing(welcomeSlide, { toValue: 0, duration: 800, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(searchCardOpacity, { toValue: 1, duration: 800, delay: 300, useNativeDriver: true }),
+      Animated.timing(searchCardSlide, { toValue: 0, duration: 800, delay: 300, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start();
+    // Driver marker pulse
+    Animated.loop(Animated.sequence([
+      Animated.timing(driverPulse, { toValue: 1.3, duration: 1200, useNativeDriver: true }),
+      Animated.timing(driverPulse, { toValue: 1, duration: 1200, useNativeDriver: true }),
+    ])).start();
   }, []);
 
   useEffect(function() {
@@ -523,9 +547,9 @@ function HomeScreen(props) {
             {nearbyDrivers.map(function(driver) {
               return (
                 <Marker key={driver._id} coordinate={driver.location} anchor={{ x: 0.5, y: 0.5 }}>
-                  <View style={styles.driverMarker}>
-                    <Image source={{ uri: CAR_IMAGES.standard.uri }} style={{ width: 28, height: 18 }} resizeMode="contain" />
-                  </View>
+                  <Animated.View style={[styles.driverMarker, { transform: [{ scale: driverPulse }] }]}>
+                    <View style={styles.driverArrowSmall} />
+                  </Animated.View>
                 </Marker>
               );
             })}
@@ -540,7 +564,7 @@ function HomeScreen(props) {
           </View>
         )}
 
-        <View style={styles.topBar}>
+        <Animated.View style={[styles.topBar, { opacity: welcomeOpacity, transform: [{ translateY: welcomeSlide }] }]}>
           <View style={styles.logoContainer}>
             <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
           </View>
@@ -551,9 +575,9 @@ function HomeScreen(props) {
           <TouchableOpacity style={styles.profileButton} onPress={function() { setActiveTab('profile'); }}>
             <Text style={styles.profileBtnIcon}>{"👤"}</Text>
           </TouchableOpacity>
-        </View>
+        </Animated.View>
 
-        <View style={styles.searchCard}>
+        <Animated.View style={[styles.searchCard, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
               <Text style={styles.searchIcon}>{"🔍"}</Text>
@@ -628,7 +652,7 @@ function HomeScreen(props) {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </Animated.View>
       </View>
     );
   }
@@ -689,9 +713,11 @@ var styles = StyleSheet.create({
   },
   userMarkerInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.darkBg },
   driverMarker: {
-    width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFF',
-    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.green,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4, elevation: 5,
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center',
+  },
+  driverArrowSmall: {
+    width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderBottomWidth: 20,
+    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115',
   },
   driverCountBadge: {
     position: 'absolute', top: 130, alignSelf: 'center',
@@ -733,8 +759,8 @@ var styles = StyleSheet.create({
   },
   searchButton: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)', paddingVertical: 16, paddingHorizontal: 16,
-    borderRadius: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 18, paddingHorizontal: 18,
+    borderRadius: 18, marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.3)',
   },
   searchIconContainer: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.yellow,
@@ -767,18 +793,19 @@ var styles = StyleSheet.create({
   servicesGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   serviceCard: { alignItems: 'center', flex: 1 },
   serviceIconWrap: {
-    width: 54, height: 54, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    width: 62, height: 62, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
+    marginBottom: 8, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', elevation: 3,
   },
-  serviceEmoji: { fontSize: 26 , fontFamily: 'LexendDeca_400Regular' },
-  serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  serviceEmoji: { fontSize: 30, fontFamily: 'LexendDeca_400Regular' },
+  serviceLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
 
   // Bottom nav - DARK
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row',
-    backgroundColor: COLORS.darkCard, paddingVertical: 16, paddingBottom: 28,
-    borderTopLeftRadius: 24, borderTopRightRadius: 24, elevation: 12,
+    backgroundColor: COLORS.darkCard, paddingVertical: 14, paddingBottom: 30,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28, elevation: 16,
     borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12,
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
