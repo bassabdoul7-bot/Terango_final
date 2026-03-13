@@ -43,7 +43,7 @@ const LoginScreen = ({ navigation }) => {
         <StatusBar barStyle="light-content" />
         <View style={styles.darkHeader}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Chauffeur</Text>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
           <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
@@ -73,14 +73,14 @@ const LoginScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <View style={styles.darkHeader}>
         <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Chauffeur</Text>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
         <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Bienvenue Chauffeur</Text>
+              <Text style={styles.cardTitle}>Bienvenue</Text>
               <Text style={styles.cardSubtitle}>Connectez-vous avec votre PIN</Text>
               <Text style={styles.label}>{"Num\u00e9ro de t\u00e9l\u00e9phone"}</Text>
               <View style={styles.phoneRow}>
@@ -95,7 +95,7 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerText}>Nouveau chauffeur? </Text>
+              <Text style={styles.registerText}>Nouveau sur TeranGO? </Text>
               <Text style={styles.registerBold}>S'inscrire</Text>
             </TouchableOpacity>
           </ScrollView>

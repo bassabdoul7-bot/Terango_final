@@ -29,15 +29,15 @@ const RegisterScreen = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <View style={styles.darkHeader}>
         <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Chauffeur</Text>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
         <Text style={styles.appSubtitle}>Rejoignez notre {"\u00e9quipe"}</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>Inscription Chauffeur</Text>
-              <Text style={styles.cardSubtitle}>{"Cr\u00e9ez votre compte chauffeur"}</Text>
+              <Text style={styles.cardTitle}>Inscription</Text>
+              <Text style={styles.cardSubtitle}>{"Cr\u00e9ez votre compte professionnel"}</Text>
 
               <Text style={styles.label}>Nom complet</Text>
               <TextInput style={styles.input} placeholder="Votre nom" placeholderTextColor="#999" value={name} onChangeText={setName} />
