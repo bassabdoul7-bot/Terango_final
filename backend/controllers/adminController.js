@@ -125,6 +125,16 @@ exports.verifyDriver = async (req, res) => {
     
     driver.verificationStatus = status;
     await driver.save();
+
+    // Auto-set driver selfie as user profile photo on approval
+    if (status === 'approved' && driver.selfiePhoto && driver.userId) {
+      const User = require('../models/User');
+      await User.findByIdAndUpdate(driver.userId._id || driver.userId, {
+        profilePhoto: driver.selfiePhoto,
+        photoStatus: 'approved',
+        photoVerified: true
+      });
+    }
     
     // TODO: Send notification to driver (SMS/Email)
     
