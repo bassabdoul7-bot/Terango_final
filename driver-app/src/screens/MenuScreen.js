@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 
 var MenuScreen = function(props) {
   var navigation = props.navigation;
-  var auth = useAuth(); var user = auth.user; var driver = auth.driver; var logout = auth.logout; var updateUser = auth.updateUser;
+  var auth = useAuth(); var user = auth.user; var driver = auth.driver; var logout = auth.logout; var updateUser = auth.updateUser; var fetchDriverProfile = auth.fetchDriverProfile;
   var TIERS = { goorgoorlu: { name: 'Goorgoorlu', icon: '\uD83D\uDFE1', color: 'rgba(252,209,22,0.15)', textColor: '#FCD115', rate: '5%' }, jambaar: { name: 'J\u00e0mbaar', icon: '\u2694\uFE0F', color: 'rgba(0,133,63,0.15)', textColor: '#00853F', rate: '5%' }, ndaanaan: { name: 'Ndaanaan', icon: '\uD83D\uDC51', color: 'rgba(255,149,0,0.15)', textColor: '#FF9500', rate: '5%' } };
   var currentTier = TIERS[driver && driver.tier || 'goorgoorlu'] || TIERS.goorgoorlu;
   var completedRides = driver && driver.completedRides || 0;
@@ -24,7 +24,7 @@ var MenuScreen = function(props) {
   var langState = useState('Fran\u00e7ais'); var language = langState[0]; var setLanguage = langState[1];
   var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
 
-  useEffect(function() { fetchEarnings(); fetchHistory(); }, []);
+  useEffect(function() { fetchEarnings(); fetchHistory(); fetchDriverProfile(); }, []);
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0], weeklyRides: e.weeklyRides||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   function fetchHistory() { driverService.getRideHistory().then(function(r) { setRideHistory(r.rides||[]); }).catch(function(){}); }
 
