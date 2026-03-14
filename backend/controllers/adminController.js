@@ -13,7 +13,7 @@ exports.getDashboardStats = async (req, res) => {
     // Total counts
     const totalRiders = await Rider.countDocuments();
     const totalDrivers = await Driver.countDocuments();
-    const totalRides = await Ride.countDocuments();
+    const totalRides = await Ride.countDocuments({ status: 'completed' });
     
     // Active drivers
     const activeDrivers = await Driver.countDocuments({ isOnline: true });
@@ -27,7 +27,7 @@ exports.getDashboardStats = async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    const todayRides = await Ride.countDocuments({
+    const todayRides = await Ride.countDocuments({ status: 'completed',
       createdAt: { $gte: today }
     });
     
