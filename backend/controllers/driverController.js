@@ -65,6 +65,12 @@ exports.toggleOnlineStatus = function(req, res) {
           message: 'Votre compte doit etre verifie pour vous mettre en ligne'
         });
       }
+      if (driver.isSuspended) {
+        return res.status(403).json({ success: false, message: 'Votre compte est suspendu. Contactez le support TeranGO.' });
+      }
+      if (driver.isBanned) {
+        return res.status(403).json({ success: false, message: 'Votre compte a ete desactive.' });
+      }
 
       var driverLocationService = req.app.get('driverLocationService');
       driver.isOnline = isOnline;
