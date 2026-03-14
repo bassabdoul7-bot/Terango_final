@@ -563,3 +563,76 @@ exports.markCommissionPaid = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
+
+
+// ========== DRIVER MODERATION ==========
+
+// @desc    Suspend/Unsuspend driver
+// @route   PUT /api/admin/drivers/:id/suspend
+exports.suspendDriver = async (req, res) => {
+  try {
+    var driver = await Driver.findById(req.params.id).populate('userId');
+    if (!driver) return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    var reason = req.body.reason || 'Non specifie';
+    var action = req.body.action || 'suspend'; // 'suspend' or 'unsuspend'
+    if (action === 'suspend') {
+      driver.isSuspended = true;
+      driver.suspendedAt = new Date();
+      driver.suspensionReason = reason;
+      driver.isOnline = false;
+      driver.isAvailable = false;
+    } else {
+      driver.isSuspended = false;
+      driver.suspendedAt = null;
+      driver.suspensionReason = null;
+    }
+    await driver.save();
+    res.json({ success: true, message: action === 'suspend' ? 'Chauffeur suspendu' : 'Suspension levee', driver: driver });
+  } catch (error) {
+    console.error('Suspend Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Ban driver permanently
+// @route   PUT /api/admin/drivers/:id/ban
+exports.banDriver = async (req, res) => {
+  try {
+    var driver = await Driver.findById(req.params.id).populate('userId');
+    if (!driver) return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    driver.isBanned = true;
+    driver.bannedAt = new Date();
+    driver.banReason = req.body.reason || 'Non specifie';
+    driver.isOnline = false;
+    driver.isAvailable = false;
+    driver.verificationStatus = 'rejected';
+    await driver.save();
+    res.json({ success: true, message: 'Chauffeur banni', driver: driver });
+  } catch (error) {
+    console.error('Ban Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Warn driver
+// @route   POST /api/admin/drivers/:id/warn
+exports.warnDriver = async (req, res) => {
+  try {
+    var driver = await Driver.findById(req.params.id).populate('userId');
+    if (!driver) return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    var warning = { message: req.body.message || 'Avertissement', date: new Date(), issuedBy: req.user._id };
+    if (!driver.warnings) driver.warnings = [];
+    driver.warnings.push(warning);
+    driver.totalWarnings = (driver.totalWarnings || 0) + 1;
+    await driver.save();
+    // TODO: Send push notification to driver
+    var { sendPushNotification } = require('../services/pushService');
+    if (driver.userId) {
+      sendPushNotification(driver.userId._id || driver.userId, 'Avertissement TeranGO', warning.message, { type: 'warning' });
+    }
+    res.json({ success: true, message: 'Avertissement envoye', driver: driver });
+  } catch (error) {
+    console.error('Warn Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};

@@ -57,5 +57,9 @@ export var partnerService = {
   getProfile: function() { return api.get('/partners/profile'); }
 };
 
+export var suspendDriver = function(id, action, reason) { return api.put('/admin/drivers/' + id + '/suspend', { action: action, reason: reason }); };
+export var banDriver = function(id, reason) { return api.put('/admin/drivers/' + id + '/ban', { reason: reason }); };
+export var warnDriver = function(id, message) { return api.post('/admin/drivers/' + id + '/warn', { message: message }); };
+
 export default api;
 
