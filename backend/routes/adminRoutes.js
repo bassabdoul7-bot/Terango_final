@@ -62,8 +62,8 @@ router.put('/partners/:id/verify', verifyPartner);
 // Commission management
 router.put('/drivers/:id/commission-paid', require('../controllers/adminController').markCommissionPaid);
 
-router.put('/drivers/:id/suspend', ctrl.suspendDriver);
-router.put('/drivers/:id/ban', ctrl.banDriver);
-router.post('/drivers/:id/warn', ctrl.warnDriver);
+router.put('/drivers/:id/suspend', require('../controllers/adminController').suspendDriver);
+router.put('/drivers/:id/ban', require('../controllers/adminController').banDriver);
+router.post('/drivers/:id/warn', require('../controllers/adminController').warnDriver);
 
 module.exports = router;
