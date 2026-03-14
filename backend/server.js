@@ -213,9 +213,8 @@ io.on('connection', function(socket) {
     lastLocationUpdate.set(driverId, now);
 
     driverLocationService.updateDriverLocation(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
-      // Track last activity for stale driver detection
-      require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date() }).catch(function(){});
       .then(function() {
+        require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date() }).catch(function(){});
         if (rideId) {
           io.to(rideId).emit('driver-location-update', {
             driverId: driverId,
