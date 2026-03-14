@@ -168,6 +168,7 @@ io.on('connection', function(socket) {
     socket.join('online-drivers');
     socket.driverId = driverId;
 
+    require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date(), isOnline: true }).catch(function(){});
     driverLocationService.setDriverOnline(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
       .then(function() {
         io.to('riders-watching').emit('driver-came-online', {
@@ -212,6 +213,8 @@ io.on('connection', function(socket) {
     lastLocationUpdate.set(driverId, now);
 
     driverLocationService.updateDriverLocation(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
+      // Track last activity for stale driver detection
+      require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date() }).catch(function(){});
       .then(function() {
         if (rideId) {
           io.to(rideId).emit('driver-location-update', {
@@ -358,6 +361,19 @@ process.on('SIGTERM', function() { gracefulShutdown('SIGTERM'); });
 process.on('SIGINT', function() { gracefulShutdown('SIGINT'); });
 
 const PORT = process.env.PORT || 5000;
+// Auto-offline stale drivers every 5 minutes
+var staleDriverCleanup = setInterval(async function() {
+  try {
+    var Driver = require('./models/Driver');
+    var tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+    var result = await Driver.updateMany(
+      { isOnline: true, lastLocationUpdate: { $lt: tenMinAgo } },
+      { isOnline: false, isAvailable: false }
+    );
+    if (result.modifiedCount > 0) console.log('Auto-offlined ' + result.modifiedCount + ' stale drivers');
+  } catch(e) {}
+}, 5 * 60 * 1000);
+
 server.listen(PORT, '0.0.0.0', function() {
     console.log('\nTeranGO Backend Running on port ' + PORT);
     console.log('   Redis: Upstash (Production)');
