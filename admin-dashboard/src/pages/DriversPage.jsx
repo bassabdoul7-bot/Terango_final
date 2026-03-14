@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { adminService } from '../services/api';
+import { adminService, suspendDriver, banDriver, warnDriver } from '../services/api';
 import { CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye, X } from 'lucide-react';
 
 var statusColors = {
@@ -17,6 +17,9 @@ export default function DriversPage() {
   var [totalPages, setTotalPages] = useState(1);
   var [search, setSearch] = useState('');
   var [selected, setSelected] = useState(null);
+  var [warnMsg, setWarnMsg] = useState("");
+  var [showWarnInput, setShowWarnInput] = useState(false);
+  var [modLoading, setModLoading] = useState(false);
   var [bigImage, setBigImage] = useState(null);
 
   function load() {
@@ -47,6 +50,34 @@ export default function DriversPage() {
       alert('Commission de ' + name + ' marquee comme payee!');
       load();
     }).catch(function() { alert('Erreur'); });
+  }
+
+  function handleSuspend(id, action) {
+    var reason = action === "suspend" ? prompt("Raison de la suspension:") : null;
+    if (action === "suspend" && !reason) return;
+    setModLoading(true);
+    suspendDriver(id, action, reason).then(function() {
+      alert(action === "suspend" ? "Chauffeur suspendu" : "Suspension levee");
+      setSelected(null); fetchDrivers();
+    }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
+  }
+
+  function handleBan(id) {
+    var reason = prompt("Raison du bannissement (irreversible):");
+    if (!reason) return;
+    if (!confirm("ATTENTION: Cette action est irreversible. Bannir ce chauffeur?")) return;
+    setModLoading(true);
+    banDriver(id, reason).then(function() {
+      alert("Chauffeur banni"); setSelected(null); fetchDrivers();
+    }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
+  }
+
+  function handleWarn(id) {
+    if (!warnMsg.trim()) return;
+    setModLoading(true);
+    warnDriver(id, warnMsg).then(function() {
+      alert("Avertissement envoye"); setWarnMsg(""); setShowWarnInput(false);
+    }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
   }
 
   var filtered = drivers.filter(function(d) {
@@ -196,6 +227,28 @@ export default function DriversPage() {
                   </div>
                 )}
               </div>
+
+              {/* Moderation */}
+              {selected.verificationStatus === "approved" && (
+                <div className="mt-4 pt-4 border-t border-gray-800">
+                  <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Moderation</h3>
+                  {selected.isSuspended && <div className="mb-3 px-3 py-2 rounded-lg bg-orange-500/10 text-orange-400 text-sm">Suspendu: {selected.suspensionReason}</div>}
+                  {selected.isBanned && <div className="mb-3 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm">Banni: {selected.banReason}</div>}
+                  {selected.totalWarnings > 0 && <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-sm">{selected.totalWarnings} avertissement(s)</div>}
+                  <div className="flex gap-2 mb-3">
+                    {!selected.isSuspended && !selected.isBanned && <button onClick={function(){handleSuspend(selected._id,"suspend");}} disabled={modLoading} className="flex-1 py-2 rounded-lg bg-orange-500/10 text-orange-400 text-sm font-medium hover:bg-orange-500/20 border border-orange-500/20">Suspendre</button>}
+                    {selected.isSuspended && <button onClick={function(){handleSuspend(selected._id,"unsuspend");}} disabled={modLoading} className="flex-1 py-2 rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-medium hover:bg-emerald-500/20 border border-emerald-500/20">Lever suspension</button>}
+                    {!selected.isBanned && <button onClick={function(){handleBan(selected._id);}} disabled={modLoading} className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 border border-red-500/20">Bannir</button>}
+                  </div>
+                  {!showWarnInput ? <button onClick={function(){setShowWarnInput(true);}} className="w-full py-2 rounded-lg bg-yellow-500/10 text-yellow-400 text-sm font-medium hover:bg-yellow-500/20 border border-yellow-500/20">Envoyer un avertissement</button> : (
+                    <div className="flex gap-2">
+                      <input value={warnMsg} onChange={function(e){setWarnMsg(e.target.value);}} placeholder="Message..." className="flex-1 bg-gray-800 rounded-lg px-3 py-2 text-sm text-white border border-gray-700" />
+                      <button onClick={function(){handleWarn(selected._id);}} disabled={modLoading || !warnMsg.trim()} className="px-4 py-2 rounded-lg bg-yellow-500 text-black text-sm font-medium hover:bg-yellow-600 disabled:opacity-30">Envoyer</button>
+                      <button onClick={function(){setShowWarnInput(false);setWarnMsg("");}} className="px-3 py-2 rounded-lg bg-gray-800 text-gray-400 text-sm hover:bg-gray-700">X</button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
