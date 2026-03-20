@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "TeranGO Client",
     "slug": "terango-rider",
@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.terango.rider"
+      "bundleIdentifier": "com.terango.rider",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TeranGO utilise votre position pour trouver des courses pres de vous.",
+        "NSLocationAlwaysUsageDescription": "TeranGO utilise votre position pour suivre votre course en temps reel."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +28,7 @@
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": true,
       "package": "com.terango.rider",
+      "googleServicesFile": "./google-services.json",
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
@@ -44,7 +49,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow TeranGO to use your location to find rides near you."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@maplibre/maplibre-react-native"
     ],
     "extra": {
       "eas": {
@@ -53,3 +59,5 @@
     }
   }
 }
+
+

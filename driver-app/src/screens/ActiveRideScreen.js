@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as PolylineUtil from '@mapbox/polyline';
@@ -12,13 +14,11 @@ import { driverService, deliveryService } from '../services/api.service';
 import * as Speech from 'expo-speech';
 import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../utils/voice';
 import { simplifyPolyline } from '../utils/polylineSimplifier';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 import ChatScreen from './ChatScreen';
 
 var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
-var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 var ARRIVAL_THRESHOLD = 50;
 
 // Cache for directions to avoid duplicate API calls
@@ -44,7 +44,7 @@ function CancelReasonModal(props) {
 
 function QueuedRideBanner(props) {
   var queuedRide = props.queuedRide; var onView = props.onView; if (!queuedRide) return null;
-  return (<TouchableOpacity style={queueStyles.banner} onPress={onView}><View style={queueStyles.iconContainer}><Text style={queueStyles.icon}>{"\uD83D\uDE97"}</Text></View><View style={queueStyles.textContainer}><Text style={queueStyles.title}>Course en attente</Text><Text style={queueStyles.subtitle}>{(queuedRide.fare?queuedRide.fare.toLocaleString():'0')+' FCFA - '+(queuedRide.distance?queuedRide.distance.toFixed(1):'0')+' km'}</Text></View><Text style={queueStyles.arrow}>{'>'}</Text></TouchableOpacity>);
+  return (<TouchableOpacity style={queueStyles.banner} onPress={onView}><View style={queueStyles.iconContainer}><Text style={queueStyles.icon}>{"\uD83D\uDE97"}</Text></View><View style={queueStyles.textContainer}><Text style={queueStyles.title}>Course en attente</Text><Text style={queueStyles.subtitle}>{(queuedRide.driverEarnings?queuedRide.driverEarnings.toLocaleString():'0')+' FCFA - '+(queuedRide.distance?queuedRide.distance.toFixed(1):'0')+' km'}</Text></View><Text style={queueStyles.arrow}>{'>'}</Text></TouchableOpacity>);
 }
 
 function ActiveRideScreen(props) {
@@ -53,7 +53,8 @@ function ActiveRideScreen(props) {
   var deliveryMode = route.params.deliveryMode || false; var deliveryData = route.params.deliveryData || null;
   var deliveryId = deliveryMode ? (rideId || (deliveryData ? (deliveryData._id || deliveryData.rideId) : null)) : null;
   var auth = useAuth(); var driver = auth.driver;
-  var mapRef = useRef(null); var locationSubscription = useRef(null); var hasFetchedRoute = useRef(false); var socketRef = useRef(null);
+  var mapRef = useRef(null);
+  var cameraRef = useRef(null); var locationSubscription = useRef(null); var hasFetchedRoute = useRef(false); var socketRef = useRef(null);
   var chatState = useState(false); var showChat = chatState[0]; var setShowChat = chatState[1];
   var announcementDistances = useRef(new Set()); var cancelledRef = useRef(false);
 
@@ -90,14 +91,33 @@ function ActiveRideScreen(props) {
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
-  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.fare?rideData.fare.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee par le passager','Le passager a annule la course.'+(data.reason?'\nRaison: '+data.reason:''),[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
+  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee par le passager','Le passager a annule la course.'+(data.reason?'\nRaison: '+data.reason:''),[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
+
+  // Check ride status when app returns to foreground
+  useEffect(function() {
+    var sub = AppState.addEventListener("change", function(state) {
+      if (state === "active" && rideId) {
+        driverService.getRide(rideId).then(function(res) {
+          if (res && res.success && res.ride) {
+            if (res.ride.status === "cancelled") {
+              if (!cancelledRef.current) {
+                cancelledRef.current = true;
+                Alert.alert("Course annulee", "Le passager a annule la course.", [{ text: "OK", onPress: function() { navigation.replace("RideRequests"); } }]);
+              }
+            }
+          }
+        }).catch(function() {});
+      }
+    });
+    return function() { sub.remove(); };
+  }, [rideId]);
 
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(){setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(){});}
 
   useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]);
 
-  useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:1000,distanceInterval:2},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);setCurrentSpeed(Math.max(0, Math.round((loc.coords.speed||0)*3.6)));driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
+  useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:1000,distanceInterval:2},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);setCurrentSpeed(Math.max(0, Math.round((loc.coords.speed||0)*3.6)));driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{rideId:rideId,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
@@ -130,38 +150,37 @@ function ActiveRideScreen(props) {
       if(cached.steps.length>0) setCurrentStep(cached.steps[0]);
       setRouteCoordinates(cached.coords);
       hasFetchedRoute.current=true;
-      setTimeout(function(){if(mapRef.current&&!navigationStarted){mapRef.current.fitToCoordinates(cached.coords,{edgePadding:{top:200,right:50,bottom:400,left:50},animated:true});}},1000);
+      setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=cached.coords.map(function(c){return c.latitude;});var lons=cached.coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
       return;
     }
 
-    var url='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&key='+GOOGLE_MAPS_KEY+'&mode=driving&language=fr&alternatives=true&departure_time=now&traffic_model=best_guess';
+    var url='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
     fetch(url).then(function(r){return r.json();}).then(function(data){
-      if(data.status==='OK'&&data.routes.length>0){
-        var leg=data.routes[0].legs[0];
-        var steps=leg.steps.map(function(step,index){return{id:index,instruction:step.html_instructions.replace(/<[^>]*>/g,''),distance:step.distance.text,distanceValue:step.distance.value,maneuver:step.maneuver,startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};});
-        var points=PolylineUtil.decode(data.routes[0].overview_polyline.points);
-        var coords=points.map(function(p){return{latitude:p[0],longitude:p[1]};});
-
-        directionsCache[cacheKey]={
-          totalDistance:leg.distance.text,
-          totalDuration:leg.duration.text,
-          steps:steps,
-          coords:coords
-        };
-
-        setTotalDistance(leg.distance.text);
-        setTotalDuration(leg.duration.text);
+      if(data.code==='Ok'&&data.routes.length>0){
+        var route=data.routes[0];
+        var leg=route.legs[0];
+        var steps=leg.steps.map(function(step,index){
+          var loc=step.maneuver.location;
+          var nextLoc=leg.steps[index+1]?leg.steps[index+1].maneuver.location:loc;
+          return{id:index,instruction:step.maneuver.instruction||step.name||'Continuer',distance:step.distance<1000?Math.round(step.distance)+' m':(step.distance/1000).toFixed(1)+' km',distanceValue:step.distance,maneuver:step.maneuver.type,startLocation:{latitude:loc[1],longitude:loc[0]},endLocation:{latitude:nextLoc[1],longitude:nextLoc[0]}};
+        });
+        var coords=PolylineUtil.decode(route.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
+        var distText=leg.distance<1000?Math.round(leg.distance)+' m':(leg.distance/1000).toFixed(1)+' km';
+        var durText=leg.duration<60?Math.round(leg.duration)+' sec':Math.round(leg.duration/60)+' min';
+        directionsCache[cacheKey]={totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
+        setTotalDistance(distText);
+        setTotalDuration(durText);
         setAllSteps(steps);
         if(steps.length>0)setCurrentStep(steps[0]);
         setRouteCoordinates(coords);
         hasFetchedRoute.current=true;
-        setTimeout(function(){if(mapRef.current&&!navigationStarted){mapRef.current.fitToCoordinates(coords,{edgePadding:{top:200,right:50,bottom:400,left:50},animated:true});}},1000);
+        setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=coords.map(function(c){return c.latitude;});var lons=coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
       }
     }).catch(function(err){console.error('Directions error:',err);hasFetchedRoute.current=false;});
   },[ride,driverLocation]);
 
   var announceInstruction = useCallback(function(instruction){if(!voiceEnabled)return;speakNavigation(instruction);},[voiceEnabled]);
-  var handleRecenter = useCallback(function(){if(mapRef.current&&driverLocation){mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:navigationStarted?30:0,heading:navigationStarted?heading:0},{duration:500});}},[driverLocation,heading,navigationStarted]);
+  var handleRecenter = useCallback(function(){if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:navigationStarted?30:0,heading:navigationStarted?heading:0,duration:500});}},[driverLocation,heading,navigationStarted]);
 
   useEffect(function(){if(!driverLocation||!currentStep||!allSteps.length||!voiceEnabled)return;var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);var stepKey='step_'+currentStep.id;if(distance<=300&&distance>250&&!announcementDistances.current.has(stepKey+'_300')){announceInstruction('Dans 300 metres, '+currentStep.instruction);announcementDistances.current.add(stepKey+'_300');}else if(distance<=100&&distance>75&&!announcementDistances.current.has(stepKey+'_100')){announceInstruction('Dans 100 metres, '+currentStep.instruction);announcementDistances.current.add(stepKey+'_100');}else if(distance<=50&&distance>30&&!announcementDistances.current.has(stepKey+'_50')){announceInstruction(currentStep.instruction);announcementDistances.current.add(stepKey+'_50');}if(currentStep.id!==lastAnnouncedStep){setLastAnnouncedStep(currentStep.id);announcementDistances.current.clear();}},[driverLocation,currentStep,allSteps,voiceEnabled,announceInstruction,lastAnnouncedStep]);
 
@@ -238,8 +257,8 @@ function ActiveRideScreen(props) {
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
   function getManeuverIcon(m){if(!m)return '^';if(m.indexOf('left')!==-1)return '<';if(m.indexOf('right')!==-1)return '>';if(m.indexOf('uturn')!==-1)return 'U';return '^';}
 
-  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:30,heading:heading},{duration:300});},[driverLocation,navigationStarted,heading]);
-  var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){mapRef.current.animateCamera({center:driverLocation,zoom:18,pitch:30,heading:heading},{duration:1000});}},[driverLocation,heading]);
+  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:300});},[driverLocation,navigationStarted,heading]);
+  var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:1000});}},[driverLocation,heading]);
   function handleCancelRide(){setShowCancelModal(true);}
   function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(){Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
   function handleContactSupport(){Alert.alert('Contacter le Support','Choisissez',[{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:function(){Linking.openURL('tel:+221338234567');}},{text:'WhatsApp',onPress:function(){Linking.openURL('https://wa.me/221778234567');}}]);}
@@ -255,7 +274,7 @@ function ActiveRideScreen(props) {
   var handleStartRide = useCallback(function(){
     if(ride && ride.pinRequired && !pinVerified){setShowPinModal(true);return;}
     setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId,ride,pinVerified]);
-  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Vous avez gagne '+(ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Gains: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
+  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Vous avez gagne '+(ride.driverEarnings||ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
 
   // ========== DELIVERY PHOTO FUNCTIONS ==========
   var takeDeliveryPhoto = function() {
@@ -364,8 +383,9 @@ function ActiveRideScreen(props) {
 
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{latitude:driverLocation.latitude,longitude:driverLocation.longitude,latitudeDelta:0.02,longitudeDelta:0.02}} showsUserLocation={false} showsBuildings={false} showsPointsOfInterest={false} showsTraffic={true} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
-        <Marker coordinate={driverLocation} anchor={{x:0.5,y:0.5}} flat rotation={heading}>
+      <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
+        <Camera ref={cameraRef} center={[driverLocation.longitude, driverLocation.latitude]} zoom={16} />
+        <Marker id="driverPos" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
           <View style={styles.driverMarkerOuter}>
             <View style={styles.driverMarkerShadow} />
             <View style={styles.driverMarkerArrow}>
@@ -375,14 +395,25 @@ function ActiveRideScreen(props) {
             <View style={styles.driverMarkerDot} />
           </View>
         </Marker>
-        {destination&&<Marker coordinate={destination} pinColor={ride.status==='in_progress'||ride.status==='picked_up'||ride.status==='at_dropoff'?COLORS.red:COLORS.green}/>}
-        {routeCoordinates.length>0&&(<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={14} lineCap="round" lineJoin="round"/><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={8} lineCap="round" lineJoin="round"/></>)}
-      </MapView>
+        {destination && (
+          <Marker id="destination" lngLat={[destination.longitude, destination.latitude]}>
+            <View style={ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffMarker : styles.pickupMarker}>
+              <View style={ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffDot : styles.pickupDot} />
+            </View>
+          </Marker>
+        )}
+        {routeCoordinates.length > 0 && (
+          <GeoJSONSource id="routeSource" data={{ type: "Feature", geometry: { type: "LineString", coordinates: routeCoordinates.map(function(c){return [c.longitude,c.latitude];}) } }}>
+            <Layer type="line" id="routeShadow" paint={{ "line-color": "#4285F4", "line-width": 14, "line-opacity": 0.3  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+            <Layer type="line" id="routeLine" paint={{ "line-color": "#4285F4", "line-width": 6  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+          </GeoJSONSource>
+        )}
+      </Map>
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
       <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
-      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){mapRef.current.animateCamera({pitch:0,zoom:15},{duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
+      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress'?styles.redSquare:styles.greenDot)}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress'?'Destination':'Point de depart')}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:''))}</Text></View></View></View>
@@ -560,3 +591,15 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
+
+
+
+
+
+
+
+
+
+

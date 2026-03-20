@@ -1,34 +1,30 @@
-{
-    "cli":  {
-                "version":  "\u003e= 16.24.1",
-                "appVersionSource":  "remote"
-            },
-    "build":  {
-                  "development":  {
-                                      "developmentClient":  true,
-                                      "distribution":  "internal",
-                                      "env":  {
-                                                  "NPM_CONFIG_LEGACY_PEER_DEPS":  "true"
-                                              }
-                                  },
-                  "preview":  {
-                                  "distribution":  "internal",
-                                  "env":  {
-                                              "NPM_CONFIG_LEGACY_PEER_DEPS":  "true",
-                                              "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY":  "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
-                                          }
-                              },
-                  "production":  {
-                                     "autoIncrement":  true,
-                                     "env":  {
-                                                 "NPM_CONFIG_LEGACY_PEER_DEPS":  "true",
-                                                 "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY":  "AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw"
-                                             }
-                                 }
-              },
-    "submit":  {
-                   "production":  {
-
-                                  }
-               }
+﻿{
+  "cli": {
+    "version": ">= 16.24.1",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
 }

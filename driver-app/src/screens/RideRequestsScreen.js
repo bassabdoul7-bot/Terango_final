@@ -1,13 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import CAR_IMAGES from '../constants/carImages';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, deliveryService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -17,7 +18,8 @@ const { width, height } = Dimensions.get('window');
 const RideRequestsScreen = ({ navigation, route }) => {
   const { driver } = useAuth();
   const driverId = route.params?.driverId || driver?._id;
-  const [location, setLocation] = useState(null);
+  const passedLocation = route.params?.location || null;
+  const [location, setLocation] = useState(passedLocation ? { latitude: passedLocation.latitude, longitude: passedLocation.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 } : null);
   const [rideRequests, setRideRequests] = useState([]);
   const [currentRequest, setCurrentRequest] = useState(null);
   const [socket, setSocket] = useState(null);
@@ -25,6 +27,8 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offerTimeout, setOfferTimeout] = useState(null);
+  const currentRequestRef = useRef(null);
+  const offerTimeoutRef = useRef(null);
   const [activeServices, setActiveServices] = useState({ rides: true, colis: false, commande: false, resto: false });
   const activeServicesRef = useRef({ rides: true, colis: false, commande: false, resto: false });
   const [showFilters, setShowFilters] = useState(false);
@@ -32,6 +36,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef(null);
+  const cameraRef = useRef(null);
   const soundRef = useRef(null);
   const vibrationInterval = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -69,7 +74,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); stopRideAlert(); }; }, []);
-  useEffect(() => { if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
+  useEffect(() => { currentRequestRef.current = currentRequest; if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
   useEffect(() => { if (!currentRequest) { Animated.loop(Animated.sequence([Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }), Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true })])).start(); } else { scanAnim.setValue(0); } }, [currentRequest]);
   useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
 
@@ -78,7 +83,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
 
   const getLocation = async () => {
     try { const { status } = await Location.requestForegroundPermissionsAsync(); if (status !== 'granted') { Alert.alert('Permission refus\u00e9e', 'Localisation requise'); return; }
-      const cur = await Location.getCurrentPositionAsync({}); setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 });
+      try { const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }); setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); } catch(e) { console.log("Location update error:", e); }
       setInterval(async () => { const loc = await Location.getCurrentPositionAsync({}); setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); await driverService.updateLocation(loc.coords.latitude, loc.coords.longitude); }, 10000);
     } catch (e) { console.error('Location error:', e); }
   };
@@ -87,9 +92,9 @@ const RideRequestsScreen = ({ navigation, route }) => {
     if (!driverId) return;
     createAuthSocket().then(function(newSocket) { setSocket(newSocket);
       newSocket.on('connect', () => { newSocket.emit('driver-online', { driverId, latitude: location?.latitude, longitude: location?.longitude }); });
-      newSocket.on('new-ride-offer', (rideData) => { rideData._offerType = 'ride'; if (!activeServicesRef.current.rides) return; setRideRequests(prev => [...prev, rideData]); if (!currentRequest) { setCurrentRequest(rideData); const t = setTimeout(() => { handleReject(); }, rideData.offerExpiresIn || 15000); setOfferTimeout(t); } });
-      newSocket.on('ride-taken', () => { Alert.alert('Course prise', 'Un autre chauffeur a accept\u00e9 cette course'); if (currentRequest) { setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); const next = rideRequests.find(r => r.rideId !== currentRequest.rideId); setCurrentRequest(next || null); } });
-      newSocket.on('ride-cancelled', function() { stopRideAlert(); setCurrentRequest(null); setRideRequests([]); if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } });
+      newSocket.on('new-ride-offer', (rideData) => { rideData._offerType = 'ride'; if (!activeServicesRef.current.rides) return; if (currentRequestRef.current) { setRideRequests(prev => [...prev, rideData]); return; } if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); } setCurrentRequest(rideData); setRideRequests(prev => [...prev, rideData]); var t = setTimeout(() => { handleReject(); }, rideData.offerExpiresIn || 15000); offerTimeoutRef.current = t; setOfferTimeout(t); });
+      newSocket.on('ride-taken', () => { Alert.alert('Course prise', 'Un autre chauffeur a accepte cette course'); stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } var req = currentRequestRef.current; if (req) { setRideRequests(function(prev) { var remaining = prev.filter(function(r) { return r.rideId !== req.rideId; }); var next = remaining.length > 0 ? remaining[0] : null; setCurrentRequest(next); return remaining; }); } });
+      newSocket.on('ride-cancelled', function() { stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } setCurrentRequest(null); setRideRequests([]); setOfferTimeout(null); });
       newSocket.on('new-delivery', (d) => { var sType = d.serviceType || 'colis'; if (sType === 'colis' && !activeServicesRef.current.colis) return; if (sType === 'commande' && !activeServicesRef.current.commande) return; if ((sType === 'resto' || sType === 'restaurant') && !activeServicesRef.current.resto) return; var offerData = { rideId: d.deliveryId, _offerType: d.serviceType || 'colis', _isDelivery: true, pickup: d.pickup, dropoff: d.dropoff, fare: d.fare, packageDetails: d.packageDetails, restaurantName: d.restaurantName, serviceType: d.serviceType, offerExpiresIn: 60000 }; setRideRequests(prev => [...prev, offerData]); if (!currentRequest) { setCurrentRequest(offerData); const t = setTimeout(() => { handleReject(); }, 60000); setOfferTimeout(t); } });
       newSocket.on('delivery-taken', () => { Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9.'); if (currentRequest && currentRequest._isDelivery) setCurrentRequest(null); });
       newSocket.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
@@ -97,7 +102,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     });
   };
 
-  const showRequestCard = () => { Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }).start(); if (mapRef.current && currentRequest) { mapRef.current.fitToCoordinates([{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }, { latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }], { edgePadding: { top: 100, right: 50, bottom: 400, left: 50 }, animated: true }); } };
+  const showRequestCard = () => { Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }).start(); if (mapRef.current && currentRequest) { if (cameraRef.current) { var pLat=currentRequest.pickup.coordinates.latitude; var pLon=currentRequest.pickup.coordinates.longitude; var dLat=currentRequest.dropoff.coordinates.latitude; var dLon=currentRequest.dropoff.coordinates.longitude; cameraRef.current.fitBounds([Math.min(pLon,dLon),Math.min(pLat,dLat),Math.max(pLon,dLon),Math.max(pLat,dLat)],{top:100,right:50,bottom:400,left:50},500); } } };
   const hideRequestCard = () => { Animated.timing(slideAnim, { toValue: height, duration: 300, useNativeDriver: true }).start(); };
   const handleGoOffline = async () => { setShowOfflineModal(false); try { await driverService.toggleOnlineStatus(false); if (socket && driverId) socket.emit('driver-offline', driverId); navigation.replace('Home'); } catch (e) { Alert.alert('Erreur', 'Impossible de passer hors ligne'); } };
 
@@ -106,15 +111,32 @@ const RideRequestsScreen = ({ navigation, route }) => {
     try { if (currentRequest._isDelivery) { await deliveryService.acceptDelivery(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest, deliveryMode: true, deliveryData: currentRequest }); } else { await driverService.acceptRide(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest }); } setCurrentRequest(null); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || "Impossible d'accepter"); } finally { setLoading(false); }
   };
 
-  const handleReject = async () => { if (!currentRequest) return; stopRideAlert(); if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!currentRequest._isDelivery) await driverService.rejectRide(currentRequest.rideId, 'Trop loin'); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); const next = rideRequests.find(r => r.rideId !== currentRequest.rideId); setCurrentRequest(next || null); } catch (e) {} };
+  const handleReject = async () => { var req = currentRequestRef.current; if (!req) return; stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!req._isDelivery) await driverService.rejectRide(req.rideId, 'Trop loin').catch(function(){}); } catch (e) {} setRideRequests(function(prev) { var remaining = prev.filter(function(r) { return r.rideId !== req.rideId; }); var next = remaining.length > 0 ? remaining[0] : null; setCurrentRequest(next); if (next) { var t = setTimeout(function() { handleReject(); }, next.offerExpiresIn || 15000); offerTimeoutRef.current = t; setOfferTimeout(t); } return remaining; }); };
 
   return (
     <View style={styles.container}>
       {location ? (
-        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={location} showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
-          {location && <Marker coordinate={location} anchor={{x:0.5,y:0.5}} flat title="Votre position"><View style={styles.driverMarkerOuter}><View style={styles.driverMarkerShadow} /><View style={styles.driverMarkerArrow}><View style={styles.driverArrowTop} /><View style={styles.driverArrowBottom} /></View><View style={styles.driverMarkerDot} /></View></Marker>}
-          {currentRequest && (<><Marker coordinate={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} pinColor={COLORS.green} title="D\u00e9part" /><Marker coordinate={{ latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }} pinColor={COLORS.red} title="Arriv\u00e9e" /><Circle center={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} radius={500} strokeColor="rgba(0,133,63,0.3)" fillColor="rgba(0,133,63,0.1)" /></>)}
-        </MapView>
+        <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+          <Camera ref={cameraRef} center={[location.longitude, location.latitude]} zoom={14} />
+          {location && (
+            <Marker id="driverPos" lngLat={[location.longitude, location.latitude]}>
+              <View style={styles.driverMarkerOuter}><View style={styles.driverMarkerShadow} /><View style={styles.driverMarkerArrow}><View style={styles.driverArrowTop} /><View style={styles.driverArrowBottom} /></View><View style={styles.driverMarkerDot} /></View>
+            </Marker>
+          )}
+          {currentRequest && (
+            <>
+              <Marker id="reqPickup" lngLat={[currentRequest.pickup.coordinates.longitude, currentRequest.pickup.coordinates.latitude]}>
+                <View style={styles.pickupMarker}><View style={styles.pickupDot} /></View>
+              </Marker>
+              <Marker id="reqDropoff" lngLat={[currentRequest.dropoff.coordinates.longitude, currentRequest.dropoff.coordinates.latitude]}>
+                <View style={styles.dropoffMarker}><View style={styles.dropoffDot} /></View>
+              </Marker>
+              <GeoJSONSource id="circleSource" data={{ type: "Feature", geometry: { type: "Point", coordinates: [currentRequest.pickup.coordinates.longitude, currentRequest.pickup.coordinates.latitude] } }}>
+                <Layer type="circle" id="circleLayer" paint={{ "circle-radius": 50, "circle-color": "rgba(0,133,63,0.1)", "circle-stroke-color": "rgba(0,133,63,0.3)", "circle-stroke-width": 1 }} />
+              </GeoJSONSource>
+            </>
+          )}
+        </Map>
       ) : (<View style={styles.loadingContainer}><Text style={styles.loadingText}>Chargement de la carte...</Text></View>)}
 
       <View style={styles.topBar}>
@@ -146,7 +168,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View><Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "\uD83D\uDCE6 Nouveau colis" : currentRequest.serviceType === "commande" ? "\uD83D\uDED2 Nouvelle commande" : "\uD83C\uDF7D\uFE0F Commande restaurant") : "Nouvelle course \uD83D\uDCCD"}</Text><Text style={styles.requestSubtitle}>{(currentRequest.distance || 0).toFixed(1)+' km \u2022 '+Math.round(currentRequest.distance * 2)+' min'+(currentRequest.distanceToPickup ? ' \u2022 '+currentRequest.distanceToPickup.toFixed(1)+'km de vous' : '')}</Text></View>
-              <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()+' FCFA'}</Text>
+              <Text style={styles.fareText}>{currentRequest.driverEarnings ? currentRequest.driverEarnings.toLocaleString() : currentRequest.fare.toLocaleString()+' FCFA'}</Text>
             </View>
             {currentRequest._isDelivery ? (
               <View style={styles.rideTypeRow}><View style={{width:40,height:40,borderRadius:20,backgroundColor:currentRequest.serviceType==='colis'?'rgba(255,149,0,0.15)':currentRequest.serviceType==='commande'?'rgba(175,82,222,0.15)':'rgba(255,59,48,0.15)',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:22, fontFamily: 'LexendDeca_400Regular' }}>{currentRequest.serviceType==='colis'?'\uD83D\uDCE6':currentRequest.serviceType==='commande'?'\uD83D\uDED2':'\uD83C\uDF7D\uFE0F'}</Text></View><View style={styles.rideTypeInfo}><Text style={styles.rideTypeName}>{currentRequest.serviceType==='colis'?'Livraison Colis':currentRequest.serviceType==='commande'?'Commande':'Restaurant'}</Text><Text style={styles.rideTypeDesc}>{currentRequest.restaurantName||(currentRequest.packageDetails?'Taille: '+currentRequest.packageDetails.size:'Livraison rapide')}</Text></View><View style={[styles.rideTypeBadge,{backgroundColor:'rgba(255,149,0,0.15)'}]}><Text style={[styles.rideTypeBadgeText,{color:'#FF9500'}]}>{(currentRequest.serviceType||'LIVRAISON').toUpperCase()}</Text></View></View>
@@ -168,7 +190,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             <Text style={styles.blockedIcon}>{'\u26A0\uFE0F'}</Text>
             <Text style={styles.blockedTitle}>Commission impay\u00e9e</Text>
             <Text style={styles.blockedAmount}>{blockedForPayment.balance.toLocaleString() + ' FCFA'}</Text>
-            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer à recevoir des courses.'}</Text>
+            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer Ã  recevoir des courses.'}</Text>
             <View style={styles.blockedPayInfo}>
               <Text style={styles.blockedPayTitle}>Payer via Wave ou Orange Money :</Text>
               <Text style={styles.blockedPayNumber}>+221 77 807 91 03</Text>
@@ -179,7 +201,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrêterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
+      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrÃªterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
     </View>
   );
 };
@@ -262,3 +284,12 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
+
+
+
+
+
+
+

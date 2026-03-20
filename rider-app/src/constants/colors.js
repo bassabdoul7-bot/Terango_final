@@ -1,4 +1,4 @@
-// TeranGO - Senegal Theme Colors
+﻿// TeranGO - Senegal Theme Colors
 // Design: White background + Dark green cards/headers/nav
 export const COLORS = {
   // Senegal Flag Colors
@@ -10,12 +10,12 @@ export const COLORS = {
   // Neutrals
   white: '#FFFFFF',
   black: '#1A1A1A',
-  gray: '#757575',
-  grayLight: '#E0E0E0',
+  gray: '#5a8a5a',
+  grayLight: '#a8d4a0',
 
   // Page backgrounds (light)
-  background: '#F5F5F5',
-  backgroundWhite: '#FFFFFF',
+  background: '#d4f0c8',
+  backgroundWhite: '#e2f5d8',
 
   // Dark green accents (cards, headers, navbars, banners)
   darkBg: '#001A12',

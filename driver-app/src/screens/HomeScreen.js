@@ -8,13 +8,15 @@ import {
   Alert,
   Image,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { useAuth } from '../context/AuthContext';
 
 const HomeScreen = ({ navigation }) => {
@@ -25,6 +27,8 @@ const HomeScreen = ({ navigation }) => {
   const [gettingLocation, setGettingLocation] = useState(true);
   const [socket, setSocket] = useState(null);
   const pendingGoOnline = useRef(false);
+  const appStateRef = useRef(AppState.currentState);
+  const locationRef = useRef(null);
 
   useEffect(() => {
     initializeLocation();
@@ -37,6 +41,29 @@ const HomeScreen = ({ navigation }) => {
 
     return () => { if (socket) { socket.disconnect(); } };
   }, []);
+
+  // Reconnect socket when app returns to foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', function(nextAppState) {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        console.log('App returned to foreground - reconnecting');
+        if (socket && !socket.connected) {
+          socket.connect();
+          // Re-emit driver-online if was online
+          if (isOnline && location) {
+            setTimeout(function() {
+              socket.emit('driver-online', { driverId: driver._id, latitude: location.latitude, longitude: location.longitude, vehicle: driver.vehicle, rating: driver.userId?.rating || 5.0 });
+              console.log('Re-emitted driver-online after foreground return');
+            }, 1000);
+          }
+        }
+      }
+      appStateRef.current = nextAppState;
+    });
+    return () => { subscription.remove(); };
+  }, [socket, isOnline, location]);
+
+  useEffect(() => { locationRef.current = location; }, [location]);
 
   useEffect(() => {
     if (location && pendingGoOnline.current) {
@@ -78,7 +105,7 @@ const HomeScreen = ({ navigation }) => {
       if (socket) {
         socket.emit('driver-online', { driverId: driver._id, latitude: location.latitude, longitude: location.longitude, vehicle: driver.vehicle, rating: driver.userId?.rating || 5.0 });
       }
-      navigation.replace("RideRequests", { driverId: driver._id });
+      navigation.replace("RideRequests", { driverId: driver._id, location: location });
     } catch (error) {
       console.error('Toggle online error:', error);
       Alert.alert('Erreur', error.response?.data?.message || 'Impossible de passer en ligne');
@@ -105,13 +132,19 @@ const HomeScreen = ({ navigation }) => {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       {location ? (
-        <MapView style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE}
-          initialRegion={{ ...location, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
-          showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
-          <Marker coordinate={location}>
-            <View style={styles.driverMarker}><Text style={styles.markerText}>▲</Text></View>
+        <Map style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+          <Camera center={[location.longitude, location.latitude]} zoom={14} />
+          <Marker id="driverLocation" lngLat={[location.longitude, location.latitude]}>
+            <View style={styles.driverMarkerOuter}>
+                <View style={styles.driverMarkerShadow} />
+                <View style={styles.driverMarkerArrow}>
+                  <View style={styles.driverArrowTop} />
+                  <View style={styles.driverArrowBottom} />
+                </View>
+                <View style={styles.driverMarkerDot} />
+              </View>
           </Marker>
-        </MapView>
+        </Map>
       ) : (
         <View style={styles.mapPlaceholder}>
           <ActivityIndicator size="large" color={COLORS.green} />
@@ -158,7 +191,12 @@ const styles = StyleSheet.create({
   map: { ...StyleSheet.absoluteFillObject },
   mapPlaceholder: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: COLORS.textDarkSub, fontSize: 16, marginTop: 16 , fontFamily: 'LexendDeca_400Regular' },
-  driverMarker: { width: 44, height: 44, backgroundColor: COLORS.green, borderRadius: 22, alignItems: 'center', justifyContent: 'center', borderWidth: 4, borderColor: '#fff', elevation: 8 },
+  driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
+  driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
   markerText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'flex-start' },
   menuButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -182,3 +220,8 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
+
+

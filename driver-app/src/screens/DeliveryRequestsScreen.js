@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image } from 'react-native';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import CAR_IMAGES from '../constants/carImages';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, deliveryService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
@@ -29,6 +30,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const slideAnim = useRef(new Animated.Value(height)).current;
   const scanAnim = useRef(new Animated.Value(0)).current;
   const mapRef = useRef(null);
+  const cameraRef = useRef(null);
 
   useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); }; }, []);
   useEffect(() => { if (currentRequest) showRequestCard(); else hideRequestCard(); }, [currentRequest]);
@@ -57,7 +59,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     });
   };
 
-  const showRequestCard = () => { Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }).start(); if (mapRef.current && currentRequest) { mapRef.current.fitToCoordinates([{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }, { latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }], { edgePadding: { top: 100, right: 50, bottom: 400, left: 50 }, animated: true }); } };
+  const showRequestCard = () => { Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }).start(); if (mapRef.current && currentRequest) { if (cameraRef.current) { var pLat=currentRequest.pickup.coordinates.latitude; var pLon=currentRequest.pickup.coordinates.longitude; var dLat=currentRequest.dropoff.coordinates.latitude; var dLon=currentRequest.dropoff.coordinates.longitude; cameraRef.current.fitBounds([Math.min(pLon,dLon),Math.min(pLat,dLat),Math.max(pLon,dLon),Math.max(pLat,dLat)],{top:100,right:50,bottom:400,left:50},500); } } };
   const hideRequestCard = () => { Animated.timing(slideAnim, { toValue: height, duration: 300, useNativeDriver: true }).start(); };
   const handleGoOffline = async () => { setShowOfflineModal(false); try { await driverService.toggleOnlineStatus(false); if (socket && driverId) socket.emit('driver-offline', driverId); navigation.replace('Home'); } catch (e) { Alert.alert('Erreur', 'Impossible de passer hors ligne'); } };
 
@@ -71,10 +73,27 @@ const RideRequestsScreen = ({ navigation, route }) => {
   return (
     <View style={styles.container}>
       {location ? (
-        <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={location} showsUserLocation={false} showsMyLocationButton={false} showsTraffic={false}>
-          {location && <Marker coordinate={location} title="Votre position"><View style={styles.driverMarker}><Text style={styles.driverMarkerText}>{"\u25B2"}</Text></View></Marker>}
-          {currentRequest && (<><Marker coordinate={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} pinColor={COLORS.green} title="D\u00e9part" /><Marker coordinate={{ latitude: currentRequest.dropoff.coordinates.latitude, longitude: currentRequest.dropoff.coordinates.longitude }} pinColor={COLORS.red} title="Arriv\u00e9e" /><Circle center={{ latitude: currentRequest.pickup.coordinates.latitude, longitude: currentRequest.pickup.coordinates.longitude }} radius={500} strokeColor="rgba(0,133,63,0.3)" fillColor="rgba(0,133,63,0.1)" /></>)}
-        </MapView>
+        <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+          <Camera ref={cameraRef} center={[location.longitude, location.latitude]} zoom={14} />
+          {location && (
+            <Marker id="driverPos" lngLat={[location.longitude, location.latitude]}>
+              <View style={styles.driverMarker}><Text style={styles.driverMarkerText}>{"\u25B2"}</Text></View>
+            </Marker>
+          )}
+          {currentRequest && (
+            <>
+              <Marker id="reqPickup" lngLat={[currentRequest.pickup.coordinates.longitude, currentRequest.pickup.coordinates.latitude]}>
+                <View style={styles.pickupMarker}><View style={styles.pickupDot} /></View>
+              </Marker>
+              <Marker id="reqDropoff" lngLat={[currentRequest.dropoff.coordinates.longitude, currentRequest.dropoff.coordinates.latitude]}>
+                <View style={styles.dropoffMarker}><View style={styles.dropoffDot} /></View>
+              </Marker>
+              <GeoJSONSource id="circleSource" data={{ type: "Feature", geometry: { type: "Point", coordinates: [currentRequest.pickup.coordinates.longitude, currentRequest.pickup.coordinates.latitude] } }}>
+                <Layer type="circle" id="circleLayer" paint={{ "circle-radius": 50, "circle-color": "rgba(0,133,63,0.1)", "circle-stroke-color": "rgba(0,133,63,0.3)", "circle-stroke-width": 1 }} />
+              </GeoJSONSource>
+            </>
+          )}
+        </Map>
       ) : (<View style={styles.loadingContainer}><Text style={styles.loadingText}>Chargement de la carte...</Text></View>)}
 
       <View style={styles.topBar}>
@@ -106,7 +125,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View><Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "\uD83D\uDCE6 Nouveau colis" : currentRequest.serviceType === "commande" ? "\uD83D\uDED2 Nouvelle commande" : "\uD83C\uDF7D\uFE0F Commande restaurant") : "Nouvelle course \uD83D\uDCCD"}</Text><Text style={styles.requestSubtitle}>{(currentRequest.distance || 0).toFixed(1)+' km \u2022 '+Math.round(currentRequest.distance * 2)+' min'+(currentRequest.distanceToPickup ? ' \u2022 '+currentRequest.distanceToPickup.toFixed(1)+'km de vous' : '')}</Text></View>
-              <Text style={styles.fareText}>{currentRequest.fare.toLocaleString()+' FCFA'}</Text>
+              <Text style={styles.fareText}>{(currentRequest.driverEarnings || currentRequest.fare).toLocaleString()+' FCFA'}</Text>
             </View>
             {currentRequest._isDelivery ? (
               <View style={styles.rideTypeRow}><View style={{width:40,height:40,borderRadius:20,backgroundColor:currentRequest.serviceType==='colis'?'rgba(255,149,0,0.15)':currentRequest.serviceType==='commande'?'rgba(175,82,222,0.15)':'rgba(255,59,48,0.15)',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:22, fontFamily: 'LexendDeca_400Regular' }}>{currentRequest.serviceType==='colis'?'\uD83D\uDCE6':currentRequest.serviceType==='commande'?'\uD83D\uDED2':'\uD83C\uDF7D\uFE0F'}</Text></View><View style={styles.rideTypeInfo}><Text style={styles.rideTypeName}>{currentRequest.serviceType==='colis'?'Livraison Colis':currentRequest.serviceType==='commande'?'Commande':'Restaurant'}</Text><Text style={styles.rideTypeDesc}>{currentRequest.restaurantName||(currentRequest.packageDetails?'Taille: '+currentRequest.packageDetails.size:'Livraison rapide')}</Text></View><View style={[styles.rideTypeBadge,{backgroundColor:'rgba(255,149,0,0.15)'}]}><Text style={[styles.rideTypeBadgeText,{color:'#FF9500'}]}>{(currentRequest.serviceType||'LIVRAISON').toUpperCase()}</Text></View></View>
@@ -187,3 +206,6 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
+
