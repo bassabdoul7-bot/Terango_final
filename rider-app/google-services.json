@@ -1,0 +1,29 @@
+﻿{
+  "project_info": {
+    "project_number": "1055653308399",
+    "project_id": "terango-bbefd",
+    "storage_bucket": "terango-bbefd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1055653308399:android:ed8cc8d422e19053c5781a",
+        "android_client_info": {
+          "package_name": "com.terango.rider"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSKZaT4ziHhxvmRGvktQ8UR8BUiEbEnZA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
