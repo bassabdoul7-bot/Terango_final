@@ -18,7 +18,7 @@ const RegisterScreen = ({ navigation }) => {
     if (!name.trim()) { Alert.alert('Erreur', 'Nom requis'); return; }
     if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro invalide'); return; }
     if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour r\u00e9cup\u00e9ration du PIN)'); return; }
-    if (!pin || pin.length !== 4) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
+    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
     if (pin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
     setLoading(true);
     try { await registerUser(fullPhone, name, email, pin); } catch (error) { Alert.alert('Erreur', error.message || 'Erreur lors de l\'inscription'); } finally { setLoading(false); }
@@ -51,11 +51,11 @@ const RegisterScreen = ({ navigation }) => {
               <Text style={styles.label}>{"Email (r\u00e9cup\u00e9ration PIN)"}</Text>
               <TextInput style={styles.input} placeholder="votre@email.com" placeholderTextColor="#999" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
-              <Text style={styles.label}>{"Cr\u00e9er un PIN (4 chiffres)"}</Text>
-              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
+              <Text style={styles.label}>{"Cr\u00e9er un PIN (6 chiffres)"}</Text>
+              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
 
               <Text style={styles.label}>Confirmer le PIN</Text>
-              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
+              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
 
               <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
             </View>
@@ -94,3 +94,4 @@ const styles = StyleSheet.create({
 });
 
 export default RegisterScreen;
+
