@@ -18,7 +18,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro de t\u00e9l\u00e9phone invalide'); return; }
-    if (!pin || pin.length !== 4) { Alert.alert('Erreur', 'Le PIN doit contenir 4 chiffres'); return; }
+    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'Le PIN doit contenir 6 chiffres'); return; }
     setLoading(true);
     try { await loginWithPin(fullPhone, pin); } catch (error) { Alert.alert('Erreur', error.message || 'PIN incorrect'); } finally { setLoading(false); }
   };
@@ -31,7 +31,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleResetPin = async () => {
     if (!otp || otp.length !== 6) { Alert.alert('Erreur', 'Code \u00e0 6 chiffres requis'); return; }
-    if (!newPin || newPin.length !== 4) { Alert.alert('Erreur', 'Le PIN doit contenir 4 chiffres'); return; }
+    if (!newPin || newPin.length !== 6) { Alert.alert('Erreur', 'Le PIN doit contenir 6 chiffres'); return; }
     if (newPin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
     setLoading(true);
     try { const response = await authService.resetPin(fullPhone, otp, newPin); if (response.success) { Alert.alert('Succ\u00e8s', 'PIN r\u00e9initialis\u00e9!'); setForgotMode(false); setOtp(''); setNewPin(''); setConfirmPin(''); setPin(''); } } catch (error) { Alert.alert('Erreur', error.message || 'Code invalide'); } finally { setLoading(false); }
@@ -54,10 +54,10 @@ const LoginScreen = ({ navigation }) => {
                 <Text style={styles.cardSubtitle}>{"Entrez le code re\u00e7u par email"}</Text>
                 <Text style={styles.label}>Code (6 chiffres)</Text>
                 <TextInput style={styles.input} placeholder="000000" placeholderTextColor="#999" value={otp} onChangeText={setOtp} keyboardType="number-pad" maxLength={6} />
-                <Text style={styles.label}>Nouveau PIN (4 chiffres)</Text>
-                <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={newPin} onChangeText={setNewPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
+                <Text style={styles.label}>Nouveau PIN (6 chiffres)</Text>
+                <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={newPin} onChangeText={setNewPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
                 <Text style={styles.label}>Confirmer PIN</Text>
-                <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
+                <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
                 <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
                 <TouchableOpacity onPress={() => setForgotMode(false)} style={styles.secondaryBtn}><Text style={styles.secondaryBtnText}>Retour</Text></TouchableOpacity>
               </View>
@@ -87,8 +87,8 @@ const LoginScreen = ({ navigation }) => {
                 <View style={styles.prefixBox}><Text style={styles.prefixText}>+221</Text></View>
                 <TextInput style={styles.phoneInput} placeholder="77 123 45 67" placeholderTextColor="#999" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={12} />
               </View>
-              <Text style={styles.label}>PIN (4 chiffres)</Text>
-              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={4} secureTextEntry />
+              <Text style={styles.label}>PIN (6 chiffres)</Text>
+              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
               <GlassButton title={loading ? 'Connexion...' : 'Se connecter'} onPress={handleLogin} loading={loading} />
               <TouchableOpacity onPress={handleForgotPin} style={{ marginTop: 16, alignItems: 'center' }}>
                 <Text style={styles.forgotText}>{"PIN oubli\u00e9?"}</Text>
@@ -132,3 +132,4 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+
