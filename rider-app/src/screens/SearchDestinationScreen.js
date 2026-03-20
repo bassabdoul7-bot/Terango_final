@@ -25,13 +25,28 @@ const SearchDestinationScreen = ({ route, navigation }) => {
     try {
       const cacheKey = currentLocation.latitude.toFixed(4) + ',' + currentLocation.longitude.toFixed(4);
       if (locationCache[cacheKey]) { setPickup(locationCache[cacheKey]); return; }
-      const result = await Location.reverseGeocodeAsync({ latitude: currentLocation.latitude, longitude: currentLocation.longitude });
-      if (result && result[0]) {
-        const addr = result[0];
-        const address = ((addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || '')).trim();
-        const pickupData = { address: address || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } };
+      var url = 'https://geocode.terango.sn/reverse?lat=' + currentLocation.latitude + '&lon=' + currentLocation.longitude + '&format=json&addressdetails=1&accept-language=fr';
+      var resp = await fetch(url);
+      var data = await resp.json();
+      if (data && data.address) {
+        var addr = data.address;
+        var name = addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || '';
+        var houseNumber = addr.house_number || '';
+        var road = addr.road || '';
+        var neighbourhood = addr.neighbourhood || addr.suburb || '';
+        var city = addr.city || addr.town || '';
+        var parts = [];
+        if (houseNumber && road) { parts.push(houseNumber + ' ' + road); }
+        else if (name) { parts.push(name); }
+        else if (road) { parts.push(road); }
+        if (neighbourhood && !parts.includes(neighbourhood)) parts.push(neighbourhood);
+        if (city && !parts.includes(city)) parts.push(city);
+        var address = parts.join(', ') || data.display_name.split(', ').slice(0, 3).join(', ');
+        var pickupData = { address: address || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } };
         locationCache[cacheKey] = pickupData;
         setPickup(pickupData);
+      } else {
+        setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
       }
     } catch (e) {
       setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
@@ -294,4 +309,5 @@ const styles = StyleSheet.create({
 });
 
 export default SearchDestinationScreen;
+
 
