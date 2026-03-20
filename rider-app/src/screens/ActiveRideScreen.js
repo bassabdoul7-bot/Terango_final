@@ -1,16 +1,16 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { rideService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
 
 const { width, height } = Dimensions.get('window');
-const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // ========== CONFETTI CELEBRATION COMPONENT ==========
 const ConfettiCelebration = ({ visible }) => {
@@ -135,7 +135,8 @@ const NoDriversScreen = ({ ride, onRetry, onGoHome, retrying }) => (
 
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId: initialRideId } = route.params;
-  const mapRef = useRef(null); const socketRef = useRef(null); const pollInterval = useRef(null); const etaInterval = useRef(null); const searchTimerRef = useRef(null); const alertShownRef = useRef(false);
+  const mapRef = useRef(null);
+  const cameraRef = useRef(null); const socketRef = useRef(null); const pollInterval = useRef(null); const etaInterval = useRef(null); const searchTimerRef = useRef(null); const alertShownRef = useRef(false);
   const [showChat, setShowChat] = useState(false);
   const [rideId, setRideId] = useState(initialRideId); const [ride, setRide] = useState(null); const [loading, setLoading] = useState(true); const [routeCoordinates, setRouteCoordinates] = useState([]); const [driverLocation, setDriverLocation] = useState(null); const [eta, setEta] = useState(null); const [distance, setDistance] = useState(null); const [showCancelModal, setShowCancelModal] = useState(false); const [cancelling, setCancelling] = useState(false); const [searchTime, setSearchTime] = useState(0); const [showNoDrivers, setShowNoDrivers] = useState(false); const [retrying, setRetrying] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -168,11 +169,15 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => d.location && setDriverLocation(d.location)); socketRef.current.on('ride-accepted', (d) => setRide(prev => prev ? { ...prev, status: 'accepted', driver: d } : prev)); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); };
 
-  const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || ride.status !== 'accepted' || !loc || !ride.pickup?.coordinates) return; try { const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${loc.latitude},${loc.longitude}&destination=${ride.pickup.coordinates.latitude},${ride.pickup.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}&mode=driving`; const r = await fetch(url); const data = await r.json(); if (data.status === 'OK' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration.value / 60)); setDistance(data.routes[0].legs[0].distance.text); } } catch (e) {} };
+  const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || ride.status !== 'accepted' || !loc || !ride.pickup?.coordinates) return; try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} };
 
   const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (['accepted', 'in_progress'].includes(rd.status)) await getDirections(rd); if (!alertShownRef.current) { if (rd.status === 'completed') { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace('Rating', { ride: rd }); }, 4000); } else if (rd.status === 'cancelled') { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } else if (rd.status === 'no_drivers_available') { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
 
-  const getDirections = async (rd) => { try { const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${rd.pickup.coordinates.latitude},${rd.pickup.coordinates.longitude}&destination=${rd.dropoff.coordinates.latitude},${rd.dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}&mode=driving&language=fr`; const r = await fetch(url); const data = await r.json(); if (data.status === 'OK' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); mapRef.current?.fitToCoordinates(coords, { edgePadding: { top: 120, right: 50, bottom: 350, left: 50 }, animated: true }); } } catch (e) {} };
+  const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) {
+          const lats = coords.map(c => c.latitude);
+          const lons = coords.map(c => c.longitude);
+          cameraRef.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [120, 50, 350, 50], 500);
+        } } } catch (e) {} };
 
   const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
@@ -199,18 +204,30 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={{ latitude: ride.pickup.coordinates.latitude, longitude: ride.pickup.coordinates.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }}>
-        <Marker coordinate={ride.pickup.coordinates}><View style={styles.pickupMarker}><View style={styles.pickupDot} /></View></Marker>
-        <Marker coordinate={ride.dropoff.coordinates}><View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View></Marker>
-        {driverLocation && <Marker coordinate={driverLocation} anchor={{ x: 0.5, y: 0.5 }} flat>
-          <Animated.View style={[styles.driverMarkerOuter, { transform: [{ rotate: driverRotation.interpolate({ inputRange: [-180, 180], outputRange: ['-180deg', '180deg'] }) }] }]}>
-            <View style={styles.driverArrowTop} />
-            <View style={styles.driverArrowBottom} />
-            <View style={styles.driverMarkerDot} />
-          </Animated.View>
-        </Marker>}
-        {routeCoordinates.length > 0 && (<><Polyline coordinates={routeCoordinates} strokeColor="#000000" strokeWidth={10} lineCap="round" lineJoin="round" /><Polyline coordinates={routeCoordinates} strokeColor="#4285F4" strokeWidth={6} lineCap="round" lineJoin="round" /></>)}
-      </MapView>
+      <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+        <Camera ref={cameraRef} center={[ride.pickup.coordinates.longitude, ride.pickup.coordinates.latitude]} zoom={13} />
+        <Marker id="pickup" lngLat={[ride.pickup.coordinates.longitude, ride.pickup.coordinates.latitude]}>
+          <View style={styles.pickupMarker}><View style={styles.pickupDot} /></View>
+        </Marker>
+        <Marker id="dropoff" lngLat={[ride.dropoff.coordinates.longitude, ride.dropoff.coordinates.latitude]}>
+          <View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View>
+        </Marker>
+        {driverLocation && (
+          <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
+            <Animated.View style={[styles.driverMarkerOuter, { transform: [{ rotate: driverRotation.interpolate({ inputRange: [-180, 180], outputRange: ["-180deg", "180deg"] }) }] }]}>
+              <View style={styles.driverArrowTop} />
+              <View style={styles.driverArrowBottom} />
+              <Image source={{ uri: "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png" }} style={styles.driverCarImage} resizeMode="contain" />
+            </Animated.View>
+          </Marker>
+        )}
+        {routeCoordinates.length > 0 && (
+          <GeoJSONSource id="routeSource" data={{ type: "Feature", geometry: { type: "LineString", coordinates: routeCoordinates.map(c => [c.longitude, c.latitude]) } }}>
+            <Layer type="line" id="routeShadow" paint={{ "line-color": "#4285F4", "line-width": 12, "line-opacity": 0.3  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+            <Layer type="line" id="routeLine" paint={{ "line-color": "#4285F4", "line-width": 5  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+          </GeoJSONSource>
+        )}
+      </Map>
       <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
       <View style={styles.bottomCard}>
         {ride.status === 'pending' && (<>
@@ -318,7 +335,8 @@ const styles = StyleSheet.create({
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
   dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
-  driverMarkerOuter: { width: 50, height: 50, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerOuter: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  driverCarImage: { width: 50, height: 35, tintColor: '#1A1A1A' },
   driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 30, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
   driverMarkerDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FCD115' },
@@ -367,3 +385,14 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
+
+
+
+
+
+
+
+
+

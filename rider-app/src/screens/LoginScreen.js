@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
@@ -118,7 +118,7 @@ var styles = StyleSheet.create({
   appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)' , fontFamily: 'LexendDeca_400Regular' },
   formArea: { flex: 1, marginTop: -20 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
+  card: { backgroundColor: '#e8f8e0', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
   cardTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
   cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
   label: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },

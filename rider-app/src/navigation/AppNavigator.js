@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +7,7 @@ import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
 import SearchDestinationScreen from '../screens/SearchDestinationScreen';
+import ConfirmDropoffScreen from '../screens/ConfirmDropoffScreen';
 import RideSelectionScreen from '../screens/RideSelectionScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
 import RatingScreen from '../screens/RatingScreen';
@@ -38,6 +39,7 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="SearchDestination" component={SearchDestinationScreen} />
+            <Stack.Screen name="ConfirmDropoff" component={ConfirmDropoffScreen} />
             <Stack.Screen name="RideSelection" component={RideSelectionScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
             <Stack.Screen name="Rating" component={RatingScreen} />
@@ -55,4 +57,5 @@ const AppNavigator = () => {
 };
 
 export default AppNavigator;
+
 

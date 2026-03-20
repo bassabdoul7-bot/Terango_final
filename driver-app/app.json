@@ -1,7 +1,8 @@
-{
+﻿{
   "expo": {
     "name": "TeranGO Pro",
     "slug": "terango-driver",
+    "newArchEnabled": true,
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,7 +17,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.terango.driver"
+      "bundleIdentifier": "com.terango.driver",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "TeranGO Pro utilise votre position pour recevoir des courses pres de vous.",
+        "NSLocationAlwaysUsageDescription": "TeranGO Pro utilise votre position en arriere-plan pour les courses actives."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,6 +29,7 @@
         "backgroundColor": "#00853F"
       },
       "package": "com.terango.driver",
+      "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": true,
       "config": {
         "googleMaps": {
@@ -45,7 +51,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow TeranGO to use your location to show you nearby rides."
         }
       ],
-      "expo-font"
+      "expo-font",
+      "@maplibre/maplibre-react-native"
     ],
     "extra": {
       "eas": {
@@ -54,3 +61,5 @@
     }
   }
 }
+
+

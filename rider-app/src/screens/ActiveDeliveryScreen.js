@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, BackHandler, Alert, Easing } from 'react-native';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
-import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { deliveryService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
 
 const { width, height } = Dimensions.get('window');
-const GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 var STATUS_MAP = {
   pending: { label: 'Recherche de livreur...', color: COLORS.yellow, icon: '\uD83D\uDD0D' },
@@ -78,8 +78,8 @@ var ActiveDeliveryScreen = function(props) {
     if (!del || !del.pickup || !del.dropoff) return;
     var origin = del.pickup.coordinates.latitude + ',' + del.pickup.coordinates.longitude;
     var dest = del.dropoff.coordinates.latitude + ',' + del.dropoff.coordinates.longitude;
-    fetch('https://maps.googleapis.com/maps/api/directions/json?origin=' + origin + '&destination=' + dest + '&key=' + GOOGLE_MAPS_KEY).then(function(r) { return r.json(); }).then(function(data) {
-      if (data.status === 'OK' && data.routes[0]) { var points = PolylineUtil.decode(data.routes[0].overview_polyline.points); setRouteCoords(points.map(function(p) { return { latitude: p[0], longitude: p[1] }; })); if (data.routes[0].legs && data.routes[0].legs[0]) setEta(data.routes[0].legs[0].duration.text); }
+    fetch('https://osrm.terango.sn/route/v1/driving/' + origin + ';' + dest + '?overview=full&geometries=polyline').then(function(r) { return r.json(); }).then(function(data) {
+      if (data.code === 'Ok' && data.routes[0]) { var points = PolylineUtil.decode(data.routes[0].geometry); setRouteCoords(points.map(function(p) { return { latitude: p[0], longitude: p[1] }; })); if (data.routes[0].legs && data.routes[0].legs[0]) { var dur = data.routes[0].legs[0].duration; setEta(dur < 60 ? Math.round(dur) + ' sec' : Math.round(dur/60) + ' min'); } }
     }).catch(function() {});
   }
 
@@ -98,11 +98,29 @@ var ActiveDeliveryScreen = function(props) {
 
   return (
     <View style={styles.container}>
-      <MapView ref={mapRef} style={styles.map} provider={PROVIDER_GOOGLE} customMapStyle={WAZE_DARK_STYLE} initialRegion={initialRegion} showsUserLocation={true}>
-        {delivery && (<><Marker coordinate={{ latitude: delivery.pickup.coordinates.latitude, longitude: delivery.pickup.coordinates.longitude }} title="Collecte" pinColor={COLORS.green} /><Marker coordinate={{ latitude: delivery.dropoff.coordinates.latitude, longitude: delivery.dropoff.coordinates.longitude }} title="Livraison" pinColor={COLORS.red} /></>)}
-        {routeCoords.length > 0 && <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#4285F4" />}
-        {driverLocation && <Marker coordinate={driverLocation}><View style={styles.driverMarker}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{'\uD83D\uDEB5'}</Text></View></Marker>}
-      </MapView>
+      <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+        <Camera center={[initialRegion.longitude, initialRegion.latitude]} zoom={13} />
+        {delivery && (
+          <>
+            <Marker id="pickup" lngLat={[delivery.pickup.coordinates.longitude, delivery.pickup.coordinates.latitude]}>
+              <View style={styles.pickupMarker}><View style={styles.pickupDot} /></View>
+            </Marker>
+            <Marker id="dropoff" lngLat={[delivery.dropoff.coordinates.longitude, delivery.dropoff.coordinates.latitude]}>
+              <View style={styles.dropoffMarker}><View style={styles.dropoffDot} /></View>
+            </Marker>
+          </>
+        )}
+        {routeCoords.length > 0 && (
+          <GeoJSONSource id="routeSource" data={{ type: "Feature", geometry: { type: "LineString", coordinates: routeCoords.map(c => [c.longitude, c.latitude]) } }}>
+            <Layer type="line" id="routeLine" paint={{ "line-color": "#FFFFFF", "line-width": 4  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+          </GeoJSONSource>
+        )}
+        {driverLocation && (
+          <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
+            <View style={styles.driverMarker}><Text style={{ fontSize: 20, fontFamily: "LexendDeca_400Regular" }}>{"\uD83D\uDEB5"}</Text></View>
+          </Marker>
+        )}
+      </Map>
 
       <View style={styles.statusBar}><Text style={{ fontSize: 18 , fontFamily: 'LexendDeca_400Regular' }}>{statusInfo.icon}</Text><Text style={[styles.statusText, { color: statusInfo.color }]}>{statusInfo.label}</Text>{eta && delivery && delivery.status !== 'no_drivers_available' && delivery.status !== 'pending' && <Text style={styles.etaText}>{eta}</Text>}</View>
 
@@ -193,3 +211,9 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
+
+
+
+
+

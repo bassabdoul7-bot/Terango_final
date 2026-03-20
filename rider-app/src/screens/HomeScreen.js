@@ -13,7 +13,9 @@ import {
   Animated,
   Easing,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+
+const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -23,7 +25,6 @@ import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, rideService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
-var GOOGLE_MAPS_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 function HomeScreen(props) {
   var navigation = props.navigation;
@@ -209,7 +210,7 @@ function HomeScreen(props) {
   }
 
   function handleWhereToPress() {
-    navigation.navigate('SearchDestination', { currentLocation: location });
+    if (!location) { Alert.alert('Position GPS', 'En attente de votre position...'); return; } navigation.navigate('SearchDestination', { currentLocation: location });
   }
 
   function handleQuickPlace(type) {
@@ -236,7 +237,7 @@ function HomeScreen(props) {
     }
 
     try {
-      // Check cache first to avoid unnecessary Google API calls
+      // Check cache first
       var cacheKey = 'geocode_' + saveAddress.trim().toLowerCase();
       var cached = await AsyncStorage.getItem(cacheKey);
 
@@ -253,18 +254,16 @@ function HomeScreen(props) {
         return;
       }
 
-      var url = 'https://maps.googleapis.com/maps/api/geocode/json?address=' +
-        encodeURIComponent(saveAddress) + '&key=' + GOOGLE_MAPS_KEY + '&region=sn';
-
-      var res = await fetch(url);
+      var url = 'https://nominatim.openstreetmap.org/search?q=' +
+        encodeURIComponent(saveAddress) + '&format=json&limit=1&countrycodes=sn';
+      var res = await fetch(url, { headers: { 'User-Agent': 'TeranGO/1.0' } });
       var data = await res.json();
-
-      if (data.results && data.results.length > 0) {
-        var result = data.results[0];
+      if (data && data.length > 0) {
+        var result = data[0];
         var place = {
-          address: result.formatted_address,
-          latitude: result.geometry.location.lat,
-          longitude: result.geometry.location.lng,
+          address: result.display_name,
+          latitude: parseFloat(result.lat),
+          longitude: parseFloat(result.lon),
         };
 
         // Save to cache for future use
@@ -529,31 +528,38 @@ function HomeScreen(props) {
     return (
       <View style={{ flex: 1 }}>
         {location && (
-          <MapView
+          <Map
             style={styles.map}
-            provider={PROVIDER_GOOGLE}
-            customMapStyle={WAZE_DARK_STYLE}
-            initialRegion={location}
-            showsUserLocation={false}
-            showsMyLocationButton={false}
-            showsTraffic={false}
+            mapStyle={TERANGO_STYLE}
+            logo={false}
+            attribution={false}
           >
-            <Marker coordinate={location}>
+            <Camera
+              center={[location.longitude, location.latitude]}
+              zoom={14}
+            />
+            <Marker
+              id="userLocation"
+              lngLat={[location.longitude, location.latitude]}
+            >
               <View style={styles.userMarker}>
                 <View style={styles.userMarkerInner} />
               </View>
             </Marker>
-
             {nearbyDrivers.map(function(driver) {
               return (
-                <Marker key={driver._id} coordinate={driver.location} anchor={{ x: 0.5, y: 0.5 }}>
+                <Marker
+                  key={driver._id}
+                  id={`driver_${driver._id}`}
+                  coordinate={[driver.location.longitude, driver.location.latitude]}
+                >
                   <Animated.View style={[styles.driverMarker, { transform: [{ scale: driverPulse }] }]}>
                     <View style={styles.driverArrowSmall} />
                   </Animated.View>
                 </Marker>
               );
             })}
-          </MapView>
+          </Map>
         )}
 
         {nearbyDrivers.length > 0 && (
@@ -623,7 +629,7 @@ function HomeScreen(props) {
           <View style={styles.servicesSection}>
             <Text style={styles.servicesTitle}>Services</Text>
             <View style={styles.servicesGrid}>
-              <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('SearchDestination', { currentLocation: location }); }}>
+              <TouchableOpacity style={styles.serviceCard} onPress={function() { if (!location) { Alert.alert('Position GPS', 'En attente de votre position...'); return; } navigation.navigate('SearchDestination', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(0, 133, 63, 0.25)' }]}>
                   <Text style={styles.serviceEmoji}>{"🚗"}</Text>
                 </View>
@@ -937,3 +943,15 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, StatusBar, Image, Alert, Modal, TextInput } from 'react-native';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
@@ -29,7 +29,7 @@ function RestaurantMenuScreen(props) {
     var promise = restaurantId ? restaurantService.getRestaurantById(restaurantId) : restaurantService.getRestaurantBySlug(restaurantSlug);
     promise.then(function(response) {
       if (response.success) { setRestaurant(response.restaurant); }
-      else { Alert.alert('Erreur', 'Restaurant non trouvé'); navigation.goBack(); }
+      else { Alert.alert('Erreur', 'Restaurant non trouv\u00e9'); navigation.goBack(); }
       setLoading(false);
     }).catch(function(err) {
       console.error('Load restaurant error:', err);
@@ -41,9 +41,9 @@ function RestaurantMenuScreen(props) {
 
   function getDeliveryAddress() {
     if (currentLocation) {
-      var url = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=' + currentLocation.latitude + ',' + currentLocation.longitude + '&key=' + process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY + '&language=fr';
-      fetch(url).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.results && data.results.length > 0) { setDeliveryAddress(data.results[0].formatted_address); }
+      var url = 'https://geocode.terango.sn/reverse?lat=' + currentLocation.latitude + '&lon=' + currentLocation.longitude + '&format=json&accept-language=fr';
+      fetch(url, { headers: { 'User-Agent': 'TeranGO/1.0' } }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data && data.display_name) { setDeliveryAddress(data.display_name); }
       }).catch(function() {});
     }
   }
@@ -116,7 +116,7 @@ function RestaurantMenuScreen(props) {
       setSubmitting(false);
       if (response.success) {
         setShowCheckout(false); setCart([]);
-        Alert.alert('Commande envoyée! 🎉', 'Votre commande #' + response.order.orderNumber + ' a été envoyée au restaurant.', [{ text: 'OK', onPress: function() { navigation.goBack(); } }]);
+        Alert.alert('Commande envoy\u00e9e! \uD83C\uDF89', 'Votre commande #' + response.order.orderNumber + ' a \u00e9t\u00e9 envoy\u00e9e au restaurant.', [{ text: 'OK', onPress: function() { navigation.goBack(); } }]);
       } else { Alert.alert('Erreur', response.message || 'Impossible de passer la commande'); }
     }).catch(function(err) { setSubmitting(false); console.error('Order error:', err); Alert.alert('Erreur', 'Erreur de connexion'); });
   }
@@ -130,34 +130,33 @@ function RestaurantMenuScreen(props) {
   var menuItems = getFilteredMenu();
   var cartCount = getCartCount();
   var PAYMENT_OPTIONS = [
-    { key: 'cash', icon: '💵', label: 'Espèces' },
-    { key: 'wave', icon: '🌊', label: 'Wave' },
-    { key: 'orange_money', icon: '🟠', label: 'Orange Money' },
-    { key: 'free_money', icon: '💳', label: 'Free Money' },
+    { key: 'cash', icon: '\uD83D\uDCB5', label: 'Esp\u00e8ces' },
+    { key: 'wave', icon: '\uD83C\uDF0A', label: 'Wave' },
+    { key: 'orange_money', icon: '\uD83D\uDFE0', label: 'Orange Money' },
+    { key: 'free_money', icon: '\uD83D\uDCB3', label: 'Free Money' },
   ];
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function() { navigation.goBack(); }}>
-          <Text style={styles.backIcon}>←</Text>
+          <Text style={styles.backIcon}>{'\u2190'}</Text>
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={styles.headerName} numberOfLines={1}>{restaurant.name}</Text>
           <View style={styles.headerMeta}>
-            <Text style={styles.headerStars}>{'⭐ ' + (restaurant.rating || 0).toFixed(1)}</Text>
-            <Text style={styles.headerDot}>•</Text>
+            <Text style={styles.headerStars}>{'\u2B50 ' + (restaurant.rating || 0).toFixed(1)}</Text>
+            <Text style={styles.headerDot}>{'\u2022'}</Text>
             <Text style={styles.headerTime}>{(restaurant.estimatedDeliveryTime || 30) + ' min'}</Text>
-            <Text style={styles.headerDot}>•</Text>
+            <Text style={styles.headerDot}>{'\u2022'}</Text>
             <Text style={styles.headerMin}>{'Min ' + (restaurant.minimumOrder || 1000).toLocaleString() + ' F'}</Text>
           </View>
         </View>
         {restaurant.isOpen ? (
           <View style={styles.openBadge}><Text style={styles.openText}>Ouvert</Text></View>
         ) : (
-          <View style={styles.closedBadge}><Text style={styles.closedBadgeText}>Fermé</Text></View>
+          <View style={styles.closedBadge}><Text style={styles.closedBadgeText}>{"Ferm\u00e9"}</Text></View>
         )}
       </View>
 
@@ -174,7 +173,7 @@ function RestaurantMenuScreen(props) {
 
       <ScrollView style={styles.menuScroll} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
         {menuItems.length === 0 ? (
-          <View style={styles.emptyMenu}><Text style={styles.emptyIcon}>🍽️</Text><Text style={styles.emptyText}>Aucun plat disponible</Text></View>
+          <View style={styles.emptyMenu}><Text style={styles.emptyIcon}>{'\uD83C\uDF7D\uFE0F'}</Text><Text style={styles.emptyText}>Aucun plat disponible</Text></View>
         ) : (
           menuItems.map(function(item) {
             var qty = getItemQuantity(item._id);
@@ -185,13 +184,13 @@ function RestaurantMenuScreen(props) {
                   {item.description ? <Text style={styles.menuDesc} numberOfLines={2}>{item.description}</Text> : null}
                   <View style={styles.menuBottom}>
                     <Text style={styles.menuPrice}>{item.price.toLocaleString() + ' FCFA'}</Text>
-                    {item.preparationTime ? <Text style={styles.menuTime}>{'⏱ ' + item.preparationTime + ' min'}</Text> : null}
+                    {item.preparationTime ? <Text style={styles.menuTime}>{'\u23F1 ' + item.preparationTime + ' min'}</Text> : null}
                   </View>
                 </View>
                 <View style={styles.menuActions}>
                   {qty > 0 ? (
                     <View style={styles.qtyControl}>
-                      <TouchableOpacity style={styles.qtyBtn} onPress={function() { removeFromCart(item._id); }}><Text style={styles.qtyBtnText}>−</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.qtyBtn} onPress={function() { removeFromCart(item._id); }}><Text style={styles.qtyBtnText}>{'\u2212'}</Text></TouchableOpacity>
                       <Text style={styles.qtyText}>{qty}</Text>
                       <TouchableOpacity style={[styles.qtyBtn, styles.qtyBtnAdd]} onPress={function() { addToCart(item); }}><Text style={styles.qtyBtnAddText}>+</Text></TouchableOpacity>
                     </View>
@@ -219,7 +218,7 @@ function RestaurantMenuScreen(props) {
           <View style={styles.cartModal}>
             <View style={styles.cartHeader}>
               <Text style={styles.cartTitle}>Votre panier</Text>
-              <TouchableOpacity onPress={function() { setShowCart(false); }}><Text style={styles.cartClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={function() { setShowCart(false); }}><Text style={styles.cartClose}>{'\u2715'}</Text></TouchableOpacity>
             </View>
             <ScrollView style={styles.cartList} nestedScrollEnabled={true}>
               {cart.map(function(item) {
@@ -230,7 +229,7 @@ function RestaurantMenuScreen(props) {
                       <Text style={styles.cartItemPrice}>{(item.price * item.quantity).toLocaleString() + ' F'}</Text>
                     </View>
                     <View style={styles.cartItemQty}>
-                      <TouchableOpacity style={styles.cartQtyBtn} onPress={function() { removeFromCart(item.menuItemId); }}><Text style={styles.cartQtyBtnText}>−</Text></TouchableOpacity>
+                      <TouchableOpacity style={styles.cartQtyBtn} onPress={function() { removeFromCart(item.menuItemId); }}><Text style={styles.cartQtyBtnText}>{'\u2212'}</Text></TouchableOpacity>
                       <Text style={styles.cartQtyText}>{item.quantity}</Text>
                       <TouchableOpacity style={styles.cartQtyBtn} onPress={function() { addToCart({ _id: item.menuItemId, name: item.name, price: item.price }); }}><Text style={styles.cartQtyBtnText}>+</Text></TouchableOpacity>
                     </View>
@@ -245,7 +244,7 @@ function RestaurantMenuScreen(props) {
               <View style={[styles.cartSumRow, styles.cartTotalRow]}><Text style={styles.cartTotalLabel}>Total</Text><Text style={styles.cartTotalValue}>{getTotal().toLocaleString() + ' FCFA'}</Text></View>
             </View>
             <TouchableOpacity style={styles.checkoutBtn} onPress={handleCheckout}>
-              <Text style={styles.checkoutBtnText}>{'Commander • ' + getTotal().toLocaleString() + ' F'}</Text>
+              <Text style={styles.checkoutBtnText}>{'Commander \u2022 ' + getTotal().toLocaleString() + ' F'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -256,12 +255,12 @@ function RestaurantMenuScreen(props) {
           <View style={styles.checkoutModal}>
             <View style={styles.cartHeader}>
               <Text style={styles.cartTitle}>Finaliser la commande</Text>
-              <TouchableOpacity onPress={function() { setShowCheckout(false); }}><Text style={styles.cartClose}>✕</Text></TouchableOpacity>
+              <TouchableOpacity onPress={function() { setShowCheckout(false); }}><Text style={styles.cartClose}>{'\u2715'}</Text></TouchableOpacity>
             </View>
             <ScrollView style={styles.checkoutScroll} nestedScrollEnabled={true}>
               <Text style={styles.checkoutSection}>Adresse de livraison</Text>
               <TextInput style={styles.checkoutInput} value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder="Votre adresse..." placeholderTextColor={COLORS.textLightMuted} />
-              <Text style={styles.checkoutSection}>Instructions spéciales</Text>
+              <Text style={styles.checkoutSection}>{"Instructions sp\u00e9ciales"}</Text>
               <TextInput style={[styles.checkoutInput, { height: 80, textAlignVertical: 'top' }]} value={instructions} onChangeText={setInstructions} placeholder="Ex: Sans oignon, extra piment..." placeholderTextColor={COLORS.textLightMuted} multiline />
               <Text style={styles.checkoutSection}>Moyen de paiement</Text>
               <View style={styles.paymentGrid}>
@@ -283,7 +282,7 @@ function RestaurantMenuScreen(props) {
               </View>
             </ScrollView>
             <TouchableOpacity style={[styles.placeOrderBtn, submitting && styles.placeOrderBtnDisabled]} onPress={handlePlaceOrder} disabled={submitting}>
-              {submitting ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.placeOrderText}>{'Confirmer • ' + getTotal().toLocaleString() + ' F'}</Text>}
+              {submitting ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.placeOrderText}>{'Confirmer \u2022 ' + getTotal().toLocaleString() + ' F'}</Text>}
             </TouchableOpacity>
           </View>
         </View>
@@ -295,17 +294,17 @@ function RestaurantMenuScreen(props) {
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: COLORS.textDarkSub, marginTop: 12, fontSize: 14 , fontFamily: 'LexendDeca_400Regular' },
+  loadingText: { color: COLORS.textDarkSub, marginTop: 12, fontSize: 14, fontFamily: 'LexendDeca_400Regular' },
   header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
   backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
   headerInfo: { flex: 1 },
   headerName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   headerMeta: { flexDirection: 'row', alignItems: 'center' },
-  headerStars: { fontSize: 13, color: COLORS.yellow , fontFamily: 'LexendDeca_400Regular' },
+  headerStars: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_400Regular' },
   headerDot: { color: COLORS.textLightMuted, marginHorizontal: 6 },
-  headerTime: { fontSize: 13, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
-  headerMin: { fontSize: 13, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  headerTime: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  headerMin: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   openBadge: { backgroundColor: 'rgba(76, 217, 100, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   openText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.green },
   closedBadge: { backgroundColor: 'rgba(255, 59, 48, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
@@ -318,15 +317,15 @@ var styles = StyleSheet.create({
   catTextActive: { color: COLORS.yellow },
   menuScroll: { flex: 1, paddingHorizontal: 20, paddingTop: 16 },
   emptyMenu: { alignItems: 'center', marginTop: 60 },
-  emptyIcon: { fontSize: 50, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
-  emptyText: { fontSize: 16, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
+  emptyIcon: { fontSize: 50, marginBottom: 12, fontFamily: 'LexendDeca_400Regular' },
+  emptyText: { fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   menuCard: { flexDirection: 'row', backgroundColor: COLORS.backgroundWhite, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.grayLight, elevation: 1 },
   menuInfo: { flex: 1, marginRight: 12 },
   menuName: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDark, marginBottom: 4 },
-  menuDesc: { fontSize: 13, color: COLORS.textDarkSub, marginBottom: 8, lineHeight: 18 , fontFamily: 'LexendDeca_400Regular' },
+  menuDesc: { fontSize: 13, color: COLORS.textDarkSub, marginBottom: 8, lineHeight: 18, fontFamily: 'LexendDeca_400Regular' },
   menuBottom: { flexDirection: 'row', alignItems: 'center' },
   menuPrice: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginRight: 12 },
-  menuTime: { fontSize: 12, color: COLORS.textDarkMuted , fontFamily: 'LexendDeca_400Regular' },
+  menuTime: { fontSize: 12, color: COLORS.textDarkMuted, fontFamily: 'LexendDeca_400Regular' },
   menuActions: { justifyContent: 'center' },
   addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center' },
   addBtnText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
@@ -345,20 +344,20 @@ var styles = StyleSheet.create({
   cartModal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: 34 },
   cartHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   cartTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  cartClose: { fontSize: 20, color: COLORS.textLightMuted, padding: 4 , fontFamily: 'LexendDeca_400Regular' },
+  cartClose: { fontSize: 20, color: COLORS.textLightMuted, padding: 4, fontFamily: 'LexendDeca_400Regular' },
   cartList: { paddingHorizontal: 20, paddingVertical: 12 },
   cartItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   cartItemInfo: { flex: 1 },
   cartItemName: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, marginBottom: 2 },
-  cartItemPrice: { fontSize: 14, color: COLORS.yellow , fontFamily: 'LexendDeca_400Regular' },
+  cartItemPrice: { fontSize: 14, color: COLORS.yellow, fontFamily: 'LexendDeca_400Regular' },
   cartItemQty: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cartQtyBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   cartQtyBtnText: { fontSize: 18, color: COLORS.textLight, fontFamily: 'LexendDeca_600SemiBold' },
   cartQtyText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, minWidth: 20, textAlign: 'center' },
   cartSummary: { paddingHorizontal: 20, paddingTop: 12 },
   cartSumRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  cartSumLabel: { fontSize: 14, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
-  cartSumValue: { fontSize: 14, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  cartSumLabel: { fontSize: 14, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  cartSumValue: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   cartTotalRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12, marginTop: 4 },
   cartTotalLabel: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   cartTotalValue: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
@@ -367,11 +366,11 @@ var styles = StyleSheet.create({
   checkoutModal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 34 },
   checkoutScroll: { paddingHorizontal: 20, paddingTop: 8 },
   checkoutSection: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, textTransform: 'uppercase', marginTop: 16, marginBottom: 10 },
-  checkoutInput: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.textLight, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' , fontFamily: 'LexendDeca_400Regular' },
+  checkoutInput: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.textLight, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', fontFamily: 'LexendDeca_400Regular' },
   paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   paymentOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   paymentOptionActive: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252, 209, 22, 0.1)' },
-  paymentOptIcon: { fontSize: 20, marginRight: 10 , fontFamily: 'LexendDeca_400Regular' },
+  paymentOptIcon: { fontSize: 20, marginRight: 10, fontFamily: 'LexendDeca_400Regular' },
   paymentOptLabel: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
   paymentOptLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
   placeOrderBtn: { marginHorizontal: 20, marginTop: 16, backgroundColor: COLORS.yellow, paddingVertical: 18, borderRadius: 14, alignItems: 'center' },
