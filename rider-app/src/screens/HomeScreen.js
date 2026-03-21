@@ -20,6 +20,7 @@ import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
+import FeedbackButton from '../components/FeedbackButton';
 import { useAuth } from '../context/AuthContext';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
 import { driverService, rideService } from '../services/api.service';
@@ -672,7 +673,8 @@ function HomeScreen(props) {
       {activeTab === 'payment' && renderPaymentTab()}
       {activeTab === 'profile' && renderProfileTab()}
 
-      <View style={styles.bottomNav}>
+      <FeedbackButton screen='Home' />
+        <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('home'); }}>
           <View style={activeTab === 'home' ? styles.navIconContainerActive : styles.navIconContainer}>
             <Text style={styles.navIconText}>{"🏠"}</Text>
@@ -943,6 +945,7 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 
