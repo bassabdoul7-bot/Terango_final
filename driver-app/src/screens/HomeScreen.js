@@ -16,6 +16,7 @@ const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
+import FeedbackButton from '../components/FeedbackButton';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 
@@ -184,6 +185,7 @@ const HomeScreen = ({ navigation }) => {
       )}
     </View>
   );
+      <FeedbackButton screen='Home' />
 };
 
 const styles = StyleSheet.create({
@@ -220,6 +222,8 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
 
 
 
