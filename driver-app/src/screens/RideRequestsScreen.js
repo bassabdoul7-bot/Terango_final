@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
@@ -168,7 +168,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           <View style={styles.requestContent}>
             <View style={styles.requestHeader}>
               <View><Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === "colis" ? "\uD83D\uDCE6 Nouveau colis" : currentRequest.serviceType === "commande" ? "\uD83D\uDED2 Nouvelle commande" : "\uD83C\uDF7D\uFE0F Commande restaurant") : "Nouvelle course \uD83D\uDCCD"}</Text><Text style={styles.requestSubtitle}>{(currentRequest.distance || 0).toFixed(1)+' km \u2022 '+Math.round(currentRequest.distance * 2)+' min'+(currentRequest.distanceToPickup ? ' \u2022 '+currentRequest.distanceToPickup.toFixed(1)+'km de vous' : '')}</Text></View>
-              <Text style={styles.fareText}>{currentRequest.driverEarnings ? currentRequest.driverEarnings.toLocaleString() : currentRequest.fare.toLocaleString()+' FCFA'}</Text>
+              <Text style={styles.fareText}>{(currentRequest.driverEarnings||currentRequest.fare||0).toLocaleString()+' FCFA'}</Text><Text style={styles.fareBreakdown}>{'Tarif passager: '+(currentRequest.fare||0).toLocaleString()+' | Commission: '+(currentRequest.platformCommission||0).toLocaleString()}</Text>
             </View>
             {currentRequest._isDelivery ? (
               <View style={styles.rideTypeRow}><View style={{width:40,height:40,borderRadius:20,backgroundColor:currentRequest.serviceType==='colis'?'rgba(255,149,0,0.15)':currentRequest.serviceType==='commande'?'rgba(175,82,222,0.15)':'rgba(255,59,48,0.15)',alignItems:'center',justifyContent:'center'}}><Text style={{fontSize:22, fontFamily: 'LexendDeca_400Regular' }}>{currentRequest.serviceType==='colis'?'\uD83D\uDCE6':currentRequest.serviceType==='commande'?'\uD83D\uDED2':'\uD83C\uDF7D\uFE0F'}</Text></View><View style={styles.rideTypeInfo}><Text style={styles.rideTypeName}>{currentRequest.serviceType==='colis'?'Livraison Colis':currentRequest.serviceType==='commande'?'Commande':'Restaurant'}</Text><Text style={styles.rideTypeDesc}>{currentRequest.restaurantName||(currentRequest.packageDetails?'Taille: '+currentRequest.packageDetails.size:'Livraison rapide')}</Text></View><View style={[styles.rideTypeBadge,{backgroundColor:'rgba(255,149,0,0.15)'}]}><Text style={[styles.rideTypeBadgeText,{color:'#FF9500'}]}>{(currentRequest.serviceType||'LIVRAISON').toUpperCase()}</Text></View></View>
@@ -190,7 +190,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             <Text style={styles.blockedIcon}>{'\u26A0\uFE0F'}</Text>
             <Text style={styles.blockedTitle}>Commission impay\u00e9e</Text>
             <Text style={styles.blockedAmount}>{blockedForPayment.balance.toLocaleString() + ' FCFA'}</Text>
-            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer Ã  recevoir des courses.'}</Text>
+            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer à recevoir des courses.'}</Text>
             <View style={styles.blockedPayInfo}>
               <Text style={styles.blockedPayTitle}>Payer via Wave ou Orange Money :</Text>
               <Text style={styles.blockedPayNumber}>+221 77 807 91 03</Text>
@@ -201,7 +201,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrÃªterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
+      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrêterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
     </View>
   );
 };
@@ -243,6 +243,7 @@ const styles = StyleSheet.create({
   requestTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   requestSubtitle: { fontSize: 14, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   fareText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
+  fareBreakdown: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginTop: 2 },
   rideTypeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 12, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   rideTypeImage: { width: 70, height: 45, marginRight: 12 },
   rideTypeInfo: { flex: 1 },
@@ -284,6 +285,8 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
 
 
 
