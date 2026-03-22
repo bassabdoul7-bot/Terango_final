@@ -1,4 +1,4 @@
-ï»¿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -78,7 +78,7 @@ const HomeScreen = ({ navigation }) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation pour vous mettre en ligne.', [{ text: 'RÃ©essayer', onPress: initializeLocation }]);
+        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation pour vous mettre en ligne.', [{ text: 'Réessayer', onPress: initializeLocation }]);
         setGettingLocation(false);
         return;
       }
@@ -91,7 +91,7 @@ const HomeScreen = ({ navigation }) => {
         setLocation({ latitude: currentLocation.coords.latitude, longitude: currentLocation.coords.longitude });
       } catch (retryError) {
         console.error('Location retry error:', retryError);
-        Alert.alert('GPS non disponible', "Impossible d'obtenir votre position. VÃ©rifiez que le GPS est activÃ©.", [{ text: 'RÃ©essayer', onPress: initializeLocation }]);
+        Alert.alert('GPS non disponible', "Impossible d'obtenir votre position. Vérifiez que le GPS est activé.", [{ text: 'Réessayer', onPress: initializeLocation }]);
       }
     } finally {
       setGettingLocation(false);
@@ -155,7 +155,7 @@ const HomeScreen = ({ navigation }) => {
 
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Menu')}>
-          <Text style={styles.menuIcon}>â˜°</Text>
+          <Text style={styles.menuIcon}>?</Text>
         </TouchableOpacity>
       </View>
 
@@ -165,19 +165,19 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.iconContainer}>
               <Image source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
-            <Text style={styles.offlineTitle}>Vous Ãªtes hors ligne</Text>
-            <Text style={styles.offlineSubtitle}>{location ? 'PrÃªt Ã  accepter des courses?' : 'En attente du GPS...'}</Text>
+            <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
+            <Text style={styles.offlineSubtitle}>{location ? 'Prêt à accepter des courses?' : 'En attente du GPS...'}</Text>
             <View style={styles.locationStatus}>
               <View style={[styles.statusDot, location ? styles.statusDotGreen : styles.statusDotOrange]} />
               <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche GPS...' : 'GPS non disponible'}</Text>
             </View>
-            <TouchableOpacity style={[styles.goOnlineButton, (loading || gettingLocation) && styles.buttonDisabled]} onPress={handleGoOnline} disabled={loading || gettingLocation}>
-              {(loading || gettingLocation) && <ActivityIndicator size="small" color={COLORS.darkBg} style={{ marginRight: 8 }} />}
-              <Text style={styles.goOnlineText}>{getButtonText()}</Text>
+            <TouchableOpacity style={[styles.goCircle, (loading || gettingLocation) && styles.buttonDisabled]} onPress={handleGoOnline} disabled={loading || gettingLocation}>
+              {(loading || gettingLocation) ? <ActivityIndicator size="small" color={COLORS.darkBg} /> : null}
+              {!(loading || gettingLocation) && <Text style={styles.goCircleText}>GO</Text>}
             </TouchableOpacity>
             {!location && !gettingLocation && (
               <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
-                <Text style={styles.retryText}>ðŸ”„ RÃ©essayer GPS</Text>
+                <Text style={styles.retryText}>?? Réessayer GPS</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -214,14 +214,18 @@ const styles = StyleSheet.create({
   statusDotGreen: { backgroundColor: COLORS.green },
   statusDotOrange: { backgroundColor: '#FFA500' },
   statusText: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
-  goOnlineButton: { backgroundColor: COLORS.yellow, paddingHorizontal: 48, paddingVertical: 18, borderRadius: 16, width: '100%', alignItems: 'center', flexDirection: 'row', justifyContent: 'center', elevation: 8 },
+  goCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 10, borderWidth: 3, borderColor: 'rgba(252,209,22,0.3)' },
   buttonDisabled: { opacity: 0.6 },
-  goOnlineText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
+  goCircleText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, letterSpacing: 2 },
   retryButton: { marginTop: 12, padding: 12 },
   retryText: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
 });
 
 export default HomeScreen;
+
+
+
+
 
 
 
