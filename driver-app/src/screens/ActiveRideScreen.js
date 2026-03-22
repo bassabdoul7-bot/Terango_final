@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
@@ -274,7 +274,7 @@ function ActiveRideScreen(props) {
   var handleStartRide = useCallback(function(){
     if(ride && ride.pinRequired && !pinVerified){setShowPinModal(true);return;}
     setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId,ride,pinVerified]);
-  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Vous avez gagne '+(ride.driverEarnings||ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
+  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Le passager a paye '+(ride.fare||0)+' francs. Commission TeranGO '+(ride.platformCommission||0)+' francs. Vos gains '+(ride.driverEarnings||ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\n\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
 
   // ========== DELIVERY PHOTO FUNCTIONS ==========
   var takeDeliveryPhoto = function() {
@@ -591,6 +591,9 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
+
 
 
 

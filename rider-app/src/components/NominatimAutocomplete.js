@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, Text, ActivityIndicator, Keyboard, StyleSheet, ScrollView } from 'react-native';
 import COLORS from '../constants/colors';
 
@@ -153,7 +153,7 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
       setLoading(true);
       try {
         var fixedText = fixAccents(text);
-        var url = GEOCODE_URL + '/search?q=' + encodeURIComponent(fixedText) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1';
+        var url = GEOCODE_URL + '/search?q=' + encodeURIComponent(fixedText) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1&viewbox=-17.6,14.85,-17.1,14.55&bounded=1';
         var resp = await fetch(url);
         var data = await resp.json();
 
@@ -197,7 +197,7 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
         items = dedup(items);
 
         if (items.length === 0 && fixedText !== text.toLowerCase()) {
-          var url2 = GEOCODE_URL + '/search?q=' + encodeURIComponent(text) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1';
+          var url2 = GEOCODE_URL + '/search?q=' + encodeURIComponent(text) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1&viewbox=-17.6,14.85,-17.1,14.55&bounded=1';
           var resp2 = await fetch(url2);
           var data2 = await resp2.json();
           items = data2.map(function(r) {
@@ -301,6 +301,9 @@ var styles = StyleSheet.create({
 });
 
 export default NominatimAutocomplete;
+
+
+
 
 
 
