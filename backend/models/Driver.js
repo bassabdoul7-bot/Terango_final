@@ -89,7 +89,7 @@ var driverSchema = new mongoose.Schema({
   totalOrders: { type: Number, default: 0 },
   acceptanceRate: { type: Number, default: 100 },
   commissionBalance: { type: Number, default: 0 },
-  commissionCap: { type: Number, default: 2000 },
+  commissionCap: { type: Number, default: 1500 },
   totalCommissionPaid: { type: Number, default: 0 },
   lastCommissionPayment: { type: Date },
   isBlockedForPayment: { type: Boolean, default: false },

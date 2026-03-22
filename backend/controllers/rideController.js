@@ -1,4 +1,4 @@
-﻿const Ride = require('../models/Ride');
+const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
@@ -282,7 +282,7 @@ exports.updateRideStatus = async (req, res) => {
       // Track commission debt
       var earningsData = calculateEarnings(ride.fare, !!(driver.partnerId), driver.tier || 'goorgoorlu');
       driver.commissionBalance = (driver.commissionBalance || 0) + (earningsData.platformCommission || 0);
-      if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
+      if (driver.commissionBalance >= (driver.commissionCap || 1500)) {
         driver.isBlockedForPayment = true;
       }
 
@@ -450,7 +450,7 @@ exports.completeRide = async (req, res) => {
 
     // Track commission debt
     driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
-    if (driver.commissionBalance >= (driver.commissionCap || 2000)) {
+    if (driver.commissionBalance >= (driver.commissionCap || 1500)) {
       driver.isBlockedForPayment = true;
     }
 
