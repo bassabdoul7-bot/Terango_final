@@ -241,11 +241,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
             {ride.driver?.userId && (
               <View style={styles.driverCard}>
                 <View style={styles.driverRow}>
-                  {ride.driver.userId.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride.driver.userId.name?.charAt(0) || 'D'}</Text></View>}
+                  {ride?.driver?.userId?.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride?.driver?.userId?.name?.charAt(0) || 'D'}</Text></View>}
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>{ride.driver.userId.name}</Text>
                     <View style={styles.ratingRow}>{renderStars(ride.driver.userId.rating)}<Text style={styles.ratingText}>{ride.driver.userId.rating?.toFixed(1) || '5.0'}</Text></View>
-                    {ride.driver.vehicleFrontPhoto ? <Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='contain' /> : null}{ride.driver.vehicle ? <Text style={styles.vehicleText}>{(ride.driver.vehicle.make||'')+' '+(ride.driver.vehicle.model||'')+(ride.driver.vehicle.color?' \u2022 '+ride.driver.vehicle.color:'')+(ride.driver.vehicle.licensePlate?' \u2022 '+ride.driver.vehicle.licensePlate:'')}</Text> : null}
+                    {ride?.driver?.vehicleFrontPhoto ? <Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='contain' /> : null}{ride.driver.vehicle ? <Text style={styles.vehicleText}>{(ride.driver.vehicle.make||'')+' '+(ride.driver.vehicle.model||'')+(ride.driver.vehicle.color?' \u2022 '+ride.driver.vehicle.color:'')+(ride.driver.vehicle.licensePlate?' \u2022 '+ride.driver.vehicle.licensePlate:'')}</Text> : null}
                   </View>
                   <View style={styles.fareTag}><Text style={styles.fareTagAmount}>{ride.fare?.toLocaleString()}</Text><Text style={styles.fareTagCurrency}>FCFA</Text></View>
                 </View>
