@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
@@ -34,7 +34,7 @@ const PendingVerificationScreen = ({ onApproved, onUploadNeeded }) => {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Text style={styles.icon}>⏳</Text>
+          <Text style={styles.icon}>â³</Text>
         </View>
         <Text style={styles.title}>Verification en cours</Text>
         <Text style={styles.subtitle}>
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 32, alignItems: 'center' },
   iconCircle: {
     width: 100, height: 100, borderRadius: 50,
-    backgroundColor: 'rgba(252, 209, 22, 0.15)',
+    backgroundColor: 'rgba(212,175,55, 0.15)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 24,
   },
   icon: { fontSize: 48 , fontFamily: 'LexendDeca_400Regular' },

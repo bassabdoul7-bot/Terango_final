@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
@@ -494,7 +494,7 @@ var cancelStyles = StyleSheet.create({
   subtitle: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 300, marginBottom: 20 },
   reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' },
-  reasonItemSelected: { backgroundColor: 'rgba(252,209,22,0.1)', borderColor: COLORS.yellow, borderWidth: 2 },
+  reasonItemSelected: { backgroundColor: 'rgba(212,175,55,0.1)', borderColor: COLORS.yellow, borderWidth: 2 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: COLORS.textLightMuted, marginRight: 12, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.yellow },
   reasonText: { flex: 1, fontSize: 16, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
@@ -518,9 +518,9 @@ var styles = StyleSheet.create({
   driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
   driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
   driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
-  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
-  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#D4AF37' },
   topBar: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 },
   cancelButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.3)', alignItems: 'center', justifyContent: 'center', elevation: 4 },
   cancelIcon: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_600SemiBold' },
@@ -530,7 +530,7 @@ var styles = StyleSheet.create({
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FCD115', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10 },
+  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#D4AF37', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10 },
   turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: '#D4A900', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
@@ -591,6 +591,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 

@@ -369,7 +369,7 @@ var styles = StyleSheet.create({
   checkoutInput: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.textLight, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', fontFamily: 'LexendDeca_400Regular' },
   paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   paymentOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  paymentOptionActive: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252, 209, 22, 0.1)' },
+  paymentOptionActive: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55, 0.1)' },
   paymentOptIcon: { fontSize: 20, marginRight: 10, fontFamily: 'LexendDeca_400Regular' },
   paymentOptLabel: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
   paymentOptLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
