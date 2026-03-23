@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "TeranGO Client",
     "slug": "terango-rider",
@@ -17,7 +17,8 @@
       "bundleIdentifier": "com.terango.rider",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "TeranGO utilise votre position pour trouver des courses pres de vous.",
-        "NSLocationAlwaysUsageDescription": "TeranGO utilise votre position pour suivre votre course en temps reel."
+        "NSLocationAlwaysUsageDescription": "TeranGO utilise votre position pour suivre votre course en temps reel.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -59,5 +60,3 @@
     }
   }
 }
-
-

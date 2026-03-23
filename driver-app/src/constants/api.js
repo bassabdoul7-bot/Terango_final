@@ -1,5 +1,5 @@
-﻿// API Configuration
-export const API_URL = 'https://terango-api.fly.dev/api';
+// API Configuration
+export const API_URL = 'https://api.terango.sn/api';
 
 export const ENDPOINTS = {
   // Auth
@@ -17,3 +17,4 @@ export const ENDPOINTS = {
 };
 
 export default { API_URL, ENDPOINTS };
+
