@@ -1,4 +1,4 @@
-﻿{
+{
   "expo": {
     "name": "TeranGO Pro",
     "slug": "terango-driver",
@@ -17,10 +17,11 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.terango.driver",
+      "bundleIdentifier": "com.terango.pro",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "TeranGO Pro utilise votre position pour recevoir des courses pres de vous.",
-        "NSLocationAlwaysUsageDescription": "TeranGO Pro utilise votre position en arriere-plan pour les courses actives."
+        "NSLocationAlwaysUsageDescription": "TeranGO Pro utilise votre position en arriere-plan pour les courses actives.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -61,5 +62,3 @@
     }
   }
 }
-
-
