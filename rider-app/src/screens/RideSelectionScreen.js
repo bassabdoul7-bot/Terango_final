@@ -55,19 +55,23 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const calculateFares = (distance, duration) => {
     var isSuburb = distance > 10;
+    var hour = new Date().getHours();
+    var surge = (hour >= 7 && hour < 9) ? 1.2 : (hour >= 17 && hour < 20) ? 1.3 : 1.0;
     function calcFare(base, cityRate, subRate, minRate, minFare) {
       var distFare = isSuburb ? (10 * cityRate) + ((distance - 10) * subRate) : (distance * cityRate);
       var timeFare = duration * minRate;
-      var total = Math.ceil((base + distFare + timeFare) / 100) * 100;
+      var surged = Math.round((base + distFare + timeFare) * surge);
+      var total = Math.ceil(surged / 100) * 100;
       return Math.max(total, minFare);
     }
     setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Standard', description: 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(460, 73, 142, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(700, 100, 180, 35, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1000, 140, 220, 45, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      standard: { type: 'standard', name: 'TeranGO Standard', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(461, 73, 142, 29, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(665, 100, 180, 38, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1045, 140, 220, 48, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
     });
     setCalculatingFare(false);
   };
+
 
   const fitMapToRoute = () => {
     if (cameraRef.current && routeCoordinates.length > 0) {
@@ -191,6 +195,8 @@ const styles = StyleSheet.create({
 });
 
 export default RideSelectionScreen;
+
+
 
 
 

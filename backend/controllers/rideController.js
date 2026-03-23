@@ -41,8 +41,8 @@ exports.createRide = async (req, res) => {
     );
 
     const estimatedDuration = req.body.estimatedDuration || estimateDuration(distance);
-    const fare = calculateFare(distance, rideType, estimatedDuration);
-    const earnings = calculateEarnings(fare);
+    const fareResult = calculateFare(distance, rideType, estimatedDuration);
+    const earnings = calculateEarnings(fareResult.fare);
 
     const ride = await Ride.create({
       riderId: rider._id,
@@ -52,6 +52,8 @@ exports.createRide = async (req, res) => {
       distance,
       estimatedDuration,
       fare: earnings.fare,
+      surgeMultiplier: fareResult.surgeMultiplier,
+      pickupFee: fareResult.pickupFee,
       platformCommission: earnings.platformCommission,
       driverEarnings: earnings.driverEarnings,
       paymentMethod,
@@ -701,4 +703,6 @@ exports.verifyPin = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur de v\u00e9rification' });
   }
 };
+
+
 

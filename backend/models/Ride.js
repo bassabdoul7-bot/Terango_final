@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 
 const rideSchema = new mongoose.Schema({
   riderId: {
@@ -69,6 +69,14 @@ const rideSchema = new mongoose.Schema({
   fare: {
     type: Number,
     required: true
+  },
+  surgeMultiplier: {
+    type: Number,
+    default: 1.0
+  },
+  pickupFee: {
+    type: Number,
+    default: 0
   },
   platformCommission: {
     type: Number,
@@ -148,3 +156,7 @@ rideSchema.index({ driver: 1, createdAt: -1 });
 rideSchema.index({ status: 1 });
 
 module.exports = mongoose.model('Ride', rideSchema);
+
+
+
+
