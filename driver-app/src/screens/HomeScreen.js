@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+ï»¿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -78,7 +78,7 @@ const HomeScreen = ({ navigation }) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation pour vous mettre en ligne.', [{ text: 'Réessayer', onPress: initializeLocation }]);
+        Alert.alert('Permission requise', 'Nous avons besoin de votre localisation pour vous mettre en ligne.', [{ text: 'RÃ©essayer', onPress: initializeLocation }]);
         setGettingLocation(false);
         return;
       }
@@ -91,7 +91,7 @@ const HomeScreen = ({ navigation }) => {
         setLocation({ latitude: currentLocation.coords.latitude, longitude: currentLocation.coords.longitude });
       } catch (retryError) {
         console.error('Location retry error:', retryError);
-        Alert.alert('GPS non disponible', "Impossible d'obtenir votre position. Vérifiez que le GPS est activé.", [{ text: 'Réessayer', onPress: initializeLocation }]);
+        Alert.alert('GPS non disponible', "Impossible d'obtenir votre position. VÃ©rifiez que le GPS est activÃ©.", [{ text: 'RÃ©essayer', onPress: initializeLocation }]);
       }
     } finally {
       setGettingLocation(false);
@@ -155,7 +155,7 @@ const HomeScreen = ({ navigation }) => {
 
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.menuButton} onPress={() => navigation.navigate('Menu')}>
-          <Text style={styles.menuIcon}>?</Text>
+          <Text style={styles.menuIcon}>{'\u2630'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -165,8 +165,8 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.iconContainer}>
               <Image source={require('../../assets/images/logo.png')} style={styles.logoImage} resizeMode="contain" />
             </View>
-            <Text style={styles.offlineTitle}>Vous êtes hors ligne</Text>
-            <Text style={styles.offlineSubtitle}>{location ? 'Prêt à accepter des courses?' : 'En attente du GPS...'}</Text>
+            <Text style={styles.offlineTitle}>Vous Ãªtes hors ligne</Text>
+            <Text style={styles.offlineSubtitle}>{location ? 'PrÃªt Ã  accepter des courses?' : 'En attente du GPS...'}</Text>
             <View style={styles.locationStatus}>
               <View style={[styles.statusDot, location ? styles.statusDotGreen : styles.statusDotOrange]} />
               <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche GPS...' : 'GPS non disponible'}</Text>
@@ -177,7 +177,7 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
             {!location && !gettingLocation && (
               <TouchableOpacity style={styles.retryButton} onPress={initializeLocation}>
-                <Text style={styles.retryText}>?? Réessayer GPS</Text>
+                <Text style={styles.retryText}>RÃ©essayer GPS</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -214,14 +214,16 @@ const styles = StyleSheet.create({
   statusDotGreen: { backgroundColor: COLORS.green },
   statusDotOrange: { backgroundColor: '#FFA500' },
   statusText: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
-  goCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 10, borderWidth: 3, borderColor: 'rgba(252,209,22,0.3)' },
+  goCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 15, borderWidth: 2.5, borderColor: '#FFFFFF', borderBottomWidth: 5, borderBottomColor: '#C8A000', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 8 },
   buttonDisabled: { opacity: 0.6 },
-  goCircleText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, letterSpacing: 2 },
+  goCircleText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', letterSpacing: 2, textShadowColor: 'rgba(255,255,255,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   retryButton: { marginTop: 12, padding: 12 },
   retryText: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
 });
 
 export default HomeScreen;
+
+
 
 
 
