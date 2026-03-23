@@ -1,4 +1,4 @@
-const Ride = require('../models/Ride');
+﻿const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
@@ -701,3 +701,4 @@ exports.verifyPin = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur de v\u00e9rification' });
   }
 };
+
