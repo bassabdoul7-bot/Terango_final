@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   filterBtnText: { fontSize: 16, color: COLORS.textLight , fontFamily: 'LexendDeca_400Regular' },
   filterBar: { position: 'absolute', top: 110, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: COLORS.darkCard, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   filterChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', gap: 4 },
-  filterChipActive: { backgroundColor: 'rgba(252,209,22,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
+  filterChipActive: { backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
   filterChipIcon: { fontSize: 14 , fontFamily: 'LexendDeca_400Regular' },
   filterChipLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   filterChipLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 

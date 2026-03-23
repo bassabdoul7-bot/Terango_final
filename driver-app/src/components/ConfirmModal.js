@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import COLORS from '../constants/colors';
 
@@ -31,7 +31,7 @@ const ConfirmModal = ({ visible, title, message, onCancel, onConfirm, confirmTex
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   modal: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: width - 100, maxWidth: 300, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  iconContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(252,209,22,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: COLORS.yellow },
+  iconContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(212,175,55,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 2, borderColor: COLORS.yellow },
   icon: { fontSize: 36, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   title: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 8 },
   message: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 20, lineHeight: 20 , fontFamily: 'LexendDeca_400Regular' },
@@ -43,3 +43,4 @@ const styles = StyleSheet.create({
 });
 
 export default ConfirmModal;
+

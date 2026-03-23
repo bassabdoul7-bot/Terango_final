@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Alert, ActivityIndicator, StatusBar, KeyboardAvoidingView, Platform,
@@ -251,7 +251,7 @@ var styles = StyleSheet.create({
   fieldLabel: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub, marginBottom: 10, marginTop: 20 },
   sizeRow: { flexDirection: 'row', gap: 10 },
   sizeCard: { flex: 1, backgroundColor: COLORS.backgroundWhite, borderRadius: 16, padding: 14, alignItems: 'center', borderWidth: 2, borderColor: COLORS.grayLight },
-  sizeCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252, 209, 22, 0.1)' },
+  sizeCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55, 0.1)' },
   sizeIcon: { fontSize: 28, marginBottom: 6, fontFamily: 'LexendDeca_400Regular' },
   sizeLabel: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 2 },
   sizeLabelSelected: { color: COLORS.darkBg },
@@ -277,11 +277,11 @@ var styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   detailLabel: { fontSize: 14, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
   detailValue: { fontSize: 14, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium', maxWidth: '55%', textAlign: 'right' },
-  priceCard: { backgroundColor: 'rgba(252, 209, 22, 0.08)', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(252, 209, 22, 0.2)' },
+  priceCard: { backgroundColor: 'rgba(212,175,55, 0.08)', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(212,175,55, 0.2)' },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   priceLabel: { fontSize: 14, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   priceValue: { fontSize: 14, color: COLORS.textDark, fontFamily: 'LexendDeca_400Regular' },
-  priceDivider: { height: 1, backgroundColor: 'rgba(252, 209, 22, 0.2)', marginVertical: 8 },
+  priceDivider: { height: 1, backgroundColor: 'rgba(212,175,55, 0.2)', marginVertical: 8 },
   priceTotalLabel: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark },
   priceTotalValue: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder },

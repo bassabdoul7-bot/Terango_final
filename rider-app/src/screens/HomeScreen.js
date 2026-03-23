@@ -635,7 +635,7 @@ function HomeScreen(props) {
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('ThiakThiak', { currentLocation: location }); }}>
-                <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(252, 209, 22, 0.25)' }]}>
+                <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(212,175,55, 0.25)' }]}>
                   <Text style={styles.serviceEmoji}>{"🏍️"}</Text>
                 </View>
                 <Text style={styles.serviceLabel}>Thiak Thiak</Text>
@@ -723,7 +723,7 @@ var styles = StyleSheet.create({
   },
   driverArrowSmall: {
     width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderBottomWidth: 20,
-    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115',
+    borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37',
   },
   driverCountBadge: {
     position: 'absolute', top: 130, alignSelf: 'center',
@@ -766,7 +766,7 @@ var styles = StyleSheet.create({
   searchButton: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 18, paddingHorizontal: 18,
-    borderRadius: 18, marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.3)',
+    borderRadius: 18, marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)',
   },
   searchIconContainer: {
     width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.yellow,
@@ -808,24 +808,24 @@ var styles = StyleSheet.create({
   // Bottom nav - DARK
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row',
-    backgroundColor: COLORS.darkCard, paddingVertical: 14, paddingBottom: 30,
+    backgroundColor: COLORS.yellow, paddingVertical: 14, paddingBottom: 30,
     borderTopLeftRadius: 28, borderTopRightRadius: 28, elevation: 16,
-    borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder,
+    borderTopWidth: 0, borderTopColor: 'transparent',
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12,
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.06)',
+    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(0,26,18,0.1)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 0, borderColor: 'transparent',
   },
   navIconContainerActive: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.yellow,
+    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkBg,
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
   },
   navIconText: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
-  navLabel: { fontSize: 11, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
-  navLabelActive: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
+  navLabel: { fontSize: 11, color: 'rgba(0,26,18,0.5)', fontFamily: 'LexendDeca_500Medium' },
+  navLabelActive: { fontSize: 11, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
 
   // Tab screens - WHITE BACKGROUND
   tabScreen: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 70 },
@@ -854,7 +854,7 @@ var styles = StyleSheet.create({
   addr: { fontSize: 14, color: COLORS.textLightSub, paddingVertical: 2 , fontFamily: 'LexendDeca_400Regular' },
   historyFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   historyMeta: { fontSize: 12, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
-  typeBadge: { backgroundColor: 'rgba(252, 209, 22, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  typeBadge: { backgroundColor: 'rgba(212,175,55, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
 
   // Payment cards - DARK on white
@@ -943,6 +943,8 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
 
 
 

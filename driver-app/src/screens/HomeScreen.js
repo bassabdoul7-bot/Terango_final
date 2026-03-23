@@ -196,9 +196,9 @@ const styles = StyleSheet.create({
   driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
   driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
   driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
-  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
-  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#D4AF37' },
   markerText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'flex-start' },
   menuButton: { width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 

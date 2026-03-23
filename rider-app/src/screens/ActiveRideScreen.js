@@ -20,7 +20,7 @@ const ConfettiCelebration = ({ visible }) => {
     y: new Animated.Value(-20),
     rotate: new Animated.Value(0),
     opacity: new Animated.Value(1),
-    color: ['#FCD115', '#00853F', '#FF3B30', '#4285F4', '#FF9500'][Math.floor(Math.random() * 5)],
+    color: ['#D4AF37', '#00853F', '#FF3B30', '#4285F4', '#FF9500'][Math.floor(Math.random() * 5)],
     size: 8 + Math.random() * 12,
   }))).current;
 
@@ -301,7 +301,7 @@ const cancelStyles = StyleSheet.create({
   subtitle: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 280 },
   reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 8, borderWidth: 2, borderColor: 'transparent' },
-  reasonItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252,209,22,0.08)' },
+  reasonItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.textLightMuted, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.yellow },
   reasonText: { fontSize: 14, color: COLORS.textLight, flex: 1, fontFamily: 'LexendDeca_400Regular' },
@@ -338,9 +338,9 @@ const styles = StyleSheet.create({
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
   driverMarkerOuter: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   driverCarImage: { width: 50, height: 35, tintColor: '#1A1A1A' },
-  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 30, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 30, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
-  driverMarkerDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#FCD115' },
+  driverMarkerDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#D4AF37' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   addressContent: { flex: 1 },
   addressLabel: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 1, fontFamily: 'LexendDeca_400Regular' },
   addressText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
-  pinCard: { backgroundColor: 'rgba(252,209,22,0.1)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.3)' },
+  pinCard: { backgroundColor: 'rgba(212,175,55,0.1)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)' },
   pinRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   pinIcon: { fontSize: 16, marginRight: 6, fontFamily: 'LexendDeca_400Regular' },
   pinLabel: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
@@ -388,6 +388,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 

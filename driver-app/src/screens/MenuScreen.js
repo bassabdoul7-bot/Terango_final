@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 var MenuScreen = function(props) {
   var navigation = props.navigation;
   var auth = useAuth(); var user = auth.user; var driver = auth.driver; var logout = auth.logout; var updateUser = auth.updateUser; var fetchDriverProfile = auth.fetchDriverProfile;
-  var TIERS = { goorgoorlu: { name: 'Goorgoorlu', icon: '\uD83D\uDFE1', color: 'rgba(252,209,22,0.15)', textColor: '#FCD115', rate: '5%' }, jambaar: { name: 'J\u00e0mbaar', icon: '\u2694\uFE0F', color: 'rgba(0,133,63,0.15)', textColor: '#00853F', rate: '5%' }, ndaanaan: { name: 'Ndaanaan', icon: '\uD83D\uDC51', color: 'rgba(255,149,0,0.15)', textColor: '#FF9500', rate: '5%' } };
+  var TIERS = { goorgoorlu: { name: 'Goorgoorlu', icon: '\uD83D\uDFE1', color: 'rgba(212,175,55,0.15)', textColor: '#D4AF37', rate: '5%' }, jambaar: { name: 'J\u00e0mbaar', icon: '\u2694\uFE0F', color: 'rgba(0,133,63,0.15)', textColor: '#00853F', rate: '5%' }, ndaanaan: { name: 'Ndaanaan', icon: '\uD83D\uDC51', color: 'rgba(255,149,0,0.15)', textColor: '#FF9500', rate: '5%' } };
   var currentTier = TIERS[driver && driver.tier || 'goorgoorlu'] || TIERS.goorgoorlu;
   var completedRides = driver && driver.completedRides || 0;
   var nextTierAt = completedRides < 100 ? 100 : completedRides < 500 ? 500 : null;
@@ -96,7 +96,7 @@ var MenuScreen = function(props) {
       <View style={styles.menuGroup}>
         <TouchableOpacity style={styles.menuRow} onPress={function(){switchTab('earnings');}}><View style={[styles.mIcon,{backgroundColor:'rgba(0,133,63,0.12)'}]}><Text style={styles.mEmoji}>{'\uD83D\uDCB0'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>Mes Gains</Text><Text style={styles.mSub}>Suivez vos revenus</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.menuRow} onPress={function(){switchTab('history');}}><View style={[styles.mIcon,{backgroundColor:'rgba(66,133,244,0.12)'}]}><Text style={styles.mEmoji}>{'\uD83D\uDCCB'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>Historique</Text><Text style={styles.mSub}>{earnings.totalRides+' courses'}</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.menuRow} onPress={function(){switchTab('vehicle');}}><View style={[styles.mIcon,{backgroundColor:'rgba(252,209,22,0.12)'}]}><Text style={styles.mEmoji}>{'\uD83D\uDE97'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>{"Mon V\u00e9hicule"}</Text><Text style={styles.mSub}>{vehicleMake+' '+vehicleModel}</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.menuRow} onPress={function(){switchTab('vehicle');}}><View style={[styles.mIcon,{backgroundColor:'rgba(212,175,55,0.12)'}]}><Text style={styles.mEmoji}>{'\uD83D\uDE97'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>{"Mon V\u00e9hicule"}</Text><Text style={styles.mSub}>{vehicleMake+' '+vehicleModel}</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
         <TouchableOpacity style={styles.menuRow} onPress={function(){switchTab('settings');}}><View style={[styles.mIcon,{backgroundColor:'rgba(175,82,222,0.12)'}]}><Text style={styles.mEmoji}>{'\u2699\uFE0F'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>{"Param\u00e8tres"}</Text><Text style={styles.mSub}>Notifications, langue</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
         <TouchableOpacity style={[styles.menuRow,{borderBottomWidth:0}]} onPress={function(){switchTab('support');}}><View style={[styles.mIcon,{backgroundColor:'rgba(0,199,190,0.12)'}]}><Text style={styles.mEmoji}>{'\uD83C\uDFA7'}</Text></View><View style={styles.mInfo}><Text style={styles.mTitle}>Aide & Support</Text><Text style={styles.mSub}>FAQ, contact</Text></View><Text style={styles.mChevron}>{'\u203A'}</Text></TouchableOpacity>
       </View>
@@ -141,9 +141,9 @@ var styles = StyleSheet.create({
   starIcon: { fontSize: 14, marginRight: 4 , fontFamily: 'LexendDeca_400Regular' },
   ratingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginRight: 6 },
   ratingMeta: { fontSize: 13, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
-  earningsSummary: { flexDirection: 'row', backgroundColor: 'rgba(252,209,22,0.08)', borderRadius: 16, marginBottom: 24, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(252,209,22,0.2)' },
+  earningsSummary: { flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: 16, marginBottom: 24, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.2)' },
   earnBox: { flex: 1, padding: 20, alignItems: 'center' },
-  earnDivider: { width: 1, backgroundColor: 'rgba(252,209,22,0.15)' },
+  earnDivider: { width: 1, backgroundColor: 'rgba(212,175,55,0.15)' },
   earnVal: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 4 },
   earnLbl: { fontSize: 12, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
   menuGroup: { backgroundColor: COLORS.backgroundWhite, borderRadius: 20, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: COLORS.grayLight },
@@ -169,7 +169,7 @@ var styles = StyleSheet.create({
   tierProgressOuter: { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
   tierProgressInner: { height: 8, borderRadius: 4 },
   tierProgressText: { fontSize: 12, color: '#FFFFFF' , fontFamily: 'LexendDeca_400Regular' },
-  tierMaxText: { fontSize: 14, color: '#FCD115', fontFamily: 'LexendDeca_600SemiBold' },
+  tierMaxText: { fontSize: 14, color: '#D4AF37', fontFamily: 'LexendDeca_600SemiBold' },
   tierBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, marginTop: 4, alignSelf: 'flex-start' },
   tierIcon: { fontSize: 12, marginRight: 4 , fontFamily: 'LexendDeca_400Regular' },
   tierName: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', marginRight: 6 },
@@ -181,7 +181,7 @@ var styles = StyleSheet.create({
   tierProgressOuter: { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden', marginBottom: 6 },
   tierProgressInner: { height: 8, borderRadius: 4 },
   tierProgressText: { fontSize: 12, color: '#FFFFFF' , fontFamily: 'LexendDeca_400Regular' },
-  tierMaxText: { fontSize: 14, color: '#FCD115', fontFamily: 'LexendDeca_600SemiBold' },
+  tierMaxText: { fontSize: 14, color: '#D4AF37', fontFamily: 'LexendDeca_600SemiBold' },
   earningsHero: { backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 28, marginTop: 20, marginBottom: 24, alignItems: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   earningsHeroLabel: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 8 , fontFamily: 'LexendDeca_400Regular' },
   earningsHeroRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 20 },
@@ -225,7 +225,7 @@ var styles = StyleSheet.create({
   addr: { fontSize: 14, color: COLORS.textLightSub, paddingVertical: 2 , fontFamily: 'LexendDeca_400Regular' },
   historyFooter: { flexDirection: 'row', alignItems: 'center' },
   historyMeta: { fontSize: 12, color: COLORS.textLightMuted, marginRight: 12 , fontFamily: 'LexendDeca_400Regular' },
-  typeBadge: { backgroundColor: 'rgba(252,209,22,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  typeBadge: { backgroundColor: 'rgba(212,175,55,0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold', textTransform: 'capitalize' },
   supportHero: { alignItems: 'center', marginTop: 20, marginBottom: 28 },
   supportIcon: { fontSize: 50, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
@@ -249,7 +249,7 @@ var styles = StyleSheet.create({
   vehicleItem: { width: '47%', backgroundColor: COLORS.backgroundWhite, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: COLORS.grayLight },
   vLabel: { fontSize: 12, color: COLORS.textDarkMuted, marginBottom: 6, textTransform: 'uppercase' , fontFamily: 'LexendDeca_400Regular' },
   vValue: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDark },
-  vehicleNote: { flexDirection: 'row', backgroundColor: 'rgba(252,209,22,0.08)', borderRadius: 14, padding: 16, marginBottom: 40, borderWidth: 1, borderColor: 'rgba(252,209,22,0.2)' },
+  vehicleNote: { flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: 14, padding: 16, marginBottom: 40, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
   vehicleNoteIcon: { fontSize: 16, marginRight: 10, marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
   vehicleNoteText: { flex: 1, fontSize: 13, color: COLORS.textDarkSub, lineHeight: 20 , fontFamily: 'LexendDeca_400Regular' },
   settingsSection: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkMuted, textTransform: 'uppercase', marginTop: 24, marginBottom: 10, marginLeft: 4 },
@@ -266,3 +266,4 @@ var styles = StyleSheet.create({
 });
 
 export default MenuScreen;
+

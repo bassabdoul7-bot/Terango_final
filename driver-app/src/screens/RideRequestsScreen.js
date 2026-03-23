@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
@@ -190,7 +190,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             <Text style={styles.blockedIcon}>{'\u26A0\uFE0F'}</Text>
             <Text style={styles.blockedTitle}>Commission impay\u00e9e</Text>
             <Text style={styles.blockedAmount}>{blockedForPayment.balance.toLocaleString() + ' FCFA'}</Text>
-            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer à recevoir des courses.'}</Text>
+            <Text style={styles.blockedSub}>{'Veuillez payer votre solde pour continuer Ã  recevoir des courses.'}</Text>
             <View style={styles.blockedPayInfo}>
               <Text style={styles.blockedPayTitle}>Payer via Wave ou Orange Money :</Text>
               <Text style={styles.blockedPayNumber}>+221 77 807 91 03</Text>
@@ -201,7 +201,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
           </View>
         </View>
       )}
-      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrêterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
+      <ConfirmModal visible={showOfflineModal} title="Passer hors ligne?" message="Vous arrÃªterez de recevoir des courses" cancelText="Rester en ligne" confirmText="Hors ligne" onCancel={() => setShowOfflineModal(false)} onConfirm={handleGoOffline} />
     </View>
   );
 };
@@ -214,9 +214,9 @@ const styles = StyleSheet.create({
   driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
   driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
   driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
-  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#FCD115' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
-  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#FCD115' },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#D4AF37' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   earningsCard: { backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 2 },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   filterBtnText: { fontSize: 16, color: COLORS.textLight , fontFamily: 'LexendDeca_400Regular' },
   filterBar: { position: 'absolute', top: 110, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: COLORS.darkCard, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   filterChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', gap: 4 },
-  filterChipActive: { backgroundColor: 'rgba(252,209,22,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
+  filterChipActive: { backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
   filterChipIcon: { fontSize: 14 , fontFamily: 'LexendDeca_400Regular' },
   filterChipLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   filterChipLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
@@ -285,6 +285,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 

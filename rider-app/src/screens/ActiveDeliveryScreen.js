@@ -173,7 +173,7 @@ var styles = StyleSheet.create({
   statusText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', flex: 1 },
   etaText: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
   searchingContainer: { position: 'absolute', top: height * 0.3, alignSelf: 'center', alignItems: 'center' },
-  pulseCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(252,209,22,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.yellow, marginBottom: 16 },
+  pulseCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: 'rgba(212,175,55,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.yellow, marginBottom: 16 },
   searchingTitle: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark },
   searchingTime: { fontSize: 14, color: COLORS.textDarkMuted, marginTop: 4 , fontFamily: 'LexendDeca_400Regular' },
   noDriverCard: { position: 'absolute', top: height * 0.25, left: 30, right: 30, backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 30, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -211,6 +211,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
 
 
 

@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   sheetHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   scrollView: { flex: 1, paddingHorizontal: 16 },
   rideCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
-  rideCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(252,209,22,0.08)' },
+  rideCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
   rideLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   rideImage: { width: 70, height: 50, marginRight: 10 },
   rideInfo: { flex: 1 },
@@ -195,6 +195,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideSelectionScreen;
+
 
 
 
