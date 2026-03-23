@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Image } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -388,6 +388,8 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
 
 
 
