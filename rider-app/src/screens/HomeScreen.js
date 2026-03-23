@@ -579,9 +579,9 @@ function HomeScreen(props) {
             <Text style={styles.greeting}>Bonjour,</Text>
             <Text style={styles.userName}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton} onPress={function() { setActiveTab('profile'); }}>
-            <Text style={styles.profileBtnIcon}>{"👤"}</Text>
-          </TouchableOpacity>
+          <FeedbackButton screen='Home' />
+
+
         </Animated.View>
 
         <Animated.View style={[styles.searchCard, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
@@ -673,7 +673,7 @@ function HomeScreen(props) {
       {activeTab === 'payment' && renderPaymentTab()}
       {activeTab === 'profile' && renderProfileTab()}
 
-      <FeedbackButton screen='Home' />
+
         <View style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('home'); }}>
           <View style={activeTab === 'home' ? styles.navIconContainerActive : styles.navIconContainer}>

@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -240,11 +241,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
             {ride.driver?.userId && (
               <View style={styles.driverCard}>
                 <View style={styles.driverRow}>
-                  <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride.driver.userId.name?.charAt(0) || 'D'}</Text></View>
+                  {ride.driver.userId.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride.driver.userId.name?.charAt(0) || 'D'}</Text></View>}
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>{ride.driver.userId.name}</Text>
                     <View style={styles.ratingRow}>{renderStars(ride.driver.userId.rating)}<Text style={styles.ratingText}>{ride.driver.userId.rating?.toFixed(1) || '5.0'}</Text></View>
-                    {ride.driver.vehicle ? <Text style={styles.vehicleText}>{(ride.driver.vehicle.make||'')+' '+(ride.driver.vehicle.model||'')+(ride.driver.vehicle.color?' \u2022 '+ride.driver.vehicle.color:'')+(ride.driver.vehicle.licensePlate?' \u2022 '+ride.driver.vehicle.licensePlate:'')}</Text> : null}
+                    {ride.driver.vehicleFrontPhoto ? <Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='contain' /> : null}{ride.driver.vehicle ? <Text style={styles.vehicleText}>{(ride.driver.vehicle.make||'')+' '+(ride.driver.vehicle.model||'')+(ride.driver.vehicle.color?' \u2022 '+ride.driver.vehicle.color:'')+(ride.driver.vehicle.licensePlate?' \u2022 '+ride.driver.vehicle.licensePlate:'')}</Text> : null}
                   </View>
                   <View style={styles.fareTag}><Text style={styles.fareTagAmount}>{ride.fare?.toLocaleString()}</Text><Text style={styles.fareTagCurrency}>FCFA</Text></View>
                 </View>
@@ -351,12 +352,14 @@ const styles = StyleSheet.create({
   driverCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  driverAvatarImg: { width: 50, height: 50, borderRadius: 25, marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
   avatarText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
   ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
   vehicleText: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  vehiclePhoto: { width: 120, height: 60, borderRadius: 8, marginTop: 8 },
   contactRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 10 },
   contactButton: { alignItems: 'center', flex: 1 },
   contactBtnIcon: { fontSize: 22, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
@@ -385,6 +388,8 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
+
 
 
 
