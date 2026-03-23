@@ -19,7 +19,7 @@ exports.sendOTP = async (req, res) => {
     if (!isValidSenegalPhone(phone)) {
       return res.status(400).json({
         success: false,
-        message: 'NumÃ©ro de tÃ©lÃ©phone invalide'
+        message: 'Numéro de téléphone invalide'
       });
     }
 
@@ -30,7 +30,7 @@ exports.sendOTP = async (req, res) => {
       if (!existingUser) {
         return res.status(404).json({
           success: false,
-          message: 'Aucun compte trouvÃ© avec ce numÃ©ro. Veuillez vous inscrire.'
+          message: 'Aucun compte trouvé avec ce numéro. Veuillez vous inscrire.'
         });
       }
     }
@@ -47,7 +47,7 @@ exports.sendOTP = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Code OTP envoyÃ©',
+      message: 'Code OTP envoyé',
       phone
     });
 
@@ -79,7 +79,7 @@ exports.verifyOTP = async (req, res) => {
     if (!otpRecord) {
       return res.status(400).json({
         success: false,
-        message: 'Code OTP invalide ou expirÃ©'
+        message: 'Code OTP invalide ou expiré'
       });
     }
 
@@ -92,7 +92,7 @@ exports.verifyOTP = async (req, res) => {
       if (!name || !role) {
         return res.status(400).json({
           success: false,
-          message: "Nom et rÃ´le requis pour l'inscription"
+          message: "Nom et rôle requis pour l'inscription"
         });
       }
 
@@ -114,7 +114,7 @@ exports.verifyOTP = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: user.isNew ? 'Compte crÃ©Ã© avec succÃ¨s' : 'Connexion rÃ©ussie',
+      message: user.isNew ? 'Compte créé avec succès' : 'Connexion réussie',
       token,
       user: {
         id: user._id,
@@ -130,7 +130,7 @@ exports.verifyOTP = async (req, res) => {
     console.error('Verify OTP Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la vÃ©rification du code'
+      message: 'Erreur lors de la vérification du code'
     });
   }
 };
@@ -168,7 +168,7 @@ exports.getMe = async (req, res) => {
     console.error('Get Me Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la rÃ©cupÃ©ration du profil'
+      message: 'Erreur lors de la récupération du profil'
     });
   }
 };
@@ -188,7 +188,7 @@ exports.updateProfile = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Profil mis Ã  jour',
+      message: 'Profil mis à jour',
       user
     });
 
@@ -196,7 +196,7 @@ exports.updateProfile = async (req, res) => {
     console.error('Update Profile Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise Ã  jour du profil'
+      message: 'Erreur lors de la mise à jour du profil'
     });
   }
 };
@@ -215,7 +215,7 @@ exports.adminLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Identifiants invalides' });
     }
     if (!user.password) {
-      return res.status(401).json({ success: false, message: 'Mot de passe non configurÃ©. Contactez le support.' });
+      return res.status(401).json({ success: false, message: 'Mot de passe non configuré. Contactez le support.' });
     }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
@@ -251,7 +251,7 @@ exports.registerPushToken = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Token requis' });
     }
     await User.findByIdAndUpdate(req.user._id, { pushToken: pushToken });
-    res.json({ success: true, message: 'Token enregistrÃ©' });
+    res.json({ success: true, message: 'Token enregistré' });
   } catch (error) {
     console.error('Register Push Token Error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
@@ -277,13 +277,13 @@ exports.register = async (req, res) => {
 
     var existingUser = await User.findOne({ phone });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Ce numÃ©ro est dÃ©jÃ  enregistrÃ©' });
+      return res.status(400).json({ success: false, message: 'Ce numéro est déjà enregistré' });
     }
 
     if (email) {
       var existingEmail = await User.findOne({ email: email.toLowerCase() });
       if (existingEmail) {
-        return res.status(400).json({ success: false, message: 'Cet email est dÃ©jÃ  utilisÃ©' });
+      return res.status(400).json({ success: false, message: 'Cet email est déjà utilisé' });
       }
     }
 
@@ -310,7 +310,7 @@ exports.register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Compte crÃ©Ã© avec succÃ¨s',
+      message: 'Compte créé avec succès',
       token: token,
       user: {
         id: user._id,
@@ -336,7 +336,7 @@ exports.loginWithPin = async (req, res) => {
     let { phone, pin } = req.body;
 
     if (!phone || !pin) {
-      return res.status(400).json({ success: false, message: 'TÃ©lÃ©phone et PIN requis' });
+      return res.status(400).json({ success: false, message: 'Téléphone et PIN requis' });
     }
 
     phone = formatPhoneNumber(phone);
@@ -347,7 +347,7 @@ exports.loginWithPin = async (req, res) => {
     }
 
     if (!user.pin) {
-      return res.status(401).json({ success: false, message: 'Aucun PIN configurÃ©. Veuillez vous rÃ©inscrire.' });
+      return res.status(401).json({ success: false, message: 'Aucun PIN configuré. Veuillez vous réinscrire.' });
     }
 
     var isMatch = await bcrypt.compare(pin, user.pin);
@@ -359,7 +359,7 @@ exports.loginWithPin = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Connexion rÃ©ussie',
+      message: 'Connexion réussie',
       token: token,
       user: {
         id: user._id,
@@ -387,7 +387,7 @@ exports.forgotPin = async (req, res) => {
 
     var user = await User.findOne({ phone });
     if (!user || !user.email) {
-      return res.status(404).json({ success: false, message: 'Aucun compte avec email trouvÃ© pour ce numÃ©ro' });
+      return res.status(404).json({ success: false, message: 'Aucun compte avec email trouvé pour ce numéro' });
     }
 
     var otp = generateOTP();
@@ -404,11 +404,11 @@ exports.forgotPin = async (req, res) => {
     await transporter.sendMail({
       from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
       to: user.email,
-      subject: 'RÃ©initialisation de votre PIN TeranGO',
-      html: '<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#4CD964;">TeranGO</h2><p>Votre code de rÃ©initialisation:</p><h1 style="text-align:center;color:#4CD964;font-size:36px;letter-spacing:8px;">' + otp + '</h1><p>Ce code expire dans 10 minutes.</p></div>'
+      subject: 'Réinitialisation de votre PIN TeranGO',
+      html: '<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#4CD964;">TeranGO</h2><p>Votre code de réinitialisation:</p><h1 style="text-align:center;color:#4CD964;font-size:36px;letter-spacing:8px;">' + otp + '</h1><p>Ce code expire dans 10 minutes.</p></div>'
     });
 
-    res.json({ success: true, message: 'Code envoyÃ© Ã  votre email' });
+    res.json({ success: true, message: 'Code envoyé à votre email' });
   } catch (error) {
     console.error('Forgot PIN Error:', error);
     res.status(500).json({ success: false, message: "Erreur lors de l'envoi du code" });
@@ -430,7 +430,7 @@ exports.resetPin = async (req, res) => {
 
     var otpRecord = await OTP.findOne({ phone: phone, otp: otp, verified: false, expiresAt: { $gt: new Date() } });
     if (!otpRecord) {
-      return res.status(400).json({ success: false, message: 'Code invalide ou expirÃ©' });
+      return res.status(400).json({ success: false, message: 'Code invalide ou expiré' });
     }
 
     otpRecord.verified = true;
@@ -439,10 +439,10 @@ exports.resetPin = async (req, res) => {
     var hashedPin = await bcrypt.hash(newPin, 10);
     await User.findOneAndUpdate({ phone: phone }, { pin: hashedPin });
 
-    res.json({ success: true, message: 'PIN rÃ©initialisÃ© avec succÃ¨s' });
+    res.json({ success: true, message: 'PIN réinitialisé avec succès' });
   } catch (error) {
     console.error('Reset PIN Error:', error);
-    res.status(500).json({ success: false, message: 'Erreur lors de la rÃ©initialisation' });
+    res.status(500).json({ success: false, message: 'Erreur lors de la réinitialisation' });
   }
 };
 
