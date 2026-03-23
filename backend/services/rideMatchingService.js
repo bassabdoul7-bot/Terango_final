@@ -1,4 +1,4 @@
-const Driver = require('../models/Driver');
+﻿const Driver = require('../models/Driver');
 const { sendPushNotification } = require('./pushService');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
@@ -22,7 +22,7 @@ class RideMatchingService {
     this.driverLocationService = driverLocationService;
   }
 
-  async findNearbyDrivers(pickupCoords, maxRadius = 10, rideType = null) {
+  async findNearbyDrivers(pickupCoords, maxRadius = 50000, rideType = null) {
     try {
       if (this.driverLocationService) {
         const redisDrivers = await this.driverLocationService.getNearbyDrivers(
@@ -303,7 +303,7 @@ class RideMatchingService {
         console.log(`?? Ride ${rideId} already accepted by another driver`);
         return {
           success: false,
-          message: 'Cette course a d�j� �t� accept�e par un autre chauffeur'
+          message: 'Cette course a dï¿½jï¿½ ï¿½tï¿½ acceptï¿½e par un autre chauffeur'
         };
       }
 
@@ -424,3 +424,4 @@ class RideMatchingService {
 }
 
 module.exports = RideMatchingService;
+
