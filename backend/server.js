@@ -319,16 +319,23 @@ io.on('connection', function(socket) {
   socket.on('disconnect', function() {
     console.log('Socket disconnected: ' + socket.id);
     if (socket.driverId) {
-      // Clean up rate limiter
-      lastLocationUpdate.delete(socket.driverId);
-
-      driverLocationService.setDriverOffline(socket.driverId)
-        .then(function() {
-          io.to('riders-watching').emit('driver-went-offline', { driverId: socket.driverId });
-        })
-        .catch(function(err) {
-          console.error(`Disconnect cleanup failed for ${socket.driverId}:`, err.message);
-        });
+      var dId = socket.driverId;
+      lastLocationUpdate.delete(dId);
+      setTimeout(function() {
+        var activeSocket = Array.from(io.sockets.sockets.values()).find(function(s) { return s.driverId === dId; });
+        if (!activeSocket) {
+          driverLocationService.setDriverOffline(dId)
+            .then(function() {
+              io.to('riders-watching').emit('driver-went-offline', { driverId: dId });
+              console.log('Driver ' + dId + ' set offline after 30s timeout');
+            })
+            .catch(function(err) {
+              console.error('Disconnect cleanup failed for ' + dId + ':', err.message);
+            });
+        } else {
+          console.log('Driver ' + dId + ' reconnected, skipping offline');
+        }
+      }, 30000);
     }
   });
 });
