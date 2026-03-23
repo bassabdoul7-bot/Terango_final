@@ -579,10 +579,7 @@ function HomeScreen(props) {
             <Text style={styles.greeting}>Bonjour,</Text>
             <Text style={styles.userName}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
           </View>
-          <FeedbackButton screen='Home' />
-
-
-        </Animated.View>
+          </Animated.View>
 
         <Animated.View style={[styles.searchCard, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
@@ -669,6 +666,7 @@ function HomeScreen(props) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       {activeTab === 'home' && renderHomeTab()}
+      {activeTab === 'home' && <FeedbackButton screen='Home' />}
       {activeTab === 'activity' && renderActivityTab()}
       {activeTab === 'payment' && renderPaymentTab()}
       {activeTab === 'profile' && renderProfileTab()}
@@ -945,6 +943,7 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 
