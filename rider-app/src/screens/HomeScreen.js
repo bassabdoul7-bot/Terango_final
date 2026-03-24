@@ -741,7 +741,7 @@ var styles = StyleSheet.create({
   logoContainer: {
     width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 4,
+    borderWidth: 2, borderColor: COLORS.yellow, elevation: 4,
   },
   logo: { width: 45, height: 45, borderRadius: 22.5 },
   greetingCard: {
@@ -944,6 +944,7 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 
