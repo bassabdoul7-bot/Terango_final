@@ -130,7 +130,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
           ))}
         </ScrollView>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 
@@ -309,5 +309,6 @@ const styles = StyleSheet.create({
 });
 
 export default SearchDestinationScreen;
+
 
 
