@@ -58,7 +58,7 @@ const SearchDestinationScreen = ({ route, navigation }) => {
   const handleRecentPress = (recent) => { setDropoff({ address: recent.address, coordinates: recent.coordinates }); };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
