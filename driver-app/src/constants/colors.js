@@ -4,7 +4,10 @@ export const COLORS = {
   // Senegal Flag Colors
   green: '#00853F',
   yellow: '#D4AF37',
-  yellowDark: '#D4AF37',
+  yellowDark: '#B8962E',
+  yellowGlow25: 'rgba(212,175,55,0.25)',
+  glassGreenDark: 'rgba(0,133,63,0.2)',
+  orange: '#FFA500',
   red: '#E31B23',
 
   // Neutrals
@@ -50,4 +53,5 @@ export const COLORS = {
 };
 
 export default COLORS;
+
 

@@ -215,7 +215,7 @@ var HomeScreen = function(props) {
                 var isToday = i === todayIndex;
                 return (
                   <View key={i} style={styles.chartCol}>
-                    <View style={[styles.chartBar, { height: h, backgroundColor: isToday ? COLORS.yellow : 'rgba(212,175,55,0.25)' }]} />
+                    <View style={[styles.chartBar, { height: h, backgroundColor: isToday ? COLORS.yellow : COLORS.yellowGlow25 }]} />
                     <Text style={[styles.chartDay, isToday && styles.chartDayActive]}>{day}</Text>
                   </View>
                 );
@@ -298,7 +298,7 @@ var styles = StyleSheet.create({
   earningsLabel: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_600SemiBold', letterSpacing: 1, marginBottom: 4 },
   earningsAmount: { fontSize: 32, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   earningsCurrency: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
-  tierBadge: { backgroundColor: 'rgba(0,133,63,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
+  tierBadge: { backgroundColor: COLORS.glassGreenDark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
   tierText: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
 
   statsRow: { flexDirection: 'row', gap: 8 },
@@ -323,7 +323,7 @@ var styles = StyleSheet.create({
 
   driverMarker: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   driverArrow: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderBottomWidth: 26, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: COLORS.yellow },
-  driverDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: COLORS.yellow },
+  driverDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.white, borderWidth: 2, borderColor: COLORS.yellow },
 
   goSection: { marginHorizontal: 20, marginTop: 16 },
   goCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -331,7 +331,7 @@ var styles = StyleSheet.create({
   goStatusItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   dotGreen: { backgroundColor: COLORS.green },
-  dotOrange: { backgroundColor: '#FFA500' },
+  dotOrange: { backgroundColor: COLORS.orange },
   dotRed: { backgroundColor: COLORS.red },
   goStatusText: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
 
@@ -345,3 +345,4 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
