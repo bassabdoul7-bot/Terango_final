@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.yellowGlow15, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)' },
   statusIcon: { fontSize: 18, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
   bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '55%' },
@@ -396,6 +396,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
