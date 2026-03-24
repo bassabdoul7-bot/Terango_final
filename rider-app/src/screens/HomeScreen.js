@@ -12,6 +12,7 @@ import {
   StatusBar,
   Animated,
   Easing,
+  AppState,
 } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
@@ -67,6 +68,7 @@ function HomeScreen(props) {
   var setSaveAddress = saveAddrState[1];
 
   var socketRef = useRef(null);
+  var appStateRef = useRef(AppState.currentState);
   var fetchInterval = useRef(null);
 
   // Welcome animation
@@ -107,6 +109,19 @@ function HomeScreen(props) {
         clearInterval(fetchInterval.current);
       }
     };
+  }, []);
+
+  useEffect(function() {
+    var subscription = AppState.addEventListener('change', function(nextAppState) {
+      if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
+        if (socketRef.current && !socketRef.current.connected) {
+          socketRef.current.connect();
+        }
+        fetchNearbyDrivers();
+      }
+      appStateRef.current = nextAppState;
+    });
+    return function() { subscription.remove(); };
   }, []);
 
   useEffect(function() {
@@ -944,6 +959,7 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 
