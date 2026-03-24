@@ -38,6 +38,7 @@ const FeedbackButton = ({ screen }) => {
     <>
       <TouchableOpacity style={styles.fab} onPress={() => setVisible(true)}>
         <Text style={styles.fabIcon}>{'\u2753'}</Text>
+        <Text style={styles.fabLabel}>Signaler un probleme</Text>
       </TouchableOpacity>
       <Modal visible={visible} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
@@ -70,8 +71,9 @@ const FeedbackButton = ({ screen }) => {
 };
 
 const styles = StyleSheet.create({
-  fab: { position: 'absolute', bottom: 90, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6, zIndex: 999 },
-  fabIcon: { fontSize: 22 },
+  fab: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder, marginBottom: 16 },
+  fabIcon: { fontSize: 20, marginRight: 10 },
+  fabLabel: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.yellow },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   card: { backgroundColor: COLORS.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   title: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
@@ -85,3 +87,6 @@ const styles = StyleSheet.create({
 });
 
 export default FeedbackButton;
+
+
+
