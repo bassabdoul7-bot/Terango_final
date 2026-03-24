@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   driverMarker: { width: 40, height: 40, backgroundColor: COLORS.green, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#fff' },
   driverMarkerText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  earningsCard: { backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  earningsCard: { backgroundColor: COLORS.yellowGlow25, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)' },
   earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 2 },
   earningsLabel: { fontSize: 11, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   offlineButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
@@ -206,6 +206,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 
