@@ -728,8 +728,8 @@ var styles = StyleSheet.create({
   },
   driverCountBadge: {
     position: 'absolute', top: 130, alignSelf: 'center',
-    backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: COLORS.yellowGlow15, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+    borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)',
   },
   driverCountText: { color: COLORS.textLight, fontSize: 13, fontFamily: 'LexendDeca_600SemiBold' },
 
@@ -944,6 +944,7 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 
 
