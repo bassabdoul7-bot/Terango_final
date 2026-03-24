@@ -1,0 +1,31 @@
+﻿# Root project files
+*.txt
+*.md
+*.bak
+fix-*.js
+build-*.js
+add-*.js
+rewrite-*.js
+setup-*.js
+update-*.js
+wire-*.js
+temp_*
+AUDIT*
+CODEDUMP*
+*_PEEK.txt
+*_DUMP.txt
+*_NAV.txt
+
+# Other apps (rider doesn't need driver, etc)
+admin-dashboard/
+backend/
+driver-app/
+
+# Build artifacts
+*.aab
+*.apk
+*.ipa
+dist/
+src_backup/
+*.backup
+*.bak

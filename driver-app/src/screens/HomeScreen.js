@@ -9,8 +9,6 @@ import {
   Image,
   ActivityIndicator,
   AppState,
-  Dimensions,
-  ScrollView,
 } from 'react-native';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -19,9 +17,6 @@ import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
-
-var { width } = Dimensions.get('window');
-var DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
 var HomeScreen = function(props) {
   var navigation = props.navigation;
@@ -45,17 +40,12 @@ var HomeScreen = function(props) {
   var socket = socketState[0];
   var setSocket = socketState[1];
 
-  var earningsState = useState({ today: 0, todayRides: 0, totalRides: 0, weekTotal: 0, weeklyBreakdown: [0,0,0,0,0,0,0] });
-  var earnings = earningsState[0];
-  var setEarnings = earningsState[1];
-
   var pendingGoOnline = useRef(false);
   var appStateRef = useRef(AppState.currentState);
   var locationRef = useRef(null);
 
   useEffect(function() {
     initializeLocation();
-    fetchEarnings();
     createAuthSocket().then(function(newSocket) {
       setSocket(newSocket);
       newSocket.on('connect', function() { console.log('Socket connected:', newSocket.id); });
@@ -67,7 +57,6 @@ var HomeScreen = function(props) {
   useEffect(function() {
     var subscription = AppState.addEventListener('change', function(nextAppState) {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        fetchEarnings();
         if (socket && !socket.connected) { socket.connect(); }
       }
       appStateRef.current = nextAppState;
@@ -83,20 +72,6 @@ var HomeScreen = function(props) {
       goOnlineWithLocation();
     }
   }, [location]);
-
-  var fetchEarnings = function() {
-    driverService.getEarnings().then(function(r) {
-      if (r.success) {
-        setEarnings({
-          today: r.earnings.today || 0,
-          todayRides: r.earnings.todayRides || 0,
-          totalRides: r.earnings.totalRides || 0,
-          weekTotal: r.earnings.weekTotal || 0,
-          weeklyBreakdown: r.earnings.weeklyBreakdown || [0,0,0,0,0,0,0]
-        });
-      }
-    }).catch(function(e) { console.log('Earnings fetch error:', e); });
-  };
 
   var initializeLocation = function() {
     setGettingLocation(true);
@@ -145,204 +120,124 @@ var HomeScreen = function(props) {
     goOnlineWithLocation();
   };
 
-  var tierName = (driver && driver.tier) ? driver.tier.charAt(0).toUpperCase() + driver.tier.slice(1) : 'Goorgoorlu';
-  var rating = user.rating ? user.rating.toFixed(1) : '5.0';
-  var acceptRate = driver ? (driver.acceptanceRate || 100) : 100;
   var userName = user.name || 'Chauffeur';
-  var maxWeek = Math.max.apply(null, earnings.weeklyBreakdown.concat([1]));
-  var todayIndex = (new Date().getDay() + 6) % 7;
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <StatusBar barStyle="dark-content" />
 
-        <View style={styles.header}>
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft}>
-              <View style={styles.logoWrap}>
-                <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
+      {location ? (
+        <Map style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
+          <Camera center={[location.longitude, location.latitude]} zoom={14} />
+          <Marker id="driverLocation" lngLat={[location.longitude, location.latitude]}>
+            <View style={styles.driverMarkerOuter}>
+              <View style={styles.driverMarkerShadow} />
+              <View style={styles.driverMarkerArrow}>
+                <View style={styles.driverArrowTop} />
+                <View style={styles.driverArrowBottom} />
               </View>
-              <View>
-                <Text style={styles.greetSub}>Bonjour,</Text>
-                <Text style={styles.greetName}>{userName}</Text>
-              </View>
+              <View style={styles.driverMarkerDot} />
             </View>
-            <TouchableOpacity style={styles.menuBtn} onPress={function() { navigation.navigate('Menu'); }}>
-              <Text style={styles.menuIcon}>{'\u2630'}</Text>
-            </TouchableOpacity>
+          </Marker>
+        </Map>
+      ) : (
+        <View style={styles.mapPlaceholder}>
+          <ActivityIndicator size="large" color={COLORS.green} />
+          <Text style={styles.loadingText}>Obtention de votre position...</Text>
+        </View>
+      )}
+
+      <View style={styles.topBar}>
+        <View style={styles.topLeft}>
+          <View style={styles.logoWrap}>
+            <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
           </View>
-
-          <View style={styles.earningsCard}>
-            <View style={styles.earningsTop}>
-              <View>
-                <Text style={styles.earningsLabel}>GAINS AUJOURD'HUI</Text>
-                <Text style={styles.earningsAmount}>{earnings.today.toLocaleString()} <Text style={styles.earningsCurrency}>FCFA</Text></Text>
-              </View>
-              <View style={styles.tierBadge}>
-                <Text style={styles.tierText}>{tierName}</Text>
-              </View>
-            </View>
-
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{earnings.todayRides}</Text>
-                <Text style={styles.statLabel}>Courses</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{rating}</Text>
-                <Text style={styles.statLabel}>Note</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{acceptRate}%</Text>
-                <Text style={styles.statLabel}>Accept.</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>{earnings.totalRides}</Text>
-                <Text style={styles.statLabel}>Total</Text>
-              </View>
-            </View>
+          <View style={styles.greetingCard}>
+            <Text style={styles.greetSub}>Bonjour,</Text>
+            <Text style={styles.greetName}>{userName}</Text>
           </View>
+        </View>
+        <TouchableOpacity style={styles.menuBtn} onPress={function() { navigation.navigate('Menu'); }}>
+          <Text style={styles.menuIcon}>{'\u2630'}</Text>
+        </TouchableOpacity>
+      </View>
 
-          <View style={styles.weekCard}>
-            <View style={styles.weekHeader}>
-              <Text style={styles.weekLabel}>CETTE SEMAINE</Text>
-              <Text style={styles.weekTotal}>{earnings.weekTotal.toLocaleString()} FCFA</Text>
-            </View>
-            <View style={styles.chartRow}>
-              {DAYS.map(function(day, i) {
-                var h = maxWeek > 0 ? Math.max((earnings.weeklyBreakdown[i] / maxWeek) * 50, 4) : 4;
-                var isToday = i === todayIndex;
-                return (
-                  <View key={i} style={styles.chartCol}>
-                    <View style={[styles.chartBar, { height: h, backgroundColor: isToday ? COLORS.yellow : COLORS.yellowGlow25 }]} />
-                    <Text style={[styles.chartDay, isToday && styles.chartDayActive]}>{day}</Text>
-                  </View>
-                );
-              })}
-            </View>
+      <View style={styles.bottomCard}>
+        <Text style={styles.welcomeTitle}>Pret a rouler?</Text>
+        <Text style={styles.welcomeSub}>Vos passagers vous attendent</Text>
+
+        <View style={styles.statusRow}>
+          <View style={styles.statusItem}>
+            <View style={[styles.statusDot, location ? styles.dotGreen : styles.dotOrange]} />
+            <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche...' : 'GPS inactif'}</Text>
+          </View>
+          <View style={styles.statusItem}>
+            <View style={[styles.statusDot, styles.dotRed]} />
+            <Text style={styles.statusText}>Hors ligne</Text>
           </View>
         </View>
 
-        <View style={styles.mapSection}>
-          {location ? (
-            <Map style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
-              <Camera center={[location.longitude, location.latitude]} zoom={14} />
-              <Marker id="driverLocation" lngLat={[location.longitude, location.latitude]}>
-                <View style={styles.driverMarker}>
-                  <View style={styles.driverArrow} />
-                  <View style={styles.driverDot} />
-                </View>
-              </Marker>
-            </Map>
+        <TouchableOpacity style={[styles.goCircle, (loading || gettingLocation) && styles.goDisabled]} onPress={handleGoOnline} disabled={loading || gettingLocation}>
+          {(loading || gettingLocation) ? (
+            <ActivityIndicator size="small" color={COLORS.textLight} />
           ) : (
-            <View style={styles.mapPlaceholder}>
-              <ActivityIndicator size="large" color={COLORS.green} />
-              <Text style={styles.mapLoadText}>Obtention de votre position...</Text>
-            </View>
+            <Text style={styles.goText}>GO</Text>
           )}
-        </View>
+        </TouchableOpacity>
+        <Text style={styles.goHint}>Appuyez pour passer en ligne</Text>
 
-        <View style={styles.goSection}>
-          <View style={styles.goCard}>
-            <View style={styles.goStatusRow}>
-              <View style={styles.goStatusItem}>
-                <View style={[styles.statusDot, location ? styles.dotGreen : styles.dotOrange]} />
-                <Text style={styles.goStatusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche...' : 'GPS inactif'}</Text>
-              </View>
-              <View style={styles.goStatusItem}>
-                <View style={[styles.statusDot, styles.dotRed]} />
-                <Text style={styles.goStatusText}>Hors ligne</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={[styles.goCircle, (loading || gettingLocation) && styles.goDisabled]} onPress={handleGoOnline} disabled={loading || gettingLocation}>
-              {(loading || gettingLocation) ? (
-                <ActivityIndicator size="small" color={COLORS.darkBg} />
-              ) : (
-                <Text style={styles.goText}>GO</Text>
-              )}
-            </TouchableOpacity>
-            <Text style={styles.goHint}>Appuyez pour passer en ligne</Text>
-
-            {!location && !gettingLocation && (
-              <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
-                <Text style={styles.retryText}>Reessayer GPS</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        {!location && !gettingLocation && (
+          <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
+            <Text style={styles.retryText}>Reessayer GPS</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scrollView: { flex: 1 },
+  map: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  mapPlaceholder: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: COLORS.textDarkSub, fontSize: 16, marginTop: 16, fontFamily: 'LexendDeca_400Regular' },
 
-  header: { backgroundColor: COLORS.darkCard, paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderWidth: 1, borderColor: COLORS.darkCardBorder, borderTopWidth: 0 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  logoWrap: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.yellow, backgroundColor: COLORS.darkCard },
+  driverMarkerOuter: { width: 70, height: 70, alignItems: 'center', justifyContent: 'center' },
+  driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
+  driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
+  driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: COLORS.yellow },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: COLORS.yellowDark, marginTop: -6 },
+  driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.white, borderWidth: 3, borderColor: COLORS.yellow },
+
+  topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  logoWrap: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.yellow, backgroundColor: 'rgba(0,36,24,0.85)' },
   logoImg: { width: 42, height: 42, borderRadius: 21 },
-  greetSub: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
-  greetName: { fontSize: 17, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  menuBtn: { width: 42, height: 42, borderRadius: 21, backgroundColor: COLORS.darkGlass, borderWidth: 1, borderColor: COLORS.darkGlassBorder, alignItems: 'center', justifyContent: 'center' },
+  greetingCard: { backgroundColor: COLORS.yellowGlow25, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
+  greetSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_400Regular' },
+  greetName: { fontSize: 15, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
+  menuBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,36,24,0.85)', borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
   menuIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
 
-  earningsCard: { backgroundColor: COLORS.darkGlass, borderWidth: 1, borderColor: COLORS.darkCardBorder, borderRadius: 16, padding: 18, marginBottom: 14 },
-  earningsTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  earningsLabel: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_600SemiBold', letterSpacing: 1, marginBottom: 4 },
-  earningsAmount: { fontSize: 32, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
-  earningsCurrency: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
-  tierBadge: { backgroundColor: COLORS.glassGreenDark, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  tierText: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
+  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.78)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
+  welcomeTitle: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold', marginBottom: 4 },
+  welcomeSub: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginBottom: 20 },
 
-  statsRow: { flexDirection: 'row', gap: 8 },
-  statBox: { flex: 1, backgroundColor: COLORS.darkGlass, borderWidth: 1, borderColor: COLORS.darkGlassBorder, borderRadius: 12, paddingVertical: 10, alignItems: 'center' },
-  statValue: { fontSize: 18, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  statLabel: { fontSize: 10, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 2 },
-
-  weekCard: { backgroundColor: COLORS.darkGlass, borderWidth: 1, borderColor: COLORS.darkCardBorder, borderRadius: 16, padding: 16 },
-  weekHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  weekLabel: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_600SemiBold', letterSpacing: 1 },
-  weekTotal: { fontSize: 14, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
-  chartRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, height: 70 },
-  chartCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
-  chartBar: { width: '100%', borderRadius: 4, minHeight: 4 },
-  chartDay: { fontSize: 10, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 6 },
-  chartDayActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
-
-  mapSection: { height: 180, marginHorizontal: 20, marginTop: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  map: { flex: 1 },
-  mapPlaceholder: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
-  mapLoadText: { color: COLORS.textDarkSub, fontSize: 13, marginTop: 10, fontFamily: 'LexendDeca_400Regular' },
-
-  driverMarker: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  driverArrow: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderBottomWidth: 26, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: COLORS.yellow },
-  driverDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.white, borderWidth: 2, borderColor: COLORS.yellow },
-
-  goSection: { marginHorizontal: 20, marginTop: 16 },
-  goCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  goStatusRow: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 20 },
-  goStatusItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statusRow: { flexDirection: 'row', gap: 24, marginBottom: 20 },
+  statusItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
   dotGreen: { backgroundColor: COLORS.green },
   dotOrange: { backgroundColor: COLORS.orange },
   dotRed: { backgroundColor: COLORS.red },
-  goStatusText: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+  statusText: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
 
-  goCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 10 },
+  goCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(212,175,55,0.4)', alignItems: 'center', justifyContent: 'center', elevation: 15, borderWidth: 2, borderColor: 'rgba(212,175,55,0.6)', borderBottomWidth: 5, borderBottomColor: 'rgba(212,175,55,0.5)', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 8 },
   goDisabled: { opacity: 0.5 },
-  goText: { fontSize: 28, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold', letterSpacing: 3 },
-  goHint: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 12 },
+  goText: { fontSize: 24, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold', letterSpacing: 3 },
+  goHint: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 12 },
 
   retryBtn: { marginTop: 14, paddingVertical: 10, paddingHorizontal: 20 },
   retryText: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
 });
 
 export default HomeScreen;
-
