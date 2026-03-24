@@ -73,7 +73,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     } catch (e) {}
   };
 
-  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); stopRideAlert(); }; }, []);
+  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); var earningsInterval = setInterval(fetchEarnings, 30000); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); clearInterval(earningsInterval); stopRideAlert(); }; }, []);
   useEffect(() => { currentRequestRef.current = currentRequest; if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
   useEffect(() => { if (!currentRequest) { Animated.loop(Animated.sequence([Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }), Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true })])).start(); } else { scanAnim.setValue(0); } }, [currentRequest]);
   useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
@@ -98,6 +98,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       newSocket.on('new-delivery', (d) => { var sType = d.serviceType || 'colis'; if (sType === 'colis' && !activeServicesRef.current.colis) return; if (sType === 'commande' && !activeServicesRef.current.commande) return; if ((sType === 'resto' || sType === 'restaurant') && !activeServicesRef.current.resto) return; var offerData = { rideId: d.deliveryId, _offerType: d.serviceType || 'colis', _isDelivery: true, pickup: d.pickup, dropoff: d.dropoff, fare: d.fare, packageDetails: d.packageDetails, restaurantName: d.restaurantName, serviceType: d.serviceType, offerExpiresIn: 60000 }; setRideRequests(prev => [...prev, offerData]); if (!currentRequest) { setCurrentRequest(offerData); const t = setTimeout(() => { handleReject(); }, 60000); setOfferTimeout(t); } });
       newSocket.on('delivery-taken', () => { Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9.'); if (currentRequest && currentRequest._isDelivery) setCurrentRequest(null); });
       newSocket.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
+      newSocket.on('ride-completed-earnings', () => { fetchEarnings(); });
       newSocket.on('disconnect', () => {});
     });
   };
@@ -285,6 +286,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 
