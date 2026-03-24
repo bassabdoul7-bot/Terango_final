@@ -241,11 +241,15 @@ const ActiveRideScreen = ({ route, navigation }) => {
             {ride.driver?.userId && (
               <View style={styles.driverCard}>
                 <View style={styles.driverRow}>
-                  {ride?.driver?.userId?.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride?.driver?.userId?.name?.charAt(0) || 'D'}</Text></View>}
+                  <View style={styles.driverPhotos}>
+                    {ride?.driver?.userId?.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride?.driver?.userId?.name?.charAt(0) || 'D'}</Text></View>}
+                    {ride?.driver?.vehicleFrontPhoto ? <View style={styles.vehiclePhotoWrap}><Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='cover' /></View> : null}
+                  </View>
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>{ride?.driver?.userId?.name || 'Chauffeur'}</Text>
                     <View style={styles.ratingRow}>{renderStars(ride?.driver?.userId?.rating)}<Text style={styles.ratingText}>{ride?.driver?.userId?.rating?.toFixed(1) || '5.0'}</Text></View>
-                    {ride?.driver?.vehicleFrontPhoto ? <Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='contain' /> : null}{ride?.driver?.vehicle ? <Text style={styles.vehicleText}>{(ride?.driver?.vehicle?.make||'')+' '+(ride?.driver?.vehicle?.model||'')+(ride?.driver?.vehicle?.color?' \u2022 '+ride?.driver?.vehicle?.color:'')+(ride?.driver?.vehicle?.licensePlate?' \u2022 '+ride?.driver?.vehicle?.licensePlate:'')}</Text> : null}
+                    {ride?.driver?.vehicle ? <Text style={styles.vehicleText}>{(ride?.driver?.vehicle?.make||'')+' '+(ride?.driver?.vehicle?.model||'')+(ride?.driver?.vehicle?.color?' \u2022 '+ride?.driver?.vehicle?.color:'')}</Text> : null}
+                    {ride?.driver?.vehicle?.licensePlate ? <View style={styles.plateBadge}><Text style={styles.plateText}>{ride.driver.vehicle.licensePlate}</Text></View> : null}
                   </View>
                   <View style={styles.fareTag}><Text style={styles.fareTagAmount}>{ride.fare?.toLocaleString()}</Text><Text style={styles.fareTagCurrency}>FCFA</Text></View>
                 </View>
@@ -352,14 +356,18 @@ const styles = StyleSheet.create({
   driverCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  driverAvatarImg: { width: 50, height: 50, borderRadius: 25, marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
+  driverAvatarImg: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.yellow },
   avatarText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
   ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
   vehicleText: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
-  vehiclePhoto: { width: 120, height: 60, borderRadius: 8, marginTop: 8 },
+  driverPhotos: { alignItems: 'center', marginRight: 12, gap: 6 },
+  vehiclePhotoWrap: { width: 72, height: 48, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  vehiclePhoto: { width: 72, height: 48, borderRadius: 10 },
+  plateBadge: { backgroundColor: COLORS.yellowGlow10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
+  plateText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   contactRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 10 },
   contactButton: { alignItems: 'center', flex: 1 },
   contactBtnIcon: { fontSize: 22, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
@@ -388,6 +396,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
