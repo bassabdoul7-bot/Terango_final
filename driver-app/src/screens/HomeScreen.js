@@ -185,7 +185,6 @@ const HomeScreen = ({ navigation }) => {
       )}
     </View>
   );
-      <FeedbackButton screen='Home' />
 };
 
 const styles = StyleSheet.create({
@@ -197,7 +196,7 @@ const styles = StyleSheet.create({
   driverMarkerShadow: { position: 'absolute', bottom: 2, width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.25)' },
   driverMarkerArrow: { width: 56, height: 56, alignItems: 'center' },
   driverArrowTop: { width: 0, height: 0, borderLeftWidth: 22, borderRightWidth: 22, borderBottomWidth: 40, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
-  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
+  driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#B8962E', marginTop: -6 },
   driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#D4AF37' },
   markerText: { fontSize: 18, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', justifyContent: 'flex-start' },
@@ -205,7 +204,7 @@ const styles = StyleSheet.create({
   menuIcon: { fontSize: 28, color: COLORS.textLight , fontFamily: 'LexendDeca_400Regular' },
   offlineContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center', paddingBottom: 60 },
   offlineCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 32, marginHorizontal: 20, alignItems: 'center', elevation: 12, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  iconContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden', elevation: 8 },
+  iconContainer: { width: 90, height: 90, borderRadius: 45, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginBottom: 20, overflow: 'hidden', elevation: 8 },
   logoImage: { width: 80, height: 80 },
   offlineTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8, textAlign: 'center' },
   offlineSubtitle: { fontSize: 15, color: COLORS.textLightSub, marginBottom: 16, textAlign: 'center' , fontFamily: 'LexendDeca_400Regular' },
@@ -214,7 +213,7 @@ const styles = StyleSheet.create({
   statusDotGreen: { backgroundColor: COLORS.green },
   statusDotOrange: { backgroundColor: '#FFA500' },
   statusText: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
-  goCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 15, borderWidth: 2.5, borderColor: '#FFFFFF', borderBottomWidth: 5, borderBottomColor: '#C8A000', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 8 },
+  goCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 15, borderWidth: 0, borderColor: 'transparent', borderBottomWidth: 0, borderBottomColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.35, shadowRadius: 8 },
   buttonDisabled: { opacity: 0.6 },
   goCircleText: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', letterSpacing: 2, textShadowColor: 'rgba(255,255,255,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   retryButton: { marginTop: 12, padding: 12 },
@@ -222,6 +221,9 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
 
 
 
