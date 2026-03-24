@@ -483,6 +483,8 @@ function HomeScreen(props) {
           </View>
         </View>
 
+        <FeedbackButton screen='Profile' />
+
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutIcon}>{"👋"}</Text>
           <Text style={styles.logoutTxt}>{"Se déconnecter"}</Text>
@@ -666,7 +668,6 @@ function HomeScreen(props) {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       {activeTab === 'home' && renderHomeTab()}
-      {activeTab === 'home' && <FeedbackButton screen='Home' />}
       {activeTab === 'activity' && renderActivityTab()}
       {activeTab === 'payment' && renderPaymentTab()}
       {activeTab === 'profile' && renderProfileTab()}
@@ -808,23 +809,23 @@ var styles = StyleSheet.create({
   // Bottom nav - DARK
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row',
-    backgroundColor: COLORS.yellow, paddingVertical: 14, paddingBottom: 30,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28, elevation: 16,
-    borderTopWidth: 0, borderTopColor: 'transparent',
+    backgroundColor: 'rgba(212,175,55,0.85)', paddingVertical: 10, paddingBottom: 30,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 16,
+    borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.4)',
     shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12,
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(0,26,18,0.1)',
+    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(0,26,18,0.12)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
-    borderWidth: 0, borderColor: 'transparent',
+    borderWidth: 1, borderColor: 'rgba(0,26,18,0.08)',
   },
   navIconContainerActive: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkBg,
+    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
   },
   navIconText: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
-  navLabel: { fontSize: 11, color: 'rgba(0,26,18,0.5)', fontFamily: 'LexendDeca_500Medium' },
+  navLabel: { fontSize: 11, color: COLORS.darkBg2, fontFamily: 'LexendDeca_600SemiBold' },
   navLabelActive: { fontSize: 11, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
 
   // Tab screens - WHITE BACKGROUND
@@ -943,6 +944,9 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
 
 
 
