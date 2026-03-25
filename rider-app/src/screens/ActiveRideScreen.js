@@ -166,7 +166,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleBackPress = () => { if (showNoDrivers) { navigation.replace('Home'); return; } if (!ride) { navigation.goBack(); return; } if (ride.status === 'pending') { Alert.alert('Recherche en cours', 'Voulez-vous annuler?', [{ text: 'Rester', style: 'cancel' }, { text: 'Annuler', style: 'destructive', onPress: () => handleCancelRide('Annul\u00e9 par le passager') }]); } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) { Alert.alert('Course en cours', 'Vous avez une course active.'); } else { navigation.navigate('Home'); } };
 
   useEffect(() => { fetchRideDetails(); pollInterval.current = setInterval(fetchRideDetails, 5000); return () => { if (pollInterval.current) clearInterval(pollInterval.current); if (etaInterval.current) clearInterval(etaInterval.current); if (socketRef.current) socketRef.current.disconnect(); }; }, [rideId]);
-  useEffect(() => { if (ride?.driver && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (!etaInterval.current) { fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); } if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
+  useEffect(() => { if (ride?.driver?.userId && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (!etaInterval.current) { fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); } if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
 
   const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => d.location && setDriverLocation(d.location)); socketRef.current.on('ride-accepted', function() { fetchRideDetails(); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); };
 
@@ -236,10 +236,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <View style={styles.fareCard}><Text style={styles.fareLabel}>{"\uD83D\uDCB5 Esp\u00e8ces"}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
-        {ride.status !== 'pending' && !ride.driver && (
+        {ride.status !== 'pending' && !(ride.driver && ride.driver.userId) && (
           <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:COLORS.textLightSub,marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
         )}
-        {ride.status !== 'pending' && ride.driver && (
+        {ride.status !== 'pending' && ride.driver && ride.driver.userId && (
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
             {ride.driver && ride.driver.userId && ride.driver.userId.name && (
               <View style={styles.driverCard}>
@@ -399,6 +399,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
