@@ -236,7 +236,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <View style={styles.fareCard}><Text style={styles.fareLabel}>{"\uD83D\uDCB5 Esp\u00e8ces"}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
-        {ride.status !== 'pending' && (
+        {ride.status !== 'pending' && !ride.driver && (
+          <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:COLORS.textLightSub,marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
+        )}
+        {ride.status !== 'pending' && ride.driver && (
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
             {ride.driver && ride.driver.userId && ride.driver.userId.name && (
               <View style={styles.driverCard}>
@@ -267,7 +270,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.pinHint}>{"Donnez ce code \u00e0 votre chauffeur"}</Text>
               </View>
             )}
-            <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride.pickup.address}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride.dropoff.address}</Text></View></View></View>
+            <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
             {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
             <View style={{height: 10}} />
           </ScrollView>
@@ -396,6 +399,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
