@@ -215,11 +215,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
         </Marker>
         {driverLocation && (
           <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
-            <Animated.View style={[styles.driverMarkerOuter, { transform: [{ rotate: driverRotation.interpolate({ inputRange: [-180, 180], outputRange: ["-180deg", "180deg"] }) }] }]}>
+            <View style={styles.driverMarkerOuter}>
               <View style={styles.driverArrowTop} />
               <View style={styles.driverArrowBottom} />
               <Image source={{ uri: "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png" }} style={styles.driverCarImage} resizeMode="contain" />
-            </Animated.View>
+            </View>
           </Marker>
         )}
         {routeCoordinates.length > 0 && (
@@ -418,6 +418,7 @@ class ActiveRideErrorBoundary extends React.Component {
 }
 
 export default function(props) { return React.createElement(ActiveRideErrorBoundary, props); };
+
 
 
 
