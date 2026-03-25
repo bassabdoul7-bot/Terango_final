@@ -2,6 +2,12 @@
   "version": 8,
   "name": "TeranGO",
   "sources": {
+    "osm-fallback": {
+      "type": "raster",
+      "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      "tileSize": 256,
+      "maxzoom": 20
+    },
     "openmaptiles": {
       "type": "vector",
       "tiles": ["https://tiles.terango.sn/senegal/{z}/{x}/{y}.mvt"],
@@ -11,6 +17,7 @@
   },
   "glyphs": "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
   "layers": [
+    {"id": "osm-base", "type": "raster", "source": "osm-fallback", "minzoom": 0, "maxzoom": 20},
 
     {"id": "earth", "type": "fill", "source": "openmaptiles", "source-layer": "earth", "paint": {"fill-color": "#FAF3E8"}},
     {"id": "landuse-park", "type": "fill", "source": "openmaptiles", "source-layer": "landuse", "filter": ["in", "kind", "park", "garden", "playground", "national_park", "nature_reserve"], "paint": {"fill-color": "#D4E8B0", "fill-opacity": 0.7}},
@@ -45,5 +52,6 @@
     {"id": "place-neighbourhood", "type": "symbol", "source": "openmaptiles", "source-layer": "places", "filter": ["in", "kind", "neighbourhood", "suburb", "quarter"], "minzoom": 12, "layout": {"text-field": ["coalesce", ["get", "name:fr"], ["get", "name"]], "text-font": ["Noto Sans Bold"], "text-size": {"stops": [[12, 14], [15, 16]]}, "text-transform": "uppercase", "text-letter-spacing": 0.08}, "paint": {"text-color": "#5C4428", "text-halo-color": "#FFFFFF", "text-halo-width": 1.5}}
   ]
 }
+
 
 
