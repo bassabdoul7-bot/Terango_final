@@ -172,12 +172,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
 
   const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || ride.status !== 'accepted' || !loc || !ride.pickup?.coordinates) return; try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} };
 
-  const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (['accepted', 'in_progress'].includes(rd.status)) await getDirections(rd); if (!alertShownRef.current) { if (rd.status === 'completed') { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace('Rating', { ride: rd }); }, 4000); } else if (rd.status === 'cancelled') { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } else if (rd.status === 'no_drivers_available') { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
+  const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (['accepted', 'in_progress'].includes(rd.status)) { try { await getDirections(rd); } catch(e) { console.log('getDirections error:', e); } } if (!alertShownRef.current) { if (rd.status === 'completed') { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace('Rating', { ride: rd }); }, 4000); } else if (rd.status === 'cancelled') { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } else if (rd.status === 'no_drivers_available') { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
 
-  const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) {
+  const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) { try {
           const lats = coords.map(c => c.latitude);
           const lons = coords.map(c => c.longitude);
-          cameraRef.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [120, 50, 350, 50], 500);
+          cameraRef.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [120, 50, 350, 50], 500); } catch(e) { console.log('fitBounds error:', e); }
         } } } catch (e) {} };
 
   const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
@@ -206,7 +206,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
-        <Camera ref={cameraRef} center={[ride.pickup.coordinates.longitude, ride.pickup.coordinates.latitude]} zoom={13} />
+        <Camera ref={cameraRef} center={[ride?.pickup?.coordinates?.longitude || -17.4467, ride?.pickup?.coordinates?.latitude || 14.6928]} zoom={13} />
         <Marker id="pickup" lngLat={[ride.pickup.coordinates.longitude, ride.pickup.coordinates.latitude]}>
           <View style={styles.pickupMarker}><View style={styles.pickupDot} /></View>
         </Marker>
@@ -398,7 +398,27 @@ const styles = StyleSheet.create({
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
 });
 
-export default ActiveRideScreen;
+class ActiveRideErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error: error }; }
+  componentDidCatch(error, info) { console.log('ActiveRide CRASH:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return React.createElement(View, { style: { flex: 1, backgroundColor: '#001A12', justifyContent: 'center', alignItems: 'center', padding: 20 } },
+        React.createElement(Text, { style: { fontSize: 40, marginBottom: 16 } }, '\u26A0\uFE0F'),
+        React.createElement(Text, { style: { fontSize: 18, color: '#FFF', fontFamily: 'LexendDeca_700Bold', marginBottom: 8 } }, 'Oups! Une erreur est survenue'),
+        React.createElement(Text, { style: { fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center', marginBottom: 20, fontFamily: 'LexendDeca_400Regular' } }, String(this.state.error)),
+        React.createElement(TouchableOpacity, { style: { backgroundColor: '#D4AF37', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 14 }, onPress: () => this.props.navigation.replace('Home') },
+          React.createElement(Text, { style: { fontSize: 16, color: '#001A12', fontFamily: 'LexendDeca_700Bold' } }, "Retour a l'accueil")
+        )
+      );
+    }
+    return React.createElement(ActiveRideScreen, this.props);
+  }
+}
+
+export default function(props) { return React.createElement(ActiveRideErrorBoundary, props); };
+
 
 
 
