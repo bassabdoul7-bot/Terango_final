@@ -1,80 +1,109 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../context/AuthContext';
 import { driverService } from '../services/api.service';
+import COLORS from '../constants/colors';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
+import GainsScreen from '../screens/GainsScreen';
+import MessagesScreen from '../screens/MessagesScreen';
+import MenuScreen from '../screens/MenuScreen';
 import RideRequestsScreen from '../screens/RideRequestsScreen';
 import DeliveryRequestsScreen from '../screens/DeliveryRequestsScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
-import MenuScreen from '../screens/MenuScreen';
 import DocumentUploadScreen from '../screens/DocumentUploadScreen';
 import PendingVerificationScreen from '../screens/PendingVerificationScreen';
 
-const Stack = createNativeStackNavigator();
+var Stack = createNativeStackNavigator();
+var Tab = createBottomTabNavigator();
 
-const AppNavigator = () => {
-  const { isAuthenticated, loading } = useAuth();
-  const [driverStatus, setDriverStatus] = useState(null);
-  const [statusLoading, setStatusLoading] = useState(true);
+var tabIcons = { Courses: '\uD83D\uDE97', Gains: '\uD83D\uDCB0', Messages: '\uD83D\uDCAC', Profil: '\uD83D\uDC64' };
 
-  const checkDriverStatus = async () => {
-    try {
-      const res = await driverService.getVerificationStatus();
-      setDriverStatus({
-        status: res.verificationStatus,
-        hasDocuments: res.hasDocuments,
-      });
-    } catch (error) {
-      console.error('Check driver status error:', error);
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={function(props) {
+        var route = props.route;
+        return {
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: 'rgba(212,175,55,0.85)',
+            borderTopWidth: 0,
+            paddingTop: 8,
+            paddingBottom: 28,
+            height: 80,
+            elevation: 12,
+          },
+          tabBarActiveTintColor: COLORS.darkBg,
+          tabBarInactiveTintColor: COLORS.darkBg2,
+          tabBarLabelStyle: {
+            fontFamily: 'LexendDeca_600SemiBold',
+            fontSize: 11,
+            marginTop: 4,
+          },
+          tabBarIcon: function(props2) {
+            var focused = props2.focused;
+            var iconBg = focused ? COLORS.darkCard : 'rgba(0,26,18,0.12)';
+            return React.createElement(View, {
+              style: { width: 42, height: 42, borderRadius: 21, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }
+            }, React.createElement(Text, { style: { fontSize: 20 } }, tabIcons[route.name]));
+          },
+        };
+      }}
+    >
+      <Tab.Screen name="Courses" component={HomeScreen} />
+      <Tab.Screen name="Gains" component={GainsScreen} />
+      <Tab.Screen name="Messages" component={MessagesScreen} />
+      <Tab.Screen name="Profil" component={MenuScreen} />
+    </Tab.Navigator>
+  );
+}
+
+var AppNavigator = function() {
+  var auth = useAuth();
+  var isAuthenticated = auth.isAuthenticated;
+  var loading = auth.loading;
+  var driverStatusState = useState(null);
+  var driverStatus = driverStatusState[0];
+  var setDriverStatus = driverStatusState[1];
+  var statusLoadingState = useState(true);
+  var statusLoading = statusLoadingState[0];
+  var setStatusLoading = statusLoadingState[1];
+
+  var checkDriverStatus = function() {
+    driverService.getVerificationStatus().then(function(res) {
+      setDriverStatus({ status: res.verificationStatus, hasDocuments: res.hasDocuments });
+    }).catch(function() {
       setDriverStatus({ status: 'approved', hasDocuments: true });
-    } finally {
+    }).finally(function() {
       setStatusLoading(false);
-    }
+    });
   };
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      checkDriverStatus();
-    } else {
-      setDriverStatus(null);
-      setStatusLoading(false);
-    }
+  useEffect(function() {
+    if (isAuthenticated) { checkDriverStatus(); }
+    else { setDriverStatus(null); setStatusLoading(false); }
   }, [isAuthenticated]);
 
-  if (loading || (isAuthenticated && statusLoading)) {
-    return null;
-  }
+  if (loading || (isAuthenticated && statusLoading)) { return null; }
 
-  const needsDocumentUpload = isAuthenticated && driverStatus &&
-    driverStatus.status === 'pending' && !driverStatus.hasDocuments;
-
-  const isPendingVerification = isAuthenticated && driverStatus &&
-    driverStatus.status === 'pending' && driverStatus.hasDocuments;
+  var needsDocumentUpload = isAuthenticated && driverStatus && driverStatus.status === 'pending' && !driverStatus.hasDocuments;
+  var isPendingVerification = isAuthenticated && driverStatus && driverStatus.status === 'pending' && driverStatus.hasDocuments;
 
   if (needsDocumentUpload) {
-    return (
-      <DocumentUploadScreen
-        onComplete={() => {
-          setDriverStatus({ status: 'pending', hasDocuments: true });
-        }}
-      />
-    );
+    return React.createElement(DocumentUploadScreen, {
+      onComplete: function() { setDriverStatus({ status: 'pending', hasDocuments: true }); }
+    });
   }
-
   if (isPendingVerification) {
-    return (
-      <PendingVerificationScreen
-        onApproved={() => {
-          setDriverStatus({ status: 'approved', hasDocuments: true });
-        }}
-        onUploadNeeded={() => {
-          setDriverStatus({ status: 'pending', hasDocuments: false });
-        }}
-      />
-    );
+    return React.createElement(PendingVerificationScreen, {
+      onApproved: function() { setDriverStatus({ status: 'approved', hasDocuments: true }); },
+      onUploadNeeded: function() { setDriverStatus({ status: 'pending', hasDocuments: false }); }
+    });
   }
 
   return (
@@ -87,7 +116,7 @@ const AppNavigator = () => {
           </>
         ) : (
           <>
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Home" component={MainTabs} />
             <Stack.Screen name="RideRequests" component={RideRequestsScreen} />
             <Stack.Screen name="DeliveryRequests" component={DeliveryRequestsScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
