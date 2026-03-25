@@ -2,7 +2,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
-
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
 import { createAuthSocket } from '../services/socket';
@@ -10,9 +9,7 @@ import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
-
 const { width, height } = Dimensions.get('window');
-
 // ========== CONFETTI CELEBRATION COMPONENT ==========
 const ConfettiCelebration = ({ visible }) => {
   const particles = useRef([...Array(30)].map(() => ({
@@ -23,7 +20,6 @@ const ConfettiCelebration = ({ visible }) => {
     color: ['#D4AF37', '#00853F', '#FF3B30', '#4285F4', '#FF9500'][Math.floor(Math.random() * 5)],
     size: 8 + Math.random() * 12,
   }))).current;
-
   useEffect(() => {
     if (!visible) return;
     particles.forEach((p, i) => {
@@ -39,7 +35,6 @@ const ConfettiCelebration = ({ visible }) => {
       ]).start();
     });
   }, [visible]);
-
   if (!visible) return null;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -57,20 +52,17 @@ const ConfettiCelebration = ({ visible }) => {
     </View>
   );
 };
-
 // ========== ANIMATED FARE COUNTER ==========
 const AnimatedFareCounter = ({ targetFare }) => {
   const [displayFare, setDisplayFare] = useState(0);
   const scaleAnim = useRef(new Animated.Value(0.5)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     if (!targetFare) return;
     Animated.parallel([
       Animated.spring(scaleAnim, { toValue: 1, friction: 4, tension: 60, useNativeDriver: true }),
       Animated.timing(opacityAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
-
     const duration = 1500;
     const steps = 30;
     const increment = targetFare / steps;
@@ -82,7 +74,6 @@ const AnimatedFareCounter = ({ targetFare }) => {
     }, duration / steps);
     return () => clearInterval(timer);
   }, [targetFare]);
-
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim, alignItems: 'center', marginVertical: 16 }}>
       <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, marginBottom: 4 }}>Montant de la course</Text>
@@ -91,7 +82,6 @@ const AnimatedFareCounter = ({ targetFare }) => {
     </Animated.View>
   );
 };
-
 const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
   const [selectedReason, setSelectedReason] = useState(null);
   const reasons = [{id:1,label:"Temps d'attente trop long"},{id:2,label:"J'ai chang\u00e9 d'avis"},{id:3,label:"Le chauffeur m'a demand\u00e9 d'annuler"},{id:4,label:'Prix trop \u00e9lev\u00e9'},{id:5,label:"J'ai trouv\u00e9 un autre transport"},{id:6,label:'Autre raison'}];
@@ -104,7 +94,6 @@ const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
     </Modal>
   );
 };
-
 const SearchingAnimation = ({ searchTime }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const orbitAnim = useRef(new Animated.Value(0)).current;
@@ -124,7 +113,6 @@ const SearchingAnimation = ({ searchTime }) => {
     </View>
   );
 };
-
 const NoDriversScreen = ({ ride, onRetry, onGoHome, retrying }) => (
   <View style={noDriversStyles.container}><View style={noDriversStyles.content}>
     <Text style={noDriversStyles.icon}>{"\uD83D\uDE14"}</Text><Text style={noDriversStyles.title}>Aucun chauffeur disponible</Text><Text style={noDriversStyles.subtitle}>{"D\u00e9sol\u00e9, aucun chauffeur disponible pour le moment."}</Text>
@@ -133,7 +121,6 @@ const NoDriversScreen = ({ ride, onRetry, onGoHome, retrying }) => (
     <TouchableOpacity style={noDriversStyles.homeButton} onPress={onGoHome}><Text style={noDriversStyles.homeButtonText}>{"Retour \u00e0 l'accueil"}</Text></TouchableOpacity>
   </View></View>
 );
-
 const ActiveRideScreen = ({ route, navigation }) => {
   const { rideId: initialRideId } = route.params;
   const mapRef = useRef(null);
@@ -143,14 +130,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFareAnimation, setShowFareAnimation] = useState(false);
   const [completedFare, setCompletedFare] = useState(0);
-
   // Animated car rotation for driver marker
   const driverRotation = useRef(new Animated.Value(0)).current;
   const prevDriverLoc = useRef(null);
-
   useEffect(() => { const bh = BackHandler.addEventListener('hardwareBackPress', () => { handleBackPress(); return true; }); return () => bh.remove(); }, [ride, showNoDrivers]);
   useEffect(() => { if (ride?.status === 'pending' && !showNoDrivers) { searchTimerRef.current = setInterval(() => setSearchTime(prev => prev + 1), 1000); } else if (searchTimerRef.current) { clearInterval(searchTimerRef.current); } return () => { if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, [ride?.status, showNoDrivers]);
-
   // Calculate driver heading for smooth car rotation
   useEffect(() => {
     if (!driverLocation || !prevDriverLoc.current) { prevDriverLoc.current = driverLocation; return; }
@@ -162,30 +146,21 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
     prevDriverLoc.current = driverLocation;
   }, [driverLocation]);
-
   const handleBackPress = () => { if (showNoDrivers) { navigation.replace('Home'); return; } if (!ride) { navigation.goBack(); return; } if (ride.status === 'pending') { Alert.alert('Recherche en cours', 'Voulez-vous annuler?', [{ text: 'Rester', style: 'cancel' }, { text: 'Annuler', style: 'destructive', onPress: () => handleCancelRide('Annul\u00e9 par le passager') }]); } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) { Alert.alert('Course en cours', 'Vous avez une course active.'); } else { navigation.navigate('Home'); } };
-
   useEffect(() => { fetchRideDetails(); pollInterval.current = setInterval(fetchRideDetails, 5000); return () => { if (pollInterval.current) clearInterval(pollInterval.current); if (etaInterval.current) clearInterval(etaInterval.current); if (socketRef.current) socketRef.current.disconnect(); }; }, [rideId]);
   useEffect(() => { if (ride?.driver?.userId && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (!etaInterval.current) { fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); } if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
-
   const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => d.location && setDriverLocation(d.location)); socketRef.current.on('ride-accepted', function() { fetchRideDetails(); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); };
-
   const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || ride.status !== 'accepted' || !loc || !ride.pickup?.coordinates) return; try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} };
-
   const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (['accepted', 'in_progress'].includes(rd.status) && routeCoordinates.length === 0) { try { await getDirections(rd); } catch(e) { console.log('getDirections error:', e); } } if (!alertShownRef.current) { if (rd.status === 'completed') { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace('Rating', { ride: rd }); }, 4000); } else if (rd.status === 'cancelled') { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } else if (rd.status === 'no_drivers_available') { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
-
   const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) { try { await new Promise(function(r) { setTimeout(r, 500); });
           const lats = coords.map(c => c.latitude);
           const lons = coords.map(c => c.longitude);
           cameraRef.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [120, 50, 350, 50], 500); } catch(e) { console.log('fitBounds error:', e); }
         } } } catch (e) {} };
-
   const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
-
   const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
   const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
-
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
   if (showFareAnimation) {
     return (
@@ -199,10 +174,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
       </View>
     );
   }
-
   if (showNoDrivers) return <NoDriversScreen ride={ride} onRetry={handleRetry} onGoHome={() => navigation.replace('Home')} retrying={retrying} />;
   if (loading || !ride) return (<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>Chargement...</Text></View>);
-
   return (
     <View style={styles.container}>
       <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false}>
@@ -215,16 +188,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
         </Marker>
         {driverLocation && (
           <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
-            <View style={{width:40,height:40,borderRadius:20,backgroundColor:'#FFF',alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:'#D4AF37'}}><Text style={{fontSize:20}}>{'\uD83D\uDE97'}</Text></View>
-
-
-
-
+            <View style={styles.driverMarkerOuter}>
+              <Image source={{ uri: "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png" }} style={styles.driverCarImage} resizeMode="contain" />
+            </View>
           </Marker>
         )}
         {routeCoordinates.length > 0 && (
           <GeoJSONSource id="routeSource" data={{ type: "Feature", geometry: { type: "LineString", coordinates: routeCoordinates.map(c => [c.longitude, c.latitude]) } }}>
-
+            <Layer type="line" id="routeShadow" paint={{ "line-color": "#4285F4", "line-width": 12, "line-opacity": 0.3  }} layout={{ "line-cap": "round", "line-join": "round" }} />
             <Layer type="line" id="routeLine" paint={{ "line-color": "#4285F4", "line-width": 5  }} layout={{ "line-cap": "round", "line-join": "round" }} />
           </GeoJSONSource>
         )}
@@ -281,7 +252,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
     </View>
   );
 };
-
 const noDriversStyles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center', padding: 24 },
   content: { alignItems: 'center', width: '100%' },
@@ -299,7 +269,6 @@ const noDriversStyles = StyleSheet.create({
   homeButton: { paddingVertical: 14, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   homeButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
 });
-
 const cancelStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: height * 0.7, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
@@ -319,7 +288,6 @@ const cancelStyles = StyleSheet.create({
   confirmButtonDisabled: { opacity: 0.5 },
   confirmButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: '#FFF' },
 });
-
 const searchStyles = StyleSheet.create({
   container: { alignItems: 'center', paddingVertical: 20, marginBottom: 12, height: 180 },
   pulseCircle: { position: 'absolute', borderRadius: 100, borderWidth: 2, borderColor: 'rgba(0,133,63,0.3)' },
@@ -333,7 +301,6 @@ const searchStyles = StyleSheet.create({
   statusText: { marginTop: 10, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, textAlign: 'center' },
   tipText: { marginTop: 6, fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', paddingHorizontal: 20, fontFamily: 'LexendDeca_400Regular' },
 });
-
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
@@ -344,7 +311,7 @@ const styles = StyleSheet.create({
   dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
   driverMarkerOuter: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
-  driverCarImage: { width: 50, height: 35, tintColor: '#1A1A1A' },
+  driverCarImage: { width: 70, height: 50 },
   driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 30, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
   driverMarkerDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#D4AF37' },
@@ -397,7 +364,6 @@ const styles = StyleSheet.create({
   fareLabel: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
 });
-
 class ActiveRideErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error: error }; }
@@ -416,30 +382,4 @@ class ActiveRideErrorBoundary extends React.Component {
     return React.createElement(ActiveRideScreen, this.props);
   }
 }
-
 export default function(props) { return React.createElement(ActiveRideErrorBoundary, props); };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
