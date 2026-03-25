@@ -219,9 +219,9 @@ const styles = StyleSheet.create({
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 14, borderRightWidth: 14, borderTopWidth: 16, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -6 },
   driverMarkerDot: { position: 'absolute', top: 24, width: 14, height: 14, borderRadius: 7, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: '#D4AF37' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  earningsCard: { backgroundColor: COLORS.yellowGlow25, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)' },
-  earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 2 },
-  earningsLabel: { fontSize: 11, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  earningsCard: { backgroundColor: 'rgba(212,175,55,0.7)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
+  earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginBottom: 2 },
+  earningsLabel: { fontSize: 11, color: COLORS.darkBg2 , fontFamily: 'LexendDeca_400Regular' },
   offlineButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.green, marginRight: 8 },
   offlineText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
@@ -286,6 +286,7 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
 
 
 

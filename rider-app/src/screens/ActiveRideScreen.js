@@ -318,9 +318,9 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center' },
   backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.yellowGlow15, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)' },
+  statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(212,175,55,0.7)', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
   statusIcon: { fontSize: 18, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
-  statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
   bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '55%' },
   bottomScroll: { flexGrow: 0 },
   driverCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
@@ -383,3 +383,4 @@ class ActiveRideErrorBoundary extends React.Component {
   }
 }
 export default function(props) { return React.createElement(ActiveRideErrorBoundary, props); };
+

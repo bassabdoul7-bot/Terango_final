@@ -169,7 +169,7 @@ var styles = StyleSheet.create({
   map: { flex: 1 },
   loadingScreen: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: COLORS.textDarkSub, marginTop: 16, fontSize: 16 , fontFamily: 'LexendDeca_400Regular' },
-  statusBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: COLORS.yellowGlow15, borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)' },
+  statusBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(212,175,55,0.7)', borderRadius: 16, paddingVertical: 12, paddingHorizontal: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
   statusText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', flex: 1 },
   etaText: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
   searchingContainer: { position: 'absolute', top: height * 0.3, alignSelf: 'center', alignItems: 'center' },
@@ -211,6 +211,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveDeliveryScreen;
+
 
 
 
