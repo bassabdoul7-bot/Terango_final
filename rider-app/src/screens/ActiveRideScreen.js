@@ -238,7 +238,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
         </>)}
         {ride.status !== 'pending' && (
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
-            {ride.driver?.userId && (
+            {ride.driver && ride.driver.userId && ride.driver.userId.name && (
               <View style={styles.driverCard}>
                 <View style={styles.driverRow}>
                   <View style={styles.driverPhotos}>
@@ -247,14 +247,14 @@ const ActiveRideScreen = ({ route, navigation }) => {
                   </View>
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>{ride?.driver?.userId?.name || 'Chauffeur'}</Text>
-                    <View style={styles.ratingRow}>{renderStars(ride?.driver?.userId?.rating)}<Text style={styles.ratingText}>{ride?.driver?.userId?.rating?.toFixed(1) || '5.0'}</Text></View>
+                    <View style={styles.ratingRow}>{renderStars(ride?.driver?.userId?.rating)}<Text style={styles.ratingText}>{(ride?.driver?.userId?.rating != null ? Number(ride.driver.userId.rating).toFixed(1) : '5.0')}</Text></View>
                     {ride?.driver?.vehicle ? <Text style={styles.vehicleText}>{(ride?.driver?.vehicle?.make||'')+' '+(ride?.driver?.vehicle?.model||'')+(ride?.driver?.vehicle?.color?' \u2022 '+ride?.driver?.vehicle?.color:'')}</Text> : null}
                     {ride?.driver?.vehicle?.licensePlate ? <View style={styles.plateBadge}><Text style={styles.plateText}>{ride.driver.vehicle.licensePlate}</Text></View> : null}
                   </View>
-                  <View style={styles.fareTag}><Text style={styles.fareTagAmount}>{ride.fare?.toLocaleString()}</Text><Text style={styles.fareTagCurrency}>FCFA</Text></View>
+                  <View style={styles.fareTag}><Text style={styles.fareTagAmount}>{(ride.fare || 0).toLocaleString()}</Text><Text style={styles.fareTagCurrency}>FCFA</Text></View>
                 </View>
                 <View style={styles.contactRow}>
-                  <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+ride?.driver?.userId?.phone)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+(ride?.driver?.userId?.phone || ''))}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
@@ -396,6 +396,7 @@ const styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 
