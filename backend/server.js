@@ -137,6 +137,17 @@ app.use(function(err, req, res, next) {
   });
 });
 
+// ========== Auto-expire stale rides (every 5 min) ==========
+setInterval(function() {
+  var RideModel = require("./models/Ride");
+  var cutoff = new Date(Date.now() - 10 * 60 * 1000);
+  RideModel.updateMany(
+    { status: { "\u0024in": ["pending", "accepted"] }, createdAt: { "\u0024lt": cutoff } },
+    { "\u0024set": { status: "cancelled", cancellationReason: "Auto-expired after 10 minutes" } }
+  ).then(function(r) { if (r.modifiedCount > 0) console.log("Auto-expired", r.modifiedCount, "stale rides"); }).catch(function() {});
+}, 5 * 60 * 1000);
+
+
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
   const token = socket.handshake.auth.token;
