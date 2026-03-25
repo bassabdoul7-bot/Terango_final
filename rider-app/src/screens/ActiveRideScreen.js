@@ -215,16 +215,16 @@ const ActiveRideScreen = ({ route, navigation }) => {
         </Marker>
         {driverLocation && (
           <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
-            <View style={styles.driverMarkerOuter}>
-              <View style={styles.driverArrowTop} />
-              <View style={styles.driverArrowBottom} />
-              <Image source={{ uri: "https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png" }} style={styles.driverCarImage} resizeMode="contain" />
-            </View>
+            <View style={{width:40,height:40,borderRadius:20,backgroundColor:'#FFF',alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:'#D4AF37'}}><Text style={{fontSize:20}}>{'\uD83D\uDE97'}</Text></View>
+
+
+
+
           </Marker>
         )}
         {routeCoordinates.length > 0 && (
           <GeoJSONSource id="routeSource" data={{ type: "Feature", geometry: { type: "LineString", coordinates: routeCoordinates.map(c => [c.longitude, c.latitude]) } }}>
-            <Layer type="line" id="routeShadow" paint={{ "line-color": "#4285F4", "line-width": 12, "line-opacity": 0.3  }} layout={{ "line-cap": "round", "line-join": "round" }} />
+
             <Layer type="line" id="routeLine" paint={{ "line-color": "#4285F4", "line-width": 5  }} layout={{ "line-cap": "round", "line-join": "round" }} />
           </GeoJSONSource>
         )}
