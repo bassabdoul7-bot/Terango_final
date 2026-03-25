@@ -213,9 +213,9 @@ var styles = StyleSheet.create({
   topLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoWrap: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.yellow, backgroundColor: 'rgba(0,36,24,0.85)' },
   logoImg: { width: 42, height: 42, borderRadius: 21 },
-  greetingCard: { backgroundColor: COLORS.yellowGlow25, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.4)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
-  greetSub: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_400Regular' },
-  greetName: { fontSize: 15, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
+  greetingCard: { backgroundColor: 'rgba(212,175,55,0.7)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
+  greetSub: { fontSize: 11, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
+  greetName: { fontSize: 15, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
   menuBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,36,24,0.85)', borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
   menuIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
 
@@ -241,3 +241,4 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
