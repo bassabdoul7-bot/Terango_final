@@ -219,7 +219,7 @@ var styles = StyleSheet.create({
   menuBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,36,24,0.85)', borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
   menuIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
 
-  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.78)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
+  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.92)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
   welcomeTitle: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold', marginBottom: 4 },
   welcomeSub: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginBottom: 20 },
 
@@ -241,4 +241,5 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
