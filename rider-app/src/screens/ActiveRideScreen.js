@@ -216,8 +216,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
               <View style={styles.driverCard}>
                 <View style={styles.driverRow}>
                   <View style={styles.driverPhotos}>
-                    {ride?.driver?.userId?.profilePhoto ? <Image source={{uri: ride.driver.userId.profilePhoto}} style={styles.driverAvatarImg} /> : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride?.driver?.userId?.name?.charAt(0) || 'D'}</Text></View>}
-                    {ride?.driver?.vehicleFrontPhoto ? <View style={styles.vehiclePhotoWrap}><Image source={{uri: ride.driver.vehicleFrontPhoto}} style={styles.vehiclePhoto} resizeMode='cover' /></View> : null}
+                    <View style={styles.driverAvatar}><Text style={styles.avatarText}>{ride?.driver?.userId?.name?.charAt(0) || "D"}</Text></View>
+
                   </View>
                   <View style={styles.driverDetails}>
                     <Text style={styles.driverName}>{ride?.driver?.userId?.name || 'Chauffeur'}</Text>
