@@ -11,7 +11,7 @@
   "dependencies": {
     "@expo-google-fonts/lexend-deca": "^0.4.1",
     "@mapbox/polyline": "^1.2.1",
-    "@maplibre/maplibre-react-native": "^11.0.0-beta.12",
+    "@maplibre/maplibre-react-native": "^11.0.0-beta.19",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.10.1",
     "@react-navigation/native": "^7.1.28",
