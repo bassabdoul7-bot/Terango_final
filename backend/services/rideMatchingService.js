@@ -13,7 +13,7 @@ class RideMatchingService {
     this.retryTimeouts = new Map();
 
     // Configuration
-    this.DRIVER_RESPONSE_TIMEOUT = 20000;
+    this.DRIVER_RESPONSE_TIMEOUT = 60000;
     this.MAX_SEARCH_TIME = 60000;
     this.SEARCH_RETRY_INTERVAL = 15000;
   }
@@ -424,5 +424,6 @@ class RideMatchingService {
 }
 
 module.exports = RideMatchingService;
+
 
 
