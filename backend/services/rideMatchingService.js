@@ -122,10 +122,10 @@ class RideMatchingService {
       }
 
       // Progressive radius expansion
-      let radius = 5;
-      if (attempt >= 1) radius = 10;
-      if (attempt >= 2) radius = 15;
-      if (attempt >= 3) radius = 20;
+      let radius = 50000;
+      if (attempt >= 1) radius = 50000;
+      if (attempt >= 2) radius = 50000;
+      if (attempt >= 3) radius = 50000;
 
       console.log(`?? Search attempt ${attempt + 1} for ride ${rideId}, radius: ${radius}km`);
 
