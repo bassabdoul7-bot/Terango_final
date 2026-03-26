@@ -49,8 +49,8 @@ function MainTabs() {
             var focused = props2.focused;
             var iconBg = focused ? COLORS.darkCard : 'rgba(0,26,18,0.12)';
             return React.createElement(View, {
-              style: { width: 42, height: 42, borderRadius: 21, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }
-            }, React.createElement(Text, { style: { fontSize: 20 } }, tabIcons[route.name]));
+              style: { width: 46, height: 46, borderRadius: 23, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }
+            }, React.createElement(Text, { style: { fontSize: 24 } }, tabIcons[route.name]));
           },
         };
       }}
@@ -129,3 +129,6 @@ var AppNavigator = function() {
 };
 
 export default AppNavigator;
+
+
+

@@ -134,6 +134,15 @@ exports.getRide = async (req, res) => {
 // @desc    Get rider's ride history
 // @route   GET /api/rides/my-rides
 // @access  Private (Rider)
+exports.getActiveRide = async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) return res.status(200).json({ success: false, ride: null });
+    const ride = await Ride.findOne({ riderId: rider._id, status: { "\u0024in": ["pending", "accepted", "arrived", "in_progress"] } }).populate({ path: "driver", populate: { path: "userId", select: "name phone rating profilePhoto" } });
+    res.status(200).json({ success: !!ride, ride: ride || null });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+};
+
 exports.getMyRides = async (req, res) => {
   try {
     const rider = await Rider.findOne({ userId: req.user._id });

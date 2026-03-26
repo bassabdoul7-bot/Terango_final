@@ -46,6 +46,14 @@ var HomeScreen = function(props) {
 
   useEffect(function() {
     initializeLocation();
+    driverService.getActiveRide().then(function(res) {
+      if (res && res.success && res.ride) {
+        var r = res.ride;
+        if (['accepted', 'arrived', 'in_progress'].indexOf(r.status) !== -1) {
+          navigation.replace('ActiveRide', { rideId: r._id, ride: r, deliveryMode: !!r.deliveryId });
+        }
+      }
+    }).catch(function() {});
     createAuthSocket().then(function(newSocket) {
       setSocket(newSocket);
       newSocket.on('connect', function() { console.log('Socket connected:', newSocket.id); });
@@ -241,5 +249,6 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
 
 

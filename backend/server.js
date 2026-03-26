@@ -358,7 +358,7 @@ io.on('connection', function(socket) {
           driverLocationService.setDriverOffline(dId)
             .then(function() {
               io.to('riders-watching').emit('driver-went-offline', { driverId: dId });
-              console.log('Driver ' + dId + ' set offline after 30s timeout');
+              console.log('Driver ' + dId + ' set offline after 60s timeout');
             })
             .catch(function(err) {
               console.error('Disconnect cleanup failed for ' + dId + ':', err.message);
@@ -366,7 +366,7 @@ io.on('connection', function(socket) {
         } else {
           console.log('Driver ' + dId + ' reconnected, skipping offline');
         }
-      }, 30000);
+      }, 60000);
     }
   });
 });
@@ -418,4 +418,6 @@ server.listen(PORT, '0.0.0.0', function() {
     console.log('   Driver TTL: 60 seconds');
     console.log('   Thiak Thiak: Colis + Commande + Resto');
 });
+
+
 

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Animated, Dimensions, Image, Vibration, Linking, AppState } from 'react-native';
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
@@ -88,6 +88,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     } catch (e) { console.error('Location error:', e); }
   };
 
+  useEffect(() => { var appState = AppState.currentState; var sub = AppState.addEventListener("change", function(next) { if (appState.match(/inactive|background/) && next === "active") { if (socket && !socket.connected) { socket.connect(); socket.emit("driver-online", { driverId: driverId, latitude: location?.latitude, longitude: location?.longitude }); } } appState = next; }); return () => sub.remove(); }, [socket, driverId, location]);
   const connectSocket = () => {
     if (!driverId) return;
     createAuthSocket().then(function(newSocket) { setSocket(newSocket);
@@ -99,7 +100,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       newSocket.on('delivery-taken', () => { Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9.'); if (currentRequest && currentRequest._isDelivery) setCurrentRequest(null); });
       newSocket.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
       newSocket.on('ride-completed-earnings', () => { fetchEarnings(); });
-      newSocket.on('disconnect', () => {});
+      newSocket.on('disconnect', function() { console.log('Socket disconnected, will auto-reconnect'); });
     });
   };
 
@@ -286,6 +287,8 @@ const styles = StyleSheet.create({
 });
 
 export default RideRequestsScreen;
+
+
 
 
 

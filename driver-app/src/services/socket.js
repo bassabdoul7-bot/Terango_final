@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
 
 var SOCKET_URL = 'https://api.terango.sn';
@@ -8,6 +8,11 @@ export async function createAuthSocket(options) {
   var socketOptions = {
     transports: ['websocket'],
     reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    pingInterval: 10000,
+    pingTimeout: 30000,
     auth: { token: token }
   };
   if (options) {
@@ -17,6 +22,7 @@ export async function createAuthSocket(options) {
 }
 
 export { SOCKET_URL };
+
 
 
 
