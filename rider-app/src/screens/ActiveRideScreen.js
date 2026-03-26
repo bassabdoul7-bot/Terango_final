@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
   statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(212,175,55,0.7)', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
   statusIcon: { fontSize: 18, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
-  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '55%' },
+  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '65%' },
   bottomScroll: { flexGrow: 0 },
   driverCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -384,5 +384,6 @@ class ActiveRideErrorBoundary extends React.Component {
   }
 }
 export default function(props) { return React.createElement(ActiveRideErrorBoundary, props); };
+
 
 

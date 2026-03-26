@@ -530,12 +530,12 @@ var styles = StyleSheet.create({
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#D4AF37', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10 },
-  turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: '#D4A900', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.7)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10, borderBottomWidth: 1.5, borderBottomColor: 'rgba(212,175,55,0.5)' },
+  turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: 'rgba(212,175,55,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
-  turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
-  turnText: { fontSize: 15, color: 'rgba(0,0,0,0.7)', fontFamily: 'LexendDeca_400Regular' },
+  turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginBottom: 4 },
+  turnText: { fontSize: 15, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
   wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: COLORS.darkCard, paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaContainer: { flex: 1 },
   etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
@@ -591,6 +591,7 @@ var styles = StyleSheet.create({
 });
 
 export default ActiveRideScreen;
+
 
 
 

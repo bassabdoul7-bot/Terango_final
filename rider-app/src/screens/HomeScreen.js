@@ -81,6 +81,7 @@ function HomeScreen(props) {
   useEffect(function() {
     loadSavedPlaces();
     loadRideHistory();
+    rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
   }, []);
 
   useEffect(function() {
@@ -754,7 +755,7 @@ var styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   logoContainer: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     borderWidth: 2, borderColor: COLORS.yellow, elevation: 4,
   },
@@ -767,7 +768,7 @@ var styles = StyleSheet.create({
   greeting: { fontSize: 12, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
   userName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   profileButton: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', elevation: 4,
     borderWidth: 1, borderColor: COLORS.darkCardBorder,
   },
@@ -831,12 +832,12 @@ var styles = StyleSheet.create({
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(0,26,18,0.12)',
+    width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,26,18,0.12)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
     borderWidth: 1, borderColor: 'rgba(0,26,18,0.08)',
   },
   navIconContainerActive: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
   },
   navIconText: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
@@ -959,6 +960,10 @@ var styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+
+
+
+
 
 
 

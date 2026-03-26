@@ -1,4 +1,4 @@
-const express = require('express');
+ï»¿const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
@@ -7,6 +7,7 @@ const {
   createRide,
   getRide,
   getMyRides,
+  getActiveRide,
   acceptRide,
   rejectRide,
   updateRideStatus,
@@ -23,20 +24,21 @@ router.post(
   protect,
   restrictTo('rider'),
   [
-    body('pickup.address').notEmpty().withMessage('Adresse de départ requise'),
-    body('pickup.coordinates.latitude').isFloat().withMessage('Latitude de départ invalide'),
-    body('pickup.coordinates.longitude').isFloat().withMessage('Longitude de départ invalide'),
-    body('dropoff.address').notEmpty().withMessage('Adresse d\'arrivée requise'),
-    body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivée invalide'),
-    body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivée invalide'),
+    body('pickup.address').notEmpty().withMessage('Adresse de dÃ©part requise'),
+    body('pickup.coordinates.latitude').isFloat().withMessage('Latitude de dÃ©part invalide'),
+    body('pickup.coordinates.longitude').isFloat().withMessage('Longitude de dÃ©part invalide'),
+    body('dropoff.address').notEmpty().withMessage('Adresse d\'arrivÃ©e requise'),
+    body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivÃ©e invalide'),
+    body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivÃ©e invalide'),
     body('rideType').isIn(['standard', 'comfort', 'xl']).withMessage('Type de course invalide'),
-    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash']).withMessage('Méthode de paiement invalide')
+    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash']).withMessage('MÃ©thode de paiement invalide')
   ],
   validate,
   createRide
 );
 
 // Get my rides
+router.get('/active-ride', protect, getActiveRide);
 router.get('/my-rides', protect, getMyRides);
 
 // Get ride by ID
@@ -84,7 +86,7 @@ router.put(
   '/:id/rate',
   protect,
   [
-    body('rating').isInt({ min: 1, max: 5 }).withMessage('Note doit être entre 1 et 5'),
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Note doit Ãªtre entre 1 et 5'),
     body('review').optional().isString()
   ],
   validate,
@@ -92,3 +94,5 @@ router.put(
 );
 
 module.exports = router;
+
+

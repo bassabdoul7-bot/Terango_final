@@ -1,4 +1,4 @@
-import { DeviceEventEmitter } from 'react-native';
+﻿import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -54,6 +54,7 @@ export var rideService = {
   createRide: function(rideData) { return api.post('/rides', rideData); },
   getRide: function(rideId) { return api.get('/rides/' + rideId); },
   updateSecurityPin: function(enabled) { return api.put('/auth/security-pin', { securityPinEnabled: enabled }); },
+  getActiveRide: function() { return api.get('/rides/active-ride'); },
   getMyRides: function() { return api.get('/rides/my-rides'); },
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
