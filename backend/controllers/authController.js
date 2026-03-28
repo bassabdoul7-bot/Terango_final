@@ -592,3 +592,17 @@ exports.updateSecurityPin = async (req, res) => {
   }
 };
 
+
+exports.deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user.id || req.user._id;
+    const User = require('../models/User');
+    const Ride = require('../models/Ride');
+    await Ride.updateMany({ rider: userId, status: { $in: ['pending', 'accepted', 'arriving'] } }, { status: 'cancelled', cancelledBy: 'rider', cancelReason: 'Account deleted' });
+    await User.findByIdAndDelete(userId);
+    res.json({ success: true, message: 'Compte supprime avec succes' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la suppression du compte' });
+  }
+};

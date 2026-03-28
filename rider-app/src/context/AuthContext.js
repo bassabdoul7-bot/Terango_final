@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+﻿import React, { createContext, useState, useContext, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authService } from '../services/api.service';
@@ -9,12 +9,13 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     checkAuth();
     var sub = DeviceEventEmitter.addListener('force-logout', function() {
-      setUser(null); setIsAuthenticated(false);
+      setUser(null); setIsAuthenticated(false); setIsGuest(false);
     });
     return function() { sub.remove(); };
   }, []);
@@ -23,11 +24,9 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = await AsyncStorage.getItem('token');
       const userData = await AsyncStorage.getItem('user');
-
       if (token && userData) {
         setUser(JSON.parse(userData));
         setIsAuthenticated(true);
-        // Register push on auto-login
         registerForPushNotifications().then((token) => {
           if (token) authService.registerPushToken(token);
         });
@@ -39,25 +38,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const enterGuestMode = () => { setIsGuest(true); setIsAuthenticated(false); setUser(null); };
+  const exitGuestMode = () => { setIsGuest(false); };
+
   const loginWithPin = async (phone, pin) => {
     try {
       const response = await authService.loginWithPin(phone, pin);
       if (response.success) {
         await AsyncStorage.setItem('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
-        setUser(response.user);
-        setIsAuthenticated(true);
-        registerForPushNotifications().then((token) => {
-          if (token) authService.registerPushToken(token);
-        });
+        setUser(response.user); setIsAuthenticated(true); setIsGuest(false);
+        registerForPushNotifications().then((token) => { if (token) authService.registerPushToken(token); });
         return response;
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+      } else { throw new Error(response.message || 'Login failed'); }
+    } catch (error) { console.error('Login error:', error); throw error; }
   };
 
   const registerUser = async (phone, name, email, pin) => {
@@ -66,65 +60,42 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         await AsyncStorage.setItem('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
-        setUser(response.user);
-        setIsAuthenticated(true);
-        registerForPushNotifications().then((token) => {
-          if (token) authService.registerPushToken(token);
-        });
+        setUser(response.user); setIsAuthenticated(true); setIsGuest(false);
+        registerForPushNotifications().then((token) => { if (token) authService.registerPushToken(token); });
         return response;
-      } else {
-        throw new Error(response.message || 'Registration failed');
-      }
-    } catch (error) {
-      console.error('Register error:', error);
-      throw error;
-    }
+      } else { throw new Error(response.message || 'Registration failed'); }
+    } catch (error) { console.error('Register error:', error); throw error; }
   };
 
   const login = async (phone, otp, name, role) => {
     try {
       const response = await authService.verifyOTP(phone, otp, name, role);
-      
       if (response.success) {
         await AsyncStorage.setItem('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
-        
-        setUser(response.user);
-        setIsAuthenticated(true);
-        
+        setUser(response.user); setIsAuthenticated(true);
         return response;
-      } else {
-        throw new Error(response.message || 'Échec de la connexion');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+      } else { throw new Error(response.message || 'Login failed'); }
+    } catch (error) { console.error('Login error:', error); throw error; }
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
+      await AsyncStorage.removeItem('token'); await AsyncStorage.removeItem('user');
+      setUser(null); setIsAuthenticated(false); setIsGuest(false);
+    } catch (error) { console.error('Logout error:', error); }
+  };
+
+  const deleteAccount = async () => {
+    try {
+      await authService.deleteAccount();
+      await AsyncStorage.removeItem('token'); await AsyncStorage.removeItem('user');
+      setUser(null); setIsAuthenticated(false); setIsGuest(false);
+    } catch (error) { console.error('Delete account error:', error); throw error; }
   };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated,
-        loading,
-        login,
-        loginWithPin,
-        registerUser,
-        logout,
-      }}
-    >
+    <AuthContext.Provider value={{ user, isAuthenticated, isGuest, loading, login, loginWithPin, registerUser, logout, enterGuestMode, exitGuestMode, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );
@@ -132,8 +103,6 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) { throw new Error('useAuth must be used within AuthProvider'); }
   return context;
 };
