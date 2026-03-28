@@ -9,6 +9,7 @@ var LoginScreen = function(props) {
   var navigation = props.navigation;
   var auth = useAuth();
   var loginWithPin = auth.loginWithPin;
+  var enterGuestMode = auth.enterGuestMode;
   var phoneState = useState(''); var phone = phoneState[0]; var setPhone = phoneState[1];
   var pinState = useState(''); var pin = pinState[0]; var setPin = pinState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
@@ -46,13 +47,13 @@ var LoginScreen = function(props) {
         <View style={styles.darkHeader}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
           <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
-          <Text style={styles.appSubtitle}>{"R\u00e9initialiser votre PIN"}</Text>
+          <Text style={styles.appSubtitle}>{"\u0052\u00e9initialiser votre PIN"}</Text>
         </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
               <View style={styles.card}>
-                <Text style={styles.cardTitle}>{"R\u00e9initialisation"}</Text>
+                <Text style={styles.cardTitle}>{"\u0052\u00e9initialisation"}</Text>
                 <Text style={styles.cardSubtitle}>{"Entrez le code re\u00e7u par email"}</Text>
                 <Text style={styles.label}>Code (6 chiffres)</Text>
                 <TextInput style={styles.input} placeholder='000000' placeholderTextColor={COLORS.gray} value={otp} onChangeText={setOtp} keyboardType='number-pad' maxLength={6} />
@@ -60,7 +61,7 @@ var LoginScreen = function(props) {
                 <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={newPin} onChangeText={setNewPin} keyboardType='number-pad' maxLength={6} secureTextEntry />
                 <Text style={styles.label}>Confirmer PIN</Text>
                 <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={6} secureTextEntry />
-                <GlassButton title={loading ? 'Envoi...' : 'R\u00e9initialiser'} onPress={handleResetPin} loading={loading} />
+                <GlassButton title={loading ? 'Envoi...' : "\u0052\u00e9initialiser"} onPress={handleResetPin} loading={loading} />
                 <TouchableOpacity onPress={function() { setForgotMode(false); }} style={styles.secondaryBtn}>
                   <Text style={styles.secondaryBtnText}>Retour</Text>
                 </TouchableOpacity>
@@ -98,6 +99,9 @@ var LoginScreen = function(props) {
                 <Text style={styles.forgotText}>{"PIN oubli\u00e9?"}</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.guestBtn} onPress={enterGuestMode}>
+              <Text style={styles.guestText}>Continuer sans compte</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.registerLink} onPress={function() { navigation.navigate('Register'); }}>
               <Text style={styles.registerText}>Nouveau? </Text>
               <Text style={styles.registerBold}>S'inscrire</Text>
@@ -120,20 +124,21 @@ var styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
   card: { backgroundColor: '#e8f8e0', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
   cardTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
+  cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   label: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
   prefixBox: { backgroundColor: COLORS.darkCard, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   prefixText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   forgotText: { color: COLORS.green, fontSize: 14, fontFamily: 'LexendDeca_500Medium' },
   secondaryBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.background, alignItems: 'center', borderWidth: 1, borderColor: '#E5E5E5' },
   secondaryBtnText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray },
-  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 30 },
-  registerText: { color: COLORS.textDarkSub, fontSize: 15 , fontFamily: 'LexendDeca_400Regular' },
+  guestBtn: { marginTop: 20, paddingVertical: 16, borderRadius: 16, backgroundColor: 'rgba(27,60,45,0.08)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(27,60,45,0.15)' },
+  guestText: { color: COLORS.green, fontSize: 15, fontFamily: 'LexendDeca_600SemiBold' },
+  registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 16, marginBottom: 30 },
+  registerText: { color: COLORS.textDarkSub, fontSize: 15, fontFamily: 'LexendDeca_400Regular' },
   registerBold: { color: COLORS.green, fontSize: 15, fontFamily: 'LexendDeca_700Bold' },
 });
 
 export default LoginScreen;
-

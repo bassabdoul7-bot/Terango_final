@@ -1,4 +1,4 @@
-const express = require('express');
+ï»¿const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
@@ -21,7 +21,7 @@ const {
 router.post(
   '/send-otp',
   [
-    body('phone').notEmpty().withMessage('Numéro de téléphone requis')
+    body('phone').notEmpty().withMessage('Numï¿½ro de tï¿½lï¿½phone requis')
   ],
   validate,
   sendOTP
@@ -31,7 +31,7 @@ router.post(
 router.post(
   '/verify-otp',
   [
-    body('phone').notEmpty().withMessage('Numéro de téléphone requis'),
+    body('phone').notEmpty().withMessage('Numï¿½ro de tï¿½lï¿½phone requis'),
     body('otp').isLength({ min: 6, max: 6 }).withMessage('Code OTP invalide')
   ],
   validate,
@@ -90,5 +90,9 @@ router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartne
 
 // Security PIN toggle
 router.put('/security-pin', protect, updateSecurityPin);
+
+// Delete account
+var { deleteAccount } = require('../controllers/authController');
+router.delete('/account', protect, deleteAccount);
 
 module.exports = router;

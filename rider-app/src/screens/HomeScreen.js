@@ -33,6 +33,9 @@ function HomeScreen(props) {
   var auth = useAuth();
   var user = auth.user;
   var logout = auth.logout;
+  var isGuest = auth.isGuest;
+  var deleteAccount = auth.deleteAccount;
+  var exitGuestMode = auth.exitGuestMode;
 
   var locState = useState(null);
   var location = locState[0];
@@ -227,7 +230,7 @@ function HomeScreen(props) {
   }
 
   function handleWhereToPress() {
-    if (!location) { Alert.alert('Position GPS', 'En attente de votre position...'); return; } navigation.navigate('SearchDestination', { currentLocation: location });
+    if (!location) { Alert.alert('Position GPS', 'En attente de votre position...'); return; } if (isGuest) { Alert.alert('Connexion requise', 'Connectez-vous pour r\u00e9server une course.', [{ text: 'Annuler' }, { text: 'Se connecter', onPress: function() { exitGuestMode(); } }]); return; } navigation.navigate('SearchDestination', { currentLocation: location });
   }
 
   function handleQuickPlace(type) {
@@ -428,6 +431,18 @@ function HomeScreen(props) {
   }
 
   function renderProfileTab() {
+    if (isGuest) {
+      return (
+        <View style={[styles.tabScreen, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }]}>
+          <Text style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83D\uDD12"}</Text>
+          <Text style={{ fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8, textAlign: 'center' }}>Connectez-vous</Text>
+          <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textDarkSub, textAlign: 'center', marginBottom: 24 }}>Cr\u00e9ez un compte ou connectez-vous pour acc\u00e9der \u00e0 votre profil.</Text>
+          <TouchableOpacity style={{ backgroundColor: COLORS.darkCard, paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16 }} onPress={function() { exitGuestMode(); }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'LexendDeca_700Bold' }}>Se connecter</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
     var userName = (user && user.name) ? user.name : 'Utilisateur';
     var userPhone = (user && user.phone) ? user.phone : '-';
     var userEmail = (user && user.email) ? user.email : '-';
@@ -500,6 +515,13 @@ function HomeScreen(props) {
         </View>
 
         <FeedbackButton screen='Profile' />
+
+        <TouchableOpacity style={styles.deleteAccountBtn} onPress={function() {
+          Alert.alert('Supprimer le compte', '\u00cates-vous s\u00fbr de vouloir supprimer votre compte ? Cette action est irr\u00e9versible.', [{ text: 'Annuler', style: 'cancel' }, { text: 'Supprimer', style: 'destructive', onPress: function() { deleteAccount().then(function() { Alert.alert('Compte supprim\u00e9', 'Votre compte a \u00e9t\u00e9 supprim\u00e9.'); }).catch(function() { Alert.alert('Erreur', 'Impossible de supprimer le compte.'); }); }}]);
+        }}>
+          <Text style={styles.logoutIcon}>{"\u274c"}</Text>
+          <Text style={[styles.logoutTxt, { color: '#FF3B30' }]}>Supprimer mon compte</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutIcon}>{"👋"}</Text>
@@ -666,7 +688,7 @@ function HomeScreen(props) {
                 <Text style={styles.serviceLabel}>Colis</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('RestaurantList', { currentLocation: location }); }}>
+              <TouchableOpacity style={styles.serviceCard} onPress={function() { Alert.alert('Bient\u00f4t disponible', 'Les restaurants arrivent bient\u00f4t sur TeranGO!'); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 59, 48, 0.25)' }]}>
                   <Text style={styles.serviceEmoji}>{"🍽️"}</Text>
                 </View>
@@ -923,6 +945,7 @@ var styles = StyleSheet.create({
   pinToggleOn: { backgroundColor: COLORS.green },
   pinToggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
   pinToggleDotOn: { alignSelf: 'flex-end' },
+  deleteAccountBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 16, marginHorizontal: 20, marginBottom: 12, borderRadius: 16, backgroundColor: 'rgba(255,59,48,0.08)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)' },
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     padding: 18, borderRadius: 16, backgroundColor: 'rgba(227, 27, 35, 0.08)',

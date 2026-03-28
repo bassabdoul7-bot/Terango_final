@@ -4,37 +4,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 var API_URL = 'https://api.terango.sn/api';
 
-var api = axios.create({
-  baseURL: API_URL,
-  timeout: 60000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+var api = axios.create({ baseURL: API_URL, timeout: 60000, headers: { 'Content-Type': 'application/json' } });
 
 api.interceptors.request.use(
-  async function(config) {
-    var token = await AsyncStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = 'Bearer ' + token;
-    }
-    return config;
-  },
-  function(error) {
-    return Promise.reject(error);
-  }
+  async function(config) { var token = await AsyncStorage.getItem('token'); if (token) { config.headers.Authorization = 'Bearer ' + token; } return config; },
+  function(error) { return Promise.reject(error); }
 );
 
 api.interceptors.response.use(
   function(response) { return response.data; },
-  function(error) {
-    if (error.response && error.response.status === 401) {
-      AsyncStorage.removeItem('token');
-      AsyncStorage.removeItem('user');
-      DeviceEventEmitter.emit('force-logout');
-    }
-    return Promise.reject(error);
-  }
+  function(error) { if (error.response && error.response.status === 401) { AsyncStorage.removeItem('token'); AsyncStorage.removeItem('user'); DeviceEventEmitter.emit('force-logout'); } return Promise.reject(error); }
 );
 
 export var authService = {
@@ -43,11 +22,11 @@ export var authService = {
   loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin }),
   forgotPin: (phone) => api.post('/auth/forgot-pin', { phone }),
   resetPin: (phone, otp, newPin) => api.post('/auth/reset-pin', { phone, otp, newPin }),
-  verifyOTP: function(phone, otp, name, role) {
-    return api.post('/auth/verify-otp', { phone: phone, otp: otp, name: name, role: role });
-  },
+  verifyOTP: function(phone, otp, name, role) { return api.post('/auth/verify-otp', { phone: phone, otp: otp, name: name, role: role }); },
   getMe: function() { return api.get('/auth/me'); },
   updateProfile: function(data) { return api.put('/auth/profile', data); },
+  registerPushToken: function(token) { return api.put('/auth/push-token', { pushToken: token }); },
+  deleteAccount: function() { return api.delete('/auth/account'); },
 };
 
 export var rideService = {
@@ -61,23 +40,16 @@ export var rideService = {
 };
 
 export var driverService = {
-  getNearbyDrivers: function(latitude, longitude, radius) {
-    var r = radius || 10;
-    return api.get('/drivers/nearby?latitude=' + latitude + '&longitude=' + longitude + '&radius=' + r);
-  },
+  getNearbyDrivers: function(latitude, longitude, radius) { var r = radius || 10; return api.get('/drivers/nearby?latitude=' + latitude + '&longitude=' + longitude + '&radius=' + r); },
 };
 
 export var deliveryService = {
-  getEstimate: function(serviceType, distance, size) {
-    return api.post('/deliveries/estimate', { serviceType: serviceType, distance: distance, size: size });
-  },
+  getEstimate: function(serviceType, distance, size) { return api.post('/deliveries/estimate', { serviceType: serviceType, distance: distance, size: size }); },
   createDelivery: function(data) { return api.post('/deliveries/create', data); },
   getMyDeliveries: function() { return api.get('/deliveries/my-deliveries'); },
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
   getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
-  cancelDelivery: function(deliveryId, reason) {
-    return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason });
-  },
+  cancelDelivery: function(deliveryId, reason) { return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason }); },
 };
 
 export var orderService = {
@@ -96,10 +68,3 @@ export var restaurantService = {
 };
 
 export default api;
-
-
-
-
-
-
-

@@ -2,7 +2,6 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
-
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -19,18 +18,13 @@ import RestaurantMenuScreen from '../screens/RestaurantMenuScreen';
 import ActiveDeliveryScreen from '../screens/ActiveDeliveryScreen';
 
 const Stack = createNativeStackNavigator();
-
 const AppNavigator = () => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return null;
-  }
-
+  const { isAuthenticated, isGuest, loading } = useAuth();
+  if (loading) { return null; }
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
+        {(!isAuthenticated && !isGuest) ? (
           <>
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
@@ -48,14 +42,11 @@ const AppNavigator = () => {
             <Stack.Screen name="Commande" component={CommandeScreen} />
             <Stack.Screen name="RestaurantList" component={RestaurantListScreen} />
             <Stack.Screen name="RestaurantMenuScreen" component={RestaurantMenuScreen} />
-        <Stack.Screen name="ActiveDeliveryScreen" component={ActiveDeliveryScreen} />
+            <Stack.Screen name="ActiveDeliveryScreen" component={ActiveDeliveryScreen} />
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
-
 export default AppNavigator;
-
-
