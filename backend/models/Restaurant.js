@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var bcrypt = require('bcryptjs');
 
 var menuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -74,6 +75,21 @@ restaurantSchema.pre('save', function(next) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '') + '-' + Date.now().toString(36);
   }
+
+  // Hash owner password if it has been modified
+  if (this.isModified('owner.password') && this.owner && this.owner.password) {
+    var restaurant = this;
+    bcrypt.genSalt(10, function(err, salt) {
+      if (err) return next(err);
+      bcrypt.hash(restaurant.owner.password, salt, function(err, hash) {
+        if (err) return next(err);
+        restaurant.owner.password = hash;
+        next();
+      });
+    });
+    return;
+  }
+
   next();
 });
 

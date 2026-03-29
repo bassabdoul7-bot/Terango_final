@@ -1,19 +1,62 @@
 ﻿import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 var API_URL = 'https://api.terango.sn/api';
+var ALLOWED_HOSTS = ['api.terango.sn'];
 
 var api = axios.create({ baseURL: API_URL, timeout: 60000, headers: { 'Content-Type': 'application/json' } });
 
 api.interceptors.request.use(
-  async function(config) { var token = await AsyncStorage.getItem('token'); if (token) { config.headers.Authorization = 'Bearer ' + token; } return config; },
+  async function(config) {
+    var token = await SecureStore.getItemAsync('token');
+    if (token) { config.headers.Authorization = 'Bearer ' + token; }
+
+    // Enforce HTTPS and allowed domain on every request
+    var fullURL = config.baseURL ? config.baseURL + config.url : config.url;
+    if (fullURL && !fullURL.startsWith('https://')) {
+      return Promise.reject(new Error('SSL_VIOLATION: Only HTTPS requests are allowed'));
+    }
+    try {
+      var urlHost = new URL(fullURL).hostname;
+      if (ALLOWED_HOSTS.indexOf(urlHost) === -1) {
+        return Promise.reject(new Error('DOMAIN_VIOLATION: Request to untrusted host: ' + urlHost));
+      }
+    } catch (e) {
+      return Promise.reject(new Error('URL_PARSE_ERROR: Could not parse request URL'));
+    }
+
+    return config;
+  },
   function(error) { return Promise.reject(error); }
 );
 
 api.interceptors.response.use(
-  function(response) { return response.data; },
-  function(error) { if (error.response && error.response.status === 401) { AsyncStorage.removeItem('token'); AsyncStorage.removeItem('user'); DeviceEventEmitter.emit('force-logout'); } return Promise.reject(error); }
+  function(response) {
+    // Verify the response came from an allowed host (detect unexpected redirects)
+    var responseURL = response.request && response.request.responseURL;
+    if (responseURL) {
+      try {
+        var respHost = new URL(responseURL).hostname;
+        if (ALLOWED_HOSTS.indexOf(respHost) === -1) {
+          return Promise.reject(new Error('REDIRECT_VIOLATION: Response from untrusted host: ' + respHost));
+        }
+        if (!responseURL.startsWith('https://')) {
+          return Promise.reject(new Error('SSL_VIOLATION: Response received over non-HTTPS connection'));
+        }
+      } catch (e) { /* URL parsing failed, allow response */ }
+    }
+    return response.data;
+  },
+  function(error) {
+    if (error.response && error.response.status === 401) {
+      SecureStore.deleteItemAsync('token');
+      AsyncStorage.removeItem('user');
+      DeviceEventEmitter.emit('force-logout');
+    }
+    return Promise.reject(error);
+  }
 );
 
 export var authService = {

@@ -1,8 +1,10 @@
 import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const API_URL = 'https://api.terango.sn/api';
+const ALLOWED_HOSTS = ['api.terango.sn'];
 
 const api = axios.create({
   baseURL: API_URL,
@@ -14,10 +16,25 @@ const api = axios.create({
 
 api.interceptors.request.use(
   async (config) => {
-    const token = await AsyncStorage.getItem('token');
+    const token = await SecureStore.getItemAsync('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Enforce HTTPS and allowed domain on every request
+    const fullURL = config.baseURL ? config.baseURL + config.url : config.url;
+    if (fullURL && !fullURL.startsWith('https://')) {
+      return Promise.reject(new Error('SSL_VIOLATION: Only HTTPS requests are allowed'));
+    }
+    try {
+      const urlHost = new URL(fullURL).hostname;
+      if (!ALLOWED_HOSTS.includes(urlHost)) {
+        return Promise.reject(new Error('DOMAIN_VIOLATION: Request to untrusted host: ' + urlHost));
+      }
+    } catch (e) {
+      return Promise.reject(new Error('URL_PARSE_ERROR: Could not parse request URL'));
+    }
+
     return config;
   },
   (error) => {
@@ -26,16 +43,25 @@ api.interceptors.request.use(
 );
 
 api.interceptors.response.use(
-  (response) => response.data,
-  (error) => {
-    var url = error.config?.url || '';
-    if (url.indexOf('/location') === -1) {
-      console.error('API Error:', error.response?.status);
-      console.error('API Error Data:', error.response?.data);
-      console.error('API Error Config:', url);
+  (response) => {
+    // Verify the response came from an allowed host (detect unexpected redirects)
+    const responseURL = response.request?.responseURL;
+    if (responseURL) {
+      try {
+        const respHost = new URL(responseURL).hostname;
+        if (!ALLOWED_HOSTS.includes(respHost)) {
+          return Promise.reject(new Error('REDIRECT_VIOLATION: Response from untrusted host: ' + respHost));
+        }
+        if (!responseURL.startsWith('https://')) {
+          return Promise.reject(new Error('SSL_VIOLATION: Response received over non-HTTPS connection'));
+        }
+      } catch (e) { /* URL parsing failed, allow response */ }
     }
+    return response.data;
+  },
+  (error) => {
     if (error.response?.status === 401) {
-      AsyncStorage.removeItem('token');
+      SecureStore.deleteItemAsync('token');
       AsyncStorage.removeItem('user');
       DeviceEventEmitter.emit('force-logout');
     }

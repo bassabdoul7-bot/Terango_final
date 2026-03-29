@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { partnerService } from '../services/api';
+import api, { partnerService } from '../services/api';
 import { Car, Plus, X, CheckCircle, Clock, XCircle, Upload, FileText } from 'lucide-react';
-
-var API_URL = 'https://terango-api.fly.dev/api';
 
 export default function PartnerDriversPage() {
   var [drivers, setDrivers] = useState([]);
@@ -99,13 +97,9 @@ export default function PartnerDriversPage() {
     if (docForm.driverLicense) formData.append('driverLicense', docForm.driverLicense);
     if (docForm.vehicleRegistration) formData.append('vehicleRegistration', docForm.vehicleRegistration);
 
-    var token = localStorage.getItem('admin_token');
-    fetch(API_URL + '/partners/drivers/' + showUploadModal.id + '/upload-documents', {
-      method: 'PUT',
-      headers: { 'Authorization': 'Bearer ' + token },
-      body: formData
+    api.put('/partners/drivers/' + showUploadModal.id + '/upload-documents', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
         setSuccess('Documents soumis avec succes');
