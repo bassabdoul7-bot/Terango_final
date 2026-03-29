@@ -83,8 +83,10 @@ function HomeScreen(props) {
 
   useEffect(function() {
     loadSavedPlaces();
-    loadRideHistory();
-    rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
+    if (!isGuest) {
+      loadRideHistory();
+      rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
+    }
   }, []);
 
   useEffect(function() {
@@ -118,10 +120,12 @@ function HomeScreen(props) {
   useEffect(function() {
     var subscription = AppState.addEventListener('change', function(nextAppState) {
       if (appStateRef.current.match(/inactive|background/) && nextAppState === 'active') {
-        if (socketRef.current && !socketRef.current.connected) {
-          socketRef.current.connect();
+        if (!isGuest) {
+          if (socketRef.current && !socketRef.current.connected) {
+            socketRef.current.connect();
+          }
+          fetchNearbyDrivers();
         }
-        fetchNearbyDrivers();
       }
       appStateRef.current = nextAppState;
     });
@@ -130,9 +134,11 @@ function HomeScreen(props) {
 
   useEffect(function() {
     if (location) {
-      fetchNearbyDrivers();
-      connectSocket();
-      fetchInterval.current = setInterval(fetchNearbyDrivers, 15000);
+      if (!isGuest) {
+        fetchNearbyDrivers();
+        connectSocket();
+        fetchInterval.current = setInterval(fetchNearbyDrivers, 15000);
+      }
     }
   }, [location]);
 
