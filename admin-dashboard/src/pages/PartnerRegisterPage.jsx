@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Upload, CheckCircle, ArrowLeft } from 'lucide-react';
-
-var API_URL = 'https://terango-api.fly.dev/api';
+import api from '../services/api';
 
 export default function PartnerRegisterPage() {
   var [form, setForm] = useState({
@@ -62,11 +61,9 @@ export default function PartnerRegisterPage() {
     formData.append('businessAddress', form.businessAddress);
     formData.append('idPhoto', idPhoto);
 
-    fetch(API_URL + '/auth/register-partner', {
-      method: 'POST',
-      body: formData
+    api.post('/auth/register-partner', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
     })
-    .then(function(res) { return res.json(); })
     .then(function(data) {
       if (data.success) {
         setSuccess(true);

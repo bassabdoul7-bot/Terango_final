@@ -53,38 +53,36 @@ exports.getRestaurantById = function(req, res) {
 
 exports.register = function(req, res) {
   var body = req.body;
-  
-  bcrypt.hash(body.password, 10).then(function(hashed) {
-    var restaurant = new Restaurant({
-      name: body.name,
-      description: body.description || '',
-      phone: body.phone,
-      email: body.email || '',
-      address: {
-        street: body.street,
-        city: body.city || 'Dakar',
-        coordinates: {
-          latitude: body.latitude,
-          longitude: body.longitude
-        }
-      },
-      categories: body.categories || [],
-      cuisine: body.cuisine || [],
-      owner: {
-        name: body.ownerName,
-        phone: body.ownerPhone || body.phone,
-        password: hashed
-      }
-    });
 
-    restaurant.save().then(function(saved) {
-      var token = jwt.sign(
-        { id: saved._id, role: 'restaurant' },
-        process.env.JWT_SECRET,
-        { expiresIn: '30d' }
-      );
-      res.status(201).json({ success: true, token: token, restaurant: { _id: saved._id, name: saved.name, slug: saved.slug } });
-    });
+  var restaurant = new Restaurant({
+    name: body.name,
+    description: body.description || '',
+    phone: body.phone,
+    email: body.email || '',
+    address: {
+      street: body.street,
+      city: body.city || 'Dakar',
+      coordinates: {
+        latitude: body.latitude,
+        longitude: body.longitude
+      }
+    },
+    categories: body.categories || [],
+    cuisine: body.cuisine || [],
+    owner: {
+      name: body.ownerName,
+      phone: body.ownerPhone || body.phone,
+      password: body.password
+    }
+  });
+
+  restaurant.save().then(function(saved) {
+    var token = jwt.sign(
+      { id: saved._id, role: 'restaurant' },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+    res.status(201).json({ success: true, token: token, restaurant: { _id: saved._id, name: saved.name, slug: saved.slug } });
   }).catch(function(err) {
     console.error('Register restaurant error:', err);
     res.status(500).json({ success: false, message: 'Erreur serveur' });

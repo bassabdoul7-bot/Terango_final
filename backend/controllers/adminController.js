@@ -1,6 +1,6 @@
 var Partner = require('../models/Partner');
 var bcrypt = require('bcryptjs');
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const Driver = require('../models/Driver');
 const Rider = require('../models/Rider');
 const Ride = require('../models/Ride');
@@ -31,21 +31,24 @@ exports.getDashboardStats = async (req, res) => {
       createdAt: { $gte: today }
     });
     
-    // Revenue calculation
-    const completedRides = await Ride.find({ status: 'completed' });
-    const totalRevenue = completedRides.reduce(
-      (sum, ride) => sum + ride.platformCommission, 
-      0
-    );
-    
-    // Today's revenue
-    const todayCompletedRides = completedRides.filter(
-      ride => ride.completedAt >= today
-    );
-    const todayRevenue = todayCompletedRides.reduce(
-      (sum, ride) => sum + ride.platformCommission,
-      0
-    );
+    // Revenue calculation using aggregation
+    const revenueAgg = await Ride.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$platformCommission' },
+          todayRevenue: {
+            $sum: {
+              $cond: [{ $gte: ['$completedAt', today] }, '$platformCommission', 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
+    const todayRevenue = revenueAgg.length > 0 ? revenueAgg[0].todayRevenue : 0;
 
     res.status(200).json({
       success: true,
@@ -241,21 +244,46 @@ exports.getRevenueAnalytics = async (req, res) => {
       };
     }
     
-    const rides = await Ride.find(query);
-    
-    const analytics = {
-      totalRides: rides.length,
-      totalFare: rides.reduce((sum, ride) => sum + ride.fare, 0),
-      totalCommission: rides.reduce((sum, ride) => sum + ride.platformCommission, 0),
-      totalDriverEarnings: rides.reduce((sum, ride) => sum + ride.driverEarnings, 0),
-      averageFare: rides.length > 0 
-        ? rides.reduce((sum, ride) => sum + ride.fare, 0) / rides.length 
-        : 0,
-      ridesByType: {
-        standard: rides.filter(r => r.rideType === 'standard').length,
-        comfort: rides.filter(r => r.rideType === 'comfort').length,
-        xl: rides.filter(r => r.rideType === 'xl').length
+    const aggResult = await Ride.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalRides: { $sum: 1 },
+          totalFare: { $sum: '$fare' },
+          totalCommission: { $sum: '$platformCommission' },
+          totalDriverEarnings: { $sum: '$driverEarnings' },
+          averageFare: { $avg: '$fare' }
+        }
       }
+    ]);
+
+    const typeAgg = await Ride.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$rideType',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const ridesByType = { standard: 0, comfort: 0, xl: 0 };
+    typeAgg.forEach(t => {
+      if (t._id in ridesByType) ridesByType[t._id] = t.count;
+    });
+
+    const stats = aggResult.length > 0 ? aggResult[0] : {
+      totalRides: 0, totalFare: 0, totalCommission: 0, totalDriverEarnings: 0, averageFare: 0
+    };
+
+    const analytics = {
+      totalRides: stats.totalRides,
+      totalFare: stats.totalFare,
+      totalCommission: stats.totalCommission,
+      totalDriverEarnings: stats.totalDriverEarnings,
+      averageFare: stats.averageFare || 0,
+      ridesByType
     };
 
     res.status(200).json({

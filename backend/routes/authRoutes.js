@@ -21,7 +21,10 @@ const {
 router.post(
   '/send-otp',
   [
-    body('phone').notEmpty().withMessage('Num�ro de t�l�phone requis')
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis')
+      .isLength({ max: 20 }).withMessage('Numéro de téléphone trop long')
   ],
   validate,
   sendOTP
@@ -31,8 +34,12 @@ router.post(
 router.post(
   '/verify-otp',
   [
-    body('phone').notEmpty().withMessage('Num�ro de t�l�phone requis'),
-    body('otp').isLength({ min: 6, max: 6 }).withMessage('Code OTP invalide')
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis'),
+    body('otp')
+      .notEmpty().withMessage('Code OTP requis')
+      .isLength({ min: 6, max: 6 }).withMessage('Code OTP invalide')
   ],
   validate,
   verifyOTP
@@ -42,25 +49,103 @@ router.post(
 router.get('/me', protect, getMe);
 
 // Update profile
-router.put('/profile', protect, updateProfile);
+router.put(
+  '/profile',
+  protect,
+  [
+    body('name')
+      .optional()
+      .isString().withMessage('Le nom doit être une chaîne')
+      .isLength({ min: 2, max: 100 }).withMessage('Le nom doit contenir entre 2 et 100 caractères'),
+    body('email')
+      .optional()
+      .isEmail().withMessage('Format email invalide')
+  ],
+  validate,
+  updateProfile
+);
 
 // Register with PIN
-router.post('/register', register);
+router.post(
+  '/register',
+  [
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis'),
+    body('name')
+      .isString().withMessage('Le nom doit être une chaîne')
+      .notEmpty().withMessage('Nom requis')
+      .isLength({ min: 2, max: 100 }).withMessage('Le nom doit contenir entre 2 et 100 caractères'),
+    body('pin')
+      .notEmpty().withMessage('PIN requis')
+      .matches(/^\d{6}$/).withMessage('Le PIN doit contenir exactement 6 chiffres'),
+    body('role')
+      .notEmpty().withMessage('Rôle requis')
+      .isIn(['rider', 'driver']).withMessage('Rôle invalide')
+  ],
+  validate,
+  register
+);
 
 // Login with PIN
-router.post('/login', loginWithPin);
+router.post(
+  '/login',
+  [
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis'),
+    body('pin')
+      .notEmpty().withMessage('PIN requis')
+  ],
+  validate,
+  loginWithPin
+);
 
 // Forgot PIN
-router.post('/forgot-pin', forgotPin);
+router.post(
+  '/forgot-pin',
+  [
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis')
+  ],
+  validate,
+  forgotPin
+);
 
 // Reset PIN
-router.post('/reset-pin', resetPin);
+router.post(
+  '/reset-pin',
+  [
+    body('phone')
+      .isString().withMessage('Le téléphone doit être une chaîne')
+      .notEmpty().withMessage('Numéro de téléphone requis'),
+    body('otp')
+      .notEmpty().withMessage('Code OTP requis'),
+    body('newPin')
+      .notEmpty().withMessage('Nouveau PIN requis')
+      .matches(/^\d{6}$/).withMessage('Le PIN doit contenir exactement 6 chiffres')
+  ],
+  validate,
+  resetPin
+);
 
 // Push token
 router.put('/push-token', protect, registerPushToken);
 
 // Admin login
-router.post('/admin-login', adminLogin);
+router.post(
+  '/admin-login',
+  [
+    body('email')
+      .notEmpty().withMessage('Email requis')
+      .isEmail().withMessage('Format email invalide'),
+    body('password')
+      .notEmpty().withMessage('Mot de passe requis')
+  ],
+  validate,
+  adminLogin
+);
 
 
 // Partner registration with ID upload

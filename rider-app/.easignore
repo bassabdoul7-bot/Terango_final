@@ -17,3 +17,5 @@ temp_*
 src_backup/
 AUDIT*
 CODEDUMP*
+node_modules/
+dist/

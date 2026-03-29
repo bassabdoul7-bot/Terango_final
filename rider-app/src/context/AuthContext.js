@@ -1,6 +1,7 @@
 ﻿import React, { createContext, useState, useContext, useEffect } from 'react';
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/api.service';
 import { registerForPushNotifications } from '../services/notifications';
 
@@ -22,7 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await SecureStore.getItemAsync('token');
       const userData = await AsyncStorage.getItem('user');
       if (token && userData) {
         setUser(JSON.parse(userData));
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.loginWithPin(phone, pin);
       if (response.success) {
-        await AsyncStorage.setItem('token', response.token);
+        await SecureStore.setItemAsync('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
         setUser(response.user); setIsAuthenticated(true); setIsGuest(false);
         registerForPushNotifications().then((token) => { if (token) authService.registerPushToken(token); });
@@ -58,7 +59,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.register(phone, name, email, pin, 'rider');
       if (response.success) {
-        await AsyncStorage.setItem('token', response.token);
+        await SecureStore.setItemAsync('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
         setUser(response.user); setIsAuthenticated(true); setIsGuest(false);
         registerForPushNotifications().then((token) => { if (token) authService.registerPushToken(token); });
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authService.verifyOTP(phone, otp, name, role);
       if (response.success) {
-        await AsyncStorage.setItem('token', response.token);
+        await SecureStore.setItemAsync('token', response.token);
         await AsyncStorage.setItem('user', JSON.stringify(response.user));
         setUser(response.user); setIsAuthenticated(true);
         return response;
@@ -81,7 +82,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token'); await AsyncStorage.removeItem('user');
+      await SecureStore.deleteItemAsync('token'); await AsyncStorage.removeItem('user');
       setUser(null); setIsAuthenticated(false); setIsGuest(false);
     } catch (error) { console.error('Logout error:', error); }
   };
@@ -89,7 +90,7 @@ export const AuthProvider = ({ children }) => {
   const deleteAccount = async () => {
     try {
       await authService.deleteAccount();
-      await AsyncStorage.removeItem('token'); await AsyncStorage.removeItem('user');
+      await SecureStore.deleteItemAsync('token'); await AsyncStorage.removeItem('user');
       setUser(null); setIsAuthenticated(false); setIsGuest(false);
     } catch (error) { console.error('Delete account error:', error); throw error; }
   };

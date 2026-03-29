@@ -21,6 +21,8 @@ export default function DriversPage() {
   var [showWarnInput, setShowWarnInput] = useState(false);
   var [modLoading, setModLoading] = useState(false);
   var [bigImage, setBigImage] = useState(null);
+  var [promptModal, setPromptModal] = useState(null); // { title, placeholder, onConfirm }
+  var [promptValue, setPromptValue] = useState("");
 
   function load() {
     setLoading(true);
@@ -36,9 +38,22 @@ export default function DriversPage() {
   useEffect(function() { load(); }, [filter, page]);
 
   function verify(id, status) {
-    var reason = status === 'rejected' ? prompt('Raison du rejet:') : '';
-    if (status === 'rejected' && !reason) return;
-    adminService.verifyDriver(id, status, reason).then(function() {
+    if (status === 'rejected') {
+      setPromptValue("");
+      setPromptModal({
+        title: "Raison du rejet",
+        placeholder: "Raison du rejet...",
+        onConfirm: function(reason) {
+          if (!reason) return;
+          adminService.verifyDriver(id, status, reason).then(function() {
+            load();
+            setSelected(null);
+          });
+        }
+      });
+      return;
+    }
+    adminService.verifyDriver(id, status, '').then(function() {
       load();
       setSelected(null);
     });
@@ -53,23 +68,43 @@ export default function DriversPage() {
   }
 
   function handleSuspend(id, action) {
-    var reason = action === "suspend" ? prompt("Raison de la suspension:") : null;
-    if (action === "suspend" && !reason) return;
+    if (action === "suspend") {
+      setPromptValue("");
+      setPromptModal({
+        title: "Raison de la suspension",
+        placeholder: "Raison de la suspension...",
+        onConfirm: function(reason) {
+          if (!reason) return;
+          setModLoading(true);
+          suspendDriver(id, "suspend", reason).then(function() {
+            alert("Chauffeur suspendu");
+            setSelected(null); load();
+          }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
+        }
+      });
+      return;
+    }
     setModLoading(true);
-    suspendDriver(id, action, reason).then(function() {
-      alert(action === "suspend" ? "Chauffeur suspendu" : "Suspension levee");
-      setSelected(null); fetchDrivers();
+    suspendDriver(id, action, null).then(function() {
+      alert("Suspension levee");
+      setSelected(null); load();
     }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
   }
 
   function handleBan(id) {
-    var reason = prompt("Raison du bannissement (irreversible):");
-    if (!reason) return;
-    if (!confirm("ATTENTION: Cette action est irreversible. Bannir ce chauffeur?")) return;
-    setModLoading(true);
-    banDriver(id, reason).then(function() {
-      alert("Chauffeur banni"); setSelected(null); fetchDrivers();
-    }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
+    setPromptValue("");
+    setPromptModal({
+      title: "Raison du bannissement (irreversible)",
+      placeholder: "Raison du bannissement...",
+      onConfirm: function(reason) {
+        if (!reason) return;
+        if (!confirm("ATTENTION: Cette action est irreversible. Bannir ce chauffeur?")) return;
+        setModLoading(true);
+        banDriver(id, reason).then(function() {
+          alert("Chauffeur banni"); setSelected(null); load();
+        }).catch(function() { alert("Erreur"); }).finally(function() { setModLoading(false); });
+      }
+    });
   }
 
   function handleWarn(id) {
@@ -112,6 +147,30 @@ export default function DriversPage() {
           <button onClick={function() { setBigImage(null); }} className="absolute top-4 right-4 p-3 rounded-full bg-white/10 hover:bg-white/20">
             <X size={24} className="text-white" />
           </button>
+        </div>
+      )}
+
+      {/* PROMPT MODAL */}
+      {promptModal && (
+        <div className="fixed inset-0 bg-black/70 z-[70] flex items-center justify-center p-4" onClick={function() { setPromptModal(null); }}>
+          <div className="bg-gray-900 rounded-2xl w-full max-w-md border border-gray-700 p-6" onClick={function(e) { e.stopPropagation(); }}>
+            <h3 className="text-lg font-bold text-white mb-4">{promptModal.title}</h3>
+            <input
+              autoFocus
+              value={promptValue}
+              onChange={function(e) { setPromptValue(e.target.value); }}
+              onKeyDown={function(e) { if (e.key === 'Enter' && promptValue.trim()) { var cb = promptModal.onConfirm; setPromptModal(null); cb(promptValue.trim()); } }}
+              placeholder={promptModal.placeholder}
+              className="w-full bg-gray-800 rounded-lg px-4 py-3 text-white border border-gray-700 focus:outline-none focus:border-emerald-500 mb-4"
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={function() { setPromptModal(null); }}
+                className="px-4 py-2 rounded-lg bg-gray-800 text-gray-400 hover:bg-gray-700">Annuler</button>
+              <button onClick={function() { var cb = promptModal.onConfirm; setPromptModal(null); cb(promptValue.trim()); }}
+                disabled={!promptValue.trim()}
+                className="px-4 py-2 rounded-lg bg-emerald-500 text-white font-medium hover:bg-emerald-600 disabled:opacity-30">Confirmer</button>
+            </div>
+          </div>
         </div>
       )}
 
