@@ -9,6 +9,7 @@ import {
   Image,
   ActivityIndicator,
   AppState,
+  Linking,
 } from 'react-native';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -49,9 +50,14 @@ var HomeScreen = function(props) {
   var commissionAmount = commissionState[0];
   var setCommissionAmount = commissionState[1];
 
+  var permDeniedState = useState(false);
+  var permissionDenied = permDeniedState[0];
+  var setPermissionDenied = permDeniedState[1];
+
   var pendingGoOnline = useRef(false);
   var appStateRef = useRef(AppState.currentState);
   var locationRef = useRef(null);
+  var locationWatcherRef = useRef(null);
 
   useEffect(function() {
     initializeLocation();
@@ -63,7 +69,7 @@ var HomeScreen = function(props) {
           setCommissionAmount(d.commissionBalance || 0);
         }
       }
-    }).catch(function() {});
+    }).catch(function(err) { console.error('getProfile error:', err); });
     driverService.getActiveRide().then(function(res) {
       if (res && res.success && res.ride) {
         var r = res.ride;
@@ -71,13 +77,13 @@ var HomeScreen = function(props) {
           navigation.replace('ActiveRide', { rideId: r._id, ride: r, deliveryMode: !!r.deliveryId });
         }
       }
-    }).catch(function() {});
+    }).catch(function(err) { console.error('getActiveRide error:', err); });
     createAuthSocket().then(function(newSocket) {
       setSocket(newSocket);
       newSocket.on('connect', function() { console.log('Socket connected:', newSocket.id); });
       newSocket.on('disconnect', function() { console.log('Socket disconnected'); });
     });
-    return function() { if (socket) { socket.disconnect(); } };
+    return function() { if (socket) { socket.disconnect(); } if (locationWatcherRef.current) { locationWatcherRef.current.remove(); locationWatcherRef.current = null; } };
   }, []);
 
   useEffect(function() {
@@ -101,9 +107,11 @@ var HomeScreen = function(props) {
 
   var initializeLocation = function() {
     setGettingLocation(true);
+    setPermissionDenied(false);
     Location.requestForegroundPermissionsAsync().then(function(result) {
       if (result.status !== 'granted') {
-        Alert.alert('Permission requise', 'Localisation necessaire pour passer en ligne.', [{ text: 'Reessayer', onPress: initializeLocation }]);
+        setPermissionDenied(true);
+        Alert.alert('Permission requise', 'Localisation necessaire pour passer en ligne.', [{ text: 'Reessayer', onPress: initializeLocation }, { text: 'Ouvrir Parametres', onPress: function() { Linking.openSettings(); } }]);
         setGettingLocation(false);
         return;
       }
@@ -229,9 +237,16 @@ var HomeScreen = function(props) {
         <Text style={styles.goHint}>Appuyez pour passer en ligne</Text>
 
         {!location && !gettingLocation && (
-          <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
-            <Text style={styles.retryText}>Reessayer GPS</Text>
-          </TouchableOpacity>
+          <View style={styles.retryRow}>
+            <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
+              <Text style={styles.retryText}>Reessayer GPS</Text>
+            </TouchableOpacity>
+            {permissionDenied && (
+              <TouchableOpacity style={styles.settingsBtn} onPress={function() { Linking.openSettings(); }}>
+                <Text style={styles.settingsBtnText}>Ouvrir Parametres</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         )}
       </View>
     </View>
@@ -278,8 +293,11 @@ var styles = StyleSheet.create({
   goText: { fontSize: 24, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold', letterSpacing: 3 },
   goHint: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 12 },
 
-  retryBtn: { marginTop: 14, paddingVertical: 10, paddingHorizontal: 20 },
+  retryRow: { flexDirection: 'row', gap: 12, marginTop: 14, alignItems: 'center' },
+  retryBtn: { paddingVertical: 10, paddingHorizontal: 20 },
   retryText: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+  settingsBtn: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: 'rgba(212,175,55,0.2)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
+  settingsBtnText: { fontSize: 14, color: COLORS.yellow, fontFamily: 'LexendDeca_500Medium' },
 
   commissionBanner: { position: 'absolute', top: 120, left: 16, right: 16, zIndex: 100 },
   commissionBannerInner: { backgroundColor: 'rgba(227, 27, 35, 0.92)', borderRadius: 16, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },

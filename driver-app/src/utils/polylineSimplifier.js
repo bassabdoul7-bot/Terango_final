@@ -1,10 +1,22 @@
-﻿// Douglas-Peucker line simplification algorithm
+// Douglas-Peucker line simplification algorithm
 // Reduces polyline points for straighter, cleaner routes
 
 const getPerpendicularDistance = (point, lineStart, lineEnd) => {
-  const { latitude: x, longitude: y } = point;
-  const { latitude: x1, longitude: y1 } = lineStart;
-  const { latitude: x2, longitude: y2 } = lineEnd;
+  const { latitude: lat, longitude: lon } = point;
+  const { latitude: lat1, longitude: lon1 } = lineStart;
+  const { latitude: lat2, longitude: lon2 } = lineEnd;
+
+  // Convert lat/lon to approximate meters for accurate distance calculation
+  const midLat = (lat1 + lat2) / 2;
+  const latScale = 111320; // meters per degree latitude
+  const lonScale = 111320 * Math.cos(midLat * Math.PI / 180); // meters per degree longitude
+
+  const x = lat * latScale;
+  const y = lon * lonScale;
+  const x1 = lat1 * latScale;
+  const y1 = lon1 * lonScale;
+  const x2 = lat2 * latScale;
+  const y2 = lon2 * lonScale;
 
   const A = x - x1;
   const B = y - y1;
@@ -59,7 +71,7 @@ const douglasPeucker = (points, tolerance) => {
   return [points[0], points[end]];
 };
 
-export const simplifyPolyline = (coordinates, tolerance = 0.0001) => {
+export const simplifyPolyline = (coordinates, tolerance = 5.5) => {
   if (!coordinates || coordinates.length < 3) return coordinates;
   return douglasPeucker(coordinates, tolerance);
 };
