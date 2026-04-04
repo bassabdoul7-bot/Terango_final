@@ -212,6 +212,13 @@ exports.acceptDelivery = function(req, res) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
       }
 
+      if (driver.isBlockedForPayment === true) {
+        return res.status(403).json({
+          success: false,
+          message: 'Vous devez payer votre commission avant d\'accepter de nouvelles courses. Envoyez ' + driver.commissionBalance + ' FCFA par Wave.'
+        });
+      }
+
       return Delivery.findOne({ _id: req.params.deliveryId, status: 'pending' })
         .then(function(delivery) {
           if (!delivery) {

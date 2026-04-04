@@ -509,6 +509,41 @@ var staleDriverCleanup = setInterval(async function() {
   } catch(e) {}
 }, 5 * 60 * 1000);
 
+// ========== Midnight commission blocking (Senegal time UTC+0) ==========
+function scheduleMidnightCommissionCheck() {
+  var now = new Date();
+  var nextMidnight = new Date(now);
+  nextMidnight.setUTCHours(24, 0, 0, 0); // next midnight UTC
+  var msUntilMidnight = nextMidnight.getTime() - now.getTime();
+
+  setTimeout(function() {
+    runCommissionBlockCheck();
+    // Then repeat every 24 hours
+    setInterval(runCommissionBlockCheck, 24 * 60 * 60 * 1000);
+  }, msUntilMidnight);
+
+  console.log('Commission check scheduled in ' + Math.round(msUntilMidnight / 60000) + ' minutes (midnight UTC)');
+}
+
+async function runCommissionBlockCheck() {
+  try {
+    var DriverModel = require('./models/Driver');
+    var { sendPushNotification } = require('./services/pushService');
+    var drivers = await DriverModel.find({ commissionBalance: { $gt: 0 }, isBlockedForPayment: false });
+    console.log('Midnight commission check: ' + drivers.length + ' drivers with unpaid commission');
+    for (var i = 0; i < drivers.length; i++) {
+      var drv = drivers[i];
+      drv.isBlockedForPayment = true;
+      await drv.save();
+      sendPushNotification(drv.userId, 'Commission due', 'Votre commission de ' + drv.commissionBalance + ' FCFA est due. Payez pour reprendre les courses demain.', { type: 'commission-blocked' });
+    }
+  } catch (e) {
+    console.error('Midnight commission check error:', e.message);
+  }
+}
+
+scheduleMidnightCommissionCheck();
+
 server.listen(PORT, '0.0.0.0', function() {
     console.log('\nTeranGO Backend Running on port ' + PORT);
     console.log('   Redis: Upstash (Production)');

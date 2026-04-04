@@ -181,6 +181,13 @@ exports.acceptRide = async (req, res) => {
       });
     }
 
+    if (driver.isBlockedForPayment === true) {
+      return res.status(403).json({
+        success: false,
+        message: 'Vous devez payer votre commission avant d\'accepter de nouvelles courses. Envoyez ' + driver.commissionBalance + ' FCFA par Wave.'
+      });
+    }
+
     if (!driver.isOnline) {
       return res.status(400).json({
         success: false,
@@ -293,8 +300,9 @@ exports.updateRideStatus = async (req, res) => {
       // Track commission debt
       var earningsData = calculateEarnings(ride.fare, !!(driver.partnerId), driver.tier || 'goorgoorlu');
       driver.commissionBalance = (driver.commissionBalance || 0) + (earningsData.platformCommission || 0);
-      if (driver.commissionBalance >= (driver.commissionCap || 1500)) {
+      if (driver.commissionBalance >= (driver.commissionCap || 750)) {
         driver.isBlockedForPayment = true;
+        sendPushNotification(driver.userId, 'Commission due', 'Votre commission de ' + driver.commissionBalance + ' FCFA est due. Envoyez par Wave pour continuer.', { type: 'commission-blocked' });
       }
 
       await driver.save();
@@ -461,8 +469,9 @@ exports.completeRide = async (req, res) => {
 
     // Track commission debt
     driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
-    if (driver.commissionBalance >= (driver.commissionCap || 1500)) {
+    if (driver.commissionBalance >= (driver.commissionCap || 750)) {
       driver.isBlockedForPayment = true;
+      sendPushNotification(driver.userId, 'Commission due', 'Votre commission de ' + driver.commissionBalance + ' FCFA est due. Envoyez par Wave pour continuer.', { type: 'commission-blocked' });
     }
 
     await driver.save();

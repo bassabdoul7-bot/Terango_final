@@ -34,7 +34,7 @@ class RideMatchingService {
         if (redisDrivers.length > 0) {
           // FIXED: Batch query instead of N+1
           const driverIds = redisDrivers.map(rd => rd.driverId);
-          var driverQuery = { _id: { $in: driverIds }, isAvailable: true };
+          var driverQuery = { _id: { $in: driverIds }, isAvailable: true, isBlockedForPayment: { $ne: true } };
           if (rideType === 'comfort') driverQuery.vehicleClass = 'comfort';
           else if (rideType === 'xl') driverQuery.vehicleClass = 'xl';
           else if (rideType === 'standard') driverQuery.vehicleType = 'car';
@@ -56,7 +56,7 @@ class RideMatchingService {
       }
 
       console.log('Using MongoDB fallback for driver search');
-      var fallbackQuery = { isOnline: true, isAvailable: true };
+      var fallbackQuery = { isOnline: true, isAvailable: true, isBlockedForPayment: { $ne: true } };
       if (rideType === 'comfort') fallbackQuery.vehicleClass = 'comfort';
       else if (rideType === 'xl') fallbackQuery.vehicleClass = 'xl';
       else if (rideType === 'standard') fallbackQuery.vehicleType = 'car';

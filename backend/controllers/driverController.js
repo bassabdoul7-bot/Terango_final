@@ -10,7 +10,15 @@ exports.getProfile = function(req, res) {
       if (!driver) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
-      res.status(200).json({ success: true, driver: driver });
+      res.status(200).json({
+        success: true,
+        driver: driver,
+        paymentInfo: {
+          method: 'Wave',
+          waveNumber: process.env.COMMISSION_WAVE_NUMBER || '',
+          instructions: 'Envoyez votre commission au numero Wave affiche dans l\'application'
+        }
+      });
     })
     .catch(function(error) {
       console.error('Get Profile Error:', error);
@@ -70,6 +78,12 @@ exports.toggleOnlineStatus = function(req, res) {
       }
       if (driver.isBanned) {
         return res.status(403).json({ success: false, message: 'Votre compte a ete desactive.' });
+      }
+      if (isOnline && driver.isBlockedForPayment === true) {
+        return res.status(403).json({
+          success: false,
+          message: 'Vous devez payer votre commission avant d\'accepter de nouvelles courses. Envoyez ' + driver.commissionBalance + ' FCFA par Wave.'
+        });
       }
 
       var driverLocationService = req.app.get('driverLocationService');
@@ -322,6 +336,11 @@ exports.getEarnings = function(req, res) {
           weekRides: weekRidesTotal,
           weeklyBreakdown: weeklyBreakdown,
           weeklyRides: weeklyRides
+        },
+        paymentInfo: {
+          method: 'Wave',
+          waveNumber: process.env.COMMISSION_WAVE_NUMBER || '',
+          instructions: 'Envoyez votre commission au numero Wave affiche dans l\'application'
         }
       });
     })

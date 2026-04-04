@@ -23,6 +23,7 @@ export default function DriversPage() {
   var [bigImage, setBigImage] = useState(null);
   var [promptModal, setPromptModal] = useState(null); // { title, placeholder, onConfirm }
   var [promptValue, setPromptValue] = useState("");
+  var [commissionFilter, setCommissionFilter] = useState(false);
 
   function load() {
     setLoading(true);
@@ -116,6 +117,9 @@ export default function DriversPage() {
   }
 
   var filtered = drivers.filter(function(d) {
+    if (commissionFilter) {
+      if (!d.isBlockedForPayment && !(d.commissionBalance > 0)) return false;
+    }
     if (!search) return true;
     var n = (d.userId && d.userId.name) || '';
     var p = (d.userId && d.userId.phone) || '';
@@ -320,11 +324,15 @@ export default function DriversPage() {
           {['', 'pending', 'approved', 'rejected'].map(function(f) {
             return (
               <button key={f} onClick={function() { setFilter(f); setPage(1); }}
-                className={'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' + (filter === f ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
+                className={'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' + (filter === f && !commissionFilter ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
                 {f === '' ? 'Tous' : statusLabels[f]}
               </button>
             );
           })}
+          <button onClick={function() { setCommissionFilter(!commissionFilter); }}
+            className={'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' + (commissionFilter ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
+            Commission due
+          </button>
         </div>
       </div>
 
@@ -363,7 +371,12 @@ export default function DriversPage() {
                 return (
                   <tr key={d._id} className="border-b border-gray-800/50 hover:bg-gray-800/30 cursor-pointer"
                     onClick={function() { setSelected(d); }}>
-                    <td className="px-6 py-4 text-white font-medium">{name}</td>
+                    <td className="px-6 py-4 text-white font-medium">
+                      <div className="flex items-center gap-2">
+                        {name}
+                        {d.isBlockedForPayment && <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" title="Bloque pour paiement"></span>}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 text-gray-400">{phone}</td>
                     <td className="px-6 py-4">
                       <span className="text-lg">{d.vehicleType === 'moto' ? '🏍️' : '🚗'}</span>
@@ -393,8 +406,8 @@ export default function DriversPage() {
                         </button>
                         {d.isBlockedForPayment && (
                           <button onClick={function(e) { e.stopPropagation(); markPaid(d._id, (d.userId && d.userId.name) || 'N/A'); }}
-                            className="p-2 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500/20 text-xs font-medium px-3">
-                            Paye
+                            className="py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 text-xs font-bold px-4 shadow-lg shadow-emerald-500/20">
+                            Marquer paye
                           </button>
                         )}
                         {st === 'pending' && (

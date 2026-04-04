@@ -50,6 +50,24 @@ exports.getDashboardStats = async (req, res) => {
     const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
     const todayRevenue = revenueAgg.length > 0 ? revenueAgg[0].todayRevenue : 0;
 
+    // Commission stats
+    const commissionAgg = await Driver.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUnpaidCommissions: { $sum: '$commissionBalance' },
+          totalCollectedCommissions: { $sum: '$totalCommissionPaid' },
+          blockedDriversCount: {
+            $sum: { $cond: ['$isBlockedForPayment', 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const totalUnpaidCommissions = commissionAgg.length > 0 ? commissionAgg[0].totalUnpaidCommissions : 0;
+    const totalCollectedCommissions = commissionAgg.length > 0 ? commissionAgg[0].totalCollectedCommissions : 0;
+    const blockedDriversCount = commissionAgg.length > 0 ? commissionAgg[0].blockedDriversCount : 0;
+
     res.status(200).json({
       success: true,
       stats: {
@@ -60,7 +78,10 @@ exports.getDashboardStats = async (req, res) => {
         todayRides,
         pendingVerifications,
         totalRevenue,
-        todayRevenue
+        todayRevenue,
+        totalUnpaidCommissions,
+        totalCollectedCommissions,
+        blockedDriversCount
       }
     });
 

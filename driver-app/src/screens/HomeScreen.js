@@ -15,6 +15,7 @@ const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
+import { COMMISSION_WAVE_NUMBER } from '../constants/commission';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
 
@@ -40,12 +41,29 @@ var HomeScreen = function(props) {
   var socket = socketState[0];
   var setSocket = socketState[1];
 
+  var blockedState = useState(false);
+  var isBlockedForPayment = blockedState[0];
+  var setIsBlockedForPayment = blockedState[1];
+
+  var commissionState = useState(0);
+  var commissionAmount = commissionState[0];
+  var setCommissionAmount = commissionState[1];
+
   var pendingGoOnline = useRef(false);
   var appStateRef = useRef(AppState.currentState);
   var locationRef = useRef(null);
 
   useEffect(function() {
     initializeLocation();
+    driverService.getProfile().then(function(res) {
+      if (res && res.driver) {
+        var d = res.driver;
+        if (d.isBlockedForPayment) {
+          setIsBlockedForPayment(true);
+          setCommissionAmount(d.commissionBalance || 0);
+        }
+      }
+    }).catch(function() {});
     driverService.getActiveRide().then(function(res) {
       if (res && res.success && res.ride) {
         var r = res.ride;
@@ -128,6 +146,10 @@ var HomeScreen = function(props) {
     goOnlineWithLocation();
   };
 
+  var handlePaidPress = function() {
+    Alert.alert('Paiement signal\u00e9', 'Un administrateur v\u00e9rifiera votre paiement sous peu.');
+  };
+
   var userName = user.name || 'Chauffeur';
 
   return (
@@ -169,6 +191,18 @@ var HomeScreen = function(props) {
           <Text style={styles.menuIcon}>{'\u2630'}</Text>
         </TouchableOpacity>
       </View>
+
+      {isBlockedForPayment && (
+        <View style={styles.commissionBanner}>
+          <View style={styles.commissionBannerInner}>
+            <Text style={styles.commissionBannerTitle}>{'Commission due : ' + commissionAmount.toLocaleString() + ' FCFA'}</Text>
+            <Text style={styles.commissionBannerSub}>{'Envoyez par Wave au ' + COMMISSION_WAVE_NUMBER + ' pour continuer'}</Text>
+            <TouchableOpacity style={styles.commissionPaidBtn} onPress={handlePaidPress}>
+              <Text style={styles.commissionPaidBtnText}>{"J\u0027ai pay\u00e9"}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <View style={styles.bottomCard}>
         <Text style={styles.welcomeTitle}>Pret a rouler?</Text>
@@ -246,6 +280,13 @@ var styles = StyleSheet.create({
 
   retryBtn: { marginTop: 14, paddingVertical: 10, paddingHorizontal: 20 },
   retryText: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+
+  commissionBanner: { position: 'absolute', top: 120, left: 16, right: 16, zIndex: 100 },
+  commissionBannerInner: { backgroundColor: 'rgba(227, 27, 35, 0.92)', borderRadius: 16, padding: 18, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)', elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
+  commissionBannerTitle: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.white, marginBottom: 6, textAlign: 'center' },
+  commissionBannerSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: 'rgba(255, 255, 255, 0.85)', marginBottom: 14, textAlign: 'center' },
+  commissionPaidBtn: { backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 24, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.3)' },
+  commissionPaidBtnText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.white },
 });
 
 export default HomeScreen;
