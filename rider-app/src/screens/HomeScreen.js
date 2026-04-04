@@ -125,6 +125,7 @@ function HomeScreen(props) {
             socketRef.current.connect();
           }
           fetchNearbyDrivers();
+          rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
         }
       }
       appStateRef.current = nextAppState;
@@ -229,6 +230,12 @@ function HomeScreen(props) {
         setNearbyDrivers(function(prev) {
           return prev.filter(function(d) { return d._id !== data.driverId; });
         });
+      });
+
+      socket.on('ride-status', function(data) {
+        if (data && data.rideId && ['accepted', 'arrived', 'in_progress'].includes(data.status)) {
+          navigation.replace('ActiveRide', { rideId: data.rideId });
+        }
       });
     }).catch(function(err) {
       console.log('Socket error:', err);

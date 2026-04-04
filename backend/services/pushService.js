@@ -25,6 +25,13 @@ async function sendPushNotification(userId, title, body, data) {
         await expo.sendPushNotificationsAsync(chunks[i]);
       } catch (err) {
         console.error('Push send error:', err);
+        // Retry once after 2 seconds
+        try {
+          await new Promise(function(resolve) { setTimeout(resolve, 2000); });
+          await expo.sendPushNotificationsAsync(chunks[i]);
+        } catch (retryErr) {
+          console.error('Push send retry failed:', retryErr);
+        }
       }
     }
     console.log('Push sent to', user.name, ':', title);
@@ -47,12 +54,25 @@ async function sendPushToMultiple(userIds, title, body, data) {
           data: data || {}
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error('Push notification failed:', e);
+    }
   }
   if (messages.length === 0) return;
   var chunks = expo.chunkPushNotifications(messages);
   for (var j = 0; j < chunks.length; j++) {
-    try { await expo.sendPushNotificationsAsync(chunks[j]); } catch (e) {}
+    try {
+      await expo.sendPushNotificationsAsync(chunks[j]);
+    } catch (e) {
+      console.error('Push notification failed:', e);
+      // Retry once after 2 seconds
+      try {
+        await new Promise(function(resolve) { setTimeout(resolve, 2000); });
+        await expo.sendPushNotificationsAsync(chunks[j]);
+      } catch (retryErr) {
+        console.error('Push notification retry failed:', retryErr);
+      }
+    }
   }
 }
 

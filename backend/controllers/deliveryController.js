@@ -144,7 +144,8 @@ exports.createDelivery = function(req, res) {
 
         Driver.find({
           _id: { $in: driverIds },
-          isAvailable: true
+          isAvailable: true,
+          isOnline: true
         }).then(function(drivers) {
           var acceptingDrivers = drivers.filter(function(d) {
             return d.acceptedServices && d.acceptedServices[serviceKey];
@@ -219,19 +220,15 @@ exports.acceptDelivery = function(req, res) {
         });
       }
 
-      return Delivery.findOne({ _id: req.params.deliveryId, status: 'pending' })
+      return Delivery.findOneAndUpdate(
+        { _id: req.params.deliveryId, status: 'pending' },
+        { driver: driver._id, status: 'accepted', acceptedAt: new Date() },
+        { new: true }
+      )
         .then(function(delivery) {
           if (!delivery) {
             return res.status(400).json({ success: false, message: 'Livraison non disponible' });
           }
-
-          delivery.driver = driver._id;
-          delivery.status = 'accepted';
-          delivery.acceptedAt = new Date();
-          return delivery.save();
-        })
-        .then(function(delivery) {
-          if (!delivery) return;
 
           driver.isAvailable = false;
           driver.save();
@@ -282,8 +279,7 @@ exports.updateDeliveryStatus = function(req, res) {
   var validTransitions = {
     'accepted': ['at_pickup'],
     'at_pickup': ['picked_up'],
-    'picked_up': ['in_transit'],
-    'in_transit': ['at_dropoff'],
+    'picked_up': ['at_dropoff'],
     'at_dropoff': ['delivered']
   };
 
@@ -338,6 +334,26 @@ exports.updateDeliveryStatus = function(req, res) {
         status: delivery.status
       });
 
+      // Push notify rider on key status changes
+      if (delivery.status === 'at_pickup' || delivery.status === 'picked_up' || delivery.status === 'delivered') {
+        Delivery.findById(delivery._id).populate('riderId').then(function(d) {
+          if (d && d.riderId) {
+            var pushTitle, pushBody;
+            if (delivery.status === 'at_pickup') {
+              pushTitle = 'Chauffeur au point de retrait';
+              pushBody = 'Votre livreur est arrivé au point de retrait';
+            } else if (delivery.status === 'picked_up') {
+              pushTitle = 'Colis récupéré, en route';
+              pushBody = 'Votre colis a été récupéré et est en route';
+            } else if (delivery.status === 'delivered') {
+              pushTitle = 'Livraison effectuée!';
+              pushBody = 'Votre livraison a été effectuée avec succès';
+            }
+            sendPushNotification(d.riderId.userId, pushTitle, pushBody, { type: 'delivery-status', deliveryId: delivery._id.toString(), status: delivery.status });
+          }
+        });
+      }
+
       res.status(200).json({ success: true, delivery: delivery });
     })
     .catch(function(error) {
@@ -379,7 +395,7 @@ exports.getActiveDelivery = function(req, res) {
 
       return Delivery.findOne({
         riderId: rider._id,
-        status: { $in: ['pending', 'accepted', 'at_pickup', 'picked_up', 'in_transit', 'at_dropoff'] }
+        status: { $in: ['pending', 'accepted', 'at_pickup', 'picked_up', 'at_dropoff'] }
       });
     })
     .then(function(delivery) {
@@ -421,7 +437,7 @@ exports.getDriverActiveDelivery = function(req, res) {
 
       return Delivery.findOne({
         driver: driver._id,
-        status: { $in: ['accepted', 'at_pickup', 'picked_up', 'in_transit', 'at_dropoff'] }
+        status: { $in: ['accepted', 'at_pickup', 'picked_up', 'at_dropoff'] }
       });
     })
     .then(function(delivery) {

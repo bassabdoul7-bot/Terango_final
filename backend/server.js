@@ -191,6 +191,29 @@ setInterval(function() {
     { status: { "\u0024in": ["pending", "accepted"] }, createdAt: { "\u0024lt": cutoff } },
     { "\u0024set": { status: "cancelled", cancellationReason: "Auto-expired after 10 minutes" } }
   ).then(function(r) { if (r.modifiedCount > 0) console.log("Auto-expired", r.modifiedCount, "stale rides"); }).catch(function() {});
+
+  // ========== Auto-complete zombie in_progress rides (3+ hours) ==========
+  (async function() {
+    try {
+      var ZombieRide = require('./models/Ride');
+      var threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+      var zombieRides = await ZombieRide.find({ status: 'in_progress', startedAt: { $lt: threeHoursAgo } });
+      for (var i = 0; i < zombieRides.length; i++) {
+        var ride = zombieRides[i];
+        ride.status = 'completed';
+        ride.completedAt = new Date();
+        // Calculate earnings from the fare already on the ride if not set
+        if (!ride.driverEarnings && ride.fare) {
+          ride.platformCommission = Math.round(ride.fare * 0.15);
+          ride.driverEarnings = ride.fare - ride.platformCommission;
+        }
+        await ride.save();
+        console.log('Auto-completed zombie ride ' + ride._id + ' (started ' + ride.startedAt + ')');
+      }
+    } catch (e) {
+      console.error('Zombie ride cleanup error:', e.message);
+    }
+  })();
 }, 5 * 60 * 1000);
 
 
@@ -226,37 +249,46 @@ io.on('connection', function(socket) {
     const rating = data.rating;
 
     // Verify driver identity
-    // Driver sends Driver model _id, socket.userId is User._id - skip strict match
-    // driverId will be validated by Redis/MongoDB operations
-
-
-    // Check commission debt before allowing online
     var DriverModel = require('./models/Driver');
     DriverModel.findById(driverId).then(function(drv) {
-      if (drv && drv.isBlockedForPayment) {
+      if (!drv) {
+        socket.emit('error', { message: 'Driver not found' });
+        return;
+      }
+      if (drv.userId.toString() !== socket.userId) {
+        socket.emit('error', { message: 'Driver identity mismatch' });
+        return;
+      }
+
+      // Check commission debt before allowing online
+      if (drv.isBlockedForPayment) {
         socket.emit('blocked-for-payment', {
           balance: drv.commissionBalance,
           cap: drv.commissionCap || 2000,
           message: 'Veuillez payer votre solde de commission pour continuer'
         });
       }
-    }).catch(function() {});
-    socket.join('driver-' + driverId);
-    socket.join('online-drivers');
-    socket.driverId = driverId;
 
-    require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date(), isOnline: true }).catch(function(){});
-    driverLocationService.setDriverOnline(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
-      .then(function() {
-        io.to('riders-watching').emit('driver-came-online', {
-          driverId: driverId,
-          location: { latitude: latitude, longitude: longitude }
+      socket.join('driver-' + driverId);
+      socket.join('online-drivers');
+      socket.driverId = driverId;
+
+      require('./models/Driver').findByIdAndUpdate(driverId, { lastLocationUpdate: new Date(), isOnline: true }).catch(function(){});
+      driverLocationService.setDriverOnline(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
+        .then(function() {
+          io.to('riders-watching').emit('driver-came-online', {
+            driverId: driverId,
+            location: { latitude: latitude, longitude: longitude }
+          });
+        })
+        .catch(function(err) {
+          console.error('Driver online failed for ' + driverId + ':', err.message);
+          socket.emit('error', { message: 'Failed to go online' });
         });
-      })
-      .catch(function(err) {
-        console.error('Driver online failed for ' + driverId + ':', err.message);
-        socket.emit('error', { message: 'Failed to go online' });
-      });
+    }).catch(function(err) {
+      console.error('Driver identity check failed:', err.message);
+      socket.emit('error', { message: 'Failed to verify driver identity' });
+    });
   });
 
   socket.on('driver-offline', function(driverId) {
@@ -461,6 +493,54 @@ io.on('connection', function(socket) {
             .catch(function(err) {
               console.error('Disconnect cleanup failed for ' + dId + ':', err.message);
             });
+
+          // Check if driver has an active ride and notify rider
+          var RideModelDc = require('./models/Ride');
+          RideModelDc.findOne({ driver: dId, status: { $in: ['accepted', 'arrived', 'in_progress'] } })
+            .then(function(activeRide) {
+              if (!activeRide) return;
+              io.to(activeRide._id.toString()).emit('driver-disconnected', {
+                rideId: activeRide._id,
+                driverId: dId,
+                message: 'Le chauffeur a été déconnecté'
+              });
+              console.log('Notified rider of driver disconnect for ride ' + activeRide._id);
+
+              // Second timeout: 5 minutes total (4 more minutes from now) — cancel ride if driver still absent
+              setTimeout(function() {
+                var stillConnected = Array.from(io.sockets.sockets.values()).find(function(s) { return s.driverId === dId; });
+                if (stillConnected) {
+                  console.log('Driver ' + dId + ' reconnected before ride cancellation');
+                  return;
+                }
+                RideModelDc.findById(activeRide._id).then(function(ride) {
+                  if (!ride || !['accepted', 'arrived', 'in_progress'].includes(ride.status)) return;
+                  ride.status = 'cancelled';
+                  ride.cancellationReason = 'Chauffeur déconnecté';
+                  ride.cancelledAt = new Date();
+                  return ride.save().then(function() {
+                    io.to(ride._id.toString()).emit('ride-cancelled', {
+                      rideId: ride._id,
+                      reason: 'Chauffeur déconnecté'
+                    });
+                    console.log('Auto-cancelled ride ' + ride._id + ' due to driver disconnect');
+                    // Notify rider via push
+                    var RiderModelDc = require('./models/Rider');
+                    RiderModelDc.findById(ride.riderId).then(function(rider) {
+                      if (rider) {
+                        var { sendPushNotification } = require('./services/pushService');
+                        sendPushNotification(rider.userId, 'Course annulée', 'Votre course a été annulée car le chauffeur a été déconnecté.', { type: 'ride-cancelled', rideId: ride._id.toString() });
+                      }
+                    }).catch(function() {});
+                  });
+                }).catch(function(err) {
+                  console.error('Ride cancel after disconnect failed:', err.message);
+                });
+              }, 4 * 60 * 1000); // 4 more minutes (5 total from disconnect)
+            })
+            .catch(function(err) {
+              console.error('Active ride check on disconnect failed:', err.message);
+            });
         } else {
           console.log('Driver ' + dId + ' reconnected, skipping offline');
         }
@@ -550,6 +630,35 @@ server.listen(PORT, '0.0.0.0', function() {
     console.log('   WebSocket: Active (Authenticated)');
     console.log('   Driver TTL: 60 seconds');
     console.log('   Thiak Thiak: Colis + Commande + Resto');
+
+    // ========== Startup Recovery: clean up stale rides & deliveries from crash ==========
+    (async function startupRecovery() {
+      try {
+        var RideRecover = require('./models/Ride');
+        var DeliveryRecover = require('./models/Delivery');
+        var twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+
+        // Cancel stale rides (active but not updated in 2+ hours)
+        var rideResult = await RideRecover.updateMany(
+          { status: { $in: ['accepted', 'arrived', 'in_progress'] }, updatedAt: { $lt: twoHoursAgo } },
+          { $set: { status: 'cancelled', cancellationReason: 'Course expirée - redémarrage serveur', cancelledAt: new Date() } }
+        );
+        if (rideResult.modifiedCount > 0) {
+          console.log('Startup recovery: cancelled ' + rideResult.modifiedCount + ' stale rides');
+        }
+
+        // Cancel stale deliveries (active but not updated in 2+ hours)
+        var deliveryResult = await DeliveryRecover.updateMany(
+          { status: { $in: ['accepted', 'at_pickup', 'picked_up', 'at_dropoff'] }, updatedAt: { $lt: twoHoursAgo } },
+          { $set: { status: 'cancelled', cancellationReason: 'Livraison expirée - redémarrage serveur', cancelledAt: new Date() } }
+        );
+        if (deliveryResult.modifiedCount > 0) {
+          console.log('Startup recovery: cancelled ' + deliveryResult.modifiedCount + ' stale deliveries');
+        }
+      } catch (e) {
+        console.error('Startup recovery error:', e.message);
+      }
+    })();
 });
 
 
