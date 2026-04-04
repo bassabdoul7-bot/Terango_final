@@ -543,6 +543,7 @@ function ActiveRideScreen(props) {
       </Map>
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
+      {navigationStarted&&(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff')&&<TouchableOpacity style={styles.floatingChatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.floatingChatIcon}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity>}
       {toastMessage&&<View style={styles.toastContainer}><Text style={styles.toastText}>{toastMessage}</Text></View>}
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
@@ -660,6 +661,8 @@ var styles = StyleSheet.create({
   cancelIcon: { fontSize: 16, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_600SemiBold' },
   voiceButton: { position: 'absolute', top: 130, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   voiceIcon: { fontSize: 24, fontFamily: 'LexendDeca_400Regular' },
+  floatingChatBtn: { position: 'absolute', bottom: 300, right: 76, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(30,30,40,0.85)', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: 'rgba(66,133,244,0.4)' },
+  floatingChatIcon: { fontSize: 22 },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recalculateButton: { position: 'absolute', bottom: 300, left: 20, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recalculateText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },

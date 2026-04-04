@@ -144,7 +144,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
-          <View style={styles.paymentCard}><Text style={styles.paymentLabel}>Paiement</Text><View style={styles.paymentRow}><View style={styles.paymentIconBg}><Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text></View><Text style={styles.paymentText}>{"Esp\u00e8ces"}</Text><Text style={styles.paymentArrow}>{"\u203A"}</Text></View></View>
+          <View style={styles.paymentCard}><Text style={styles.paymentLabel}>Paiement</Text><View style={styles.paymentRow}><View style={styles.paymentIconBg}><Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text></View><Text style={styles.paymentText}>{"Esp\u00e8ces"}</Text></View><Text style={styles.paymentHint}>{"Paiement en esp\u00e8ces uniquement"}</Text></View>
           <View style={{ height: 16 }} />
         </ScrollView>
         <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   paymentIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
   paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
-  paymentArrow: { fontSize: 22, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 8 },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 

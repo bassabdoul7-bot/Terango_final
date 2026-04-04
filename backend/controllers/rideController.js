@@ -286,6 +286,11 @@ exports.updateRideStatus = async (req, res) => {
 
     if (status === 'arrived') {
       ride.arrivedAt = new Date();
+      // Push notify rider - driver arrived
+      var arrivedRide = await Ride.findById(ride._id).populate('riderId');
+      if (arrivedRide && arrivedRide.riderId) {
+        sendPushNotification(arrivedRide.riderId.userId, 'Chauffeur arrivé', 'Votre chauffeur est arrivé au point de départ', { type: 'ride-arrived', rideId: ride._id.toString() });
+      }
     } else if (status === 'in_progress') {
       ride.startedAt = new Date();
     } else if (status === 'completed') {

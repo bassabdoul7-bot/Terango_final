@@ -309,6 +309,9 @@ class RideMatchingService {
 
       console.log(`? Driver ${driverId} accepted ride ${rideId}`);
 
+      // Capture offer data before cleanup (needed for ETA and notifying other drivers)
+      const offerData = this.pendingOffers.get(rideId);
+
       // CRITICAL: Cleanup ALL timeouts immediately
       this.cleanupSearch(rideId);
 
@@ -329,8 +332,16 @@ class RideMatchingService {
         }
       });
 
+      // Push notify rider - driver found
+      const acceptedRider = await require('../models/Rider').findById(ride.riderId);
+      if (acceptedRider) {
+        const driverName = driver.userId?.name || 'Votre chauffeur';
+        const driverEntry = offerData?.driversList?.find(d => d.driverId === driverId.toString());
+        const etaMinutes = driverEntry ? Math.max(2, Math.round(driverEntry.distance * 2)) : 5;
+        sendPushNotification(acceptedRider.userId, 'Chauffeur trouvé!', driverName + ' arrive dans ~' + etaMinutes + ' minutes', { type: 'ride-accepted', rideId: rideId });
+      }
+
       // Notify other drivers that ride is taken
-      const offerData = this.pendingOffers.get(rideId);
       if (offerData?.driversList) {
         offerData.driversList.forEach(d => {
           if (d.driverId !== driverId.toString()) {
