@@ -12,6 +12,7 @@ import SuccessModal from '../components/SuccessModal';
 import COLORS from '../constants/colors';
 import { driverService, deliveryService } from '../services/api.service';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../utils/voice';
 import { simplifyPolyline } from '../utils/polylineSimplifier';
 import { useAuth } from '../context/AuthContext';
@@ -19,10 +20,41 @@ import ChatScreen from './ChatScreen';
 
 var screenWidth = Dimensions.get('window').width;
 var screenHeight = Dimensions.get('window').height;
-var ARRIVAL_THRESHOLD = 50;
+var ARRIVAL_APPEAR_THRESHOLD = 50;
+var ARRIVAL_DISAPPEAR_THRESHOLD = 75;
 
-// Cache for directions to avoid duplicate API calls
-var directionsCache = {};
+// LRU Cache for directions to avoid duplicate API calls
+var LRU_MAX = 20;
+var directionsCacheMap = {};
+var directionsCacheKeys = [];
+function directionsCacheGet(key) {
+  return directionsCacheMap[key] || null;
+}
+function directionsCacheSet(key, value) {
+  if (directionsCacheMap[key]) {
+    // Move to end (most recent)
+    directionsCacheKeys = directionsCacheKeys.filter(function(k) { return k !== key; });
+    directionsCacheKeys.push(key);
+    directionsCacheMap[key] = value;
+    return;
+  }
+  if (directionsCacheKeys.length >= LRU_MAX) {
+    var oldest = directionsCacheKeys.shift();
+    delete directionsCacheMap[oldest];
+  }
+  directionsCacheKeys.push(key);
+  directionsCacheMap[key] = value;
+}
+function directionsCacheClear() {
+  directionsCacheMap = {};
+  directionsCacheKeys = [];
+}
+function directionsCacheDeleteMatching(substring) {
+  directionsCacheKeys = directionsCacheKeys.filter(function(key) {
+    if (key.indexOf(substring) !== -1) { delete directionsCacheMap[key]; return false; }
+    return true;
+  });
+}
 
 function CancelReasonModal(props) {
   var visible = props.visible; var onClose = props.onClose; var onConfirm = props.onConfirm; var onSupport = props.onSupport;
@@ -57,6 +89,13 @@ function ActiveRideScreen(props) {
   var cameraRef = useRef(null); var locationSubscription = useRef(null); var hasFetchedRoute = useRef(false); var socketRef = useRef(null);
   var chatState = useState(false); var showChat = chatState[0]; var setShowChat = chatState[1];
   var announcementDistances = useRef(new Set()); var cancelledRef = useRef(false);
+  var lastDirectionsFetchTime = useRef(0);
+  var isNearDestRef = useRef(false);
+  var hapticFiredRef = useRef(false);
+  var lastCameraUpdateTime = useRef(0);
+  var lastCameraHeading = useRef(0);
+  var lastProgressCalcTime = useRef(0);
+  var toastMessageState = useState(null); var toastMessage = toastMessageState[0]; var setToastMessage = toastMessageState[1];
 
   var rideState = useState(null); var ride = rideState[0]; var setRide = rideState[1];
   var driverLocState = useState(null); var driverLocation = driverLocState[0]; var setDriverLocation = driverLocState[1];
@@ -91,7 +130,10 @@ function ActiveRideScreen(props) {
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
-  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(){});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
+  // Clear LRU cache on unmount
+  useEffect(function(){ return function(){ directionsCacheClear(); }; },[]);
+
+  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
 
   // Check ride status when app returns to foreground
   useEffect(function() {
@@ -106,18 +148,43 @@ function ActiveRideScreen(props) {
               }
             }
           }
-        }).catch(function() {});
+        }).catch(function(err) { console.error('AppState ride status check failed:', err); });
       }
     });
     return function() { sub.remove(); };
   }, [rideId]);
 
-  function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(){setQueuedRide(null);});}
-  function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(){});}
+  function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(err){console.error('Failed to accept queued ride:',err);setQueuedRide(null);});}
+  function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(err){console.error('Failed to reject queued ride:',err);});}
 
   useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]);
 
-  useEffect(function(){var mounted=true;function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);setInitializing(false);}Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:1000,distanceInterval:2},function(loc){if(mounted){setDriverLocation({latitude:loc.coords.latitude,longitude:loc.coords.longitude});setHeading(loc.coords.heading||heading);setCurrentSpeed(Math.max(0, Math.round((loc.coords.speed||0)*3.6)));driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(){});if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{rideId:rideId,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}}}).then(function(sub){locationSubscription.current=sub;});});}).catch(function(){setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
+  var lastLocationRef = useRef(null);
+  var lastLocationTimeRef = useRef(null);
+  var currentWatchOptions = useRef({ timeInterval: 1000, distanceInterval: 5 });
+
+  function getAdaptiveLocationOptions(speedKmh) {
+    // Highway (>60 km/h): less frequent, larger distance threshold
+    if (speedKmh > 60) { return { timeInterval: 3000, distanceInterval: 20 }; }
+    // City/stopped (<20 km/h): frequent updates
+    return { timeInterval: 1000, distanceInterval: 5 };
+  }
+
+  function calcSpeedFromLocations(prevLoc, prevTime, curLoc, curTime) {
+    if (!prevLoc || !prevTime) return 0;
+    var elapsed = (curTime - prevTime) / 1000;
+    if (elapsed <= 0) return 0;
+    var R = 6371e3;
+    var p1 = prevLoc.latitude * Math.PI / 180;
+    var p2 = curLoc.latitude * Math.PI / 180;
+    var dp = (curLoc.latitude - prevLoc.latitude) * Math.PI / 180;
+    var dl = (curLoc.longitude - prevLoc.longitude) * Math.PI / 180;
+    var a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    var dist = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (dist / elapsed) * 3.6;
+  }
+
+  useEffect(function(){var mounted=true;function startWatcher(opts){currentWatchOptions.current=opts;Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:opts.timeInterval,distanceInterval:opts.distanceInterval},function(loc){if(!mounted)return;var curLoc={latitude:loc.coords.latitude,longitude:loc.coords.longitude};var now=Date.now();var sensorSpeed=(loc.coords.speed||0)*3.6;var calculatedSpeed=calcSpeedFromLocations(lastLocationRef.current,lastLocationTimeRef.current,curLoc,now);var speedKmh=Math.max(0,Math.round(sensorSpeed>0?sensorSpeed:calculatedSpeed));lastLocationRef.current=curLoc;lastLocationTimeRef.current=now;setDriverLocation(curLoc);setHeading(loc.coords.heading||heading);setCurrentSpeed(speedKmh);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(err){console.error('Location update API error:',err);});if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{rideId:rideId,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}var newOpts=getAdaptiveLocationOptions(speedKmh);if(newOpts.timeInterval!==currentWatchOptions.current.timeInterval||newOpts.distanceInterval!==currentWatchOptions.current.distanceInterval){if(locationSubscription.current){locationSubscription.current.remove();}startWatcher(newOpts);}}).then(function(sub){locationSubscription.current=sub;});}function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);lastLocationRef.current={latitude:cur.coords.latitude,longitude:cur.coords.longitude};lastLocationTimeRef.current=Date.now();setInitializing(false);}startWatcher({timeInterval:1000,distanceInterval:5});});}).catch(function(err){console.error('Location permission/init error:',err);setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
@@ -142,8 +209,8 @@ function ActiveRideScreen(props) {
       ride.status
     ].join('_');
 
-    if(directionsCache[cacheKey]){
-      var cached = directionsCache[cacheKey];
+    var cached = directionsCacheGet(cacheKey);
+    if(cached){
       setTotalDistance(cached.totalDistance);
       setTotalDuration(cached.totalDuration);
       setAllSteps(cached.steps);
@@ -154,20 +221,26 @@ function ActiveRideScreen(props) {
       return;
     }
 
+    // Enforce minimum 5-second gap between direction requests
+    var now = Date.now();
+    if (now - lastDirectionsFetchTime.current < 5000) { return; }
+    lastDirectionsFetchTime.current = now;
+
     var url='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
-    fetch(url).then(function(r){return r.json();}).then(function(data){
+
+    function applyDirectionsResult(data) {
       if(data.code==='Ok'&&data.routes.length>0){
-        var route=data.routes[0];
-        var leg=route.legs[0];
+        var rt=data.routes[0];
+        var leg=rt.legs[0];
         var steps=leg.steps.map(function(step,index){
           var loc=step.maneuver.location;
           var nextLoc=leg.steps[index+1]?leg.steps[index+1].maneuver.location:loc;
           return{id:index,instruction:step.maneuver.instruction||step.name||'Continuer',distance:step.distance<1000?Math.round(step.distance)+' m':(step.distance/1000).toFixed(1)+' km',distanceValue:step.distance,maneuver:step.maneuver.type,startLocation:{latitude:loc[1],longitude:loc[0]},endLocation:{latitude:nextLoc[1],longitude:nextLoc[0]}};
         });
-        var coords=PolylineUtil.decode(route.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
+        var coords=PolylineUtil.decode(rt.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
         var distText=leg.distance<1000?Math.round(leg.distance)+' m':(leg.distance/1000).toFixed(1)+' km';
         var durText=leg.duration<60?Math.round(leg.duration)+' sec':Math.round(leg.duration/60)+' min';
-        directionsCache[cacheKey]={totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
+        directionsCacheSet(cacheKey,{totalDistance:distText,totalDuration:durText,steps:steps,coords:coords});
         setTotalDistance(distText);
         setTotalDuration(durText);
         setAllSteps(steps);
@@ -175,12 +248,50 @@ function ActiveRideScreen(props) {
         setRouteCoordinates(coords);
         hasFetchedRoute.current=true;
         setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=coords.map(function(c){return c.latitude;});var lons=coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
+        return true;
       }
-    }).catch(function(err){console.error('Directions error:',err);hasFetchedRoute.current=false;});
+      return false;
+    }
+
+    function fetchWithTimeout(fetchUrl, timeoutMs) {
+      var controller = new AbortController();
+      var timer = setTimeout(function() { controller.abort(); }, timeoutMs);
+      return fetch(fetchUrl, { signal: controller.signal })
+        .then(function(r) { clearTimeout(timer); return r.json(); })
+        .catch(function(err) { clearTimeout(timer); throw err; });
+    }
+
+    fetchWithTimeout(url, 10000)
+      .then(function(data) {
+        if (!applyDirectionsResult(data)) {
+          console.warn('Directions: OSRM returned non-Ok response', data.code);
+          hasFetchedRoute.current = false;
+        }
+      })
+      .catch(function(err) {
+        console.warn('Directions fetch failed (attempt 1):', err.message || err);
+        // Retry once after 2 seconds
+        setTimeout(function() {
+          fetchWithTimeout(url, 10000)
+            .then(function(data) {
+              if (!applyDirectionsResult(data)) {
+                console.warn('Directions: OSRM returned non-Ok on retry', data.code);
+                hasFetchedRoute.current = false;
+              }
+            })
+            .catch(function(retryErr) {
+              console.error('Directions fetch failed (attempt 2):', retryErr.message || retryErr);
+              hasFetchedRoute.current = false;
+              setToastMessage('Itin\u00e9raire indisponible');
+              setTimeout(function() { setToastMessage(null); }, 3000);
+            });
+        }, 2000);
+      });
   },[ride,driverLocation]);
 
   var announceInstruction = useCallback(function(instruction){if(!voiceEnabled)return;speakNavigation(instruction);},[voiceEnabled]);
   var handleRecenter = useCallback(function(){if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:navigationStarted?30:0,heading:navigationStarted?heading:0,duration:500});}},[driverLocation,heading,navigationStarted]);
+  var handleForceRecalculate = useCallback(function(){lastDirectionsFetchTime.current=0;lastRerouteTime.current=0;offRouteCount.current=0;hasFetchedRoute.current=false;speakAnnouncement("Recalcul de l'itineraire");},[]);
 
   useEffect(function(){if(!driverLocation||!currentStep||!allSteps.length||!voiceEnabled)return;var distance=calcDistance(driverLocation.latitude,driverLocation.longitude,currentStep.endLocation.latitude,currentStep.endLocation.longitude);var stepKey='step_'+currentStep.id;if(distance<=300&&distance>250&&!announcementDistances.current.has(stepKey+'_300')){announceInstruction('Dans 300 metres, '+currentStep.instruction);announcementDistances.current.add(stepKey+'_300');}else if(distance<=100&&distance>75&&!announcementDistances.current.has(stepKey+'_100')){announceInstruction('Dans 100 metres, '+currentStep.instruction);announcementDistances.current.add(stepKey+'_100');}else if(distance<=50&&distance>30&&!announcementDistances.current.has(stepKey+'_50')){announceInstruction(currentStep.instruction);announcementDistances.current.add(stepKey+'_50');}if(currentStep.id!==lastAnnouncedStep){setLastAnnouncedStep(currentStep.id);announcementDistances.current.clear();}},[driverLocation,currentStep,allSteps,voiceEnabled,announceInstruction,lastAnnouncedStep]);
 
@@ -204,14 +315,35 @@ function ActiveRideScreen(props) {
     }
     if(destination){
       var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);
-      setIsNearDestination(distToDest<=ARRIVAL_THRESHOLD);
+      // Hysteresis: appear at 50m, disappear only beyond 75m
+      if (isNearDestRef.current) {
+        // Already near: only hide if moved beyond disappear threshold
+        if (distToDest > ARRIVAL_DISAPPEAR_THRESHOLD) {
+          isNearDestRef.current = false;
+          hapticFiredRef.current = false;
+          setIsNearDestination(false);
+        }
+      } else {
+        // Not near yet: show only when within appear threshold
+        if (distToDest <= ARRIVAL_APPEAR_THRESHOLD) {
+          isNearDestRef.current = true;
+          setIsNearDestination(true);
+          // Haptic feedback when button first appears
+          if (!hapticFiredRef.current) {
+            hapticFiredRef.current = true;
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(function(e) { console.warn('Haptics error:', e); });
+          }
+        }
+      }
     }
 
-    // Calculate route progress
-    if (routeCoordinates.length > 0) {
+    // Calculate route progress (only every 5 seconds)
+    var progressNow = Date.now();
+    if (routeCoordinates.length > 0 && progressNow - lastProgressCalcTime.current > 5000) {
+      lastProgressCalcTime.current = progressNow;
       var closestIdx = 0;
       var closestDist = Infinity;
-      for (var pi = 0; pi < routeCoordinates.length; pi += 5) {
+      for (var pi = 0; pi < routeCoordinates.length; pi += 3) {
         var pd = calcDistance(driverLocation.latitude, driverLocation.longitude, routeCoordinates[pi].latitude, routeCoordinates[pi].longitude);
         if (pd < closestDist) { closestDist = pd; closestIdx = pi; }
       }
@@ -228,7 +360,7 @@ function ActiveRideScreen(props) {
       }
       if (minDistToRoute > 100) {
         offRouteCount.current++;
-        if (offRouteCount.current >= 3 && Date.now() - lastRerouteTime.current > 30000) {
+        if (offRouteCount.current >= 2 && Date.now() - lastRerouteTime.current > 15000) {
           lastRerouteTime.current = Date.now();
           offRouteCount.current = 0;
           hasFetchedRoute.current = false;
@@ -245,7 +377,7 @@ function ActiveRideScreen(props) {
       trafficRerouteInterval.current = setInterval(function(){
         hasFetchedRoute.current = false;
         // Clear cache for current route to get fresh traffic data
-        Object.keys(directionsCache).forEach(function(key){ if(key.indexOf(ride.status) !== -1) delete directionsCache[key]; });
+        directionsCacheDeleteMatching(ride.status);
       }, 120000); // every 2 minutes
     } else {
       if (trafficRerouteInterval.current) { clearInterval(trafficRerouteInterval.current); trafficRerouteInterval.current = null; }
@@ -257,10 +389,10 @@ function ActiveRideScreen(props) {
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
   function getManeuverIcon(m){if(!m)return '^';if(m.indexOf('left')!==-1)return '<';if(m.indexOf('right')!==-1)return '>';if(m.indexOf('uturn')!==-1)return 'U';return '^';}
 
-  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:300});},[driverLocation,navigationStarted,heading]);
+  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;var now=Date.now();if(now-lastCameraUpdateTime.current<2000)return;var headingDiff=Math.abs(heading-lastCameraHeading.current);if(headingDiff>180)headingDiff=360-headingDiff;if(headingDiff<10&&now-lastCameraUpdateTime.current<2000)return;lastCameraUpdateTime.current=now;lastCameraHeading.current=heading;cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:500});},[driverLocation,navigationStarted,heading]);
   var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:1000});}},[driverLocation,heading]);
   function handleCancelRide(){setShowCancelModal(true);}
-  function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(){Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
+  function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(err){console.error('Cancel ride/delivery error:',err);Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
   function handleContactSupport(){Alert.alert('Contacter le Support','Choisissez',[{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:function(){Linking.openURL('tel:+221338234567');}},{text:'WhatsApp',onPress:function(){Linking.openURL('https://wa.me/221778234567');}}]);}
   var handleArrived = useCallback(function(){setLoading(true);driverService.updateRideStatus(rideId,'arrived').then(function(){setRide(function(prev){return Object.assign({},prev,{status:'arrived'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement("Vous etes arrive au point de depart");}).catch(function(e){Alert.alert('Erreur',(e.response&&e.response.data&&e.response.data.message)||'Erreur');}).finally(function(){setLoading(false);});},[rideId]);
   var handleVerifyPin = useCallback(function(){
@@ -268,19 +400,19 @@ function ActiveRideScreen(props) {
     setLoading(true);setPinError('');
     driverService.verifyPin(rideId, pinInput).then(function(){
       setPinVerified(true);setShowPinModal(false);setPinInput('');
-      setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});
+      setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(err){console.error('Start ride error:',err);Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});
     }).catch(function(e){setPinError('Code incorrect');setLoading(false);});
   },[rideId,pinInput]);
   var handleStartRide = useCallback(function(){
     if(ride && ride.pinRequired && !pinVerified){setShowPinModal(true);return;}
-    setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(){Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId,ride,pinVerified]);
-  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Le passager a paye '+(ride.fare||0)+' francs. Commission TeranGO '+(ride.platformCommission||0)+' francs. Vos gains '+(ride.driverEarnings||ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\n\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(){Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
+    setLoading(true);driverService.startRide(rideId).then(function(){setRide(function(prev){return Object.assign({},prev,{status:'in_progress'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement('Course demarree. Bonne route!');}).catch(function(err){console.error('Start ride error:',err);Alert.alert('Erreur',"Impossible de demarrer");}).finally(function(){setLoading(false);});},[rideId,ride,pinVerified]);
+  var handleCompleteRide = useCallback(function(){setLoading(true);driverService.completeRide(rideId).then(function(){speakAnnouncement('Course terminee. Le passager a paye '+(ride.fare||0)+' francs. Commission TeranGO '+(ride.platformCommission||0)+' francs. Vos gains '+(ride.driverEarnings||ride.fare||0)+' francs.');if(queuedRide&&queuedRide.accepted){Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA\n\nCourse en attente.',[{text:'Commencer',onPress:function(){navigation.replace('ActiveRide',{rideId:queuedRide.rideId,ride:queuedRide});}}]);}else{Alert.alert('Course terminee!','Tarif passager: '+(ride.fare?ride.fare.toLocaleString():'0')+' FCFA\nCommission TeranGO (5%): '+(ride.platformCommission?ride.platformCommission.toLocaleString():'0')+' FCFA\n\nVos gains: '+(ride.driverEarnings?ride.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}}).catch(function(err){console.error('Complete ride error:',err);Alert.alert('Erreur','Impossible de terminer');}).finally(function(){setLoading(false);});},[rideId,ride,navigation,queuedRide]);
 
   // ========== DELIVERY PHOTO FUNCTIONS ==========
   var takeDeliveryPhoto = function() {
     ImagePicker.requestCameraPermissionsAsync().then(function(perm) {
       if (perm.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera'); return; }
-      ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.6 }).then(function(result) {
+      ImagePicker.launchCameraAsync({ allowsEditing: false, quality: 0.7, maxWidth: 1200 }).then(function(result) {
         if (!result.canceled) {
           setDeliveryPhoto(result.assets[0].uri);
         }
@@ -304,7 +436,7 @@ function ActiveRideScreen(props) {
       } else if (pendingDeliveryStatus === 'picked_up') {
         speakAnnouncement('Colis recupere. En route vers la destination.');
       }
-    }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+    }).catch(function(err) { console.error('Delivery status update error:', err); Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
   };
 
   var handleDeliveryAction = function(status) {
@@ -320,7 +452,7 @@ function ActiveRideScreen(props) {
         setNavigationStarted(false);
         if (status === 'at_pickup') speakAnnouncement('Arrive au point de retrait');
         if (status === 'at_dropoff') speakAnnouncement('Arrive au point de livraison');
-      }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
+      }).catch(function(err) { console.error('Delivery status update error:', err); Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
     }
   };
 
@@ -410,6 +542,8 @@ function ActiveRideScreen(props) {
         )}
       </Map>
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
+      {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
+      {toastMessage&&<View style={styles.toastContainer}><Text style={styles.toastText}>{toastMessage}</Text></View>}
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
       <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
@@ -527,6 +661,10 @@ var styles = StyleSheet.create({
   voiceButton: { position: 'absolute', top: 130, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   voiceIcon: { fontSize: 24, fontFamily: 'LexendDeca_400Regular' },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
+  recalculateButton: { position: 'absolute', bottom: 300, left: 20, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
+  recalculateText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
+  toastContainer: { position: 'absolute', top: 120, left: 40, right: 40, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', zIndex: 999 },
+  toastText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#FFFFFF' },
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },

@@ -73,7 +73,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     } catch (e) {}
   };
 
-  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); var earningsInterval = setInterval(fetchEarnings, 30000); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); clearInterval(earningsInterval); stopRideAlert(); }; }, []);
+  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); var earningsInterval = setInterval(fetchEarnings, 30000); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); clearInterval(earningsInterval); if (locationIntervalRef.current) clearInterval(locationIntervalRef.current); stopRideAlert(); }; }, []);
   useEffect(() => { currentRequestRef.current = currentRequest; if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
   useEffect(() => { if (!currentRequest) { Animated.loop(Animated.sequence([Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }), Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true })])).start(); } else { scanAnim.setValue(0); } }, [currentRequest]);
   useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
@@ -81,10 +81,11 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const fetchEarnings = async () => { try { const r = await driverService.getEarnings(); setEarnings({ today: r.earnings.today || 0, ridesCompleted: r.earnings.totalRides || 0 }); } catch (e) {} };
   const toggleService = async (key) => { const updated = { ...activeServices, [key]: !activeServices[key] }; if (!Object.values(updated).some(v => v)) { Alert.alert('Attention', 'Gardez au moins un service actif.'); return; } setActiveServices(updated); try { await driverService.updateServicePreferences(updated); } catch (e) { setActiveServices(activeServices); } };
 
+  const locationIntervalRef = useRef(null);
   const getLocation = async () => {
     try { const { status } = await Location.requestForegroundPermissionsAsync(); if (status !== 'granted') { Alert.alert('Permission refus\u00e9e', 'Localisation requise'); return; }
-      try { const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }); setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); } catch(e) { console.log("Location update error:", e); }
-      setInterval(async () => { const loc = await Location.getCurrentPositionAsync({}); setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); await driverService.updateLocation(loc.coords.latitude, loc.coords.longitude); }, 10000);
+      try { const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }); setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); } catch(e) { console.log("Location update error:", e); }
+      locationIntervalRef.current = setInterval(async () => { try { const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }); setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); await driverService.updateLocation(loc.coords.latitude, loc.coords.longitude); } catch (err) { console.error('Location polling error:', err); } }, 5000);
     } catch (e) { console.error('Location error:', e); }
   };
 
@@ -100,7 +101,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
       newSocket.on('delivery-taken', () => { Alert.alert('Livraison prise', 'Un autre livreur a accept\u00e9.'); if (currentRequest && currentRequest._isDelivery) setCurrentRequest(null); });
       newSocket.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
       newSocket.on('ride-completed-earnings', () => { fetchEarnings(); });
-      newSocket.on('disconnect', function() { console.log('Socket disconnected, will auto-reconnect'); });
+      newSocket.on('disconnect', function(reason) { console.error('Socket disconnected, reason:', reason, '- will auto-reconnect'); });
     });
   };
 
@@ -113,7 +114,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     try { if (currentRequest._isDelivery) { await deliveryService.acceptDelivery(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest, deliveryMode: true, deliveryData: currentRequest }); } else { await driverService.acceptRide(currentRequest.rideId); setRideRequests(prev => prev.filter(r => r.rideId !== currentRequest.rideId)); navigation.replace('ActiveRide', { rideId: currentRequest.rideId, ride: currentRequest }); } setCurrentRequest(null); } catch (e) { Alert.alert('Erreur', e.response?.data?.message || "Impossible d'accepter"); } finally { setLoading(false); }
   };
 
-  const handleReject = async () => { var req = currentRequestRef.current; if (!req) return; stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!req._isDelivery) await driverService.rejectRide(req.rideId, 'Trop loin').catch(function(){}); } catch (e) {} setRideRequests(function(prev) { var remaining = prev.filter(function(r) { return r.rideId !== req.rideId; }); var next = remaining.length > 0 ? remaining[0] : null; setCurrentRequest(next); if (next) { var t = setTimeout(function() { handleReject(); }, next.offerExpiresIn || 15000); offerTimeoutRef.current = t; setOfferTimeout(t); } return remaining; }); };
+  const handleReject = async () => { var req = currentRequestRef.current; if (!req) return; stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } try { if (!req._isDelivery) await driverService.rejectRide(req.rideId, 'Trop loin').catch(function(err){ console.error('Reject ride error:', err); }); } catch (e) { console.error('handleReject error:', e); } setRideRequests(function(prev) { var remaining = prev.filter(function(r) { return r.rideId !== req.rideId; }); var next = remaining.length > 0 ? remaining[0] : null; setCurrentRequest(next); if (next) { var t = setTimeout(function() { handleReject(); }, next.offerExpiresIn || 15000); offerTimeoutRef.current = t; setOfferTimeout(t); } return remaining; }); };
 
   return (
     <View style={styles.container}>
