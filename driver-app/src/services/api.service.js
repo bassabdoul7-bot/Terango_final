@@ -1,7 +1,8 @@
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Alert } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
+import { COMMISSION_WAVE_NUMBER } from '../constants/commission';
 
 const API_URL = 'https://api.terango.sn/api';
 const ALLOWED_HOSTS = ['api.terango.sn'];
@@ -60,6 +61,19 @@ api.interceptors.response.use(
     return response.data;
   },
   (error) => {
+    if (error.response?.status === 403) {
+      var msg = error.response?.data?.message || '';
+      if (msg.toLowerCase().indexOf('commission') !== -1) {
+        var amount = error.response?.data?.commissionBalance || '';
+        Alert.alert(
+          'Commission impay\u00e9e',
+          'Votre compte est bloqu\u00e9 pour commission impay\u00e9e.' +
+          (amount ? ' Montant d\u00fb : ' + amount + ' FCFA.' : '') +
+          '\n\nEnvoyez le paiement par Wave au ' + COMMISSION_WAVE_NUMBER + '.',
+          [{ text: 'Compris' }]
+        );
+      }
+    }
     if (error.response?.status === 401) {
       SecureStore.deleteItemAsync('token');
       AsyncStorage.removeItem('user');

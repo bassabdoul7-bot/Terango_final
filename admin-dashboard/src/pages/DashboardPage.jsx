@@ -38,7 +38,7 @@ export default function DashboardPage() {
         <StatCard icon={MapPin} label="Courses totales" value={stats.totalRides} color="bg-purple-500" sub={stats.todayRides + " aujourd'hui"} />
         <StatCard icon={DollarSign} label="Revenus (FCFA)" value={stats.totalRevenue.toLocaleString()} color="bg-yellow-500" sub={stats.todayRevenue.toLocaleString() + " aujourd'hui"} />
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle size={18} className="text-orange-400" />
@@ -54,6 +54,24 @@ export default function DashboardPage() {
           </div>
           <p className="text-4xl font-bold text-emerald-400">{stats.activeDrivers}</p>
           <p className="text-sm text-gray-500 mt-2">chauffeurs connectés maintenant</p>
+        </div>
+        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign size={18} className="text-red-400" />
+            <h2 className="text-lg font-semibold text-white">Commissions</h2>
+          </div>
+          <p className="text-4xl font-bold text-red-400">{(stats.totalUnpaidCommissions || 0).toLocaleString()} <span className="text-lg font-normal text-gray-500">FCFA</span></p>
+          <p className="text-sm text-gray-500 mt-2">impayées</p>
+          <div className="mt-4 pt-4 border-t border-gray-800 grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Chauffeurs bloqués</p>
+              <p className="text-lg font-bold text-orange-400">{stats.blockedDriversCount || 0}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Total collecté</p>
+              <p className="text-lg font-bold text-emerald-400">{(stats.totalCollectedCommissions || 0).toLocaleString()} F</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

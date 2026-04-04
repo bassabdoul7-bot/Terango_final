@@ -1,6 +1,7 @@
 ﻿import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, StatusBar } from "react-native";
 import COLORS from "../constants/colors";
+import { COMMISSION_WAVE_NUMBER, COMMISSION_CAP } from "../constants/commission";
 import { driverService } from "../services/api.service";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,7 +9,10 @@ var GainsScreen = function() {
   var auth = useAuth(); var user = auth.user;
   var es = useState({ today: 0, todayRides: 0, total: 0, totalRides: 0, weekTotal: 0, weekRides: 0, weeklyBreakdown: [0,0,0,0,0,0,0] });
   var earnings = es[0]; var setEarnings = es[1];
-  useEffect(function() { fetchEarnings(); }, []);
+  var cs = useState(0);
+  var commissionBalance = cs[0]; var setCommissionBalance = cs[1];
+  useEffect(function() { fetchEarnings(); fetchCommission(); }, []);
+  function fetchCommission() { driverService.getProfile().then(function(r) { if (r && r.driver) { setCommissionBalance(r.driver.commissionBalance || 0); } }).catch(function(){}); }
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   var days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
   var todayIndex = (new Date().getDay()+6)%7;
@@ -32,6 +36,20 @@ var GainsScreen = function() {
         <View style={styles.weeklyCard}>
           <View style={styles.weeklyHeader}><Text style={styles.weeklyTitle}>Cette semaine</Text><Text style={styles.weeklyTotal}>{earnings.weekTotal.toLocaleString()+" FCFA"}</Text></View>
           <View style={styles.weeklyBars}>{days.map(function(day,i){var isToday=i===todayIndex;var de=earnings.weeklyBreakdown[i]||0;var maxE=Math.max.apply(null,earnings.weeklyBreakdown)||1;var dh=Math.max(de>0?(de/maxE)*60+10:8,8);return(<View key={day} style={styles.barCol}>{de>0&&<Text style={styles.barAmt}>{(de/1000).toFixed(0)+"k"}</Text>}<View style={[styles.bar,{height:dh},(isToday||de>0)&&styles.barActive]} /><Text style={[styles.barDay,(isToday||de>0)&&styles.barDayActive]}>{day}</Text>{isToday&&<View style={styles.todayDot}/>}</View>);})}</View>
+        </View>
+        <View style={styles.commissionCard}>
+          <View style={styles.commissionHeader}>
+            <Text style={styles.commissionTitle}>Commission</Text>
+            <Text style={styles.commissionAmount}>{commissionBalance.toLocaleString()+" / "+COMMISSION_CAP+" FCFA"}</Text>
+          </View>
+          <View style={styles.commissionProgressOuter}>
+            <View style={[styles.commissionProgressInner,{width:Math.min((commissionBalance/COMMISSION_CAP)*100,100)+"%"}]} />
+          </View>
+          <Text style={styles.commissionProgressLabel}>{commissionBalance>=COMMISSION_CAP?"Plafond atteint - paiement requis":"Restant avant plafond : "+(COMMISSION_CAP-commissionBalance)+" FCFA"}</Text>
+          <View style={styles.commissionWaveRow}>
+            <Text style={styles.commissionWaveLabel}>Paiement Wave :</Text>
+            <Text style={styles.commissionWaveNumber}>{COMMISSION_WAVE_NUMBER}</Text>
+          </View>
         </View>
         <View style={{height:100}} />
       </ScrollView>
@@ -68,6 +86,16 @@ var styles = StyleSheet.create({
   barDay: { fontSize: 10, color: COLORS.textLightMuted, marginTop: 6, fontFamily: "LexendDeca_400Regular" },
   barDayActive: { color: COLORS.textLight, fontFamily: "LexendDeca_600SemiBold" },
   todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.yellow, marginTop: 4 },
+  commissionCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginTop: 24, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  commissionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  commissionTitle: { fontSize: 16, fontFamily: "LexendDeca_700Bold", color: COLORS.textLight },
+  commissionAmount: { fontSize: 14, fontFamily: "LexendDeca_600SemiBold", color: COLORS.orange },
+  commissionProgressOuter: { width: "100%", height: 10, backgroundColor: "rgba(255,255,255,0.08)", borderRadius: 5, marginBottom: 10 },
+  commissionProgressInner: { height: 10, borderRadius: 5, backgroundColor: COLORS.orange },
+  commissionProgressLabel: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: "LexendDeca_400Regular", marginBottom: 14 },
+  commissionWaveRow: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.08)" },
+  commissionWaveLabel: { fontSize: 13, color: COLORS.textLightSub, fontFamily: "LexendDeca_400Regular", marginRight: 8 },
+  commissionWaveNumber: { fontSize: 15, fontFamily: "LexendDeca_700Bold", color: COLORS.yellow },
 });
 
 export default GainsScreen;
