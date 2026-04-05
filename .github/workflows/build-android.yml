@@ -1,0 +1,108 @@
+name: Build Android Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: 'Which app to build'
+        required: true
+        type: choice
+        options:
+          - rider
+          - driver
+          - both
+
+jobs:
+  build-rider:
+    if: ${{ inputs.app == 'rider' || inputs.app == 'both' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rider-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: rider-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate native project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Build AAB
+        working-directory: rider-app/android
+        run: |
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/rider-app/android/app/upload-keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: terango-rider.aab
+          path: rider-app/android/app/build/outputs/bundle/release/*.aab
+
+  build-driver:
+    if: ${{ inputs.app == 'driver' || inputs.app == 'both' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: driver-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: driver-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Generate native project
+        run: npx expo prebuild --platform android --clean
+
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Build AAB
+        working-directory: driver-app/android
+        run: |
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=${{ github.workspace }}/driver-app/android/app/upload-keystore.jks \
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: terango-driver.aab
+          path: driver-app/android/app/build/outputs/bundle/release/*.aab
