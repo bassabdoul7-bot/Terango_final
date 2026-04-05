@@ -21,21 +21,6 @@ exports.createRide = async (req, res) => {
       });
     }
 
-    // Check for unpaid wave_end rides older than 24 hours
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const unpaidWaveRide = await Ride.findOne({
-      riderId: rider._id,
-      paymentMethod: 'wave_end',
-      paymentStatus: 'awaiting_payment',
-      completedAt: { $lt: twentyFourHoursAgo }
-    });
-    if (unpaidWaveRide) {
-      return res.status(403).json({
-        success: false,
-        message: 'Vous avez un paiement Wave en attente. Veuillez payer pour continuer.'
-      });
-    }
-
     // Prevent duplicate active rides
     const activeRide = await Ride.findOne({
       riderId: rider._id,
@@ -59,9 +44,6 @@ exports.createRide = async (req, res) => {
     const fareResult = calculateFare(distance, rideType, estimatedDuration);
     const earnings = calculateEarnings(fareResult.fare);
 
-    // For wave_upfront, set paymentStatus to awaiting_payment
-    const initialPaymentStatus = paymentMethod === 'wave_upfront' ? 'awaiting_payment' : 'pending';
-
     const ride = await Ride.create({
       riderId: rider._id,
       pickup,
@@ -75,35 +57,12 @@ exports.createRide = async (req, res) => {
       platformCommission: earnings.platformCommission,
       driverEarnings: earnings.driverEarnings,
       paymentMethod,
-      paymentStatus: initialPaymentStatus,
+      paymentStatus: 'pending',
       status: 'pending'
     });
 
-    // For wave_upfront: do NOT trigger matching, return Wave payment info
-    if (paymentMethod === 'wave_upfront') {
-      return res.status(201).json({
-        success: true,
-        message: 'Veuillez envoyer le paiement Wave pour confirmer votre course',
-        ride: {
-          id: ride._id,
-          pickup: ride.pickup,
-          dropoff: ride.dropoff,
-          distance: ride.distance,
-          estimatedDuration: ride.estimatedDuration,
-          fare: ride.fare,
-          rideType: ride.rideType,
-          status: ride.status,
-          paymentMethod: ride.paymentMethod,
-          paymentStatus: ride.paymentStatus
-        },
-        wavePayment: {
-          waveNumber: process.env.COMMISSION_WAVE_NUMBER,
-          amount: ride.fare
-        }
-      });
-    }
-
-    // For cash or wave_end: trigger matching immediately
+    // Both cash and wave: trigger matching immediately
+    // For wave, rider pays when driver arrives at pickup
     const matchingService = req.app.get('matchingService');
 
     const rideData = {
@@ -183,7 +142,10 @@ exports.getActiveRide = async (req, res) => {
   try {
     const rider = await Rider.findOne({ userId: req.user._id });
     if (!rider) return res.status(200).json({ success: false, ride: null });
-    const ride = await Ride.findOne({ riderId: rider._id, status: { "\u0024in": ["pending", "accepted", "arrived", "in_progress"] } }).populate({ path: "driver", populate: { path: "userId", select: "name phone rating profilePhoto" } });
+    const ride = await Ride.findOne({
+      riderId: rider._id,
+      status: { $in: ["pending", "accepted", "arrived", "in_progress"] }
+    }).populate({ path: "driver", populate: { path: "userId", select: "name phone rating profilePhoto" } });
     res.status(200).json({ success: !!ride, ride: ride || null });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -334,13 +296,23 @@ exports.updateRideStatus = async (req, res) => {
       // Push notify rider - driver arrived
       var arrivedRide = await Ride.findById(ride._id).populate('riderId');
       if (arrivedRide && arrivedRide.riderId) {
-        sendPushNotification(arrivedRide.riderId.userId, 'Chauffeur arrivé', 'Votre chauffeur est arrivé au point de départ', { type: 'ride-arrived', rideId: ride._id.toString() });
+        if (ride.paymentMethod === 'wave') {
+          // Emit wave payment required event
+          const io2 = req.app.get('io');
+          io2.to(ride._id.toString()).emit('wave-payment-required', {
+            fare: ride.fare,
+            waveNumber: process.env.COMMISSION_WAVE_NUMBER || ''
+          });
+          sendPushNotification(arrivedRide.riderId.userId, 'Chauffeur arrivé', 'Votre chauffeur est arrivé. Payez ' + ride.fare + ' FCFA par Wave au ' + (process.env.COMMISSION_WAVE_NUMBER || ''), { type: 'wave-payment-required', rideId: ride._id.toString(), fare: ride.fare, waveNumber: process.env.COMMISSION_WAVE_NUMBER || '' });
+        } else {
+          sendPushNotification(arrivedRide.riderId.userId, 'Chauffeur arrivé', 'Votre chauffeur est arrivé au point de départ', { type: 'ride-arrived', rideId: ride._id.toString() });
+        }
       }
     } else if (status === 'in_progress') {
       ride.startedAt = new Date();
     } else if (status === 'completed') {
       ride.completedAt = new Date();
-      ride.paymentStatus = (ride.paymentMethod === 'wave_end') ? 'awaiting_payment' : 'completed';
+      ride.paymentStatus = 'completed';
 
       driver.totalEarnings += ride.driverEarnings;
       driver.weeklyEarnings += ride.driverEarnings;
@@ -414,6 +386,14 @@ exports.startRide = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Vous devez d'abord arriver au point de d\u00e9part"
+      });
+    }
+
+    // Check Wave payment verification before starting
+    if (ride.paymentMethod === 'wave' && ride.wavePaymentVerifiedByDriver !== true) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le paiement Wave doit \u00eatre v\u00e9rifi\u00e9 avant de d\u00e9marrer la course'
       });
     }
 
@@ -500,12 +480,7 @@ exports.completeRide = async (req, res) => {
     ride.status = 'completed';
     ride.completedAt = new Date();
 
-    // For wave_end: set paymentStatus to awaiting_payment instead of completed
-    if (ride.paymentMethod === 'wave_end') {
-      ride.paymentStatus = 'awaiting_payment';
-    } else {
-      ride.paymentStatus = 'completed';
-    }
+    ride.paymentStatus = 'completed';
     await ride.save();
 
     // Update partner earnings if applicable
@@ -562,12 +537,7 @@ exports.completeRide = async (req, res) => {
     // Push notify rider - ride completed
     var completedRide = await Ride.findById(ride._id).populate('riderId');
     if (completedRide && completedRide.riderId) {
-      if (ride.paymentMethod === 'wave_end') {
-        // Prompt rider to pay via Wave
-        sendPushNotification(completedRide.riderId.userId, 'Paiement Wave requis', 'Votre course de ' + ride.fare + ' FCFA est terminee. Envoyez ' + ride.fare + ' FCFA au ' + (process.env.COMMISSION_WAVE_NUMBER || '') + ' par Wave.', { type: 'wave-payment-required', rideId: ride._id.toString(), fare: ride.fare, waveNumber: process.env.COMMISSION_WAVE_NUMBER || '' });
-      } else {
-        sendPushNotification(completedRide.riderId.userId, 'Course terminee!', 'Merci! Votre course de ' + ride.fare + ' FCFA est terminee.', { type: 'ride-completed', rideId: ride._id.toString() });
-      }
+      sendPushNotification(completedRide.riderId.userId, 'Course terminee!', 'Merci! Votre course de ' + ride.fare + ' FCFA est terminee.', { type: 'ride-completed', rideId: ride._id.toString() });
     }
 
     io.to(ride._id.toString()).emit('ride-completed', {
@@ -756,10 +726,10 @@ exports.rateRide = async (req, res) => {
   }
 };
 
-// @desc    Rider claims Wave payment was sent
-// @route   PUT /api/rides/:id/payment-claimed
+// @desc    Rider uploads Wave payment screenshot
+// @route   PUT /api/rides/:id/wave-screenshot
 // @access  Private (Rider only)
-exports.claimWavePayment = async (req, res) => {
+exports.uploadWaveScreenshot = async (req, res) => {
   try {
     const ride = await Ride.findById(req.params.id);
     if (!ride) {
@@ -771,27 +741,77 @@ exports.claimWavePayment = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Non autorise' });
     }
 
-    if (!['wave_upfront', 'wave_end'].includes(ride.paymentMethod)) {
+    if (ride.paymentMethod !== 'wave') {
       return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de paiement Wave' });
     }
 
-    ride.wavePaymentClaimed = true;
+    const { screenshotUrl } = req.body;
+    if (!screenshotUrl) {
+      return res.status(400).json({ success: false, message: 'URL de la capture requise' });
+    }
+
+    ride.wavePaymentScreenshot = screenshotUrl;
     await ride.save();
+
+    // Notify driver in real-time
+    const io = req.app.get('io');
+    io.to(ride._id.toString()).emit('wave-screenshot-uploaded', {
+      rideId: ride._id,
+      screenshotUrl: screenshotUrl
+    });
 
     res.status(200).json({
       success: true,
-      message: 'Paiement marque comme envoye. En attente de confirmation.',
-      ride: { id: ride._id, wavePaymentClaimed: ride.wavePaymentClaimed }
+      message: 'Capture de paiement envoyee. En attente de verification par le chauffeur.',
+      ride: { id: ride._id, wavePaymentScreenshot: ride.wavePaymentScreenshot }
     });
   } catch (error) {
-    console.error('Claim Wave Payment Error:', error);
+    console.error('Upload Wave Screenshot Error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
-// @desc    Verify security PIN
-// @route   PUT /api/rides/:id/verify-pin
+// @desc    Driver verifies Wave payment screenshot
+// @route   PUT /api/rides/:id/verify-wave-payment
 // @access  Private (Driver only)
+exports.verifyWavePayment = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
+
+    const driver = await Driver.findOne({ userId: req.user._id });
+    if (!driver || ride.driver.toString() !== driver._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
+
+    if (ride.paymentMethod !== 'wave') {
+      return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de verification Wave' });
+    }
+
+    ride.wavePaymentVerifiedByDriver = true;
+    ride.paymentStatus = 'completed';
+    await ride.save();
+
+    // Notify rider in real-time
+    const io = req.app.get('io');
+    io.to(ride._id.toString()).emit('wave-payment-verified', {
+      rideId: ride._id,
+      verifiedAt: new Date()
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Paiement Wave verifie',
+      ride: { id: ride._id, wavePaymentVerifiedByDriver: true, paymentStatus: 'completed' }
+    });
+  } catch (error) {
+    console.error('Verify Wave Payment Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 exports.verifyPin = async (req, res) => {
   try {
     const ride = await Ride.findById(req.params.id);

@@ -16,7 +16,8 @@ const {
   startRide,
   completeRide,
   verifyPin,
-  claimWavePayment
+  uploadWaveScreenshot,
+  verifyWavePayment
 } = require('../controllers/rideController');
 
 // Create new ride (Rider only)
@@ -32,7 +33,7 @@ router.post(
     body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivée invalide'),
     body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivée invalide'),
     body('rideType').isIn(['standard', 'comfort', 'xl']).withMessage('Type de course invalide'),
-    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash', 'wave_upfront', 'wave_end']).withMessage('Méthode de paiement invalide')
+    body('paymentMethod').isIn(['cash', 'wave_upfront', 'wave']).withMessage('Méthode de paiement invalide')
   ],
   validate,
   createRide
@@ -75,8 +76,11 @@ router.put('/:id/start', protect, restrictTo('driver'), startRide);
 // Complete ride (Driver only) - shortcut
 router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
 
-// Rider claims Wave payment was sent
-router.put('/:id/payment-claimed', protect, restrictTo('rider'), claimWavePayment);
+// Wave screenshot upload (Rider only)
+router.put('/:id/wave-screenshot', protect, restrictTo('rider'), uploadWaveScreenshot);
+
+// Driver verifies Wave payment
+router.put('/:id/verify-wave-payment', protect, restrictTo('driver'), verifyWavePayment);
 
 // Cancel ride
 router.put(

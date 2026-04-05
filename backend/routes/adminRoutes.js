@@ -62,8 +62,7 @@ router.put('/partners/:id/verify', verifyPartner);
 // Commission management
 router.put('/drivers/:id/commission-paid', require('../controllers/adminController').markCommissionPaid);
 
-// Wave payment management
-router.put('/rides/:id/payment-confirmed', require('../controllers/adminController').confirmWavePayment);
+// Wave payout management
 router.get('/wave-payouts', require('../controllers/adminController').getWavePayouts);
 router.put('/drivers/:id/wave-payout-sent', require('../controllers/adminController').markWavePayoutSent);
 
