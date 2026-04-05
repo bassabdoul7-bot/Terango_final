@@ -90,7 +90,7 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: Restore google-services.json
-        run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_DRIVER }}" | base64 -d > google-services.json
 
       - name: Generate native project
         run: npx expo prebuild --platform android --clean
