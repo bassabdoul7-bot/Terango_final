@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { adminService } from '../services/api';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Smartphone } from 'lucide-react';
 
 var statusColors = {
   pending: 'text-yellow-400 bg-yellow-400/10',
@@ -26,11 +26,13 @@ export default function RidesPage() {
   var [filter, setFilter] = useState('');
   var [page, setPage] = useState(1);
   var [totalPages, setTotalPages] = useState(1);
+  var [confirmingId, setConfirmingId] = useState(null);
 
   function loadRides() {
     setLoading(true);
     var params = { page: page, limit: 15 };
-    if (filter) params.status = filter;
+    if (filter && filter !== 'wave_pending') params.status = filter;
+    if (filter === 'wave_pending') params.paymentStatus = 'awaiting_payment';
     adminService.getRides(params).then(function(res) {
       setRides(res.rides || []);
       setTotalPages(res.totalPages || 1);
@@ -40,16 +42,32 @@ export default function RidesPage() {
 
   useEffect(function() { loadRides(); }, [filter, page]);
 
+  function handleConfirmPayment(rideId) {
+    setConfirmingId(rideId);
+    adminService.confirmWavePayment(rideId).then(function() {
+      loadRides();
+      setConfirmingId(null);
+    }).catch(function() { setConfirmingId(null); });
+  }
+
+  var filterTabs = ['', 'pending', 'in_progress', 'completed', 'cancelled', 'wave_pending'];
+  var filterLabels = { '': 'Toutes', pending: 'En attente', in_progress: 'En cours', completed: 'Terminée', cancelled: 'Annulée', wave_pending: 'Wave en attente' };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-white">Courses</h1>
         <div className="flex gap-2 flex-wrap">
-          {['', 'pending', 'in_progress', 'completed', 'cancelled'].map(function(f) {
+          {filterTabs.map(function(f) {
+            var isWave = f === 'wave_pending';
             return (
               <button key={f} onClick={function() { setFilter(f); setPage(1); }}
-                className={'px-3 py-2 rounded-lg text-xs font-medium transition-colors ' + (filter === f ? 'bg-emerald-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
-                {f === '' ? 'Toutes' : statusLabels[f]}
+                className={'px-3 py-2 rounded-lg text-xs font-medium transition-colors ' +
+                  (filter === f
+                    ? (isWave ? 'bg-indigo-500 text-white' : 'bg-emerald-500 text-white')
+                    : (isWave ? 'bg-indigo-900/40 text-indigo-400 hover:text-white border border-indigo-800' : 'bg-gray-800 text-gray-400 hover:text-white'))}>
+                {isWave && <Smartphone size={12} className="inline mr-1 -mt-0.5" />}
+                {filterLabels[f]}
               </button>
             );
           })}
@@ -62,11 +80,13 @@ export default function RidesPage() {
             <thead>
               <tr className="border-b border-gray-800">
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">ID</th>
-                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DÉPART</th>
-                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">ARRIVÉE</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DEPART</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">ARRIVEE</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">TARIF</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">STATUT</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">PAIEMENT</th>
                 <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">DATE</th>
+                <th className="text-left text-xs text-gray-500 font-medium px-6 py-4">ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -75,8 +95,10 @@ export default function RidesPage() {
                 var dropoff = (ride.dropoffLocation && ride.dropoffLocation.address) || 'N/A';
                 var status = ride.status || 'pending';
                 var date = ride.createdAt ? new Date(ride.createdAt).toLocaleDateString('fr-FR') : '-';
+                var isWavePending = ride.paymentMethod === 'wave' && ride.paymentStatus === 'awaiting_payment';
+                var waveClaimed = ride.wavePaymentClaimed;
                 return (
-                  <tr key={ride._id} className="border-b border-gray-800/50 hover:bg-gray-800/30">
+                  <tr key={ride._id} className={'border-b border-gray-800/50 hover:bg-gray-800/30' + (isWavePending ? ' bg-indigo-950/20' : '')}>
                     <td className="px-6 py-4 text-gray-500 text-xs font-mono">{ride._id.slice(-6)}</td>
                     <td className="px-6 py-4 text-white text-sm">{pickup.length > 30 ? pickup.substring(0,30) + '...' : pickup}</td>
                     <td className="px-6 py-4 text-gray-400 text-sm">{dropoff.length > 30 ? dropoff.substring(0,30) + '...' : dropoff}</td>
@@ -84,16 +106,40 @@ export default function RidesPage() {
                     <td className="px-6 py-4">
                       <span className={'px-3 py-1 rounded-full text-xs font-medium ' + (statusColors[status] || '')}>{statusLabels[status] || status}</span>
                     </td>
+                    <td className="px-6 py-4">
+                      {ride.paymentMethod === 'wave' && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-indigo-400 font-medium"><Smartphone size={11} className="inline mr-1 -mt-0.5" />Wave</span>
+                          {ride.paymentStatus === 'awaiting_payment' && <span className="text-xs text-yellow-400">En attente</span>}
+                          {ride.paymentStatus === 'confirmed' && <span className="text-xs text-green-400">Confirme</span>}
+                          {waveClaimed && ride.paymentStatus !== 'confirmed' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/20 text-orange-400 w-fit">Declare paye</span>
+                          )}
+                        </div>
+                      )}
+                      {ride.paymentMethod === 'cash' && <span className="text-xs text-gray-500">Especes</span>}
+                      {!ride.paymentMethod && <span className="text-xs text-gray-600">-</span>}
+                    </td>
                     <td className="px-6 py-4 text-gray-500 text-sm">{date}</td>
+                    <td className="px-6 py-4">
+                      {isWavePending && (
+                        <button
+                          disabled={confirmingId === ride._id}
+                          onClick={function() { handleConfirmPayment(ride._id); }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white transition-colors disabled:opacity-50">
+                          {confirmingId === ride._id ? '...' : 'Confirmer paiement'}
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          {rides.length === 0 && <div className="text-center py-8 text-gray-500">Aucune course trouvée</div>}
+          {rides.length === 0 && <div className="text-center py-8 text-gray-500">Aucune course trouvee</div>}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800">
-              <button disabled={page <= 1} onClick={function() { setPage(page-1); }} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white disabled:opacity-30"><ChevronLeft size={16} /> Précédent</button>
+              <button disabled={page <= 1} onClick={function() { setPage(page-1); }} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white disabled:opacity-30"><ChevronLeft size={16} /> Precedent</button>
               <span className="text-sm text-gray-500">Page {page} / {totalPages}</span>
               <button disabled={page >= totalPages} onClick={function() { setPage(page+1); }} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white disabled:opacity-30">Suivant <ChevronRight size={16} /></button>
             </div>

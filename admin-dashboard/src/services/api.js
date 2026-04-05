@@ -46,7 +46,10 @@ export var adminService = {
   getServiceProviders: function(params) { return api.get('/services/admin/providers', { params: params }); },
   verifyServiceProvider: function(id, status, reason) { return api.put('/services/admin/providers/' + id + '/verify', { status: status, reason: reason }); },
   getServiceRequests: function(params) { return api.get('/services/admin/requests', { params: params }); },
-  getServiceStats: function() { return api.get('/services/admin/stats'); }
+  getServiceStats: function() { return api.get('/services/admin/stats'); },
+  confirmWavePayment: function(rideId) { return api.put('/admin/rides/' + rideId + '/payment-confirmed'); },
+  getWavePayouts: function() { return api.get('/admin/wave-payouts'); },
+  markWavePayoutSent: function(driverId) { return api.put('/admin/drivers/' + driverId + '/wave-payout-sent'); }
 };
 
 export var partnerService = {

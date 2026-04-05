@@ -614,6 +614,153 @@ exports.markCommissionPaid = async (req, res) => {
 };
 
 
+// @desc    Confirm Wave payment for a ride
+// @route   PUT /api/admin/rides/:id/payment-confirmed
+// @access  Private (Admin only)
+exports.confirmWavePayment = async (req, res) => {
+  try {
+    var ride = await Ride.findById(req.params.id).populate('riderId');
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
+
+    if (!['wave_upfront', 'wave_end'].includes(ride.paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de confirmation Wave' });
+    }
+
+    ride.wavePaymentConfirmed = true;
+    ride.paymentStatus = 'completed';
+
+    // If wave_upfront and ride has not been matched yet: trigger matching
+    if (ride.paymentMethod === 'wave_upfront' && ride.status === 'pending' && !ride.driver) {
+      await ride.save();
+
+      var RideMatchingService = require('../services/rideMatchingService');
+      var matchingService = req.app.get('matchingService');
+
+      var rideData = {
+        pickup: ride.pickup,
+        dropoff: ride.dropoff,
+        fare: ride.fare,
+        distance: ride.distance,
+        estimatedDuration: ride.estimatedDuration,
+        rideType: ride.rideType
+      };
+
+      matchingService.offerRideToDrivers(
+        ride._id,
+        ride.pickup.coordinates,
+        rideData
+      ).catch(function(err) { console.error('Matching error after Wave confirm:', err); });
+    } else {
+      await ride.save();
+    }
+
+    // Push notify rider
+    if (ride.riderId && ride.riderId.userId) {
+      var { sendPushNotification } = require('../services/pushService');
+      sendPushNotification(ride.riderId.userId, 'Paiement confirme!', 'Votre paiement Wave a ete confirme.', { type: 'wave-payment-confirmed', rideId: ride._id.toString() });
+    }
+
+    res.json({
+      success: true,
+      message: 'Paiement Wave confirme',
+      ride: { id: ride._id, paymentStatus: ride.paymentStatus, wavePaymentConfirmed: ride.wavePaymentConfirmed, status: ride.status }
+    });
+  } catch (error) {
+    console.error('Confirm Wave Payment Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Get Wave payouts grouped by driver
+// @route   GET /api/admin/wave-payouts
+// @access  Private (Admin only)
+exports.getWavePayouts = async (req, res) => {
+  try {
+    var payouts = await Ride.aggregate([
+      {
+        $match: {
+          paymentMethod: { $in: ['wave_upfront', 'wave_end'] },
+          paymentStatus: 'completed',
+          wavePayoutSent: { $ne: true }
+        }
+      },
+      {
+        $group: {
+          _id: '$driver',
+          totalFare: { $sum: '$fare' },
+          totalDriverEarnings: { $sum: '$driverEarnings' },
+          totalCommission: { $sum: '$platformCommission' },
+          rideCount: { $sum: 1 },
+          rides: { $push: { id: '$_id', fare: '$fare', driverEarnings: '$driverEarnings', completedAt: '$completedAt' } }
+        }
+      }
+    ]);
+
+    // Populate driver info
+    var populatedPayouts = [];
+    for (var i = 0; i < payouts.length; i++) {
+      var p = payouts[i];
+      if (!p._id) continue;
+      var driver = await Driver.findById(p._id).populate('userId', 'name phone');
+      populatedPayouts.push({
+        driverId: p._id,
+        driverName: driver && driver.userId ? driver.userId.name : 'N/A',
+        driverPhone: driver && driver.userId ? driver.userId.phone : 'N/A',
+        totalFare: p.totalFare,
+        totalDriverEarnings: p.totalDriverEarnings,
+        totalCommission: p.totalCommission,
+        rideCount: p.rideCount,
+        rides: p.rides
+      });
+    }
+
+    res.json({ success: true, payouts: populatedPayouts });
+  } catch (error) {
+    console.error('Get Wave Payouts Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Mark Wave payout as sent to driver
+// @route   PUT /api/admin/drivers/:id/wave-payout-sent
+// @access  Private (Admin only)
+exports.markWavePayoutSent = async (req, res) => {
+  try {
+    var driverId = req.params.id;
+    var driver = await Driver.findById(driverId).populate('userId', 'name phone');
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    }
+
+    var result = await Ride.updateMany(
+      {
+        driver: driverId,
+        paymentMethod: { $in: ['wave_upfront', 'wave_end'] },
+        paymentStatus: 'completed',
+        wavePayoutSent: { $ne: true }
+      },
+      {
+        $set: { wavePayoutSent: true, wavePayoutSentAt: new Date() }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: 'Paiement chauffeur marque comme envoye',
+      driver: {
+        id: driver._id,
+        name: driver.userId ? driver.userId.name : 'N/A'
+      },
+      ridesUpdated: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Mark Wave Payout Sent Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 // ========== DRIVER MODERATION ==========
 
 // @desc    Suspend/Unsuspend driver
