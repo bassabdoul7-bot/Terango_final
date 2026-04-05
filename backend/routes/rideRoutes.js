@@ -15,7 +15,8 @@ const {
   rateRide,
   startRide,
   completeRide,
-  verifyPin
+  verifyPin,
+  claimWavePayment
 } = require('../controllers/rideController');
 
 // Create new ride (Rider only)
@@ -31,7 +32,7 @@ router.post(
     body('dropoff.coordinates.latitude').isFloat().withMessage('Latitude d\'arrivée invalide'),
     body('dropoff.coordinates.longitude').isFloat().withMessage('Longitude d\'arrivée invalide'),
     body('rideType').isIn(['standard', 'comfort', 'xl']).withMessage('Type de course invalide'),
-    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash']).withMessage('Méthode de paiement invalide')
+    body('paymentMethod').isIn(['orange_money', 'wave', 'free_money', 'cash', 'wave_upfront', 'wave_end']).withMessage('Méthode de paiement invalide')
   ],
   validate,
   createRide
@@ -73,6 +74,9 @@ router.put('/:id/start', protect, restrictTo('driver'), startRide);
 
 // Complete ride (Driver only) - shortcut
 router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
+
+// Rider claims Wave payment was sent
+router.put('/:id/payment-claimed', protect, restrictTo('rider'), claimWavePayment);
 
 // Cancel ride
 router.put(

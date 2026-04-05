@@ -45,6 +45,11 @@ export const COLORS = {
   textDarkSub: '#757575',
   textDarkMuted: '#BDBDBD',
 
+  // Wave
+  wave: '#1DC3E1',
+  waveGlow: 'rgba(29, 195, 225, 0.15)',
+  waveBorder: 'rgba(29, 195, 225, 0.3)',
+
   // Status
   success: '#00853F',
   warning: '#FDEF42',

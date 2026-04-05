@@ -217,6 +217,35 @@ setInterval(function() {
 }, 5 * 60 * 1000);
 
 
+// ========== Wave near-dropoff payment prompt tracking ==========
+var wavePromptedRides = new Set();
+
+// ========== Wave payment reminder (every 30 minutes) ==========
+setInterval(async function() {
+  try {
+    var RideReminder = require('./models/Ride');
+    var RiderReminder = require('./models/Rider');
+    var { sendPushNotification: pushReminder } = require('./services/pushService');
+    var thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    var twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    var unpaidRides = await RideReminder.find({
+      paymentStatus: 'awaiting_payment',
+      completedAt: { $gt: twentyFourHoursAgo, $lt: thirtyMinAgo }
+    }).populate('riderId');
+
+    for (var i = 0; i < unpaidRides.length; i++) {
+      var ride = unpaidRides[i];
+      if (ride.riderId && ride.riderId.userId) {
+        pushReminder(ride.riderId.userId, 'Rappel paiement Wave', 'Vous devez ' + ride.fare + ' FCFA pour votre course. Envoyez au ' + (process.env.COMMISSION_WAVE_NUMBER || '') + ' par Wave.', { type: 'wave-payment-reminder', rideId: ride._id.toString(), fare: ride.fare, waveNumber: process.env.COMMISSION_WAVE_NUMBER || '' });
+      }
+    }
+    if (unpaidRides.length > 0) console.log('Sent Wave payment reminders for ' + unpaidRides.length + ' rides');
+  } catch (e) {
+    console.error('Wave payment reminder error:', e.message);
+  }
+}, 30 * 60 * 1000);
+
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
   const token = socket.handshake.auth.token;
@@ -330,6 +359,23 @@ io.on('connection', function(socket) {
             location: { latitude: latitude, longitude: longitude },
             timestamp: now
           });
+
+          // Near-dropoff Wave payment prompt
+          if (!wavePromptedRides.has(rideId)) {
+            var RideProximity = require('./models/Ride');
+            var { calculateDistance: calcDist } = require('./utils/distance');
+            RideProximity.findById(rideId).then(function(activeRide) {
+              if (!activeRide || activeRide.status !== 'in_progress' || activeRide.paymentMethod !== 'wave_end') return;
+              var distToDropoff = calcDist(latitude, longitude, activeRide.dropoff.coordinates.latitude, activeRide.dropoff.coordinates.longitude);
+              if (distToDropoff <= 0.5) { // 500m = 0.5km
+                wavePromptedRides.add(rideId);
+                io.to(rideId).emit('payment-prompt', {
+                  fare: activeRide.fare,
+                  waveNumber: process.env.COMMISSION_WAVE_NUMBER || ''
+                });
+              }
+            }).catch(function() {});
+          }
         }
         io.to('riders-watching').emit('nearby-driver-location', {
           driverId: driverId,

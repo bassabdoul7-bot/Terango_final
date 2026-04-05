@@ -21,6 +21,21 @@ exports.createRide = async (req, res) => {
       });
     }
 
+    // Check for unpaid wave_end rides older than 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const unpaidWaveRide = await Ride.findOne({
+      riderId: rider._id,
+      paymentMethod: 'wave_end',
+      paymentStatus: 'awaiting_payment',
+      completedAt: { $lt: twentyFourHoursAgo }
+    });
+    if (unpaidWaveRide) {
+      return res.status(403).json({
+        success: false,
+        message: 'Vous avez un paiement Wave en attente. Veuillez payer pour continuer.'
+      });
+    }
+
     // Prevent duplicate active rides
     const activeRide = await Ride.findOne({
       riderId: rider._id,
@@ -44,6 +59,9 @@ exports.createRide = async (req, res) => {
     const fareResult = calculateFare(distance, rideType, estimatedDuration);
     const earnings = calculateEarnings(fareResult.fare);
 
+    // For wave_upfront, set paymentStatus to awaiting_payment
+    const initialPaymentStatus = paymentMethod === 'wave_upfront' ? 'awaiting_payment' : 'pending';
+
     const ride = await Ride.create({
       riderId: rider._id,
       pickup,
@@ -57,9 +75,35 @@ exports.createRide = async (req, res) => {
       platformCommission: earnings.platformCommission,
       driverEarnings: earnings.driverEarnings,
       paymentMethod,
+      paymentStatus: initialPaymentStatus,
       status: 'pending'
     });
 
+    // For wave_upfront: do NOT trigger matching, return Wave payment info
+    if (paymentMethod === 'wave_upfront') {
+      return res.status(201).json({
+        success: true,
+        message: 'Veuillez envoyer le paiement Wave pour confirmer votre course',
+        ride: {
+          id: ride._id,
+          pickup: ride.pickup,
+          dropoff: ride.dropoff,
+          distance: ride.distance,
+          estimatedDuration: ride.estimatedDuration,
+          fare: ride.fare,
+          rideType: ride.rideType,
+          status: ride.status,
+          paymentMethod: ride.paymentMethod,
+          paymentStatus: ride.paymentStatus
+        },
+        wavePayment: {
+          waveNumber: process.env.COMMISSION_WAVE_NUMBER,
+          amount: ride.fare
+        }
+      });
+    }
+
+    // For cash or wave_end: trigger matching immediately
     const matchingService = req.app.get('matchingService');
 
     const rideData = {
@@ -88,7 +132,8 @@ exports.createRide = async (req, res) => {
         estimatedDuration: ride.estimatedDuration,
         fare: ride.fare,
         rideType: ride.rideType,
-        status: ride.status
+        status: ride.status,
+        paymentMethod: ride.paymentMethod
       }
     });
 
@@ -295,7 +340,7 @@ exports.updateRideStatus = async (req, res) => {
       ride.startedAt = new Date();
     } else if (status === 'completed') {
       ride.completedAt = new Date();
-      ride.paymentStatus = 'completed';
+      ride.paymentStatus = (ride.paymentMethod === 'wave_end') ? 'awaiting_payment' : 'completed';
 
       driver.totalEarnings += ride.driverEarnings;
       driver.weeklyEarnings += ride.driverEarnings;
@@ -454,7 +499,13 @@ exports.completeRide = async (req, res) => {
     // Complete the ride
     ride.status = 'completed';
     ride.completedAt = new Date();
-    ride.paymentStatus = 'completed';
+
+    // For wave_end: set paymentStatus to awaiting_payment instead of completed
+    if (ride.paymentMethod === 'wave_end') {
+      ride.paymentStatus = 'awaiting_payment';
+    } else {
+      ride.paymentStatus = 'completed';
+    }
     await ride.save();
 
     // Update partner earnings if applicable
@@ -511,18 +562,25 @@ exports.completeRide = async (req, res) => {
     // Push notify rider - ride completed
     var completedRide = await Ride.findById(ride._id).populate('riderId');
     if (completedRide && completedRide.riderId) {
-      sendPushNotification(completedRide.riderId.userId, 'Course termin\u00e9e!', 'Merci! Votre course de ' + ride.fare + ' FCFA est termin\u00e9e.', { type: 'ride-completed', rideId: ride._id.toString() });
+      if (ride.paymentMethod === 'wave_end') {
+        // Prompt rider to pay via Wave
+        sendPushNotification(completedRide.riderId.userId, 'Paiement Wave requis', 'Votre course de ' + ride.fare + ' FCFA est terminee. Envoyez ' + ride.fare + ' FCFA au ' + (process.env.COMMISSION_WAVE_NUMBER || '') + ' par Wave.', { type: 'wave-payment-required', rideId: ride._id.toString(), fare: ride.fare, waveNumber: process.env.COMMISSION_WAVE_NUMBER || '' });
+      } else {
+        sendPushNotification(completedRide.riderId.userId, 'Course terminee!', 'Merci! Votre course de ' + ride.fare + ' FCFA est terminee.', { type: 'ride-completed', rideId: ride._id.toString() });
+      }
     }
 
     io.to(ride._id.toString()).emit('ride-completed', {
       rideId: ride._id,
       completedAt: ride.completedAt,
-      fare: ride.fare
+      fare: ride.fare,
+      paymentMethod: ride.paymentMethod,
+      paymentStatus: ride.paymentStatus
     });
 
     res.status(200).json({
       success: true,
-      message: 'Course termin\u00e9e',
+      message: 'Course terminee',
       ride,
       earnings: {
         thisRide: ride.driverEarnings || ride.fare,
@@ -695,6 +753,39 @@ exports.rateRide = async (req, res) => {
       success: false,
       message: "Erreur lors de l'enregistrement de la note"
     });
+  }
+};
+
+// @desc    Rider claims Wave payment was sent
+// @route   PUT /api/rides/:id/payment-claimed
+// @access  Private (Rider only)
+exports.claimWavePayment = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
+
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider || ride.riderId.toString() !== rider._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
+
+    if (!['wave_upfront', 'wave_end'].includes(ride.paymentMethod)) {
+      return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de paiement Wave' });
+    }
+
+    ride.wavePaymentClaimed = true;
+    await ride.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Paiement marque comme envoye. En attente de confirmation.',
+      ride: { id: ride._id, wavePaymentClaimed: ride.wavePaymentClaimed }
+    });
+  } catch (error) {
+    console.error('Claim Wave Payment Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
 
