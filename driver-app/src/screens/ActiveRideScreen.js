@@ -560,7 +560,12 @@ function ActiveRideScreen(props) {
               <TouchableOpacity onPress={function(){setWaveScreenshotFullView(true);}} activeOpacity={0.8}>
                 <Image source={{uri:waveScreenshotUrl}} style={waveStyles.screenshotImage} resizeMode="contain"/>
               </TouchableOpacity>
-              <Text style={waveStyles.amountText}>{(ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text>
+              <View style={waveStyles.checklistCard}>
+                <Text style={waveStyles.checklistTitle}>{"V\u00e9rifiez sur la capture :"}</Text>
+                <Text style={waveStyles.checklistItem}>{String.fromCodePoint(0x1F4C5) + " Date : " + new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</Text>
+                <Text style={waveStyles.checklistItem}>{String.fromCodePoint(0x1F4B0) + " Montant : " + (ride.fare ? ride.fare.toLocaleString() : '0') + " FCFA"}</Text>
+                <Text style={waveStyles.checklistItem}>{String.fromCodePoint(0x1F4F1) + " Num\u00e9ro : 77 807 91 03"}</Text>
+              </View>
               <View style={waveStyles.proofActions}>
                 <TouchableOpacity style={waveStyles.rejectBtn} onPress={handleRejectWavePayment}><Text style={waveStyles.rejectBtnText}>{String.fromCodePoint(0x2717) + " Paiement invalide"}</Text></TouchableOpacity>
                 <TouchableOpacity style={waveStyles.verifyBtn} onPress={handleVerifyWavePayment} disabled={waveVerifying}>{waveVerifying ? <ActivityIndicator color="#FFF" size="small"/> : <Text style={waveStyles.verifyBtnText}>{String.fromCodePoint(0x2713) + " Paiement v\u00e9rifi\u00e9"}</Text>}</TouchableOpacity>
@@ -844,6 +849,26 @@ var waveStyles = StyleSheet.create({
     color: COLORS.textLight,
     textAlign: 'center',
     marginBottom: 14,
+  },
+  checklistCard: {
+    backgroundColor: 'rgba(29,195,225,0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(29,195,225,0.3)',
+    padding: 12,
+    marginBottom: 14,
+  },
+  checklistTitle: {
+    fontSize: 13,
+    fontFamily: 'LexendDeca_600SemiBold',
+    color: '#1DC3E1',
+    marginBottom: 8,
+  },
+  checklistItem: {
+    fontSize: 14,
+    fontFamily: 'LexendDeca_500Medium',
+    color: COLORS.textLight,
+    marginBottom: 4,
   },
   proofActions: {
     flexDirection: 'row',
