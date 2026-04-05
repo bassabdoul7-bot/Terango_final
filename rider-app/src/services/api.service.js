@@ -80,7 +80,12 @@ export var rideService = {
   getMyRides: function() { return api.get('/rides/my-rides'); },
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
-  claimPayment: function(rideId) { return api.put('/rides/' + rideId + '/payment-claimed'); },
+  uploadWaveScreenshot: function(rideId, imageUri) {
+    var formData = new FormData();
+    formData.append('screenshot', { uri: imageUri, name: 'wave-screenshot.jpg', type: 'image/jpeg' });
+    return api.put('/rides/' + rideId + '/wave-screenshot', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  getUnpaidRide: function() { return api.get('/rides/unpaid'); },
 };
 
 export var driverService = {

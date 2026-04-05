@@ -99,7 +99,7 @@ const rideSchema = new mongoose.Schema({
   // Payment
   paymentMethod: {
     type: String,
-    enum: ['orange_money', 'wave', 'free_money', 'cash', 'wave_upfront', 'wave_end'],
+    enum: ['cash', 'wave_upfront', 'wave'],
     required: true
   },
   paymentStatus: {
@@ -107,11 +107,11 @@ const rideSchema = new mongoose.Schema({
     enum: ['pending', 'awaiting_payment', 'completed', 'failed'],
     default: 'pending'
   },
-  wavePaymentClaimed: {
-    type: Boolean,
-    default: false
+  wavePaymentScreenshot: {
+    type: String,
+    default: null
   },
-  wavePaymentConfirmed: {
+  wavePaymentVerifiedByDriver: {
     type: Boolean,
     default: false
   },

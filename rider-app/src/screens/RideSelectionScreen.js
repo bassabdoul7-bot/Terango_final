@@ -1,15 +1,10 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { rideService, driverService } from '../services/api.service';
-import { createAuthSocket } from '../services/socket';
-
-const WAVE_PAYMENT_NUMBER = '77 807 91 03';
-
-
 
 const { width, height } = Dimensions.get('window');
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -28,9 +23,6 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [showPaymentPicker, setShowPaymentPicker] = useState(false);
-  const [showWaveUpfrontModal, setShowWaveUpfrontModal] = useState(false);
-  const [wavePending, setWavePending] = useState(false);
-  const [waveRideId, setWaveRideId] = useState(null);
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
@@ -98,8 +90,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const paymentOptions = [
     { key: 'cash', label: 'Especes', icon: '\uD83D\uDCB5', color: COLORS.yellow },
-    { key: 'wave_upfront', label: 'Wave - Payer maintenant', icon: '\uD83C\uDF0A', color: COLORS.wave },
-    { key: 'wave_end', label: 'Wave - Fin de course', icon: '\uD83C\uDF0A', color: COLORS.wave },
+    { key: 'wave', label: 'Wave', icon: '\uD83C\uDF0A', color: COLORS.wave },
   ];
   const selectedPaymentOption = paymentOptions.find(p => p.key === paymentMethod) || paymentOptions[0];
 
@@ -110,61 +101,11 @@ const RideSelectionScreen = ({ route, navigation }) => {
       const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration });
       if (r.success) {
         const newRideId = r.ride?.id || r.ride?._id;
-        if (paymentMethod === 'wave_upfront') {
-          setWaveRideId(newRideId);
-          setShowWaveUpfrontModal(true);
-        } else {
-          navigation.replace('ActiveRide', { rideId: newRideId });
-        }
+        navigation.replace('ActiveRide', { rideId: newRideId });
       }
     } catch (e) {
       Alert.alert('Erreur', e.response?.data?.message || 'Impossible de creer la course');
     } finally { setLoading(false); }
-  };
-
-  const handleWavePaymentClaimed = async () => {
-    if (!waveRideId) return;
-    setWavePending(true);
-    try {
-      await rideService.claimPayment(waveRideId);
-      // Poll for status change from awaiting_payment to pending
-      const pollForConfirmation = async (attempts) => {
-        if (attempts <= 0) {
-          setWavePending(false);
-          Alert.alert('Delai expire', 'Le paiement n\'a pas encore ete confirme. Veuillez reessayer.');
-          return;
-        }
-        try {
-          const res = await rideService.getRide(waveRideId);
-          if (res.ride && res.ride.status !== 'awaiting_payment') {
-            setWavePending(false);
-            setShowWaveUpfrontModal(false);
-            navigation.replace('ActiveRide', { rideId: waveRideId });
-            return;
-          }
-        } catch (e) {}
-        setTimeout(() => pollForConfirmation(attempts - 1), 3000);
-      };
-      // Also listen via socket
-      try {
-        const socket = await createAuthSocket();
-        socket.on('connect', () => socket.emit('join-ride-room', waveRideId));
-        socket.on('ride-status', (data) => {
-          if (data && data.status && data.status !== 'awaiting_payment') {
-            setWavePending(false);
-            setShowWaveUpfrontModal(false);
-            socket.disconnect();
-            navigation.replace('ActiveRide', { rideId: waveRideId });
-          }
-        });
-        // Disconnect after timeout
-        setTimeout(() => { if (socket.connected) socket.disconnect(); }, 120000);
-      } catch (e) {}
-      pollForConfirmation(40);
-    } catch (e) {
-      setWavePending(false);
-      Alert.alert('Erreur', 'Impossible de signaler le paiement.');
-    }
   };
 
   if (calculatingFare) return (<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>{"Calcul de l'itineraire..."}</Text></View>);
@@ -194,40 +135,6 @@ const RideSelectionScreen = ({ route, navigation }) => {
           </GeoJSONSource>
         )}
       </Map>
-      <Modal visible={showWaveUpfrontModal} transparent animationType="slide" onRequestClose={() => { if (!wavePending) { setShowWaveUpfrontModal(false); } }}>
-        <View style={styles.waveModalOverlay}>
-          <View style={styles.waveModalContent}>
-            <View style={styles.waveModalHandle} />
-            {!wavePending ? (
-              <>
-                <Text style={styles.waveModalIcon}>{'\uD83C\uDF0A'}</Text>
-                <Text style={styles.waveModalTitle}>Paiement Wave</Text>
-                <Text style={styles.waveModalSubtitle}>Envoyez le montant par Wave pour confirmer votre course</Text>
-                <View style={styles.waveAmountCard}>
-                  <Text style={styles.waveAmountLabel}>Montant a envoyer</Text>
-                  <Text style={styles.waveAmountValue}>{fareEstimates?.[selectedType]?.fare?.toLocaleString()} FCFA</Text>
-                </View>
-                <View style={styles.waveNumberCard}>
-                  <Text style={styles.waveNumberLabel}>Numero Wave</Text>
-                  <Text style={styles.waveNumberValue}>{WAVE_PAYMENT_NUMBER}</Text>
-                </View>
-                <TouchableOpacity style={styles.wavePayButton} onPress={handleWavePaymentClaimed} activeOpacity={0.8}>
-                  <Text style={styles.wavePayButtonText}>{"J'ai pay\u00e9"}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.waveCancelButton} onPress={() => setShowWaveUpfrontModal(false)} activeOpacity={0.8}>
-                  <Text style={styles.waveCancelButtonText}>Annuler</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={{ alignItems: 'center', paddingVertical: 40 }}>
-                <ActivityIndicator size="large" color={COLORS.wave} />
-                <Text style={styles.waveWaitingText}>En attente de confirmation...</Text>
-                <Text style={styles.waveWaitingHint}>Votre paiement Wave est en cours de verification</Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity>
       <View style={styles.tripInfoCard}>
         <Text style={styles.tripTime}>{realDuration} min</Text>
@@ -254,13 +161,12 @@ const RideSelectionScreen = ({ route, navigation }) => {
               <Text style={{ fontSize: 14, color: COLORS.textLightMuted }}>{showPaymentPicker ? '\u25B2' : '\u25BC'}</Text>
             </View>
             {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Paiement en especes au chauffeur</Text>}
-            {paymentMethod === 'wave_upfront' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payer par Wave avant la course</Text>}
-            {paymentMethod === 'wave_end' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payer par Wave en fin de course</Text>}
+            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Paiement Wave a l'arrivee du chauffeur</Text>}
           </TouchableOpacity>
           {showPaymentPicker && (
             <View style={styles.paymentPickerContainer}>
               {paymentOptions.map((opt) => (
-                <TouchableOpacity key={opt.key} style={[styles.paymentPickerItem, paymentMethod === opt.key && styles.paymentPickerItemSelected, paymentMethod === opt.key && opt.key !== 'cash' && { borderColor: COLORS.wave, backgroundColor: COLORS.waveGlow }]} onPress={() => { setPaymentMethod(opt.key); setShowPaymentPicker(false); }} activeOpacity={0.7}>
+                <TouchableOpacity key={opt.key} style={[styles.paymentPickerItem, paymentMethod === opt.key && styles.paymentPickerItemSelected, paymentMethod === opt.key && opt.key === 'wave' && { borderColor: COLORS.wave, backgroundColor: COLORS.waveGlow }]} onPress={() => { setPaymentMethod(opt.key); setShowPaymentPicker(false); }} activeOpacity={0.7}>
                   <View style={[styles.paymentPickerIconBg, { backgroundColor: opt.color }]}><Text style={{ fontSize: 16 }}>{opt.icon}</Text></View>
                   <Text style={styles.paymentPickerText}>{opt.label}</Text>
                   {paymentMethod === opt.key && <Text style={{ fontSize: 16, color: opt.color }}>{'\u2713'}</Text>}
@@ -319,24 +225,6 @@ const styles = StyleSheet.create({
   paymentPickerItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
   paymentPickerIconBg: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   paymentPickerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
-  waveModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  waveModalContent: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, borderTopWidth: 1, borderTopColor: COLORS.waveBorder },
-  waveModalHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  waveModalIcon: { fontSize: 48, textAlign: 'center', marginBottom: 8 },
-  waveModalTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 6 },
-  waveModalSubtitle: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  waveAmountCard: { backgroundColor: COLORS.waveGlow, borderRadius: 14, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.waveBorder, alignItems: 'center' },
-  waveAmountLabel: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginBottom: 4 },
-  waveAmountValue: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: COLORS.wave },
-  waveNumberCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center' },
-  waveNumberLabel: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginBottom: 4 },
-  waveNumberValue: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, letterSpacing: 2 },
-  wavePayButton: { backgroundColor: COLORS.wave, paddingVertical: 16, borderRadius: 14, alignItems: 'center', marginBottom: 10 },
-  wavePayButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  waveCancelButton: { paddingVertical: 14, borderRadius: 14, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  waveCancelButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
-  waveWaitingText: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.wave, marginTop: 20, textAlign: 'center' },
-  waveWaitingHint: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 8, textAlign: 'center' },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 

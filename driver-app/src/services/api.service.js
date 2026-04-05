@@ -133,6 +133,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   
   getRide: (rideId) => api.get('/rides/' + rideId),
   getRideHistory: () => api.get('/drivers/ride-history'),
+  verifyWavePayment: (rideId) => api.put('/rides/' + rideId + '/verify-wave-payment'),
   uploadProfilePhoto: (formData) => api.put('/drivers/profile-photo', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   }),

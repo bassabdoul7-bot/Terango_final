@@ -217,34 +217,52 @@ setInterval(function() {
 }, 5 * 60 * 1000);
 
 
-// ========== Wave near-dropoff payment prompt tracking ==========
-var wavePromptedRides = new Set();
-
-// ========== Wave payment reminder (every 30 minutes) ==========
+// ========== Auto-cancel Wave rides with no payment after 10 min at pickup ==========
 setInterval(async function() {
   try {
-    var RideReminder = require('./models/Ride');
-    var RiderReminder = require('./models/Rider');
-    var { sendPushNotification: pushReminder } = require('./services/pushService');
-    var thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
-    var twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    var RideWaveCheck = require('./models/Ride');
+    var RiderWaveCheck = require('./models/Rider');
+    var DriverWaveCheck = require('./models/Driver');
+    var { sendPushNotification: pushWaveCancel } = require('./services/pushService');
+    var tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
 
-    var unpaidRides = await RideReminder.find({
-      paymentStatus: 'awaiting_payment',
-      completedAt: { $gt: twentyFourHoursAgo, $lt: thirtyMinAgo }
-    }).populate('riderId');
+    var unpaidWaveRides = await RideWaveCheck.find({
+      status: 'arrived',
+      paymentMethod: 'wave',
+      wavePaymentVerifiedByDriver: { $ne: true },
+      arrivedAt: { $lt: tenMinAgo }
+    }).populate('riderId').populate('driver');
 
-    for (var i = 0; i < unpaidRides.length; i++) {
-      var ride = unpaidRides[i];
-      if (ride.riderId && ride.riderId.userId) {
-        pushReminder(ride.riderId.userId, 'Rappel paiement Wave', 'Vous devez ' + ride.fare + ' FCFA pour votre course. Envoyez au ' + (process.env.COMMISSION_WAVE_NUMBER || '') + ' par Wave.', { type: 'wave-payment-reminder', rideId: ride._id.toString(), fare: ride.fare, waveNumber: process.env.COMMISSION_WAVE_NUMBER || '' });
+    for (var i = 0; i < unpaidWaveRides.length; i++) {
+      var ride = unpaidWaveRides[i];
+      ride.status = 'cancelled';
+      ride.cancelledAt = new Date();
+      ride.cancellationReason = 'Paiement Wave non re\u00e7u';
+      await ride.save();
+
+      // Make driver available again
+      if (ride.driver) {
+        await DriverWaveCheck.findByIdAndUpdate(ride.driver._id || ride.driver, { isAvailable: true });
       }
+
+      // Notify both parties
+      io.to(ride._id.toString()).emit('ride-cancelled', {
+        reason: 'Paiement Wave non re\u00e7u'
+      });
+
+      if (ride.riderId && ride.riderId.userId) {
+        pushWaveCancel(ride.riderId.userId, 'Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e car le paiement Wave n\'a pas \u00e9t\u00e9 re\u00e7u dans les 10 minutes.', { type: 'ride-cancelled', rideId: ride._id.toString() });
+      }
+      if (ride.driver && ride.driver.userId) {
+        pushWaveCancel(ride.driver.userId, 'Course annul\u00e9e', 'La course a \u00e9t\u00e9 annul\u00e9e: paiement Wave non re\u00e7u.', { type: 'ride-cancelled', rideId: ride._id.toString() });
+      }
+
+      console.log('Auto-cancelled Wave ride ' + ride._id + ' (no payment after 10 min)');
     }
-    if (unpaidRides.length > 0) console.log('Sent Wave payment reminders for ' + unpaidRides.length + ' rides');
   } catch (e) {
-    console.error('Wave payment reminder error:', e.message);
+    console.error('Wave auto-cancel error:', e.message);
   }
-}, 30 * 60 * 1000);
+}, 2 * 60 * 1000);
 
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
@@ -359,23 +377,6 @@ io.on('connection', function(socket) {
             location: { latitude: latitude, longitude: longitude },
             timestamp: now
           });
-
-          // Near-dropoff Wave payment prompt
-          if (!wavePromptedRides.has(rideId)) {
-            var RideProximity = require('./models/Ride');
-            var { calculateDistance: calcDist } = require('./utils/distance');
-            RideProximity.findById(rideId).then(function(activeRide) {
-              if (!activeRide || activeRide.status !== 'in_progress' || activeRide.paymentMethod !== 'wave_end') return;
-              var distToDropoff = calcDist(latitude, longitude, activeRide.dropoff.coordinates.latitude, activeRide.dropoff.coordinates.longitude);
-              if (distToDropoff <= 0.5) { // 500m = 0.5km
-                wavePromptedRides.add(rideId);
-                io.to(rideId).emit('payment-prompt', {
-                  fare: activeRide.fare,
-                  waveNumber: process.env.COMMISSION_WAVE_NUMBER || ''
-                });
-              }
-            }).catch(function() {});
-          }
         }
         io.to('riders-watching').emit('nearby-driver-location', {
           driverId: driverId,

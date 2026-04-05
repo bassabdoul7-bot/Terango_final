@@ -624,7 +624,7 @@ exports.confirmWavePayment = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Course non trouvee' });
     }
 
-    if (!['wave_upfront', 'wave_end'].includes(ride.paymentMethod)) {
+    if (!['wave', 'wave_upfront'].includes(ride.paymentMethod)) {
       return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de confirmation Wave' });
     }
 
@@ -681,7 +681,7 @@ exports.getWavePayouts = async (req, res) => {
     var payouts = await Ride.aggregate([
       {
         $match: {
-          paymentMethod: { $in: ['wave_upfront', 'wave_end'] },
+          paymentMethod: { $in: ['wave', 'wave_upfront'] },
           paymentStatus: 'completed',
           wavePayoutSent: { $ne: true }
         }
@@ -737,7 +737,7 @@ exports.markWavePayoutSent = async (req, res) => {
     var result = await Ride.updateMany(
       {
         driver: driverId,
-        paymentMethod: { $in: ['wave_upfront', 'wave_end'] },
+        paymentMethod: { $in: ['wave', 'wave_upfront'] },
         paymentStatus: 'completed',
         wavePayoutSent: { $ne: true }
       },

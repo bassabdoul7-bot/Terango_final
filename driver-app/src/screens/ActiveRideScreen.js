@@ -130,10 +130,19 @@ function ActiveRideScreen(props) {
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
+  // Wave payment verification states
+  var [waveScreenshotUrl, setWaveScreenshotUrl] = useState(null);
+  var [wavePaymentVerified, setWavePaymentVerified] = useState(false);
+  var [waveVerifying, setWaveVerifying] = useState(false);
+  var [waveScreenshotFullView, setWaveScreenshotFullView] = useState(false);
+  var [waveAutoCancelMsg, setWaveAutoCancelMsg] = useState(false);
+  var waveArrivedTimerRef = useRef(null);
+  var isWaveRide = ride ? ride.paymentMethod === 'wave' : false;
+
   // Clear LRU cache on unmount
   useEffect(function(){ return function(){ directionsCacheClear(); }; },[]);
 
-  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
+  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});sock.on('wave-screenshot-uploaded',function(data){if(data&&data.screenshotUrl){setWaveScreenshotUrl(data.screenshotUrl);speakAnnouncement('Le passager a envoye une preuve de paiement Wave');}});sock.on('wave-payment-verified',function(data){setWavePaymentVerified(true);setWaveScreenshotUrl(null);});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
 
   // Check ride status when app returns to foreground
   useEffect(function() {
@@ -456,6 +465,39 @@ function ActiveRideScreen(props) {
     }
   };
 
+  // Wave payment: 10-minute auto-cancel timer when arrived + wave
+  useEffect(function() {
+    if (ride && ride.status === 'arrived' && ride.paymentMethod === 'wave' && !wavePaymentVerified) {
+      waveArrivedTimerRef.current = setTimeout(function() {
+        setWaveAutoCancelMsg(true);
+      }, 10 * 60 * 1000);
+    } else {
+      if (waveArrivedTimerRef.current) { clearTimeout(waveArrivedTimerRef.current); waveArrivedTimerRef.current = null; }
+      setWaveAutoCancelMsg(false);
+    }
+    return function() { if (waveArrivedTimerRef.current) clearTimeout(waveArrivedTimerRef.current); };
+  }, [ride ? ride.status : null, ride ? ride.paymentMethod : null, wavePaymentVerified]);
+
+  var handleVerifyWavePayment = useCallback(function() {
+    setWaveVerifying(true);
+    driverService.verifyWavePayment(rideId).then(function() {
+      setWavePaymentVerified(true);
+      setWaveScreenshotUrl(null);
+      speakAnnouncement('Paiement Wave verifie. Vous pouvez demarrer la course.');
+    }).catch(function(err) {
+      console.error('Verify wave payment error:', err);
+      Alert.alert('Erreur', 'Impossible de verifier le paiement');
+    }).finally(function() { setWaveVerifying(false); });
+  }, [rideId]);
+
+  var handleRejectWavePayment = useCallback(function() {
+    Alert.alert('Paiement invalide', 'Le passager sera notifie de renvoyer la preuve', [{ text: 'OK' }]);
+    setWaveScreenshotUrl(null);
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('wave-payment-rejected', { rideId: rideId });
+    }
+  }, [rideId]);
+
   if(initializing||!driverLocation||!ride){return(<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green}/><Text style={styles.loadingText}>Chargement...</Text></View>);}
 
   var destination;
@@ -507,7 +549,27 @@ function ActiveRideScreen(props) {
     // ===== RIDE MODE =====
     switch(ride.status){
       case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);
-      case 'arrived':return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;
+      case 'arrived':
+        // Wave payment: block start until verified
+        if (ride.paymentMethod === 'wave' && !wavePaymentVerified) {
+          return (<View>
+            {waveAutoCancelMsg && <View style={waveStyles.autoCancelBanner}><Text style={waveStyles.autoCancelText}>{"Le passager n'a pas pay\u00e9. La course sera annul\u00e9e automatiquement."}</Text></View>}
+            {!waveScreenshotUrl && <View style={waveStyles.waitingCard}><ActivityIndicator size="small" color="#1DC3E1" style={{marginBottom:8}}/><Text style={waveStyles.waitingText}>{"En attente du paiement Wave du passager..."}</Text></View>}
+            {waveScreenshotUrl && <View style={waveStyles.proofCard}>
+              <Text style={waveStyles.proofTitle}>{"Le passager a envoy\u00e9 une preuve de paiement"}</Text>
+              <TouchableOpacity onPress={function(){setWaveScreenshotFullView(true);}} activeOpacity={0.8}>
+                <Image source={{uri:waveScreenshotUrl}} style={waveStyles.screenshotImage} resizeMode="contain"/>
+              </TouchableOpacity>
+              <Text style={waveStyles.amountText}>{(ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text>
+              <View style={waveStyles.proofActions}>
+                <TouchableOpacity style={waveStyles.rejectBtn} onPress={handleRejectWavePayment}><Text style={waveStyles.rejectBtnText}>{String.fromCodePoint(0x2717) + " Paiement invalide"}</Text></TouchableOpacity>
+                <TouchableOpacity style={waveStyles.verifyBtn} onPress={handleVerifyWavePayment} disabled={waveVerifying}>{waveVerifying ? <ActivityIndicator color="#FFF" size="small"/> : <Text style={waveStyles.verifyBtnText}>{String.fromCodePoint(0x2713) + " Paiement v\u00e9rifi\u00e9"}</Text>}</TouchableOpacity>
+              </View>
+            </View>}
+            <View style={waveStyles.disabledStartBtn}><Text style={waveStyles.disabledStartText}>En attente du paiement</Text></View>
+          </View>);
+        }
+        return <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>;
       case 'in_progress':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);
       default:return null;
     }
@@ -607,6 +669,13 @@ function ActiveRideScreen(props) {
         </View>
       </Modal>}
       <SuccessModal visible={showSuccessModal} title="Course annulee" message="La course a ete annulee" onClose={function(){setShowSuccessModal(false);navigation.replace('RideRequests');}}/>
+      {/* Wave screenshot fullscreen modal */}
+      <Modal visible={waveScreenshotFullView} transparent animationType="fade" onRequestClose={function(){setWaveScreenshotFullView(false);}}>
+        <TouchableOpacity style={waveStyles.fullscreenOverlay} activeOpacity={1} onPress={function(){setWaveScreenshotFullView(false);}}>
+          <Image source={{uri:waveScreenshotUrl}} style={waveStyles.fullscreenImage} resizeMode="contain"/>
+          <Text style={waveStyles.fullscreenHint}>Appuyez pour fermer</Text>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -729,6 +798,126 @@ var styles = StyleSheet.create({
   pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
   pinModalBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
   pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
+});
+
+var waveStyles = StyleSheet.create({
+  waitingCard: {
+    backgroundColor: 'rgba(29,195,225,0.12)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(29,195,225,0.3)',
+  },
+  waitingText: {
+    fontSize: 15,
+    fontFamily: 'LexendDeca_600SemiBold',
+    color: '#1DC3E1',
+    textAlign: 'center',
+  },
+  proofCard: {
+    backgroundColor: 'rgba(29,195,225,0.10)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(29,195,225,0.35)',
+  },
+  proofTitle: {
+    fontSize: 14,
+    fontFamily: 'LexendDeca_600SemiBold',
+    color: '#1DC3E1',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  screenshotImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  amountText: {
+    fontSize: 20,
+    fontFamily: 'LexendDeca_700Bold',
+    color: COLORS.textLight,
+    textAlign: 'center',
+    marginBottom: 14,
+  },
+  proofActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  verifyBtn: {
+    flex: 1,
+    backgroundColor: '#00853F',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  verifyBtnText: {
+    fontSize: 14,
+    fontFamily: 'LexendDeca_700Bold',
+    color: '#FFFFFF',
+  },
+  rejectBtn: {
+    flex: 1,
+    backgroundColor: '#E31B23',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rejectBtnText: {
+    fontSize: 14,
+    fontFamily: 'LexendDeca_700Bold',
+    color: '#FFFFFF',
+  },
+  disabledStartBtn: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  disabledStartText: {
+    fontSize: 16,
+    fontFamily: 'LexendDeca_600SemiBold',
+    color: 'rgba(255,255,255,0.3)',
+  },
+  autoCancelBanner: {
+    backgroundColor: 'rgba(227,27,35,0.15)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(227,27,35,0.3)',
+  },
+  autoCancelText: {
+    fontSize: 13,
+    fontFamily: 'LexendDeca_500Medium',
+    color: '#FF6B6B',
+    textAlign: 'center',
+  },
+  fullscreenOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenImage: {
+    width: screenWidth - 32,
+    height: screenHeight * 0.7,
+  },
+  fullscreenHint: {
+    fontSize: 14,
+    fontFamily: 'LexendDeca_400Regular',
+    color: 'rgba(255,255,255,0.5)',
+    marginTop: 20,
+  },
 });
 
 export default ActiveRideScreen;
