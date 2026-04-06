@@ -29,7 +29,7 @@ class DriverLocationService {
     this.DRIVER_HEARTBEAT_PREFIX = 'terango:driver:heartbeat:';
 
     // TTL in seconds
-    this.DRIVER_TTL = 60;
+    this.DRIVER_TTL = 300;
 
     this.redis.on('connect', () => {
       console.log('✅ Redis connected (Upstash) for Driver Location Service');

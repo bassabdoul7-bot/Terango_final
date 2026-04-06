@@ -85,7 +85,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const getLocation = async () => {
     try { const { status } = await Location.requestForegroundPermissionsAsync(); if (status !== 'granted') { Alert.alert('Permission refus\u00e9e', 'Localisation requise'); return; }
       try { const cur = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }); setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); } catch(e) { console.log("Location update error:", e); }
-      locationIntervalRef.current = setInterval(async () => { try { const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }); setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); await driverService.updateLocation(loc.coords.latitude, loc.coords.longitude); } catch (err) { console.error('Location polling error:', err); } }, 5000);
+      locationIntervalRef.current = setInterval(async () => { try { const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }); setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude, latitudeDelta: 0.05, longitudeDelta: 0.05 }); await driverService.updateLocation(loc.coords.latitude, loc.coords.longitude).catch(function(){}); if (socket && socket.connected) { socket.emit('driver-location-update', { driverId: driverId, latitude: loc.coords.latitude, longitude: loc.coords.longitude }); } } catch (err) { console.error('Location polling error:', err); } }, 5000);
     } catch (e) { console.error('Location error:', e); }
   };
 
