@@ -4,7 +4,7 @@
     "slug": "terango-driver",
     "newArchEnabled": true,
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
@@ -29,7 +29,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#00853F"
       },
-      "versionCode": 47,
+      "edgeToEdgeEnabled": true,
+      "versionCode": 48,
       "package": "com.terango.driver",
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": false,

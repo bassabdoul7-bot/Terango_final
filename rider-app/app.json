@@ -3,7 +3,7 @@
     "name": "TeranGO Client",
     "slug": "terango-rider",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 57,
+      "versionCode": 58,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
