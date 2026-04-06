@@ -96,16 +96,16 @@ jobs:
         run: npx expo prebuild --platform android --clean
 
       - name: Decode keystore
-        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64_DRIVER }}" | base64 -d > android/app/upload-keystore.jks
 
       - name: Build AAB
         working-directory: driver-app/android
         run: |
           ./gradlew bundleRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/driver-app/android/app/upload-keystore.jks \
-            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
-            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
-            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+            -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD_DRIVER }} \
+            -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS_DRIVER }} \
+            -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD_DRIVER }}
 
       - name: Upload AAB
         uses: actions/upload-artifact@v4
