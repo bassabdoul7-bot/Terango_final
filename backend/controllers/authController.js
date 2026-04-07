@@ -87,6 +87,7 @@ exports.verifyOTP = async (req, res) => {
     await otpRecord.save();
 
     let user = await User.findOne({ phone });
+    let isNewAccount = false;
 
     if (!user) {
       if (!name || !role) {
@@ -108,19 +109,40 @@ exports.verifyOTP = async (req, res) => {
       } else if (role === 'driver') {
         await Driver.create({ userId: user._id });
       }
+
+      isNewAccount = true;
+    } else if (role) {
+      // User exists — check if they already have the requested role's profile
+      let existingProfile = null;
+      if (role === 'rider') {
+        existingProfile = await Rider.findOne({ userId: user._id });
+        if (!existingProfile) {
+          await Rider.create({ userId: user._id });
+          isNewAccount = true;
+        }
+      } else if (role === 'driver') {
+        existingProfile = await Driver.findOne({ userId: user._id });
+        if (!existingProfile) {
+          await Driver.create({ userId: user._id });
+          isNewAccount = true;
+        }
+      }
     }
+
+    // Use the requested role for the response (so the correct app gets the right role back)
+    const responseRole = role || user.role;
 
     const token = generateToken(user._id);
 
     res.status(200).json({
       success: true,
-      message: user.isNew ? 'Compte créé avec succès' : 'Connexion réussie',
+      message: isNewAccount ? 'Compte créé avec succès' : 'Connexion réussie',
       token,
       user: {
         id: user._id,
         phone: user.phone,
         name: user.name,
-        role: user.role,
+        role: responseRole,
         profilePhoto: user.profilePhoto,
         rating: user.rating
       }
@@ -276,14 +298,83 @@ exports.register = async (req, res) => {
     phone = formatPhoneNumber(phone);
 
     var existingUser = await User.findOne({ phone });
+
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Ce numéro est déjà enregistré' });
+      // Check if user already has the requested role's profile
+      var existingProfile = null;
+      if (role === 'rider') {
+        existingProfile = await Rider.findOne({ userId: existingUser._id });
+      } else if (role === 'driver') {
+        existingProfile = await Driver.findOne({ userId: existingUser._id });
+      }
+
+      if (existingProfile) {
+        return res.status(400).json({ success: false, message: 'Vous êtes déjà enregistré comme ' + role });
+      }
+
+      // User exists but doesn't have this role's profile — create it
+      if (role === 'rider') {
+        await Rider.create({ userId: existingUser._id });
+      } else if (role === 'driver') {
+        await Driver.create({ userId: existingUser._id, verificationStatus: 'pending' });
+      }
+
+      var token = generateToken(existingUser._id);
+
+      return res.status(201).json({
+        success: true,
+        message: 'Profil ' + role + ' créé avec succès',
+        token: token,
+        user: {
+          id: existingUser._id,
+          phone: existingUser.phone,
+          name: existingUser.name,
+          email: existingUser.email,
+          role: role,
+          profilePhoto: existingUser.profilePhoto,
+          rating: existingUser.rating
+        }
+      });
     }
 
     if (email) {
       var existingEmail = await User.findOne({ email: email.toLowerCase() });
       if (existingEmail) {
-      return res.status(400).json({ success: false, message: 'Cet email est déjà utilisé' });
+        // Check if user already has the requested role's profile
+        var existingEmailProfile = null;
+        if (role === 'rider') {
+          existingEmailProfile = await Rider.findOne({ userId: existingEmail._id });
+        } else if (role === 'driver') {
+          existingEmailProfile = await Driver.findOne({ userId: existingEmail._id });
+        }
+
+        if (existingEmailProfile) {
+          return res.status(400).json({ success: false, message: 'Vous êtes déjà enregistré comme ' + role });
+        }
+
+        // Email user exists but doesn't have this role's profile — create it
+        if (role === 'rider') {
+          await Rider.create({ userId: existingEmail._id });
+        } else if (role === 'driver') {
+          await Driver.create({ userId: existingEmail._id, verificationStatus: 'pending' });
+        }
+
+        var token = generateToken(existingEmail._id);
+
+        return res.status(201).json({
+          success: true,
+          message: 'Profil ' + role + ' créé avec succès',
+          token: token,
+          user: {
+            id: existingEmail._id,
+            phone: existingEmail.phone,
+            name: existingEmail.name,
+            email: existingEmail.email,
+            role: role,
+            profilePhoto: existingEmail.profilePhoto,
+            rating: existingEmail.rating
+          }
+        });
       }
     }
 
@@ -299,11 +390,9 @@ exports.register = async (req, res) => {
     });
 
     if (role === 'rider') {
-      var RiderModel = require('../models/Rider');
-      await RiderModel.create({ userId: user._id });
+      await Rider.create({ userId: user._id });
     } else if (role === 'driver') {
-      var DriverModel = require('../models/Driver');
-      await DriverModel.create({ userId: user._id, verificationStatus: 'pending' });
+      await Driver.create({ userId: user._id, verificationStatus: 'pending' });
     }
 
     var token = generateToken(user._id);
@@ -333,7 +422,7 @@ exports.register = async (req, res) => {
 // @access  Public
 exports.loginWithPin = async (req, res) => {
   try {
-    let { phone, pin } = req.body;
+    let { phone, pin, role } = req.body;
 
     if (!phone || !pin) {
       return res.status(400).json({ success: false, message: 'Téléphone et PIN requis' });
@@ -355,6 +444,31 @@ exports.loginWithPin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'PIN incorrect' });
     }
 
+    // If a role is requested, verify the user has that profile
+    var activeRole = user.role;
+    if (role && (role === 'rider' || role === 'driver')) {
+      var profileExists = null;
+      if (role === 'rider') {
+        profileExists = await Rider.findOne({ userId: user._id });
+      } else if (role === 'driver') {
+        profileExists = await Driver.findOne({ userId: user._id });
+      }
+
+      if (!profileExists) {
+        return res.status(403).json({
+          success: false,
+          message: "Vous n'avez pas de profil " + role + ". Veuillez d'abord vous inscrire comme " + role + '.'
+        });
+      }
+
+      // Update user's role to the requested one for this session
+      if (user.role !== role) {
+        user.role = role;
+        await user.save();
+      }
+      activeRole = role;
+    }
+
     var token = generateToken(user._id);
 
     res.json({
@@ -366,7 +480,7 @@ exports.loginWithPin = async (req, res) => {
         phone: user.phone,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: activeRole,
         profilePhoto: user.profilePhoto,
         rating: user.rating
       }
