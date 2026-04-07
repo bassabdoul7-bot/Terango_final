@@ -2,6 +2,11 @@
 
 var deliverySchema = new mongoose.Schema({
   deliveryNumber: { type: String, unique: true },
+  orderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order',
+    default: null
+  },
   riderId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Rider',

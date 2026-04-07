@@ -21,6 +21,9 @@ function RestaurantMenuScreen(props) {
   var instructionsState = useState(''); var instructions = instructionsState[0]; var setInstructions = instructionsState[1];
   var submittingState = useState(false); var submitting = submittingState[0]; var setSubmitting = submittingState[1];
   var addressState = useState(''); var deliveryAddress = addressState[0]; var setDeliveryAddress = addressState[1];
+  var deliveryFeeState = useState(500); var calculatedDeliveryFee = deliveryFeeState[0]; var setCalculatedDeliveryFee = deliveryFeeState[1];
+
+  var GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
 
   useEffect(function() { loadRestaurant(); getDeliveryAddress(); }, []);
 
@@ -28,7 +31,7 @@ function RestaurantMenuScreen(props) {
     setLoading(true);
     var promise = restaurantId ? restaurantService.getRestaurantById(restaurantId) : restaurantService.getRestaurantBySlug(restaurantSlug);
     promise.then(function(response) {
-      if (response.success) { setRestaurant(response.restaurant); }
+      if (response.success) { setRestaurant(response.restaurant); calculateDeliveryFeeFromDistance(response.restaurant); }
       else { Alert.alert('Erreur', 'Restaurant non trouv\u00e9'); navigation.goBack(); }
       setLoading(false);
     }).catch(function(err) {
@@ -46,6 +49,45 @@ function RestaurantMenuScreen(props) {
         if (data && data.display_name) { setDeliveryAddress(data.display_name); }
       }).catch(function() {});
     }
+  }
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    var R = 6371; var dLat = (lat2 - lat1) * Math.PI / 180; var dLon = (lon2 - lon1) * Math.PI / 180;
+    var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function calculateDeliveryFeeFromDistance(rest) {
+    if (!currentLocation || !rest || !rest.location || !rest.location.coordinates) return;
+    var restLat = rest.location.coordinates[1] || rest.location.latitude;
+    var restLng = rest.location.coordinates[0] || rest.location.longitude;
+    if (!restLat || !restLng) return;
+
+    var googleUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=' + restLat + ',' + restLng + '&destination=' + currentLocation.latitude + ',' + currentLocation.longitude + '&key=' + GOOGLE_MAPS_KEY;
+    fetch(googleUrl).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.status === 'OK' && data.routes.length > 0) {
+        var dist = data.routes[0].legs[0].distance.value / 1000;
+        var fee = Math.max(500, Math.ceil((500 + dist * 150) / 100) * 100);
+        setCalculatedDeliveryFee(fee);
+        return;
+      }
+      throw new Error('Google failed');
+    }).catch(function() {
+      var osrmUrl = 'https://osrm.terango.sn/route/v1/driving/' + restLng + ',' + restLat + ';' + currentLocation.longitude + ',' + currentLocation.latitude + '?overview=false';
+      fetch(osrmUrl).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.code === 'Ok' && data.routes.length > 0) {
+          var dist = data.routes[0].legs[0].distance / 1000;
+          var fee = Math.max(500, Math.ceil((500 + dist * 150) / 100) * 100);
+          setCalculatedDeliveryFee(fee);
+          return;
+        }
+        throw new Error('OSRM failed');
+      }).catch(function() {
+        var dist = haversineDistance(restLat, restLng, currentLocation.latitude, currentLocation.longitude) * 1.3;
+        var fee = Math.max(500, Math.ceil((500 + dist * 150) / 100) * 100);
+        setCalculatedDeliveryFee(fee);
+      });
+    });
   }
 
   function getCategories() {
@@ -87,7 +129,7 @@ function RestaurantMenuScreen(props) {
 
   function getCartCount() { return cart.reduce(function(sum, item) { return sum + item.quantity; }, 0); }
   function getSubtotal() { return cart.reduce(function(sum, item) { return sum + (item.price * item.quantity); }, 0); }
-  function getDeliveryFee() { return 500; }
+  function getDeliveryFee() { return calculatedDeliveryFee; }
   function getPlatformFee() { return Math.round(getSubtotal() * 0.05); }
   function getTotal() { return getSubtotal() + getDeliveryFee() + getPlatformFee(); }
   function getItemQuantity(itemId) { var found = cart.find(function(c) { return c.menuItemId === itemId; }); return found ? found.quantity : 0; }
@@ -132,8 +174,6 @@ function RestaurantMenuScreen(props) {
   var PAYMENT_OPTIONS = [
     { key: 'cash', icon: '\uD83D\uDCB5', label: 'Esp\u00e8ces' },
     { key: 'wave', icon: '\uD83C\uDF0A', label: 'Wave' },
-    { key: 'orange_money', icon: '\uD83D\uDFE0', label: 'Orange Money' },
-    { key: 'free_money', icon: '\uD83D\uDCB3', label: 'Free Money' },
   ];
 
   return (
@@ -264,15 +304,14 @@ function RestaurantMenuScreen(props) {
               <TextInput style={[styles.checkoutInput, { height: 80, textAlignVertical: 'top' }]} value={instructions} onChangeText={setInstructions} placeholder="Ex: Sans oignon, extra piment..." placeholderTextColor={COLORS.textLightMuted} multiline />
               <Text style={styles.checkoutSection}>Moyen de paiement</Text>
               <View style={styles.paymentGrid}>
-                {PAYMENT_OPTIONS.map(function(opt) {
-                  var isActive = paymentMethod === opt.key;
-                  return (
-                    <TouchableOpacity key={opt.key} style={[styles.paymentOption, isActive && styles.paymentOptionActive]} onPress={function() { setPaymentMethod(opt.key); }}>
-                      <Text style={styles.paymentOptIcon}>{opt.icon}</Text>
-                      <Text style={[styles.paymentOptLabel, isActive && styles.paymentOptLabelActive]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionActive]} onPress={function() { setPaymentMethod('cash'); }}>
+                  <Text style={styles.paymentOptIcon}>{'\uD83D\uDCB5'}</Text>
+                  <Text style={[styles.paymentOptLabel, paymentMethod === 'cash' && styles.paymentOptLabelActive]}>{"\u00c9sp\u00e8ces"}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && { borderColor: COLORS.wave, backgroundColor: 'rgba(29,195,225,0.12)' }]} onPress={function() { setPaymentMethod('wave'); }}>
+                  <Text style={styles.paymentOptIcon}>{'\uD83C\uDF0A'}</Text>
+                  <Text style={[styles.paymentOptLabel, paymentMethod === 'wave' && { color: COLORS.wave, fontFamily: 'LexendDeca_600SemiBold' }]}>Wave</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.cartSummary}>
                 <View style={styles.cartSumRow}><Text style={styles.cartSumLabel}>Sous-total</Text><Text style={styles.cartSumValue}>{getSubtotal().toLocaleString() + ' F'}</Text></View>

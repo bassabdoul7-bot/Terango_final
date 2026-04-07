@@ -1,4 +1,5 @@
 var Delivery = require('../models/Delivery');
+var Order = require('../models/Order');
 var { sendPushNotification } = require('../services/pushService');
 var Driver = require('../models/Driver');
 var Rider = require('../models/Rider');
@@ -8,24 +9,47 @@ var User = require('../models/User');
 var PRICING = {
   colis: {
     base: 500,
-    perKm: 150,
-    sizeSurcharge: { petit: 0, moyen: 300, grand: 700 }
+    perKmTiers: [
+      { maxKm: 10, rate: 150 },
+      { maxKm: 30, rate: 200 },
+      { maxKm: Infinity, rate: 250 }
+    ],
+    sizeSurcharge: { petit: 0, moyen: 300, grand: 600 }
   },
   commande: {
     base: 1000,
-    perKm: 150,
-    sizeSurcharge: { petit: 0, moyen: 0, grand: 0 }
+    perKmTiers: [
+      { maxKm: 10, rate: 150 },
+      { maxKm: 30, rate: 200 },
+      { maxKm: Infinity, rate: 250 }
+    ],
+    sizeSurcharge: { petit: 0, moyen: 300, grand: 600 }
   },
   commissionRate: 0.05
 };
 
+function calculateTieredDistance(distance, tiers) {
+  var remaining = distance;
+  var total = 0;
+  var prevMax = 0;
+  for (var i = 0; i < tiers.length; i++) {
+    var tierKm = Math.min(remaining, tiers[i].maxKm - prevMax);
+    if (tierKm <= 0) break;
+    total += tierKm * tiers[i].rate;
+    remaining -= tierKm;
+    prevMax = tiers[i].maxKm;
+    if (remaining <= 0) break;
+  }
+  return total;
+}
+
 function calculateDeliveryPrice(serviceType, distance, size) {
   var config = PRICING[serviceType] || PRICING.colis;
   var baseFare = config.base;
-  var distanceFare = Math.ceil(distance) * config.perKm;
+  var distanceFare = Math.round(calculateTieredDistance(distance, config.perKmTiers));
   var surcharge = config.sizeSurcharge[size] || 0;
   var subtotal = baseFare + distanceFare + surcharge;
-  var fare = Math.round(subtotal / 100) * 100;
+  var fare = Math.ceil(subtotal / 100) * 100;
   var commission = Math.round(fare * PRICING.commissionRate);
   var driverEarnings = fare - commission;
 
@@ -255,10 +279,31 @@ exports.acceptDelivery = function(req, res) {
             });
           });
 
-          // Push notify rider
+          // Sync linked Order status if this is a restaurant delivery
+          if (delivery.orderId) {
+            Order.findByIdAndUpdate(
+              delivery.orderId,
+              { status: 'driver_assigned', driver: driver._id },
+              { new: true }
+            ).then(function(order) {
+              if (order) {
+                io.to(order._id.toString()).emit('order-status', {
+                  orderId: order._id,
+                  status: 'driver_assigned',
+                  driverId: driver._id
+                });
+              }
+            }).catch(function(err) {
+              console.error('Sync order status on accept error:', err);
+            });
+          }
+
+          // Push notify rider (restaurant-specific message if linked to order)
           Delivery.findById(delivery._id).populate('riderId').then(function(d) {
             if (d && d.riderId) {
-              sendPushNotification(d.riderId.userId, 'Livreur trouvé!', 'Un livreur a accepté votre livraison.', { type: 'delivery-accepted', deliveryId: delivery._id.toString() });
+              var pushTitle = d.orderId ? 'Chauffeur en route vers le restaurant' : 'Livreur trouve!';
+              var pushBody = d.orderId ? 'Un chauffeur a ete assigne a votre commande et se dirige vers le restaurant.' : 'Un livreur a accepte votre livraison.';
+              sendPushNotification(d.riderId.userId, pushTitle, pushBody, { type: 'delivery-accepted', deliveryId: delivery._id.toString(), orderId: d.orderId ? d.orderId.toString() : null });
             }
           });
 
@@ -334,22 +379,56 @@ exports.updateDeliveryStatus = function(req, res) {
         status: delivery.status
       });
 
+      // Sync linked Order status if this is a restaurant delivery
+      if (delivery.orderId) {
+        var orderStatusMap = {
+          'at_pickup': null, // no order status change for at_pickup
+          'picked_up': 'picked_up',
+          'at_dropoff': 'delivering',
+          'delivered': 'delivered'
+        };
+        var newOrderStatus = orderStatusMap[delivery.status];
+        if (newOrderStatus) {
+          var orderUpdate = { status: newOrderStatus };
+          if (newOrderStatus === 'picked_up') orderUpdate.pickedUpAt = new Date();
+          if (newOrderStatus === 'delivered') orderUpdate.deliveredAt = new Date();
+
+          Order.findByIdAndUpdate(delivery.orderId, orderUpdate, { new: true })
+            .then(function(order) {
+              if (order) {
+                io.to(order._id.toString()).emit('order-status', {
+                  orderId: order._id,
+                  status: newOrderStatus
+                });
+              }
+            }).catch(function(err) {
+              console.error('Sync order status error:', err);
+            });
+        }
+      }
+
       // Push notify rider on key status changes
       if (delivery.status === 'at_pickup' || delivery.status === 'picked_up' || delivery.status === 'delivered') {
         Delivery.findById(delivery._id).populate('riderId').then(function(d) {
           if (d && d.riderId) {
+            var isRestaurantOrder = !!d.orderId;
             var pushTitle, pushBody;
             if (delivery.status === 'at_pickup') {
-              pushTitle = 'Chauffeur au point de retrait';
-              pushBody = 'Votre livreur est arrivé au point de retrait';
+              pushTitle = isRestaurantOrder ? 'Chauffeur au restaurant' : 'Chauffeur au point de retrait';
+              pushBody = isRestaurantOrder ? 'Votre chauffeur est arrive au restaurant pour recuperer votre commande.' : 'Votre livreur est arrive au point de retrait';
             } else if (delivery.status === 'picked_up') {
-              pushTitle = 'Colis récupéré, en route';
-              pushBody = 'Votre colis a été récupéré et est en route';
+              pushTitle = isRestaurantOrder ? 'Votre commande a ete recuperee' : 'Colis recupere, en route';
+              pushBody = isRestaurantOrder ? 'Le chauffeur a recupere votre commande et est en route vers vous.' : 'Votre colis a ete recupere et est en route';
             } else if (delivery.status === 'delivered') {
-              pushTitle = 'Livraison effectuée!';
-              pushBody = 'Votre livraison a été effectuée avec succès';
+              pushTitle = isRestaurantOrder ? 'Votre commande est arrivee!' : 'Livraison effectuee!';
+              pushBody = isRestaurantOrder ? 'Votre commande a ete livree avec succes. Bon appetit!' : 'Votre livraison a ete effectuee avec succes';
             }
-            sendPushNotification(d.riderId.userId, pushTitle, pushBody, { type: 'delivery-status', deliveryId: delivery._id.toString(), status: delivery.status });
+            sendPushNotification(d.riderId.userId, pushTitle, pushBody, {
+              type: 'delivery-status',
+              deliveryId: delivery._id.toString(),
+              orderId: d.orderId ? d.orderId.toString() : null,
+              status: delivery.status
+            });
           }
         });
       }
