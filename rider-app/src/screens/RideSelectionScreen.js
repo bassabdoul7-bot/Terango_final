@@ -22,7 +22,6 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [showPaymentPicker, setShowPaymentPicker] = useState(false);
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
@@ -153,27 +152,21 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={styles.paymentCard} onPress={() => setShowPaymentPicker(!showPaymentPicker)} activeOpacity={0.8}>
-            <Text style={styles.paymentLabel}>Paiement</Text>
-            <View style={styles.paymentRow}>
-              <View style={[styles.paymentIconBg, { backgroundColor: selectedPaymentOption.color }]}><Text style={styles.paymentIcon}>{selectedPaymentOption.icon}</Text></View>
-              <Text style={styles.paymentText}>{selectedPaymentOption.label}</Text>
-              <Text style={{ fontSize: 14, color: COLORS.textLightMuted }}>{showPaymentPicker ? '\u25B2' : '\u25BC'}</Text>
+          <View style={styles.paymentSection}>
+            <Text style={styles.paymentLabel}>Mode de paiement</Text>
+            <View style={styles.paymentOptionsRow}>
+              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={() => setPaymentMethod('cash')} activeOpacity={0.7}>
+                <Text style={styles.paymentOptionIcon}>{'\uD83D\uDCB5'}</Text>
+                <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && styles.paymentOptionTextSelected]}>Especes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && { borderColor: COLORS.wave, backgroundColor: 'rgba(29,195,225,0.12)' }]} onPress={() => setPaymentMethod('wave')} activeOpacity={0.7}>
+                <Text style={styles.paymentOptionIcon}>{'\uD83C\uDF0A'}</Text>
+                <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && { color: COLORS.wave }]}>Wave</Text>
+              </TouchableOpacity>
             </View>
-            {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Paiement en especes au chauffeur</Text>}
-            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Paiement Wave a l'arrivee du chauffeur</Text>}
-          </TouchableOpacity>
-          {showPaymentPicker && (
-            <View style={styles.paymentPickerContainer}>
-              {paymentOptions.map((opt) => (
-                <TouchableOpacity key={opt.key} style={[styles.paymentPickerItem, paymentMethod === opt.key && styles.paymentPickerItemSelected, paymentMethod === opt.key && opt.key === 'wave' && { borderColor: COLORS.wave, backgroundColor: COLORS.waveGlow }]} onPress={() => { setPaymentMethod(opt.key); setShowPaymentPicker(false); }} activeOpacity={0.7}>
-                  <View style={[styles.paymentPickerIconBg, { backgroundColor: opt.color }]}><Text style={{ fontSize: 16 }}>{opt.icon}</Text></View>
-                  <Text style={styles.paymentPickerText}>{opt.label}</Text>
-                  {paymentMethod === opt.key && <Text style={{ fontSize: 16, color: opt.color }}>{'\u2713'}</Text>}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+            {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur a l'arrivee</Text>}
+            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payez par Wave quand le chauffeur arrive {'\u2022'} 77 807 91 03</Text>}
+          </View>
           <View style={{ height: 16 }} />
         </ScrollView>
         <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
@@ -213,18 +206,15 @@ const styles = StyleSheet.create({
   rideCapacity: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   rideTime: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
   rideFare: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-  paymentCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  paymentSection: { marginTop: 4 },
   paymentLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, marginBottom: 10 },
-  paymentRow: { flexDirection: 'row', alignItems: 'center' },
-  paymentIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
-  paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
-  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 8 },
-  paymentPickerContainer: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
-  paymentPickerItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent' },
-  paymentPickerItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  paymentPickerIconBg: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
-  paymentPickerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
+  paymentOptionsRow: { flexDirection: 'row', gap: 10 },
+  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
+  paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
+  paymentOptionIcon: { fontSize: 20 },
+  paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  paymentOptionTextSelected: { color: COLORS.yellow },
+  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 
