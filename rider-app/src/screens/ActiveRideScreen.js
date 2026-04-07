@@ -212,7 +212,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
         {ride.status !== 'pending' && !(ride.driver && ride.driver.userId) && (
           <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:COLORS.textLightSub,marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
         )}
-        {ride.status !== 'pending' && ride.driver && ride.driver.userId && (
+        {ride.status !== 'pending' && ride.driver && ride.driver.userId && (<>
+          {ride.paymentMethod === 'wave' && (
+            <View style={styles.waveBanner}>
+              <Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text>
+              <Text style={styles.waveBannerText}>{'Payez ' + (ride.fare || 0).toLocaleString() + ' FCFA par Wave au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
+            </View>
+          )}
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
             {ride.driver && ride.driver.userId && ride.driver.userId.name && (
               <View style={styles.driverCard}>
@@ -244,17 +250,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.pinHint}>{"Donnez ce code \u00e0 votre chauffeur"}</Text>
               </View>
             )}
-            {ride.paymentMethod === 'wave' && ride.driver && (
-              <View style={styles.waveBanner}>
-                <Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text>
-                <Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare || 0).toLocaleString() + ' FCFA au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
-              </View>
-            )}
             <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
             {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
             <View style={{height: 10}} />
           </ScrollView>
-        )}
+        </>)}
       </View>
       <Modal visible={showChat} animationType="slide" onRequestClose={() => setShowChat(false)}><ChatScreen socket={socketRef.current} rideId={rideId} deliveryId={null} myRole="rider" myUserId={null} otherName={ride?.driver?.userId?.name || 'Chauffeur'} onClose={() => setShowChat(false)} /></Modal>
       <CancelModal visible={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={handleCancelRide} loading={cancelling} />
