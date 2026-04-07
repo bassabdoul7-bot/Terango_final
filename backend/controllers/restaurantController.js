@@ -1,6 +1,9 @@
 ﻿var Restaurant = require('../models/Restaurant');
 var Order = require('../models/Order');
+var Delivery = require('../models/Delivery');
 var Driver = require('../models/Driver');
+var Rider = require('../models/Rider');
+var { sendPushNotification } = require('../services/pushService');
 var jwt = require('jsonwebtoken');
 var bcrypt = require('bcryptjs');
 
@@ -216,6 +219,9 @@ exports.getOrders = function(req, res) {
 };
 
 exports.acceptOrder = function(req, res) {
+  var io = req.app.get('io');
+  var driverLocationService = req.app.get('driverLocationService');
+
   Order.findOneAndUpdate(
     { _id: req.params.orderId, restaurant: req.restaurant._id, status: 'pending' },
     { status: 'confirmed', confirmedAt: new Date() },
@@ -224,8 +230,153 @@ exports.acceptOrder = function(req, res) {
     if (!order) {
       return res.status(404).json({ success: false, message: 'Commande non trouvee' });
     }
-    res.json({ success: true, order: order });
+
+    // Calculate delivery pricing (same formula as deliveryController)
+    var PRICING_COMMANDE = { base: 1000, perKm: 150 };
+    var COMMISSION_RATE = 0.05;
+    var distance = order.distance || 3; // fallback 3km if not set
+    var baseFare = PRICING_COMMANDE.base;
+    var distanceFare = Math.ceil(distance) * PRICING_COMMANDE.perKm;
+    var fare = Math.round((baseFare + distanceFare) / 100) * 100;
+    var commission = Math.round(fare * COMMISSION_RATE);
+    var driverEarnings = fare - commission;
+
+    // Build items description for commandeDetails
+    var itemsList = order.items.map(function(item) {
+      return item.quantity + 'x ' + item.name;
+    }).join(', ');
+
+    // Create a Delivery record linked to this order
+    var delivery = new Delivery({
+      orderId: order._id,
+      riderId: order.riderId,
+      serviceType: 'commande',
+      pickup: {
+        address: order.pickup.address || '',
+        coordinates: {
+          latitude: order.pickup.coordinates.latitude,
+          longitude: order.pickup.coordinates.longitude
+        },
+        contactName: req.restaurant.name,
+        contactPhone: req.restaurant.phone || ''
+      },
+      dropoff: {
+        address: order.dropoff.address,
+        coordinates: {
+          latitude: order.dropoff.coordinates.latitude,
+          longitude: order.dropoff.coordinates.longitude
+        },
+        contactName: '',
+        contactPhone: ''
+      },
+      commandeDetails: {
+        storeName: req.restaurant.name,
+        storeType: 'restaurant',
+        itemsList: itemsList,
+        estimatedItemsCost: order.subtotal
+      },
+      distance: distance,
+      estimatedDuration: order.estimatedDeliveryTime || 20,
+      fare: fare,
+      deliveryFee: baseFare + distanceFare,
+      sizeSurcharge: 0,
+      platformCommission: commission,
+      driverEarnings: driverEarnings,
+      paymentMethod: order.paymentMethod || 'cash'
+    });
+
+    return delivery.save().then(function(savedDelivery) {
+      // Link delivery back to the order
+      order.deliveryId = savedDelivery._id;
+      return order.save().then(function() {
+        // Notify rider that order was confirmed
+        io.to(order._id.toString()).emit('order-status', {
+          orderId: order._id,
+          status: 'confirmed'
+        });
+
+        // Push notify rider
+        Rider.findById(order.riderId).then(function(rider) {
+          if (rider) {
+            sendPushNotification(
+              rider.userId,
+              'Commande confirmee!',
+              'Le restaurant ' + req.restaurant.name + ' prepare votre commande.',
+              { type: 'order-confirmed', orderId: order._id.toString() }
+            );
+          }
+        }).catch(function() {});
+
+        // Find nearby drivers and broadcast the delivery
+        driverLocationService.getNearbyDrivers(
+          savedDelivery.pickup.coordinates.latitude,
+          savedDelivery.pickup.coordinates.longitude,
+          10
+        ).then(function(nearbyDrivers) {
+          if (nearbyDrivers.length === 0) {
+            console.log('Restaurant order ' + order._id + ': no nearby drivers found');
+            savedDelivery.status = 'no_drivers_available';
+            savedDelivery.save();
+            return;
+          }
+
+          var driverIds = nearbyDrivers.map(function(d) { return d.driverId; });
+
+          Driver.find({
+            _id: { $in: driverIds },
+            isAvailable: true,
+            isOnline: true
+          }).then(function(drivers) {
+            // Filter drivers who accept 'resto' or 'commande' service type
+            var acceptingDrivers = drivers.filter(function(d) {
+              return d.acceptedServices && (d.acceptedServices.resto || d.acceptedServices.commande);
+            });
+
+            if (acceptingDrivers.length === 0) {
+              console.log('Restaurant order ' + order._id + ': no drivers accept resto/commande');
+              savedDelivery.status = 'no_drivers_available';
+              savedDelivery.save();
+              return;
+            }
+
+            // Emit new-delivery to each accepting driver
+            acceptingDrivers.forEach(function(driver) {
+              io.to('driver-' + driver._id.toString()).emit('new-delivery', {
+                deliveryId: savedDelivery._id,
+                serviceType: savedDelivery.serviceType,
+                pickup: savedDelivery.pickup,
+                dropoff: savedDelivery.dropoff,
+                fare: savedDelivery.fare,
+                driverEarnings: savedDelivery.driverEarnings,
+                distance: savedDelivery.distance,
+                commandeDetails: savedDelivery.commandeDetails,
+                orderId: order._id
+              });
+            });
+
+            console.log('Restaurant order ' + order._id + ': broadcasted to ' + acceptingDrivers.length + ' drivers');
+
+            // Auto-cancel after 60 seconds if no driver accepts
+            setTimeout(function() {
+              Delivery.findById(savedDelivery._id).then(function(d) {
+                if (d && d.status === 'pending') {
+                  d.status = 'no_drivers_available';
+                  d.save();
+                  io.to(d._id.toString()).emit('delivery-expired', { deliveryId: d._id });
+                  console.log('Restaurant delivery ' + d._id + ' expired (no driver accepted in 60s)');
+                }
+              });
+            }, 60000);
+          });
+        }).catch(function(err) {
+          console.error('Find drivers for restaurant order error:', err);
+        });
+
+        res.json({ success: true, order: order, deliveryId: savedDelivery._id });
+      });
+    });
   }).catch(function(err) {
+    console.error('Accept order error:', err);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   });
 };

@@ -16,6 +16,11 @@ var orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Driver'
   },
+  deliveryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Delivery',
+    default: null
+  },
   items: [{
     menuItemId: mongoose.Schema.Types.ObjectId,
     name: { type: String, required: true },
