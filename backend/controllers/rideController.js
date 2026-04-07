@@ -71,7 +71,10 @@ exports.createRide = async (req, res) => {
       fare: ride.fare,
       distance: ride.distance,
       estimatedDuration: ride.estimatedDuration,
-      rideType: ride.rideType
+      rideType: ride.rideType,
+      paymentMethod: ride.paymentMethod,
+      platformCommission: ride.platformCommission,
+      driverEarnings: ride.driverEarnings
     };
 
     matchingService.offerRideToDrivers(
