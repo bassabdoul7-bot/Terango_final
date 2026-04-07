@@ -20,6 +20,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
   const [vehicleRegPhoto, setVehicleRegPhoto] = useState(null);
   const [vehicleMake, setVehicleMake] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
+  const [waveNumber, setWaveNumber] = useState('');
   const [loading, setLoading] = useState(false);
 
   const takePhoto = async (setter) => {
@@ -70,6 +71,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
       if (vehicleBackPhoto) formData.append('vehicleBack', { uri: vehicleBackPhoto.uri, type: 'image/jpeg', name: 'vehicle_back.jpg' });
       if (vehicleInteriorPhoto) formData.append('vehicleInterior', { uri: vehicleInteriorPhoto.uri, type: 'image/jpeg', name: 'vehicle_interior.jpg' });
       if (licensePlate) formData.append('licensePlate', licensePlate);
+      if (waveNumber.trim()) formData.append('waveNumber', waveNumber.trim());
 
       await driverService.uploadDocuments(formData);
       Alert.alert(
@@ -241,6 +243,17 @@ const DocumentUploadScreen = ({ onComplete }) => {
             />
           </>
         )}
+
+        <Text style={styles.sectionLabel}>{"Num\u00e9ro Wave (optionnel)"}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Ex: 77 123 45 67"
+          placeholderTextColor="#999"
+          value={waveNumber}
+          onChangeText={setWaveNumber}
+          keyboardType="phone-pad"
+        />
+        <Text style={{fontSize: 12, color: '#999', marginTop: 4, fontFamily: 'LexendDeca_400Regular'}}>{"Les passagers pourront vous payer via Wave"}</Text>
 
         <View style={{ height: 24 }} />
         {loading ? (
