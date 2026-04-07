@@ -3,6 +3,33 @@ const router = express.Router();
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
 const { protect, restrictTo } = require('../middleware/auth');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const waveScreenshotStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'terango-wave-screenshots',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 1200, height: 1200, crop: 'limit' }]
+  }
+});
+
+const waveUpload = multer({
+  storage: waveScreenshotStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Seules les images sont acceptees'), false);
+  }
+});
 const {
   createRide,
   getRide,
@@ -77,7 +104,7 @@ router.put('/:id/start', protect, restrictTo('driver'), startRide);
 router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
 
 // Wave screenshot upload (Rider only)
-router.put('/:id/wave-screenshot', protect, restrictTo('rider'), uploadWaveScreenshot);
+router.put('/:id/wave-screenshot', protect, restrictTo('rider'), waveUpload.single('screenshot'), uploadWaveScreenshot);
 
 // Driver verifies Wave payment
 router.put('/:id/verify-wave-payment', protect, restrictTo('driver'), verifyWavePayment);

@@ -745,9 +745,9 @@ exports.uploadWaveScreenshot = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cette course ne requiert pas de paiement Wave' });
     }
 
-    const { screenshotUrl } = req.body;
+    const screenshotUrl = req.file ? req.file.path : req.body.screenshotUrl;
     if (!screenshotUrl) {
-      return res.status(400).json({ success: false, message: 'URL de la capture requise' });
+      return res.status(400).json({ success: false, message: 'Capture de paiement requise' });
     }
 
     ride.wavePaymentScreenshot = screenshotUrl;
