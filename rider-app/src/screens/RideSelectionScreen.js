@@ -165,7 +165,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
             {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur a l'arrivee</Text>}
-            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payez par Wave quand le chauffeur arrive {'\u2022'} 77 807 91 03</Text>}
+            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payez par Wave au chauffeur</Text>}
           </View>
           <View style={{ height: 16 }} />
         </ScrollView>

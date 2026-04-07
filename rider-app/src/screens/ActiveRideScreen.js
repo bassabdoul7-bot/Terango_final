@@ -1,17 +1,15 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, StatusBar } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
-import * as ImagePicker from 'expo-image-picker';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
 const { width, height } = Dimensions.get('window');
-const WAVE_PAYMENT_NUMBER = '77 807 91 03';
 // ========== CONFETTI CELEBRATION COMPONENT ==========
 const ConfettiCelebration = ({ visible }) => {
   const particles = useRef([...Array(30)].map(() => ({
@@ -133,15 +131,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFareAnimation, setShowFareAnimation] = useState(false);
   const [completedFare, setCompletedFare] = useState(0);
-  const [showWavePaymentScreen, setShowWavePaymentScreen] = useState(false);
-  const [waveScreenshotUri, setWaveScreenshotUri] = useState(null);
-  const [waveUploading, setWaveUploading] = useState(false);
-  const [waveWaitingVerification, setWaveWaitingVerification] = useState(false);
-  const [wavePaymentVerified, setWavePaymentVerified] = useState(false);
   // Animated car rotation for driver marker
   const driverRotation = useRef(new Animated.Value(0)).current;
   const prevDriverLoc = useRef(null);
-  useEffect(() => { const bh = BackHandler.addEventListener('hardwareBackPress', () => { handleBackPress(); return true; }); return () => bh.remove(); }, [ride, showNoDrivers, showWavePaymentScreen]);
+  useEffect(() => { const bh = BackHandler.addEventListener('hardwareBackPress', () => { handleBackPress(); return true; }); return () => bh.remove(); }, [ride, showNoDrivers]);
   useEffect(() => { if (ride?.status === 'pending' && !showNoDrivers) { searchTimerRef.current = setInterval(() => setSearchTime(prev => prev + 1), 1000); } else if (searchTimerRef.current) { clearInterval(searchTimerRef.current); } return () => { if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, [ride?.status, showNoDrivers]);
   // Calculate driver heading for smooth car rotation
   useEffect(() => {
@@ -154,14 +147,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
     prevDriverLoc.current = driverLocation;
   }, [driverLocation]);
-  const handleBackPress = () => { if (showWavePaymentScreen) return; if (showNoDrivers) { navigation.replace('Home'); return; } if (!ride) { navigation.goBack(); return; } if (ride.status === 'pending') { Alert.alert('Recherche en cours', 'Voulez-vous annuler?', [{ text: 'Rester', style: 'cancel' }, { text: 'Annuler', style: 'destructive', onPress: () => handleCancelRide('Annul\u00e9 par le passager') }]); } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) { Alert.alert('Course en cours', 'Vous avez une course active.'); } else { navigation.navigate('Home'); } };
+  const handleBackPress = () => { if (showNoDrivers) { navigation.replace('Home'); return; } if (!ride) { navigation.goBack(); return; } if (ride.status === 'pending') { Alert.alert('Recherche en cours', 'Voulez-vous annuler?', [{ text: 'Rester', style: 'cancel' }, { text: 'Annuler', style: 'destructive', onPress: () => handleCancelRide('Annul\u00e9 par le passager') }]); } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) { Alert.alert('Course en cours', 'Vous avez une course active.'); } else { navigation.navigate('Home'); } };
   useEffect(() => { fetchRideDetails(); pollInterval.current = setInterval(fetchRideDetails, 5000); return () => { if (pollInterval.current) clearInterval(pollInterval.current); if (etaInterval.current) clearInterval(etaInterval.current); if (socketRef.current) socketRef.current.disconnect(); }; }, [rideId]);
   useEffect(() => { if (ride?.driver?.userId && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (etaInterval.current) { clearInterval(etaInterval.current); } fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
   const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (["accepted", "in_progress"].includes(rd.status) && routeCoordinates.length === 0) { try { await getDirections(rd); } catch(e) {} }
-    // Show wave payment screen if arrived + wave + not yet verified
-    if (rd.status === 'arrived' && rd.paymentMethod === 'wave' && !rd.wavePaymentVerifiedByDriver && !wavePaymentVerified) { setShowWavePaymentScreen(true); }
-    if (!alertShownRef.current) { if (rd.status === "completed") { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setShowWavePaymentScreen(false); setTimeout(() => { navigation.replace("Rating", { ride: rd }); }, 4000); } else if (rd.status === "cancelled") { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert("Course annul\u00e9e", "Votre course a \u00e9t\u00e9 annul\u00e9e.", [{ text: "OK", onPress: () => navigation.replace("Home") }]); } else if (rd.status === "no_drivers_available") { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
-  const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => { if (d && d.location && typeof d.location.latitude === 'number' && typeof d.location.longitude === 'number') setDriverLocation(d.location); }); socketRef.current.on('ride-accepted', function() { setTimeout(fetchRideDetails, 1500); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); socketRef.current.on('ride-status', (data) => { if (data && data.status) { if (data.status === 'arrived' || data.status === 'in_progress') { fetchRideDetails(); } else if (data.status === 'completed') { fetchRideDetails(); } } }); socketRef.current.on('wave-payment-required', (data) => { setShowWavePaymentScreen(true); }); socketRef.current.on('wave-payment-verified', () => { setWavePaymentVerified(true); setWaveWaitingVerification(false); setShowWavePaymentScreen(false); fetchRideDetails(); }); };
+    if (!alertShownRef.current) { if (rd.status === "completed") { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace("Rating", { ride: rd }); }, 4000); } else if (rd.status === "cancelled") { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert("Course annul\u00e9e", "Votre course a \u00e9t\u00e9 annul\u00e9e.", [{ text: "OK", onPress: () => navigation.replace("Home") }]); } else if (rd.status === "no_drivers_available") { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
+  const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => { if (d && d.location && typeof d.location.latitude === 'number' && typeof d.location.longitude === 'number') setDriverLocation(d.location); }); socketRef.current.on('ride-accepted', function() { setTimeout(fetchRideDetails, 1500); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); socketRef.current.on('ride-status', (data) => { if (data && data.status) { if (data.status === 'arrived' || data.status === 'in_progress') { fetchRideDetails(); } else if (data.status === 'completed') { fetchRideDetails(); } } }); };
   const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || !loc) return; if (ride.status === 'accepted' && ride.pickup?.coordinates) { try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} } else if (ride.status === 'in_progress' && ride.dropoff?.coordinates) { try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.dropoff.coordinates.longitude},${ride.dropoff.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} } };
   const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) { try { await new Promise(function(r) { setTimeout(r, 500); });
           const lats = coords.map(c => c.latitude);
@@ -170,26 +161,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
         } } } catch (e) {} };
   const handleRetry = async () => { setRetrying(true); setRetryCount(prev => prev + 1); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
-  const handlePickScreenshot = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') { Alert.alert('Permission requise', "Autorisez l'acces a la galerie pour envoyer la capture d'ecran."); return; }
-      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: false, quality: 0.8 });
-      if (!result.canceled && result.assets && result.assets.length > 0) { setWaveScreenshotUri(result.assets[0].uri); }
-    } catch (e) { Alert.alert('Erreur', "Impossible d'ouvrir la galerie."); }
-  };
-  const handleSendScreenshot = async () => {
-    if (!waveScreenshotUri) return;
-    setWaveUploading(true);
-    try {
-      await rideService.uploadWaveScreenshot(rideId, waveScreenshotUri);
-      setWaveUploading(false);
-      setWaveWaitingVerification(true);
-    } catch (e) {
-      setWaveUploading(false);
-      Alert.alert('Erreur', "Impossible d'envoyer la capture. Reessayez.");
-    }
-  };
   const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
   const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
@@ -273,6 +244,12 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.pinHint}>{"Donnez ce code \u00e0 votre chauffeur"}</Text>
               </View>
             )}
+            {ride.status === 'arrived' && ride.paymentMethod === 'wave' && (
+              <View style={styles.waveBanner}>
+                <Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text>
+                <Text style={styles.waveBannerText}>{'Payez ' + (ride.fare || 0).toLocaleString() + ' FCFA par Wave au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
+              </View>
+            )}
             <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
             {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
             <View style={{height: 10}} />
@@ -280,68 +257,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </View>
       <Modal visible={showChat} animationType="slide" onRequestClose={() => setShowChat(false)}><ChatScreen socket={socketRef.current} rideId={rideId} deliveryId={null} myRole="rider" myUserId={null} otherName={ride?.driver?.userId?.name || 'Chauffeur'} onClose={() => setShowChat(false)} /></Modal>
-      {showWavePaymentScreen && (
-        <View style={waveStyles.fullScreen}>
-          <StatusBar barStyle="light-content" />
-          <ScrollView contentContainerStyle={waveStyles.fullScreenScroll} showsVerticalScrollIndicator={false}>
-            {wavePaymentVerified ? (
-              <View style={waveStyles.verifiedContainer}>
-                <Text style={waveStyles.verifiedIcon}>{'\u2705'}</Text>
-                <Text style={waveStyles.verifiedTitle}>Paiement verifie</Text>
-                <Text style={waveStyles.verifiedSub}>Le chauffeur a confirme votre paiement</Text>
-              </View>
-            ) : waveWaitingVerification ? (
-              <View style={waveStyles.waitingContainer}>
-                <ActivityIndicator size="large" color={COLORS.wave} />
-                <Text style={waveStyles.waitingTitle}>En attente de verification par le chauffeur...</Text>
-                <Text style={waveStyles.waitingSub}>Votre capture a ete envoyee. Le chauffeur verifie le paiement.</Text>
-                {waveScreenshotUri && <Image source={{ uri: waveScreenshotUri }} style={waveStyles.screenshotPreviewSmall} resizeMode="contain" />}
-              </View>
-            ) : (
-              <>
-                <Text style={waveStyles.fullTitle}>Paiement Wave requis</Text>
-                <View style={waveStyles.amountCard}>
-                  <Text style={waveStyles.amountValue}>{(ride?.fare || 0).toLocaleString()} FCFA</Text>
-                </View>
-                <View style={waveStyles.numberCard}>
-                  <Text style={waveStyles.numberLabel}>Envoyez au</Text>
-                  <Text style={waveStyles.numberValue}>{WAVE_PAYMENT_NUMBER}</Text>
-                </View>
-                <View style={waveStyles.stepsContainer}>
-                  <View style={waveStyles.stepRow}>
-                    <View style={waveStyles.stepBadge}><Text style={waveStyles.stepBadgeText}>1</Text></View>
-                    <Text style={waveStyles.stepText}>Ouvrez Wave et envoyez {(ride?.fare || 0).toLocaleString()} FCFA</Text>
-                  </View>
-                  <View style={waveStyles.stepRow}>
-                    <View style={waveStyles.stepBadge}><Text style={waveStyles.stepBadgeText}>2</Text></View>
-                    <Text style={waveStyles.stepText}>Prenez une capture d'ecran de la confirmation</Text>
-                  </View>
-                  <View style={waveStyles.stepRow}>
-                    <View style={waveStyles.stepBadge}><Text style={waveStyles.stepBadgeText}>3</Text></View>
-                    <Text style={waveStyles.stepText}>Envoyez la capture ci-dessous</Text>
-                  </View>
-                </View>
-                {!waveScreenshotUri ? (
-                  <TouchableOpacity style={waveStyles.uploadButton} onPress={handlePickScreenshot} activeOpacity={0.8}>
-                    <Text style={waveStyles.uploadIcon}>{'\uD83D\uDCF7'}</Text>
-                    <Text style={waveStyles.uploadText}>Choisir la capture d'ecran</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={waveStyles.previewSection}>
-                    <Image source={{ uri: waveScreenshotUri }} style={waveStyles.screenshotPreview} resizeMode="contain" />
-                    <TouchableOpacity style={waveStyles.changeButton} onPress={handlePickScreenshot} activeOpacity={0.8}>
-                      <Text style={waveStyles.changeButtonText}>Changer l'image</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={waveStyles.sendButton} onPress={handleSendScreenshot} disabled={waveUploading} activeOpacity={0.8}>
-                      {waveUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={waveStyles.sendButtonText}>Envoyer au chauffeur</Text>}
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </>
-            )}
-          </ScrollView>
-        </View>
-      )}
       <CancelModal visible={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={handleCancelRide} loading={cancelling} />
     </View>
   );
@@ -458,38 +373,9 @@ const styles = StyleSheet.create({
   fareCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   fareLabel: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-});
-const waveStyles = StyleSheet.create({
-  fullScreen: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: COLORS.darkBg, zIndex: 999 },
-  fullScreenScroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24, paddingTop: 60, paddingBottom: 40 },
-  fullTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.wave, textAlign: 'center', marginBottom: 20 },
-  amountCard: { backgroundColor: COLORS.waveGlow, borderRadius: 16, paddingVertical: 20, paddingHorizontal: 32, marginBottom: 16, borderWidth: 1.5, borderColor: COLORS.waveBorder, alignItems: 'center', width: '100%' },
-  amountValue: { fontSize: 36, fontFamily: 'LexendDeca_700Bold', color: COLORS.wave },
-  numberCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 18, marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', alignItems: 'center', width: '100%' },
-  numberLabel: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginBottom: 6 },
-  numberValue: { fontSize: 26, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, letterSpacing: 3 },
-  stepsContainer: { width: '100%', marginBottom: 24 },
-  stepRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14, paddingHorizontal: 4 },
-  stepBadge: { width: 30, height: 30, borderRadius: 15, backgroundColor: COLORS.wave, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  stepBadgeText: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  stepText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, lineHeight: 20 },
-  uploadButton: { backgroundColor: 'rgba(29,195,225,0.15)', borderRadius: 16, paddingVertical: 24, paddingHorizontal: 20, borderWidth: 2, borderColor: COLORS.wave, borderStyle: 'dashed', alignItems: 'center', width: '100%', marginBottom: 16 },
-  uploadIcon: { fontSize: 36, marginBottom: 8 },
-  uploadText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.wave },
-  previewSection: { width: '100%', alignItems: 'center' },
-  screenshotPreview: { width: '100%', height: 280, borderRadius: 14, marginBottom: 14, backgroundColor: 'rgba(255,255,255,0.06)' },
-  screenshotPreviewSmall: { width: 180, height: 180, borderRadius: 12, marginTop: 20, backgroundColor: 'rgba(255,255,255,0.06)', opacity: 0.7 },
-  changeButton: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.08)', marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  changeButtonText: { fontSize: 13, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
-  sendButton: { backgroundColor: COLORS.wave, paddingVertical: 16, borderRadius: 14, alignItems: 'center', width: '100%' },
-  sendButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  waitingContainer: { alignItems: 'center', paddingVertical: 40 },
-  waitingTitle: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.wave, marginTop: 24, textAlign: 'center', lineHeight: 24 },
-  waitingSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center', lineHeight: 18 },
-  verifiedContainer: { alignItems: 'center', paddingVertical: 40 },
-  verifiedIcon: { fontSize: 60, marginBottom: 16 },
-  verifiedTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.green, marginBottom: 8 },
-  verifiedSub: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, textAlign: 'center' },
+  waveBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,195,225,0.12)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(29,195,225,0.3)' },
+  waveBannerIcon: { fontSize: 24, marginRight: 10 },
+  waveBannerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#1DC3E1', lineHeight: 20 },
 });
 class ActiveRideErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
