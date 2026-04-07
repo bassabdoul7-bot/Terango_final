@@ -107,14 +107,6 @@ const rideSchema = new mongoose.Schema({
     enum: ['pending', 'awaiting_payment', 'completed', 'failed'],
     default: 'pending'
   },
-  wavePaymentScreenshot: {
-    type: String,
-    default: null
-  },
-  wavePaymentVerifiedByDriver: {
-    type: Boolean,
-    default: false
-  },
   wavePayoutSent: {
     type: Boolean,
     default: false

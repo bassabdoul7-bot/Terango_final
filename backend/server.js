@@ -217,53 +217,6 @@ setInterval(function() {
 }, 5 * 60 * 1000);
 
 
-// ========== Auto-cancel Wave rides with no payment after 10 min at pickup ==========
-setInterval(async function() {
-  try {
-    var RideWaveCheck = require('./models/Ride');
-    var RiderWaveCheck = require('./models/Rider');
-    var DriverWaveCheck = require('./models/Driver');
-    var { sendPushNotification: pushWaveCancel } = require('./services/pushService');
-    var tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
-
-    var unpaidWaveRides = await RideWaveCheck.find({
-      status: 'arrived',
-      paymentMethod: 'wave',
-      wavePaymentVerifiedByDriver: { $ne: true },
-      arrivedAt: { $lt: tenMinAgo }
-    }).populate('riderId').populate('driver');
-
-    for (var i = 0; i < unpaidWaveRides.length; i++) {
-      var ride = unpaidWaveRides[i];
-      ride.status = 'cancelled';
-      ride.cancelledAt = new Date();
-      ride.cancellationReason = 'Paiement Wave non re\u00e7u';
-      await ride.save();
-
-      // Make driver available again
-      if (ride.driver) {
-        await DriverWaveCheck.findByIdAndUpdate(ride.driver._id || ride.driver, { isAvailable: true });
-      }
-
-      // Notify both parties
-      io.to(ride._id.toString()).emit('ride-cancelled', {
-        reason: 'Paiement Wave non re\u00e7u'
-      });
-
-      if (ride.riderId && ride.riderId.userId) {
-        pushWaveCancel(ride.riderId.userId, 'Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e car le paiement Wave n\'a pas \u00e9t\u00e9 re\u00e7u dans les 10 minutes.', { type: 'ride-cancelled', rideId: ride._id.toString() });
-      }
-      if (ride.driver && ride.driver.userId) {
-        pushWaveCancel(ride.driver.userId, 'Course annul\u00e9e', 'La course a \u00e9t\u00e9 annul\u00e9e: paiement Wave non re\u00e7u.', { type: 'ride-cancelled', rideId: ride._id.toString() });
-      }
-
-      console.log('Auto-cancelled Wave ride ' + ride._id + ' (no payment after 10 min)');
-    }
-  } catch (e) {
-    console.error('Wave auto-cancel error:', e.message);
-  }
-}, 2 * 60 * 1000);
-
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
   const token = socket.handshake.auth.token;
