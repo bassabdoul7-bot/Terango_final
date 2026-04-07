@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert, Animated, Linking, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert, Animated, Linking, Image, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
 import * as ImagePicker from 'expo-image-picker';
@@ -23,8 +23,11 @@ var MenuScreen = function(props) {
   var soundState = useState(true); var soundEnabled = soundState[0]; var setSoundEnabled = soundState[1];
   var langState = useState('Fran\u00e7ais'); var language = langState[0]; var setLanguage = langState[1];
   var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
+  var waveState = useState((driver && driver.waveNumber) || ''); var waveNumber = waveState[0]; var setWaveNumber = waveState[1];
+  var waveSavingState = useState(false); var waveSaving = waveSavingState[0]; var setWaveSaving = waveSavingState[1];
 
   useEffect(function() { fetchEarnings(); fetchHistory(); fetchDriverProfile(); }, []);
+  useEffect(function() { if (driver && driver.waveNumber !== undefined) setWaveNumber(driver.waveNumber || ''); }, [driver]);
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0], weeklyRides: e.weeklyRides||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   function fetchHistory() { driverService.getRideHistory().then(function(r) { setRideHistory(r.rides||[]); }).catch(function(){}); }
 
@@ -32,6 +35,7 @@ var MenuScreen = function(props) {
   function uploadPhoto(uri) { var formData = new FormData(); formData.append('photo', { uri: uri, type: 'image/jpeg', name: 'profile.jpg' }); driverService.uploadProfilePhoto(formData).then(function(r) { if (r.success) { updateUser({ profilePhoto: r.profilePhoto, photoStatus: 'pending', photoVerified: false, photoUpdatedAt: new Date().toISOString() }); Alert.alert('Photo envoy\u00e9e', "Votre photo est en cours de v\u00e9rification."); } else { Alert.alert('Erreur', r.message || '\u00c9chec'); } }).catch(function() { Alert.alert('Erreur', 'Impossible de t\u00e9l\u00e9charger'); }); }
   function pickPhoto() { if (user && user.profilePhoto) { var status = user.photoStatus || 'pending'; if (status === 'expired') { takeLivePhoto(); return; } if (status === 'approved' || user.photoVerified) { Alert.alert('Photo v\u00e9rifi\u00e9e \u2714', "Votre photo est active.", [{ text: 'OK' }]); return; } Alert.alert('Photo en attente', "En cours de v\u00e9rification.", [{ text: 'OK' }]); return; } takeLivePhoto(); }
   function switchTab(tab) { Animated.sequence([Animated.timing(fadeAnim, { toValue: 0, duration: 120, useNativeDriver: true }), Animated.timing(fadeAnim, { toValue: 1, duration: 120, useNativeDriver: true })]).start(); setTimeout(function() { setActiveTab(tab); }, 120); }
+  function saveWaveNumber() { if (waveSaving) return; setWaveSaving(true); driverService.updateWaveNumber(waveNumber.trim()).then(function(r) { if (r.success) { Alert.alert('Enregistre', 'Numero Wave mis a jour.'); fetchDriverProfile(); } }).catch(function() { Alert.alert('Erreur', 'Impossible de mettre a jour.'); }).finally(function() { setWaveSaving(false); }); }
   function handleLogout() { Alert.alert('D\u00e9connexion', 'Voulez-vous vraiment vous d\u00e9connecter?', [{ text: 'Annuler', style: 'cancel' }, { text: 'D\u00e9connexion', style: 'destructive', onPress: function() { logout(); } }]); }
   function formatDate(d) { if (!d) return ''; var date = new Date(d); var now = new Date(); var diff = Math.floor((now-date)/(1000*60*60*24)); if (diff===0) return "Aujourd'hui"; if (diff===1) return 'Hier'; if (diff<7) return 'Il y a '+diff+' jours'; return date.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}); }
   function formatTime(d) { if (!d) return ''; return new Date(d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
@@ -84,7 +88,7 @@ var MenuScreen = function(props) {
       <Text style={styles.settingsSection}>{'S\u00e9curit\u00e9'}</Text>
       <View style={styles.settingsGroup}><TouchableOpacity style={styles.settingsRow} onPress={function(){var newVal=!securityPinEnabled;setSecurityPinEnabled(newVal);driverService.updateSecurityPin(newVal).catch(function(){setSecurityPinEnabled(!newVal);});}}><Text style={styles.settingsEmoji}>{'\uD83D\uDD12'}</Text><Text style={styles.settingsLabel}>{'Code de s\u00e9curit\u00e9'}</Text><View style={[styles.toggle,securityPinEnabled&&styles.toggleOn]}><View style={[styles.toggleDot,securityPinEnabled&&styles.toggleDotOn]}/></View></TouchableOpacity><View style={[styles.settingsRow,{borderBottomWidth:0}]}><Text style={styles.settingsEmoji}>{'\uD83D\uDEE1\uFE0F'}</Text><Text style={styles.settingsSub}>{'Un code PIN \u00e0 4 chiffres sera g\u00e9n\u00e9r\u00e9 pour chaque course'}</Text></View></View>
       <Text style={styles.settingsSection}>Compte</Text>
-      <View style={styles.settingsGroup}><View style={styles.settingsRow}><Text style={styles.settingsEmoji}>{'\uD83D\uDCDE'}</Text><Text style={styles.settingsLabel}>{"T\u00e9l\u00e9phone"}</Text><Text style={styles.settingsValue}>{(user&&user.phone)?user.phone:'-'}</Text></View><View style={[styles.settingsRow,{borderBottomWidth:0}]}><Text style={styles.settingsEmoji}>{'\uD83D\uDCE7'}</Text><Text style={styles.settingsLabel}>Email</Text><Text style={styles.settingsValue}>{(user&&user.email)?user.email:'-'}</Text></View></View>
+      <View style={styles.settingsGroup}><View style={styles.settingsRow}><Text style={styles.settingsEmoji}>{'\uD83D\uDCDE'}</Text><Text style={styles.settingsLabel}>{"T\u00e9l\u00e9phone"}</Text><Text style={styles.settingsValue}>{(user&&user.phone)?user.phone:'-'}</Text></View><View style={styles.settingsRow}><Text style={styles.settingsEmoji}>{'\uD83D\uDCE7'}</Text><Text style={styles.settingsLabel}>Email</Text><Text style={styles.settingsValue}>{(user&&user.email)?user.email:'-'}</Text></View><View style={[styles.settingsRow,{borderBottomWidth:0,flexDirection:'column',alignItems:'stretch'}]}><View style={{flexDirection:'row',alignItems:'center',marginBottom:8}}><Text style={styles.settingsEmoji}>{'\uD83C\uDF0A'}</Text><Text style={styles.settingsLabel}>{"Num\u00e9ro Wave"}</Text></View><Text style={{fontSize:12,color:COLORS.textDarkMuted,marginBottom:8,fontFamily:'LexendDeca_400Regular'}}>{"Optionnel \u2014 les passagers pourront vous payer via Wave"}</Text><View style={{flexDirection:'row',alignItems:'center'}}><TextInput style={[styles.waveInput,{flex:1,marginRight:10}]} placeholder="Ex: 77 123 45 67" placeholderTextColor="#999" value={waveNumber} onChangeText={setWaveNumber} keyboardType="phone-pad" /><TouchableOpacity style={[styles.waveSaveBtn,waveSaving&&{opacity:0.5}]} onPress={saveWaveNumber} disabled={waveSaving}><Text style={styles.waveSaveBtnText}>{waveSaving?'...':'Enregistrer'}</Text></TouchableOpacity></View></View></View>
     </ScrollView>);
   }
 
@@ -263,6 +267,9 @@ var styles = StyleSheet.create({
   toggleOn: { backgroundColor: COLORS.green },
   toggleDot: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
   toggleDotOn: { alignSelf: 'flex-end' },
+  waveInput: { backgroundColor: '#F5F5F5', borderRadius: 12, padding: 12, fontSize: 15, color: '#333', borderWidth: 1, borderColor: '#EEE', fontFamily: 'LexendDeca_400Regular' },
+  waveSaveBtn: { backgroundColor: COLORS.green, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 },
+  waveSaveBtnText: { color: '#FFF', fontSize: 14, fontFamily: 'LexendDeca_600SemiBold' },
 });
 
 export default MenuScreen;

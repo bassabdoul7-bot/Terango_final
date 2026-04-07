@@ -30,6 +30,7 @@ exports.completeProfile = function(req, res) {
   var driverLicenseNumber = req.body.driverLicenseNumber;
   var driverLicensePhoto = req.body.driverLicensePhoto;
   var vehicle = req.body.vehicle;
+  var waveNumber = req.body.waveNumber;
 
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
@@ -39,6 +40,7 @@ exports.completeProfile = function(req, res) {
       driver.driverLicenseNumber = driverLicenseNumber;
       driver.driverLicensePhoto = driverLicensePhoto;
       driver.vehicle = vehicle;
+      if (waveNumber !== undefined) driver.waveNumber = waveNumber;
       driver.verificationStatus = 'approved';
       return driver.save();
     })
@@ -482,6 +484,8 @@ exports.uploadDocuments = function(req, res) {
         if (!driver.vehicle) driver.vehicle = {};
         driver.vehicle.licensePlate = req.body.licensePlate;
       }
+      // Wave number
+      if (req.body.waveNumber !== undefined) driver.waveNumber = req.body.waveNumber;
       // Vehicle class
       if (req.body.vehicleClass) driver.vehicleClass = req.body.vehicleClass;
       // Vehicle photos
@@ -498,6 +502,30 @@ exports.uploadDocuments = function(req, res) {
     .catch(function(error) {
       console.error('Upload Documents Error:', error);
       res.status(500).json({ success: false, message: 'Erreur upload' });
+    });
+};
+
+exports.updateWaveNumber = function(req, res) {
+  var waveNumber = req.body.waveNumber;
+  if (waveNumber === undefined) {
+    return res.status(400).json({ success: false, message: 'waveNumber requis' });
+  }
+  Driver.findOne({ userId: req.user._id })
+    .then(function(driver) {
+      if (!driver) {
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+      }
+      driver.waveNumber = waveNumber;
+      return driver.save();
+    })
+    .then(function(driver) {
+      if (driver) {
+        res.status(200).json({ success: true, message: 'Numero Wave mis a jour', waveNumber: driver.waveNumber });
+      }
+    })
+    .catch(function(error) {
+      console.error('Update Wave Number Error:', error);
+      res.status(500).json({ success: false, message: 'Erreur lors de la mise a jour' });
     });
 };
 

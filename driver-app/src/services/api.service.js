@@ -140,6 +140,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   getServicePreferences: () => api.get('/drivers/service-preferences'),
 
   updateServicePreferences: (prefs) => api.put('/drivers/service-preferences', prefs),
+  updateWaveNumber: (waveNumber) => api.put('/drivers/wave-number', { waveNumber }),
 };
 
 export const deliveryService = {

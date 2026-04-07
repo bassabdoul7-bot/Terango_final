@@ -61,6 +61,7 @@ router.get('/ride-history', protect, restrictTo('driver'), ctrl.getRideHistory);
 router.put('/profile-photo', protect, restrictTo('driver'), upload.single('photo'), ctrl.uploadProfilePhoto);
 router.get('/service-preferences', protect, restrictTo('driver'), ctrl.getServicePreferences);
 router.put('/service-preferences', protect, restrictTo('driver'), ctrl.updateServicePreferences);
+router.put('/wave-number', protect, restrictTo('driver'), ctrl.updateWaveNumber);
 router.put('/upload-documents', protect, restrictTo('driver'),
   docUpload.fields([
     { name: 'nationalId', maxCount: 1 },

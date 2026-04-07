@@ -102,6 +102,7 @@ var driverSchema = new mongoose.Schema({
     phoneNumber: String,
     accountNumber: String
   },
+  waveNumber: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 module.exports = mongoose.model('Driver', driverSchema);
