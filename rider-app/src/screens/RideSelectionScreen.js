@@ -30,53 +30,59 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
 
-  const getGoogleDistance = async () => {
+  const getGoogleRoute = async () => {
     try {
       const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}`;
       const r = await fetch(url);
       const data = await r.json();
       if (data.status === 'OK' && data.routes.length > 0) {
         const leg = data.routes[0].legs[0];
-        return { distance: leg.distance.value / 1000, duration: Math.round(leg.duration.value / 60) };
+        const coordinates = PolylineUtil.decode(data.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] }));
+        return { distance: leg.distance.value / 1000, duration: Math.round(leg.duration.value / 60), coordinates };
       }
     } catch (e) { console.log('Google Directions error:', e); }
     return null;
   };
 
   const getOSRMRoute = async () => {
-    const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
-    const r = await fetch(url);
-    const data = await r.json();
-    if (data.code === 'Ok' && data.routes.length > 0) {
-      const route = data.routes[0];
-      const leg = route.legs[0];
-      return { distance: leg.distance / 1000, duration: Math.round(leg.duration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
-    }
+    try {
+      const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
+      const r = await fetch(url);
+      const data = await r.json();
+      if (data.code === 'Ok' && data.routes.length > 0) {
+        const route = data.routes[0];
+        const leg = route.legs[0];
+        return { distance: leg.distance / 1000, duration: Math.round(leg.duration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
+      }
+    } catch (e) { console.log('OSRM error:', e); }
     return null;
   };
 
   const getDirections = async () => {
     setCalculatingFare(true);
     try {
-      // Get route line from OSRM (free, for map display)
+      // Try Google first (accurate distance + route line in one call)
+      const googleResult = await getGoogleRoute();
+      if (googleResult) {
+        setRouteCoordinates(googleResult.coordinates);
+        setRealDistance(googleResult.distance);
+        setRealDuration(googleResult.duration);
+        calculateFares(googleResult.distance, googleResult.duration);
+        return;
+      }
+
+      // Fallback to OSRM if Google fails
       const osrmResult = await getOSRMRoute();
-      if (osrmResult && osrmResult.coordinates) {
+      if (osrmResult) {
         setRouteCoordinates(osrmResult.coordinates);
+        setRealDistance(osrmResult.distance);
+        setRealDuration(osrmResult.duration);
+        calculateFares(osrmResult.distance, osrmResult.duration);
+        return;
       }
 
-      // Get accurate distance from Google (for fare calculation), fallback to OSRM
-      const googleResult = await getGoogleDistance();
-      const km = googleResult ? googleResult.distance : (osrmResult ? osrmResult.distance : null);
-      const mins = googleResult ? googleResult.duration : (osrmResult ? osrmResult.duration : null);
-
-      if (km && mins) {
-        setRealDistance(km);
-        setRealDuration(mins);
-        calculateFares(km, mins);
-      } else {
-        Alert.alert('Erreur', "Impossible de calculer l'itineraire");
-        navigation.goBack();
-      }
+      Alert.alert('Erreur', "Impossible de calculer l'itineraire");
+      navigation.goBack();
     } catch (e) {
       Alert.alert('Erreur', 'Erreur lors du calcul');
       navigation.goBack();
