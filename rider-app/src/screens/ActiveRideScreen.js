@@ -244,10 +244,10 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.pinHint}>{"Donnez ce code \u00e0 votre chauffeur"}</Text>
               </View>
             )}
-            {ride.status === 'arrived' && ride.paymentMethod === 'wave' && (
+            {ride.paymentMethod === 'wave' && ride.driver && (
               <View style={styles.waveBanner}>
                 <Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text>
-                <Text style={styles.waveBannerText}>{'Payez ' + (ride.fare || 0).toLocaleString() + ' FCFA par Wave au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
+                <Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare || 0).toLocaleString() + ' FCFA au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
               </View>
             )}
             <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
