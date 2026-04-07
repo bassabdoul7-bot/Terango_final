@@ -1,6 +1,7 @@
 ﻿// TeranGO Fare Calculation - April 2026
 // Target: ~5% less than Yango for all distances
-// City (0-10km): 73/km, Suburb (10-30km): 142/km, Intercity (30km+): 220/km
+// Yango avg: base ~540, city ~90, suburb ~180, time ~30/min
+// TeranGO: base 515, city 86, suburb 171, intercity 175, time 28/min
 
 function getSurgeMultiplier() {
   var hour = new Date().getHours();
@@ -16,11 +17,11 @@ exports.calculateFare = function(distance, rideType, durationMinutes, pickupDist
   if (!durationMinutes) durationMinutes = 0;
   if (!pickupDistanceKm) pickupDistanceKm = 0;
 
-  var baseFares = { standard: 461, comfort: 665, xl: 1045 };
-  var perKmRates = { standard: 73, comfort: 100, xl: 140 };
-  var perMinRates = { standard: 29, comfort: 38, xl: 48 };
-  var suburbPerKmRates = { standard: 142, comfort: 180, xl: 220 };
-  var intercityPerKmRates = { standard: 220, comfort: 280, xl: 340 };
+  var baseFares = { standard: 515, comfort: 740, xl: 1150 };
+  var perKmRates = { standard: 86, comfort: 115, xl: 160 };
+  var perMinRates = { standard: 28, comfort: 37, xl: 46 };
+  var suburbPerKmRates = { standard: 171, comfort: 215, xl: 265 };
+  var intercityPerKmRates = { standard: 175, comfort: 220, xl: 270 };
   var pickupPerKm = { standard: 50, comfort: 60, xl: 70 };
 
   var baseFare = baseFares[rideType] || baseFares.standard;
