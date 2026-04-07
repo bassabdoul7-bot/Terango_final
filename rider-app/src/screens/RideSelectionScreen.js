@@ -28,20 +28,51 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const fetchNearbyDrivers = async () => { try { const r = await driverService.getNearbyDrivers(pickup.coordinates.latitude, pickup.coordinates.longitude, 10); if (r.success) setNearbyDrivers(r.drivers); } catch (e) {} };
 
+  const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+
+  const getGoogleDistance = async () => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}`;
+      const r = await fetch(url);
+      const data = await r.json();
+      if (data.status === 'OK' && data.routes.length > 0) {
+        const leg = data.routes[0].legs[0];
+        return { distance: leg.distance.value / 1000, duration: Math.round(leg.duration.value / 60) };
+      }
+    } catch (e) { console.log('Google Directions error:', e); }
+    return null;
+  };
+
+  const getOSRMRoute = async () => {
+    const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.code === 'Ok' && data.routes.length > 0) {
+      const route = data.routes[0];
+      const leg = route.legs[0];
+      return { distance: leg.distance / 1000, duration: Math.round(leg.duration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
+    }
+    return null;
+  };
+
   const getDirections = async () => {
     setCalculatingFare(true);
     try {
-      const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
-      const r = await fetch(url);
-      const data = await r.json();
-      if (data.code === 'Ok' && data.routes.length > 0) {
-        const route = data.routes[0];
-        const leg = route.legs[0];
-        const km = leg.distance / 1000;
+      // Get route line from OSRM (free, for map display)
+      const osrmResult = await getOSRMRoute();
+      if (osrmResult && osrmResult.coordinates) {
+        setRouteCoordinates(osrmResult.coordinates);
+      }
+
+      // Get accurate distance from Google (for fare calculation), fallback to OSRM
+      const googleResult = await getGoogleDistance();
+      const km = googleResult ? googleResult.distance : (osrmResult ? osrmResult.distance : null);
+      const mins = googleResult ? googleResult.duration : (osrmResult ? osrmResult.duration : null);
+
+      if (km && mins) {
         setRealDistance(km);
-        setRealDuration(Math.round(leg.duration / 60));
-        setRouteCoordinates(PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })));
-        calculateFares(km, Math.round(leg.duration / 60));
+        setRealDuration(mins);
+        calculateFares(km, mins);
       } else {
         Alert.alert('Erreur', "Impossible de calculer l'itineraire");
         navigation.goBack();

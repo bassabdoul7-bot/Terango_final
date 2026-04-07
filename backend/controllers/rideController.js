@@ -33,7 +33,8 @@ exports.createRide = async (req, res) => {
       });
     }
 
-    const distance = calculateDistance(
+    // Use road distance from client (Google/OSRM) if available, fallback to Haversine
+    const distance = req.body.distance || calculateDistance(
       pickup.coordinates.latitude,
       pickup.coordinates.longitude,
       dropoff.coordinates.latitude,
