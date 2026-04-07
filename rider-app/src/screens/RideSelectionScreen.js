@@ -101,9 +101,9 @@ const RideSelectionScreen = ({ route, navigation }) => {
       return Math.max(total, minFare);
     }
     setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Standard', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(461, 73, 142, 220, 29, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(665, 100, 180, 280, 38, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1045, 140, 220, 340, 48, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      standard: { type: 'standard', name: 'TeranGO Standard', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(515, 86, 171, 175, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(740, 115, 215, 220, 37, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1150, 160, 265, 270, 46, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
     });
     setCalculatingFare(false);
   };
