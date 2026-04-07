@@ -1,7 +1,6 @@
 ﻿// TeranGO Fare Calculation - April 2026
 // Target: ~5% less than Yango for all distances
-// Yango avg: base ~540, city ~90, suburb ~180, time ~30/min
-// TeranGO: base 515, city 86, suburb 171, intercity 175, time 28/min
+// Four tiers: city (0-10km) 86, suburb (10-30km) 171, intercity (30-70km) 200, long (70km+) 260
 
 function getSurgeMultiplier() {
   var hour = new Date().getHours();
@@ -21,13 +20,20 @@ exports.calculateFare = function(distance, rideType, durationMinutes, pickupDist
   var perKmRates = { standard: 86, comfort: 115, xl: 160 };
   var perMinRates = { standard: 28, comfort: 37, xl: 46 };
   var suburbPerKmRates = { standard: 171, comfort: 215, xl: 265 };
-  var intercityPerKmRates = { standard: 175, comfort: 220, xl: 270 };
+  var intercityPerKmRates = { standard: 200, comfort: 250, xl: 310 };
+  var longDistPerKmRates = { standard: 260, comfort: 325, xl: 400 };
   var pickupPerKm = { standard: 50, comfort: 60, xl: 70 };
 
   var baseFare = baseFares[rideType] || baseFares.standard;
   var distanceFare;
 
-  if (distance > 30) {
+  if (distance > 70) {
+    var cityRate = perKmRates[rideType] || perKmRates.standard;
+    var suburbRate = suburbPerKmRates[rideType] || suburbPerKmRates.standard;
+    var intercityRate = intercityPerKmRates[rideType] || intercityPerKmRates.standard;
+    var longDistRate = longDistPerKmRates[rideType] || longDistPerKmRates.standard;
+    distanceFare = (10 * cityRate) + (20 * suburbRate) + (40 * intercityRate) + ((distance - 70) * longDistRate);
+  } else if (distance > 30) {
     var cityRate = perKmRates[rideType] || perKmRates.standard;
     var suburbRate = suburbPerKmRates[rideType] || suburbPerKmRates.standard;
     var intercityRate = intercityPerKmRates[rideType] || intercityPerKmRates.standard;
