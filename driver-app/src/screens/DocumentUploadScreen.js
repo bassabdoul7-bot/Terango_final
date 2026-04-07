@@ -71,7 +71,12 @@ const DocumentUploadScreen = ({ onComplete }) => {
       if (vehicleBackPhoto) formData.append('vehicleBack', { uri: vehicleBackPhoto.uri, type: 'image/jpeg', name: 'vehicle_back.jpg' });
       if (vehicleInteriorPhoto) formData.append('vehicleInterior', { uri: vehicleInteriorPhoto.uri, type: 'image/jpeg', name: 'vehicle_interior.jpg' });
       if (licensePlate) formData.append('licensePlate', licensePlate);
-      if (waveNumber.trim()) formData.append('waveNumber', waveNumber.trim());
+      if (!waveNumber.trim()) {
+        Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers');
+        setLoading(false);
+        return;
+      }
+      formData.append('waveNumber', waveNumber.trim());
 
       await driverService.uploadDocuments(formData);
       Alert.alert(
@@ -244,7 +249,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
           </>
         )}
 
-        <Text style={styles.sectionLabel}>{"Num\u00e9ro Wave (optionnel)"}</Text>
+        <Text style={styles.sectionLabel}>{"Num\u00e9ro Wave"}</Text>
         <TextInput
           style={styles.input}
           placeholder="Ex: 77 123 45 67"
@@ -253,7 +258,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
           onChangeText={setWaveNumber}
           keyboardType="phone-pad"
         />
-        <Text style={{fontSize: 12, color: '#999', marginTop: 4, fontFamily: 'LexendDeca_400Regular'}}>{"Les passagers pourront vous payer via Wave"}</Text>
+        <Text style={{fontSize: 12, color: '#1DC3E1', marginTop: 4, fontFamily: 'LexendDeca_400Regular'}}>{"Num\u00e9ro o\u00f9 vous recevrez les paiements Wave des passagers"}</Text>
 
         <View style={{ height: 24 }} />
         {loading ? (
