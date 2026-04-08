@@ -49,9 +49,9 @@ describe('calculateFare', () => {
     const shortResult = calculateFare(10, 'standard', 25, 0);
     const longResult = calculateFare(15, 'standard', 25, 0);
     // Same duration, so difference is purely distance-based
-    // Extra 5 km at suburb rate (142/km) = 710
+    // Extra 5 km at suburb rate (171/km) = 855
     const marginalCost = longResult.baseCost - shortResult.baseCost;
-    expect(marginalCost).toBe(710);
+    expect(marginalCost).toBe(855);
   });
 
   test('comfort ride costs more than standard for same distance', () => {
