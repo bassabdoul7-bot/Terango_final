@@ -83,11 +83,11 @@ export var rideService = {
   getUnpaidRide: function() { return api.get('/rides/unpaid'); },
   getScheduledRides: function() { return api.get('/rides/scheduled'); },
   shareRide: function(rideId) { return api.put('/rides/' + rideId + '/share'); },
-  uploadEmergencyRecording: function(rideId, audioUri, duration) {
+  uploadEmergencyRecording: function(rideId, videoUri, duration) {
     var formData = new FormData();
-    formData.append('audio', { uri: audioUri, name: 'emergency-' + Date.now() + '.m4a', type: 'audio/m4a' });
+    formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
     if (duration) formData.append('duration', String(Math.round(duration)));
-    return api.put('/rides/' + rideId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+    return api.put('/rides/' + rideId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 });
   },
 };
 
@@ -102,11 +102,11 @@ export var deliveryService = {
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
   getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
   cancelDelivery: function(deliveryId, reason) { return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason }); },
-  uploadEmergencyRecording: function(deliveryId, audioUri, duration) {
+  uploadEmergencyRecording: function(deliveryId, videoUri, duration) {
     var formData = new FormData();
-    formData.append('audio', { uri: audioUri, name: 'emergency-' + Date.now() + '.m4a', type: 'audio/m4a' });
+    formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
     if (duration) formData.append('duration', String(Math.round(duration)));
-    return api.put('/deliveries/' + deliveryId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+    return api.put('/deliveries/' + deliveryId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 });
   },
 };
 

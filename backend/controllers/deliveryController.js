@@ -626,7 +626,7 @@ exports.cancelDelivery = function(req, res) {
     });
 };
 
-// @desc    Upload emergency audio recording for a delivery
+// @desc    Upload emergency video recording for a delivery
 // @route   PUT /api/deliveries/:deliveryId/emergency-recording
 // @access  Private (Rider or Driver)
 exports.uploadEmergencyRecording = async function(req, res) {
@@ -647,7 +647,7 @@ exports.uploadEmergencyRecording = async function(req, res) {
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Fichier audio requis' });
+      return res.status(400).json({ success: false, message: 'Fichier media requis' });
     }
 
     var audioUrl = '/recordings/' + req.file.filename;
@@ -666,7 +666,7 @@ exports.uploadEmergencyRecording = async function(req, res) {
     var TELEGRAM_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
     var TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID || '';
     if (TELEGRAM_BOT && TELEGRAM_CHAT) {
-      var alertMsg = '🚨 Enregistrement d\'urgence — Livraison #' + delivery._id.toString().slice(-6) + '\nPar: ' + (isRider ? 'Client' : 'Livreur') + '\nDuree: ' + duration + 's';
+      var alertMsg = '🚨 Enregistrement video d\'urgence — Livraison #' + delivery._id.toString().slice(-6) + '\nPar: ' + (isRider ? 'Client' : 'Livreur') + '\nDuree: ' + duration + 's';
       var data = JSON.stringify({ chat_id: TELEGRAM_CHAT, text: alertMsg });
       var opts = { hostname: 'api.telegram.org', path: '/bot' + TELEGRAM_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
       var r = https.request(opts, function() {});
