@@ -51,6 +51,9 @@ export var adminService = {
   confirmWavePayment: function(rideId) { return api.put('/admin/rides/' + rideId + '/payment-confirmed'); },
   getWavePayouts: function() { return api.get('/admin/wave-payouts'); },
   markWavePayoutSent: function(driverId) { return api.put('/admin/drivers/' + driverId + '/wave-payout-sent'); },
+  getLiveRides: function() { return api.get('/admin/live/rides'); },
+  getLiveDeliveries: function() { return api.get('/admin/live/deliveries'); },
+  getOnlineDrivers: function() { return api.get('/admin/live/drivers'); },
   getLogs: function(params) { return api.get('/admin/logs', { params: params }); },
   getLogStats: function() { return api.get('/admin/logs/stats'); },
   getHealth: function() { return api.get('/admin/health'); }
