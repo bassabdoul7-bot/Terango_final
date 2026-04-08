@@ -158,7 +158,7 @@ exports.getMyRides = async (req, res) => {
   try {
     const rider = await Rider.findOne({ userId: req.user._id });
 
-    const rides = await Ride.find({ riderId: rider._id })
+    const rides = await Ride.find({ riderId: rider._id, status: 'completed' })
       .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone rating profilePhoto' } })
       .sort({ createdAt: -1 })
       .limit(50);
