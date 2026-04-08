@@ -14,9 +14,9 @@ const { width, height } = Dimensions.get('window');
 var STATUS_MAP = {
   pending: { label: 'Recherche de livreur...', color: COLORS.yellow, icon: '\uD83D\uDD0D' },
   accepted: { label: 'Livreur en route vers le point de collecte', color: COLORS.green, icon: '\uD83D\uDEB5' },
-  picked_up: { label: 'Colis recupere, en route vers vous', color: COLORS.green, icon: '\uD83D\uDCE6' },
   at_pickup: { label: 'Livreur arrive au point de collecte', color: COLORS.green, icon: '\uD83D\uDCCD' },
-  in_transit: { label: 'Livraison en cours...', color: COLORS.green, icon: '\uD83D\uDE80' },
+  picked_up: { label: 'Colis recupere, en route vers vous', color: COLORS.green, icon: '\uD83D\uDCE6' },
+  at_dropoff: { label: 'Livreur arrive au point de livraison', color: COLORS.green, icon: '\uD83D\uDCCD' },
   delivered: { label: 'Livre!', color: COLORS.green, icon: '\u2705' },
   cancelled: { label: 'Annulee', color: COLORS.red, icon: '\u2715' },
   no_drivers_available: { label: 'Aucun livreur disponible', color: COLORS.red, icon: '\uD83D\uDE1E' },
@@ -48,6 +48,7 @@ var ActiveDeliveryScreen = function(props) {
   var cancelModalState = useState(false); var showCancelModal = cancelModalState[0]; var setShowCancelModal = cancelModalState[1];
   var searchTimeState = useState(0); var searchTime = searchTimeState[0]; var setSearchTime = searchTimeState[1];
   var noDriversState = useState(false); var showNoDrivers = noDriversState[0]; var setShowNoDrivers = noDriversState[1];
+  var deliveredState = useState(false); var showDelivered = deliveredState[0]; var setShowDelivered = deliveredState[1];
   var chatState = useState(false); var showChat = chatState[0]; var setShowChat = chatState[1];
   var mapRef = useRef(null); var socketRef = useRef(null); var pollRef = useRef(null); var searchTimerRef = useRef(null);
 
@@ -58,7 +59,7 @@ var ActiveDeliveryScreen = function(props) {
 
   function fetchDelivery() {
     deliveryService.getDeliveryById(deliveryId).then(function(res) {
-      if (res.delivery) { setDelivery(res.delivery); if (res.delivery.driver) setDriverInfo(res.delivery.driver); if (res.delivery.status === 'no_drivers_available') setShowNoDrivers(true); if (res.delivery.status === 'delivered') navigation.replace('Home'); if (res.delivery.status === 'cancelled') { clearInterval(pollRef.current); Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]); return; } } setLoading(false);
+      if (res.delivery) { setDelivery(res.delivery); if (res.delivery.driver) setDriverInfo(res.delivery.driver); if (res.delivery.status === 'no_drivers_available') setShowNoDrivers(true); if (res.delivery.status === 'delivered') setShowDelivered(true); if (res.delivery.status === 'cancelled') { clearInterval(pollRef.current); Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]); return; } } setLoading(false);
     }).catch(function() { setLoading(false); });
   }
 
@@ -66,7 +67,7 @@ var ActiveDeliveryScreen = function(props) {
     createAuthSocket().then(function(socket) { socketRef.current = socket;
       socket.on('connect', function() { socket.emit('join-delivery-room', deliveryId); });
       socket.on('delivery-accepted', function(data) { setDelivery(function(p) { return p ? Object.assign({}, p, { status: 'accepted', driver: data.driver }) : p; }); setDriverInfo(data.driver); });
-      socket.on('delivery-status', function(data) { setDelivery(function(p) { return p ? Object.assign({}, p, { status: data.status }) : p; }); if (data.status === 'delivered') setTimeout(function() { navigation.replace('Home'); }, 3000); });
+      socket.on('delivery-status', function(data) { setDelivery(function(p) { return p ? Object.assign({}, p, { status: data.status }) : p; }); if (data.status === 'delivered') setShowDelivered(true); });
       socket.on('delivery-expired', function() { setShowNoDrivers(true); setDelivery(function(p) { return p ? Object.assign({}, p, { status: 'no_drivers_available' }) : p; }); });
       socket.on('delivery-cancelled', function() { Alert.alert('Livraison annulee', 'La livraison a ete annulee.'); navigation.replace('Home'); });
     });
@@ -160,6 +161,21 @@ var ActiveDeliveryScreen = function(props) {
       <Modal visible={showChat} animationType="slide" onRequestClose={function() { setShowChat(false); }}>
         <ChatScreen socket={socketRef.current} rideId={null} deliveryId={deliveryId} myRole="rider" myUserId={null} otherName={driverInfo ? driverInfo.name : 'Livreur'} onClose={function() { setShowChat(false); }} />
       </Modal>
+
+      {showDelivered && (
+        <View style={styles.deliveredOverlay}>
+          <View style={styles.deliveredCard}>
+            <Text style={{fontSize:48,marginBottom:12}}>{'\u2705'}</Text>
+            <Text style={styles.deliveredTitle}>Livraison effectuee!</Text>
+            <Text style={styles.deliveredSub}>{'Votre ' + (delivery && delivery.serviceType === 'colis' ? 'colis' : 'commande') + ' a ete livre avec succes.'}</Text>
+            {delivery && delivery.fare && <Text style={styles.deliveredFare}>{delivery.fare.toLocaleString() + ' FCFA'}</Text>}
+            {delivery && delivery.paymentMethod === 'wave' && <Text style={styles.deliveredWave}>{'\uD83C\uDF0A Paye par Wave'}</Text>}
+            <TouchableOpacity style={styles.deliveredBtn} onPress={function() { navigation.replace('Home'); }}>
+              <Text style={styles.deliveredBtnText}>Retour a l'accueil</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -208,6 +224,14 @@ var styles = StyleSheet.create({
   modalConfirmText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
   modalCancelBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   modalCancelText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  deliveredOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,26,18,0.95)', justifyContent: 'center', alignItems: 'center' },
+  deliveredCard: { backgroundColor: COLORS.darkCard, borderRadius: 24, padding: 32, width: width - 48, alignItems: 'center', borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  deliveredTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.green, marginBottom: 8 },
+  deliveredSub: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 16 },
+  deliveredFare: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 8 },
+  deliveredWave: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#1DC3E1', marginBottom: 20 },
+  deliveredBtn: { width: '100%', paddingVertical: 16, borderRadius: 14, backgroundColor: COLORS.green, alignItems: 'center' },
+  deliveredBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
 });
 
 export default ActiveDeliveryScreen;
