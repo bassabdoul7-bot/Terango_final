@@ -48,12 +48,13 @@ app.use(cors({
 // Security headers
 app.use(helmet());
 
-// General API rate limit: 100 requests per 15 minutes
+// General API rate limit: 100 requests per 15 minutes (skip /api/logs — has its own limiter)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: function(req) { return req.path.startsWith('/logs'); },
   message: { success: false, message: 'Too many requests, please try again later.' }
 });
 app.use('/api', generalLimiter);
@@ -86,6 +87,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const restaurantRoutes = require('./routes/restaurantRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const partnerRoutes = require('./routes/partnerRoutes');
+const logRoutes = require('./routes/logRoutes');
 
 app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
 
@@ -252,6 +254,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/partners', partnerRoutes);
+app.use('/api/logs', logRoutes);
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
 
@@ -788,6 +791,37 @@ shareNamespace.on('connection', function(socket) {
     }
   });
   socket.on('disconnect', function() {});
+});
+
+// ========== Process Error Logging ==========
+process.on('uncaughtException', function(err) {
+  console.error('UNCAUGHT EXCEPTION:', err);
+  try {
+    var AppLog = require('./models/AppLog');
+    AppLog.create({
+      level: 'error', source: 'backend', screen: 'uncaughtException',
+      message: (err.message || 'Unknown').substring(0, 2000),
+      stack: (err.stack || '').substring(0, 5000),
+      metadata: { type: 'uncaughtException' }
+    }).catch(function() {});
+    sendTelegramAlert('🔴 UNCAUGHT EXCEPTION\n' + (err.message || '').substring(0, 300) + '\n' + new Date().toISOString());
+  } catch(e) {}
+});
+
+process.on('unhandledRejection', function(reason) {
+  console.error('UNHANDLED REJECTION:', reason);
+  try {
+    var AppLog = require('./models/AppLog');
+    var msg = reason instanceof Error ? reason.message : String(reason);
+    var stack = reason instanceof Error ? reason.stack : '';
+    AppLog.create({
+      level: 'error', source: 'backend', screen: 'unhandledRejection',
+      message: (msg || 'Unknown').substring(0, 2000),
+      stack: (stack || '').substring(0, 5000),
+      metadata: { type: 'unhandledRejection' }
+    }).catch(function() {});
+    sendTelegramAlert('🟡 UNHANDLED REJECTION\n' + (msg || '').substring(0, 300) + '\n' + new Date().toISOString());
+  } catch(e) {}
 });
 
 // ========== Graceful Shutdown ==========

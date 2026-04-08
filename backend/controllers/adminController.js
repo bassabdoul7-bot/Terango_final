@@ -810,6 +810,173 @@ exports.markWavePayoutSent = async (req, res) => {
   }
 };
 
+// ========== MONITORING / OBSERVABILITY ==========
+
+// @desc    Get logs with filters
+// @route   GET /api/admin/logs
+// @access  Private (Admin only)
+exports.getLogs = async (req, res) => {
+  try {
+    var AppLog = require('../models/AppLog');
+    var { source, level, screen, search, from, to, page, limit } = req.query;
+    var pg = parseInt(page) || 1;
+    var lim = Math.min(parseInt(limit) || 50, 200);
+
+    var query = {};
+    if (source) query.source = source;
+    if (level) query.level = level;
+    if (screen) query.screen = { $regex: screen, $options: 'i' };
+    if (search) query.message = { $regex: search, $options: 'i' };
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    var count = await AppLog.countDocuments(query);
+    var logs = await AppLog.find(query)
+      .sort({ createdAt: -1 })
+      .limit(lim)
+      .skip((pg - 1) * lim)
+      .lean();
+
+    res.json({
+      success: true,
+      count: count,
+      totalPages: Math.ceil(count / lim),
+      currentPage: pg,
+      logs: logs
+    });
+  } catch (error) {
+    console.error('Get Logs Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Get log stats
+// @route   GET /api/admin/logs/stats
+// @access  Private (Admin only)
+exports.getLogStats = async (req, res) => {
+  try {
+    var AppLog = require('../models/AppLog');
+    var now = new Date();
+    var h24 = new Date(now - 24 * 60 * 60 * 1000);
+    var d7 = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    var d30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+    // Error count by source for 24h, 7d, 30d
+    var bySource24h = await AppLog.aggregate([
+      { $match: { level: 'error', createdAt: { $gte: h24 } } },
+      { $group: { _id: '$source', count: { $sum: 1 } } }
+    ]);
+    var bySource7d = await AppLog.aggregate([
+      { $match: { level: 'error', createdAt: { $gte: d7 } } },
+      { $group: { _id: '$source', count: { $sum: 1 } } }
+    ]);
+    var bySource30d = await AppLog.aggregate([
+      { $match: { level: 'error', createdAt: { $gte: d30 } } },
+      { $group: { _id: '$source', count: { $sum: 1 } } }
+    ]);
+
+    // Top 10 screens with most errors
+    var topScreens = await AppLog.aggregate([
+      { $match: { level: 'error', screen: { $ne: '' }, createdAt: { $gte: d7 } } },
+      { $group: { _id: '$screen', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Error count by hour (last 24h)
+    var byHour = await AppLog.aggregate([
+      { $match: { createdAt: { $gte: h24 } } },
+      {
+        $group: {
+          _id: {
+            hour: { $hour: '$createdAt' },
+            level: '$level'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.hour': 1 } }
+    ]);
+
+    // Total by level (last 7d)
+    var byLevel = await AppLog.aggregate([
+      { $match: { createdAt: { $gte: d7 } } },
+      { $group: { _id: '$level', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        bySource: { h24: bySource24h, d7: bySource7d, d30: bySource30d },
+        topScreens: topScreens,
+        byHour: byHour,
+        byLevel: byLevel
+      }
+    });
+  } catch (error) {
+    console.error('Log Stats Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Server health check (detailed)
+// @route   GET /api/admin/health
+// @access  Private (Admin only)
+exports.getHealth = async (req, res) => {
+  try {
+    var mongoose = require('mongoose');
+    var driverLocationService = require('../services/driverLocationService');
+
+    // MongoDB
+    var mongoStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
+    // Redis
+    var redisStatus = 'disconnected';
+    try {
+      await driverLocationService.getOnlineDriversCount();
+      redisStatus = 'connected';
+    } catch (e) { /* down */ }
+
+    // Memory
+    var mem = process.memoryUsage();
+
+    // Socket connections
+    var io = req.app.get('io');
+    var activeConnections = io ? io.engine.clientsCount : 0;
+
+    // Uptime
+    var uptimeSeconds = Math.floor(process.uptime());
+    var days = Math.floor(uptimeSeconds / 86400);
+    var hours = Math.floor((uptimeSeconds % 86400) / 3600);
+    var minutes = Math.floor((uptimeSeconds % 3600) / 60);
+    var uptimeStr = days + 'd ' + hours + 'h ' + minutes + 'm';
+
+    res.json({
+      success: true,
+      health: {
+        uptime: uptimeStr,
+        uptimeSeconds: uptimeSeconds,
+        mongoStatus: mongoStatus,
+        redisStatus: redisStatus,
+        memory: {
+          rss: Math.round(mem.rss / 1024 / 1024) + ' MB',
+          heapUsed: Math.round(mem.heapUsed / 1024 / 1024) + ' MB',
+          heapTotal: Math.round(mem.heapTotal / 1024 / 1024) + ' MB'
+        },
+        activeConnections: activeConnections,
+        nodeVersion: process.version,
+        platform: process.platform
+      }
+    });
+  } catch (error) {
+    console.error('Health Check Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 // ========== DRIVER MODERATION ==========
 
 // @desc    Suspend/Unsuspend driver

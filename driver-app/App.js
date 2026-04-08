@@ -6,6 +6,9 @@ import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Med
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
+// Initialize error reporter (flush persisted logs, start periodic flush)
+reportError.init();
+
 const defaultHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
   reportError('Global', error?.message || 'Unknown crash', error?.stack);

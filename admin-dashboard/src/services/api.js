@@ -50,7 +50,10 @@ export var adminService = {
   getServiceStats: function() { return api.get('/services/admin/stats'); },
   confirmWavePayment: function(rideId) { return api.put('/admin/rides/' + rideId + '/payment-confirmed'); },
   getWavePayouts: function() { return api.get('/admin/wave-payouts'); },
-  markWavePayoutSent: function(driverId) { return api.put('/admin/drivers/' + driverId + '/wave-payout-sent'); }
+  markWavePayoutSent: function(driverId) { return api.put('/admin/drivers/' + driverId + '/wave-payout-sent'); },
+  getLogs: function(params) { return api.get('/admin/logs', { params: params }); },
+  getLogStats: function() { return api.get('/admin/logs/stats'); },
+  getHealth: function() { return api.get('/admin/health'); }
 };
 
 export var partnerService = {
