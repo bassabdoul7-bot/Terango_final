@@ -54,11 +54,12 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-8">Tableau de bord</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
         <StatCard icon={Users} label="Passagers" value={stats.totalRiders} color="bg-blue-500" />
         <StatCard icon={Car} label="Chauffeurs" value={stats.totalDrivers} color="bg-emerald-500" sub={stats.activeDrivers + ' en ligne'} />
-        <StatCard icon={MapPin} label="Courses totales" value={stats.totalRides} color="bg-purple-500" sub={stats.todayRides + " aujourd'hui"} />
-        <StatCard icon={DollarSign} label="Revenus (FCFA)" value={stats.totalRevenue.toLocaleString()} color="bg-yellow-500" sub={stats.todayRevenue.toLocaleString() + " aujourd'hui"} />
+        <StatCard icon={MapPin} label="Courses" value={stats.totalRides} color="bg-purple-500" sub={stats.todayRides + " aujourd'hui"} />
+        <StatCard icon={Send} label="Livraisons" value={stats.totalDeliveries || 0} color="bg-cyan-500" sub={(stats.todayDeliveries || 0) + " aujourd'hui"} />
+        <StatCard icon={DollarSign} label="Revenus (FCFA)" value={(stats.totalRevenue || 0).toLocaleString()} color="bg-yellow-500" sub={(stats.todayRevenue || 0).toLocaleString() + " aujourd'hui"} />
         <StatCard icon={Smartphone} label="Wave en attente" value={stats.pendingWavePayments || 0} color="bg-indigo-500" sub="paiements a confirmer" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

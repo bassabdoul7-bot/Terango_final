@@ -31,8 +31,8 @@ exports.getDashboardStats = async (req, res) => {
       createdAt: { $gte: today }
     });
     
-    // Revenue calculation using aggregation
-    const revenueAgg = await Ride.aggregate([
+    // Revenue calculation using aggregation (rides + deliveries)
+    const rideRevenueAgg = await Ride.aggregate([
       { $match: { status: 'completed' } },
       {
         $group: {
@@ -47,8 +47,29 @@ exports.getDashboardStats = async (req, res) => {
       }
     ]);
 
-    const totalRevenue = revenueAgg.length > 0 ? revenueAgg[0].totalRevenue : 0;
-    const todayRevenue = revenueAgg.length > 0 ? revenueAgg[0].todayRevenue : 0;
+    var Delivery = require('../models/Delivery');
+    const deliveryRevenueAgg = await Delivery.aggregate([
+      { $match: { status: 'delivered' } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$platformCommission' },
+          todayRevenue: {
+            $sum: {
+              $cond: [{ $gte: ['$deliveredAt', today] }, '$platformCommission', 0]
+            }
+          }
+        }
+      }
+    ]);
+
+    const rideRev = rideRevenueAgg.length > 0 ? rideRevenueAgg[0] : { totalRevenue: 0, todayRevenue: 0 };
+    const delRev = deliveryRevenueAgg.length > 0 ? deliveryRevenueAgg[0] : { totalRevenue: 0, todayRevenue: 0 };
+    const totalRevenue = rideRev.totalRevenue + delRev.totalRevenue;
+    const todayRevenue = rideRev.todayRevenue + delRev.todayRevenue;
+
+    const totalDeliveries = await Delivery.countDocuments({ status: 'delivered' });
+    const todayDeliveries = await Delivery.countDocuments({ status: 'delivered', deliveredAt: { $gte: today } });
 
     // Commission stats
     const commissionAgg = await Driver.aggregate([
@@ -79,6 +100,8 @@ exports.getDashboardStats = async (req, res) => {
         pendingVerifications,
         totalRevenue,
         todayRevenue,
+        totalDeliveries,
+        todayDeliveries,
         totalUnpaidCommissions,
         totalCollectedCommissions,
         blockedDriversCount
