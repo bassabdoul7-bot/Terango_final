@@ -48,9 +48,12 @@ const rideSchema = new mongoose.Schema({
   // Ride Details
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled', 'no_drivers_available'],
+    enum: ['pending', 'scheduled', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled', 'no_drivers_available'],
     default: 'pending'
   },
+  isScheduled: { type: Boolean, default: false },
+  scheduledTime: { type: Date, default: null },
+  scheduledNotified: { type: Boolean, default: false },
   rideType: {
     type: String,
     enum: ['standard', 'comfort', 'xl'],
@@ -170,6 +173,9 @@ const rideSchema = new mongoose.Schema({
     duration: { type: Number, default: 0 }
   }],
 
+  // Share my ride
+  shareToken: { type: String, default: null },
+  shareEnabled: { type: Boolean, default: false },
 
 }, { timestamps: true });
 
@@ -177,6 +183,7 @@ const rideSchema = new mongoose.Schema({
 rideSchema.index({ riderId: 1, createdAt: -1 });
 rideSchema.index({ driver: 1, createdAt: -1 });
 rideSchema.index({ status: 1 });
+rideSchema.index({ shareToken: 1 }, { sparse: true });
 
 module.exports = mongoose.model('Ride', rideSchema);
 

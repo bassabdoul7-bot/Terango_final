@@ -1,4 +1,5 @@
-﻿const Ride = require('../models/Ride');
+﻿const crypto = require('crypto');
+const Ride = require('../models/Ride');
 const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
@@ -11,7 +12,7 @@ const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils
 // @access  Private (Rider only)
 exports.createRide = async (req, res) => {
   try {
-    const { pickup, dropoff, rideType, paymentMethod } = req.body;
+    const { pickup, dropoff, rideType, paymentMethod, scheduledTime } = req.body;
 
     const rider = await Rider.findOne({ userId: req.user._id });
     if (!rider) {
@@ -21,16 +22,21 @@ exports.createRide = async (req, res) => {
       });
     }
 
-    // Prevent duplicate active rides
-    const activeRide = await Ride.findOne({
-      riderId: rider._id,
-      status: { $in: ['pending', 'accepted', 'arrived', 'in_progress'] }
-    });
-    if (activeRide) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vous avez d\u00e9j\u00e0 une course en cours'
+    // Check if this is a scheduled ride
+    const isScheduled = scheduledTime && new Date(scheduledTime) > new Date(Date.now() + 30 * 60 * 1000);
+
+    // Prevent duplicate active rides (only for immediate rides)
+    if (!isScheduled) {
+      const activeRide = await Ride.findOne({
+        riderId: rider._id,
+        status: { $in: ['pending', 'accepted', 'arrived', 'in_progress'] }
       });
+      if (activeRide) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vous avez d\u00e9j\u00e0 une course en cours'
+        });
+      }
     }
 
     // Use road distance from client (Google/OSRM) if available, fallback to Haversine
@@ -59,8 +65,34 @@ exports.createRide = async (req, res) => {
       driverEarnings: earnings.driverEarnings,
       paymentMethod,
       paymentStatus: 'pending',
-      status: 'pending'
+      status: isScheduled ? 'scheduled' : 'pending',
+      isScheduled: !!isScheduled,
+      scheduledTime: isScheduled ? new Date(scheduledTime) : null,
+      scheduledNotified: false
     });
+
+    if (isScheduled) {
+      // Scheduled ride: do NOT trigger matching, return success
+      var scheduledDate = new Date(scheduledTime);
+      var timeStr = scheduledDate.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      return res.status(201).json({
+        success: true,
+        message: 'Course programmée pour ' + timeStr,
+        ride: {
+          id: ride._id,
+          pickup: ride.pickup,
+          dropoff: ride.dropoff,
+          distance: ride.distance,
+          estimatedDuration: ride.estimatedDuration,
+          fare: ride.fare,
+          rideType: ride.rideType,
+          status: ride.status,
+          paymentMethod: ride.paymentMethod,
+          isScheduled: true,
+          scheduledTime: ride.scheduledTime
+        }
+      });
+    }
 
     // Both cash and wave: trigger matching immediately
     // For wave, rider pays when driver arrives at pickup
@@ -534,6 +566,13 @@ exports.completeRide = async (req, res) => {
       paymentStatus: ride.paymentStatus
     });
 
+    // Notify share viewers
+    if (ride.shareEnabled && ride.shareToken) {
+      var shareRoom = 'share-' + ride.shareToken;
+      io.to(shareRoom).emit('share-ride-ended', { status: 'completed' });
+      io.of('/share').to(shareRoom).emit('share-ride-ended', { status: 'completed' });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Course terminee',
@@ -619,6 +658,13 @@ exports.cancelRide = async (req, res) => {
       cancelledBy: req.user.role,
       reason: reason || 'Non sp\u00e9cifi\u00e9'
     });
+
+    // Notify share viewers
+    if (ride.shareEnabled && ride.shareToken) {
+      var shareRoom = 'share-' + ride.shareToken;
+      io.to(shareRoom).emit('share-ride-ended', { status: 'cancelled' });
+      io.of('/share').to(shareRoom).emit('share-ride-ended', { status: 'cancelled' });
+    }
 
     res.status(200).json({
       success: true,
@@ -712,6 +758,33 @@ exports.rateRide = async (req, res) => {
   }
 };
 
+// @desc    Get scheduled rides for current rider
+// @route   GET /api/rides/scheduled
+// @access  Private (Rider only)
+exports.getScheduledRides = async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Profil passager non trouvé' });
+    }
+
+    const rides = await Ride.find({
+      riderId: rider._id,
+      isScheduled: true,
+      status: 'scheduled'
+    }).sort({ scheduledTime: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: rides.length,
+      rides
+    });
+  } catch (error) {
+    console.error('Get Scheduled Rides Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la récupération des courses programmées' });
+  }
+};
+
 // @desc    Append GPS trail points to ride
 // @route   PUT /api/rides/:id/trail
 // @access  Private (Driver only)
@@ -789,6 +862,44 @@ exports.verifyPin = async (req, res) => {
 // @desc    Upload emergency audio recording for a ride
 // @route   PUT /api/rides/:id/emergency-recording
 // @access  Private (Rider or Driver)
+// @desc    Generate share link for a ride
+// @route   PUT /api/rides/:id/share
+// @access  Private (Rider only)
+exports.shareRide = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id);
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
+
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider || ride.riderId.toString() !== rider._id.toString()) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
+
+    // If already shared, return existing token
+    if (ride.shareToken && ride.shareEnabled) {
+      return res.status(200).json({
+        success: true,
+        shareUrl: 'https://api.terango.sn/share/' + ride.shareToken
+      });
+    }
+
+    var token = crypto.randomBytes(16).toString('hex');
+    ride.shareToken = token;
+    ride.shareEnabled = true;
+    await ride.save();
+
+    res.status(200).json({
+      success: true,
+      shareUrl: 'https://api.terango.sn/share/' + token
+    });
+  } catch (error) {
+    console.error('Share Ride Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors du partage de la course' });
+  }
+};
+
 exports.uploadEmergencyRecording = async (req, res) => {
   try {
     const ride = await Ride.findById(req.params.id);
