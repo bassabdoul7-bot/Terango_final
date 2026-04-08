@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
+import { Audio } from 'expo-av';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
@@ -131,6 +132,79 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFareAnimation, setShowFareAnimation] = useState(false);
   const [completedFare, setCompletedFare] = useState(0);
+  // ========== EMERGENCY RECORDING ==========
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
+  const recordingRef = useRef(null);
+  const recordingTimerRef = useRef(null);
+  const recordingPulse = useRef(new Animated.Value(1)).current;
+  const MAX_RECORDING_SECONDS = 300; // 5 minutes
+
+  const startEmergencyRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (permission.status !== 'granted') {
+        Alert.alert('Permission requise', 'Activez le microphone pour enregistrer.');
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.LOW_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime(prev => {
+          if (prev + 1 >= MAX_RECORDING_SECONDS) { stopEmergencyRecording(); return prev; }
+          return prev + 1;
+        });
+      }, 1000);
+      Animated.loop(Animated.sequence([
+        Animated.timing(recordingPulse, { toValue: 1.3, duration: 600, useNativeDriver: true }),
+        Animated.timing(recordingPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])).start();
+    } catch (err) {
+      console.error('Start recording error:', err);
+      Alert.alert('Erreur', 'Impossible de demarrer l\'enregistrement');
+    }
+  };
+
+  const stopEmergencyRecording = async () => {
+    try {
+      if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
+      recordingPulse.stopAnimation();
+      recordingPulse.setValue(1);
+      if (!recordingRef.current) { setIsRecording(false); return; }
+      await recordingRef.current.stopAndUnloadAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      const uri = recordingRef.current.getURI();
+      const duration = recordingTime;
+      recordingRef.current = null;
+      setIsRecording(false);
+      if (!uri) return;
+      setUploadingRecording(true);
+      try {
+        await rideService.uploadEmergencyRecording(rideId, uri, duration);
+        Alert.alert('Enregistrement sauvegarde', 'L\'enregistrement d\'urgence a ete envoye.');
+      } catch (err) {
+        console.error('Upload recording error:', err);
+        Alert.alert('Erreur', 'Impossible d\'envoyer l\'enregistrement. Reessayez.');
+      } finally { setUploadingRecording(false); }
+    } catch (err) {
+      console.error('Stop recording error:', err);
+      setIsRecording(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      if (recordingRef.current) { try { recordingRef.current.stopAndUnloadAsync(); } catch (e) {} }
+    };
+  }, []);
+
   // Animated car rotation for driver marker
   const driverRotation = useRef(new Animated.Value(0)).current;
   const prevDriverLoc = useRef(null);
@@ -203,6 +277,23 @@ const ActiveRideScreen = ({ route, navigation }) => {
         )}
       </Map>
       <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
+      {['accepted', 'arrived', 'in_progress'].includes(ride.status) && (
+        <View style={sosStyles.container}>
+          {isRecording ? (
+            <View style={sosStyles.recordingRow}>
+              <Animated.View style={[sosStyles.pulseDot, { transform: [{ scale: recordingPulse }] }]} />
+              <Text style={sosStyles.timerText}>{Math.floor(recordingTime / 60) + ':' + (recordingTime % 60).toString().padStart(2, '0')}</Text>
+              <TouchableOpacity style={sosStyles.stopBtn} onPress={stopEmergencyRecording}>
+                <Text style={sosStyles.stopBtnText}>Arreter</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={sosStyles.sosBtn} onPress={startEmergencyRecording} disabled={uploadingRecording}>
+              {uploadingRecording ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosStyles.sosIcon}>{String.fromCodePoint(0x1F3A4)}</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       <View style={styles.bottomCard}>
         {ride.status === 'pending' && (<>
           <SearchingAnimation searchTime={searchTime} />
@@ -376,6 +467,16 @@ const styles = StyleSheet.create({
   waveBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,195,225,0.12)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(29,195,225,0.3)' },
   waveBannerIcon: { fontSize: 24, marginRight: 10 },
   waveBannerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#1DC3E1', lineHeight: 20 },
+});
+const sosStyles = StyleSheet.create({
+  container: { position: 'absolute', top: 110, right: 20, zIndex: 20 },
+  sosBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E31B23', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 2, borderColor: 'rgba(227,27,35,0.5)' },
+  sosIcon: { fontSize: 22 },
+  recordingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(227,27,35,0.9)', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 14, gap: 10, elevation: 8 },
+  pulseDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FF4444' },
+  timerText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
+  stopBtn: { backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 14 },
+  stopBtnText: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#E31B23' },
 });
 class ActiveRideErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }

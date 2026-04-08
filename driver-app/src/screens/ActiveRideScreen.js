@@ -1,11 +1,12 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image } from 'react-native';
+import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image, Animated as RNAnimated } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as PolylineUtil from '@mapbox/polyline';
+import { Audio } from 'expo-av';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import SuccessModal from '../components/SuccessModal';
@@ -125,15 +126,114 @@ function ActiveRideScreen(props) {
   var successModalState = useState(false); var showSuccessModal = successModalState[0]; var setShowSuccessModal = successModalState[1];
   var queueState = useState(null); var queuedRide = queueState[0]; var setQueuedRide = queueState[1];
 
+  // GPS trail recording
+  var trailBufferRef = useRef([]);
+  var lastTrailPointTime = useRef(0);
+  var trailFlushIntervalRef = useRef(null);
+
   // Delivery photo states
   var [showPhotoModal, setShowPhotoModal] = useState(false);
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
+  // ========== EMERGENCY RECORDING ==========
+  var emRecState = useState(false); var isEmRecording = emRecState[0]; var setIsEmRecording = emRecState[1];
+  var emRecTimeState = useState(0); var emRecordingTime = emRecTimeState[0]; var setEmRecordingTime = emRecTimeState[1];
+  var emUploadingState = useState(false); var emUploading = emUploadingState[0]; var setEmUploading = emUploadingState[1];
+  var emRecordingRef = useRef(null);
+  var emRecTimerRef = useRef(null);
+  var emRecPulse = useRef(new RNAnimated.Value(1)).current;
+  var EM_MAX_SECONDS = 300;
+
+  function startEmergencyRecording() {
+    Audio.requestPermissionsAsync().then(function(permission) {
+      if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez le microphone pour enregistrer.'); return; }
+      Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: true }).then(function() {
+        var recording = new Audio.Recording();
+        recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.LOW_QUALITY).then(function() {
+          recording.startAsync().then(function() {
+            emRecordingRef.current = recording;
+            setIsEmRecording(true);
+            setEmRecordingTime(0);
+            emRecTimerRef.current = setInterval(function() {
+              setEmRecordingTime(function(prev) {
+                if (prev + 1 >= EM_MAX_SECONDS) { stopEmergencyRecording(); return prev; }
+                return prev + 1;
+              });
+            }, 1000);
+            RNAnimated.loop(RNAnimated.sequence([
+              RNAnimated.timing(emRecPulse, { toValue: 1.3, duration: 600, useNativeDriver: true }),
+              RNAnimated.timing(emRecPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+            ])).start();
+          });
+        });
+      });
+    }).catch(function(err) { console.error('Start recording error:', err); Alert.alert('Erreur', "Impossible de demarrer l'enregistrement"); });
+  }
+
+  function stopEmergencyRecording() {
+    if (emRecTimerRef.current) { clearInterval(emRecTimerRef.current); emRecTimerRef.current = null; }
+    emRecPulse.stopAnimation();
+    emRecPulse.setValue(1);
+    if (!emRecordingRef.current) { setIsEmRecording(false); return; }
+    var duration = emRecordingTime;
+    emRecordingRef.current.stopAndUnloadAsync().then(function() {
+      Audio.setAudioModeAsync({ allowsRecordingIOS: false });
+      var uri = emRecordingRef.current.getURI();
+      emRecordingRef.current = null;
+      setIsEmRecording(false);
+      if (!uri) return;
+      setEmUploading(true);
+      var uploadFn = deliveryMode
+        ? deliveryService.uploadEmergencyRecording(deliveryId, uri, duration)
+        : driverService.uploadEmergencyRecording(rideId, uri, duration);
+      uploadFn.then(function() {
+        Alert.alert('Enregistrement sauvegarde', "L'enregistrement d'urgence a ete envoye.");
+      }).catch(function(err) {
+        console.error('Upload recording error:', err);
+        Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
+      }).finally(function() { setEmUploading(false); });
+    }).catch(function(err) { console.error('Stop recording error:', err); setIsEmRecording(false); });
+  }
+
+  useEffect(function() {
+    return function() {
+      if (emRecTimerRef.current) clearInterval(emRecTimerRef.current);
+      if (emRecordingRef.current) { try { emRecordingRef.current.stopAndUnloadAsync(); } catch (e) {} }
+    };
+  }, []);
+
   var isWaveRide = ride ? ride.paymentMethod === 'wave' : false;
 
   // Clear LRU cache on unmount
   useEffect(function(){ return function(){ directionsCacheClear(); }; },[]);
+
+  // GPS trail flush: send buffered points every 30 seconds
+  useEffect(function() {
+    var shouldRecord = false;
+    if (ride) {
+      if (deliveryMode) {
+        shouldRecord = ['picked_up', 'in_transit', 'at_dropoff'].indexOf(ride.status) !== -1;
+      } else {
+        shouldRecord = ride.status === 'in_progress';
+      }
+    }
+    if (shouldRecord) {
+      trailFlushIntervalRef.current = setInterval(function() {
+        if (trailBufferRef.current.length === 0) return;
+        var pointsToSend = trailBufferRef.current.slice();
+        trailBufferRef.current = [];
+        if (deliveryMode && deliveryId) {
+          deliveryService.appendDeliveryTrail(deliveryId, pointsToSend).catch(function(err) { console.log('Trail upload error (delivery):', err); });
+        } else if (!deliveryMode && rideId) {
+          driverService.appendRideTrail(rideId, pointsToSend).catch(function(err) { console.log('Trail upload error (ride):', err); });
+        }
+      }, 30000);
+    }
+    return function() {
+      if (trailFlushIntervalRef.current) { clearInterval(trailFlushIntervalRef.current); trailFlushIntervalRef.current = null; }
+    };
+  }, [ride ? ride.status : null, deliveryMode, deliveryId, rideId]);
 
   useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
 
@@ -186,7 +286,7 @@ function ActiveRideScreen(props) {
     return (dist / elapsed) * 3.6;
   }
 
-  useEffect(function(){var mounted=true;function startWatcher(opts){currentWatchOptions.current=opts;Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:opts.timeInterval,distanceInterval:opts.distanceInterval},function(loc){if(!mounted)return;var curLoc={latitude:loc.coords.latitude,longitude:loc.coords.longitude};var now=Date.now();var sensorSpeed=(loc.coords.speed||0)*3.6;var calculatedSpeed=calcSpeedFromLocations(lastLocationRef.current,lastLocationTimeRef.current,curLoc,now);var speedKmh=Math.max(0,Math.round(sensorSpeed>0?sensorSpeed:calculatedSpeed));lastLocationRef.current=curLoc;lastLocationTimeRef.current=now;setDriverLocation(curLoc);setHeading(loc.coords.heading||heading);setCurrentSpeed(speedKmh);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(err){console.error('Location update API error:',err);});if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{rideId:rideId,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}var newOpts=getAdaptiveLocationOptions(speedKmh);if(newOpts.timeInterval!==currentWatchOptions.current.timeInterval||newOpts.distanceInterval!==currentWatchOptions.current.distanceInterval){if(locationSubscription.current){locationSubscription.current.remove();}startWatcher(newOpts);}}).then(function(sub){locationSubscription.current=sub;});}function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);lastLocationRef.current={latitude:cur.coords.latitude,longitude:cur.coords.longitude};lastLocationTimeRef.current=Date.now();setInitializing(false);}startWatcher({timeInterval:1000,distanceInterval:5});});}).catch(function(err){console.error('Location permission/init error:',err);setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
+  useEffect(function(){var mounted=true;function startWatcher(opts){currentWatchOptions.current=opts;Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:opts.timeInterval,distanceInterval:opts.distanceInterval},function(loc){if(!mounted)return;var curLoc={latitude:loc.coords.latitude,longitude:loc.coords.longitude};var now=Date.now();var sensorSpeed=(loc.coords.speed||0)*3.6;var calculatedSpeed=calcSpeedFromLocations(lastLocationRef.current,lastLocationTimeRef.current,curLoc,now);var speedKmh=Math.max(0,Math.round(sensorSpeed>0?sensorSpeed:calculatedSpeed));lastLocationRef.current=curLoc;lastLocationTimeRef.current=now;setDriverLocation(curLoc);setHeading(loc.coords.heading||heading);setCurrentSpeed(speedKmh);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(err){console.error('Location update API error:',err);});if(now-lastTrailPointTime.current>=5000){lastTrailPointTime.current=now;trailBufferRef.current.push({latitude:curLoc.latitude,longitude:curLoc.longitude,timestamp:new Date().toISOString()});}if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{rideId:rideId,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}var newOpts=getAdaptiveLocationOptions(speedKmh);if(newOpts.timeInterval!==currentWatchOptions.current.timeInterval||newOpts.distanceInterval!==currentWatchOptions.current.distanceInterval){if(locationSubscription.current){locationSubscription.current.remove();}startWatcher(newOpts);}}).then(function(sub){locationSubscription.current=sub;});}function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);lastLocationRef.current={latitude:cur.coords.latitude,longitude:cur.coords.longitude};lastLocationTimeRef.current=Date.now();setInitializing(false);}startWatcher({timeInterval:1000,distanceInterval:5});});}).catch(function(err){console.error('Location permission/init error:',err);setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
@@ -549,6 +649,23 @@ function ActiveRideScreen(props) {
         )}
       </Map>
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
+      {(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff') && (
+        <View style={sosDriverStyles.container}>
+          {isEmRecording ? (
+            <View style={sosDriverStyles.recordingRow}>
+              <RNAnimated.View style={[sosDriverStyles.pulseDot, { transform: [{ scale: emRecPulse }] }]} />
+              <Text style={sosDriverStyles.timerText}>{Math.floor(emRecordingTime / 60) + ':' + (emRecordingTime % 60).toString().padStart(2, '0')}</Text>
+              <TouchableOpacity style={sosDriverStyles.stopBtn} onPress={stopEmergencyRecording}>
+                <Text style={sosDriverStyles.stopBtnText}>Arreter</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
+              {emUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDriverStyles.sosIcon}>{String.fromCodePoint(0x1F3A4)}</Text>}
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
       {navigationStarted&&(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff')&&<TouchableOpacity style={styles.floatingChatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.floatingChatIcon}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity>}
       {toastMessage&&<View style={styles.toastContainer}><Text style={styles.toastText}>{toastMessage}</Text></View>}
@@ -739,6 +856,17 @@ var styles = StyleSheet.create({
   pinModalBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 48, marginBottom: 12 },
   pinModalBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
   pinModalCancel: { fontSize: 14, color: '#888', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
+});
+
+var sosDriverStyles = StyleSheet.create({
+  container: { position: 'absolute', bottom: 360, right: 20, zIndex: 20 },
+  sosBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E31B23', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 2, borderColor: 'rgba(227,27,35,0.5)' },
+  sosIcon: { fontSize: 22 },
+  recordingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(227,27,35,0.9)', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 14, gap: 10, elevation: 8 },
+  pulseDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FF4444' },
+  timerText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
+  stopBtn: { backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 14 },
+  stopBtnText: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#E31B23' },
 });
 
 export default ActiveRideScreen;

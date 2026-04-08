@@ -72,6 +72,7 @@ app.use('/api/auth', authLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/uploads', express.static('uploads'));
+app.use('/recordings', express.static(process.env.RECORDINGS_DIR || '/var/www/recordings'));
 
 app.set('io', io);
 app.set('matchingService', matchingService);

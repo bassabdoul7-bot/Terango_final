@@ -155,7 +155,22 @@ const rideSchema = new mongoose.Schema({
   pinRequired: { type: Boolean, default: false },
   pinVerified: { type: Boolean, default: false },
 
-  
+  // GPS trail recorded during the ride
+  routeTrail: [{
+    latitude: Number,
+    longitude: Number,
+    timestamp: { type: Date, default: Date.now }
+  }],
+
+  // Emergency audio recordings
+  emergencyRecordings: [{
+    recordedBy: { type: String },
+    audioUrl: { type: String },
+    recordedAt: { type: Date, default: Date.now },
+    duration: { type: Number, default: 0 }
+  }],
+
+
 }, { timestamps: true });
 
 // Indexes for performance
