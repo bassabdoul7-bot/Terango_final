@@ -38,6 +38,7 @@ router.put(
 
 // Ride management
 router.get('/rides', getAllRides);
+router.get('/rides/:id', require('../controllers/adminController').getRideDetails);
 
 // Rider management
 router.get('/riders', getAllRiders);
