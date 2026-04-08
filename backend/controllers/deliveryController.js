@@ -354,11 +354,16 @@ exports.updateDeliveryStatus = function(req, res) {
       if (newStatus === 'delivered') {
         delivery.deliveredAt = new Date();
         delivery.paymentStatus = 'completed';
-        // Free up driver
+        // Free up driver + track commission
         Driver.findById(delivery.driver).then(function(d) {
           if (d) {
             d.isAvailable = true;
             d.totalDeliveries = (d.totalDeliveries || 0) + 1;
+            d.totalEarnings = (d.totalEarnings || 0) + (delivery.driverEarnings || 0);
+            d.commissionBalance = (d.commissionBalance || 0) + (delivery.platformCommission || 0);
+            if (d.commissionBalance >= (d.commissionCap || 750)) {
+              d.isBlockedForPayment = true;
+            }
             d.save();
           }
         });
