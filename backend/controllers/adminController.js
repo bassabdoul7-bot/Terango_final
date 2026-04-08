@@ -1026,6 +1026,72 @@ exports.banDriver = async (req, res) => {
   }
 };
 
+// @desc    Get active rides (live operations)
+// @route   GET /api/admin/live/rides
+exports.getActiveRides = async (req, res) => {
+  try {
+    const rides = await Ride.find({
+      status: { $in: ['accepted', 'arrived', 'in_progress'] }
+    })
+      .populate({
+        path: 'riderId',
+        populate: { path: 'userId', select: 'name phone' }
+      })
+      .populate({
+        path: 'driver',
+        populate: { path: 'userId', select: 'name phone' },
+        select: 'userId waveNumber currentLocation isAvailable vehicle vehicleType'
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, rides });
+  } catch (error) {
+    console.error('Get Active Rides Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Get active deliveries (live operations)
+// @route   GET /api/admin/live/deliveries
+exports.getActiveDeliveries = async (req, res) => {
+  try {
+    var Delivery = require('../models/Delivery');
+    const deliveries = await Delivery.find({
+      status: { $in: ['accepted', 'at_pickup', 'picked_up', 'at_dropoff'] }
+    })
+      .populate({
+        path: 'riderId',
+        populate: { path: 'userId', select: 'name phone' }
+      })
+      .populate({
+        path: 'driver',
+        populate: { path: 'userId', select: 'name phone' },
+        select: 'userId waveNumber currentLocation isAvailable vehicle vehicleType'
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, deliveries });
+  } catch (error) {
+    console.error('Get Active Deliveries Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Get online drivers (live operations)
+// @route   GET /api/admin/live/drivers
+exports.getOnlineDrivers = async (req, res) => {
+  try {
+    const drivers = await Driver.find({ isOnline: true })
+      .populate('userId', 'name phone')
+      .select('userId currentLocation isAvailable vehicle vehicleType waveNumber currentRide currentDelivery');
+
+    res.status(200).json({ success: true, drivers });
+  } catch (error) {
+    console.error('Get Online Drivers Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
 // @desc    Warn driver
 // @route   POST /api/admin/drivers/:id/warn
 exports.warnDriver = async (req, res) => {

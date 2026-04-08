@@ -72,6 +72,11 @@ router.put('/drivers/:id/commission-paid', require('../controllers/adminControll
 router.get('/wave-payouts', require('../controllers/adminController').getWavePayouts);
 router.put('/drivers/:id/wave-payout-sent', require('../controllers/adminController').markWavePayoutSent);
 
+// Live operations
+router.get('/live/rides', require('../controllers/adminController').getActiveRides);
+router.get('/live/deliveries', require('../controllers/adminController').getActiveDeliveries);
+router.get('/live/drivers', require('../controllers/adminController').getOnlineDrivers);
+
 router.put('/drivers/:id/suspend', require('../controllers/adminController').suspendDriver);
 router.put('/drivers/:id/ban', require('../controllers/adminController').banDriver);
 router.post('/drivers/:id/warn', require('../controllers/adminController').warnDriver);

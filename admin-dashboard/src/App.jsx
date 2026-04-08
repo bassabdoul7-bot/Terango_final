@@ -16,6 +16,7 @@ import PartnerEarningsPage from './pages/PartnerEarningsPage';
 import ServiceProvidersPage from './pages/ServiceProvidersPage';
 import ServiceRequestsPage from './pages/ServiceRequestsPage';
 import MonitoringPage from './pages/MonitoringPage';
+import OperationsPage from './pages/OperationsPage';
 
 function ProtectedRoute({ children }) {
   var { isAuthenticated } = useAuth();
@@ -52,6 +53,7 @@ function AppRoutes() {
         <Route path="partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />
         <Route path="services" element={<AdminRoute><ServiceProvidersPage /></AdminRoute>} />
         <Route path="service-requests" element={<AdminRoute><ServiceRequestsPage /></AdminRoute>} />
+        <Route path="operations" element={<AdminRoute><OperationsPage /></AdminRoute>} />
         <Route path="monitoring" element={<AdminRoute><MonitoringPage /></AdminRoute>} />
         {/* Partner routes */}
         <Route path="my-drivers" element={<PartnerDriversPage />} />
