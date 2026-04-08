@@ -1,5 +1,8 @@
 ﻿const express = require('express');
 const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { body } = require('express-validator');
 const { validate } = require('../middleware/validation');
 const { protect, restrictTo } = require('../middleware/auth');
@@ -15,8 +18,30 @@ const {
   rateRide,
   startRide,
   completeRide,
-  verifyPin
+  verifyPin,
+  appendTrailPoints,
+  uploadEmergencyRecording
 } = require('../controllers/rideController');
+
+// Emergency recording multer config
+var recordingsDir = process.env.RECORDINGS_DIR || '/var/www/recordings';
+try { fs.mkdirSync(recordingsDir, { recursive: true }); } catch (e) {}
+var recordingStorage = multer.diskStorage({
+  destination: function(req, file, cb) { cb(null, recordingsDir); },
+  filename: function(req, file, cb) {
+    cb(null, 'emergency-' + Date.now() + '-' + req.user._id + path.extname(file.originalname || '.m4a'));
+  }
+});
+var recordingUpload = multer({
+  storage: recordingStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    var allowed = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.mp4', '.3gp', '.webm'];
+    var ext = path.extname(file.originalname || '').toLowerCase();
+    if (allowed.indexOf(ext) !== -1 || file.mimetype.indexOf('audio') !== -1) { cb(null, true); }
+    else { cb(new Error('Format audio non supporte'), false); }
+  }
+});
 
 // Create new ride (Rider only)
 router.post(
@@ -73,6 +98,12 @@ router.put('/:id/start', protect, restrictTo('driver'), startRide);
 
 // Complete ride (Driver only) - shortcut
 router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
+
+// Append GPS trail points (Driver only)
+router.put('/:id/trail', protect, restrictTo('driver'), appendTrailPoints);
+
+// Emergency audio recording (Rider or Driver)
+router.put('/:id/emergency-recording', protect, recordingUpload.single('audio'), uploadEmergencyRecording);
 
 // Cancel ride
 router.put(

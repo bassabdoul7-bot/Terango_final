@@ -533,6 +533,51 @@ exports.getDriverActiveDelivery = function(req, res) {
     });
 };
 
+// ========== APPEND GPS TRAIL POINTS ==========
+
+exports.appendDeliveryTrailPoints = function(req, res) {
+  var points = req.body.points;
+  if (!points || !Array.isArray(points) || points.length === 0) {
+    return res.status(400).json({ success: false, message: 'Points requis' });
+  }
+
+  Driver.findOne({ userId: req.user._id })
+    .then(function(driver) {
+      if (!driver) {
+        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+      }
+
+      return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id })
+        .then(function(delivery) {
+          if (!delivery) {
+            return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
+          }
+
+          if (['picked_up', 'in_transit', 'at_dropoff'].indexOf(delivery.status) === -1) {
+            return res.status(400).json({ success: false, message: 'La livraison doit être en cours' });
+          }
+
+          var validPoints = points
+            .filter(function(p) { return p.latitude && p.longitude; })
+            .map(function(p) { return { latitude: p.latitude, longitude: p.longitude, timestamp: p.timestamp || new Date() }; });
+
+          if (validPoints.length === 0) {
+            return res.status(400).json({ success: false, message: 'Aucun point valide' });
+          }
+
+          return Delivery.findByIdAndUpdate(req.params.deliveryId, {
+            $push: { routeTrail: { $each: validPoints } }
+          }).then(function() {
+            res.status(200).json({ success: true, message: 'Points ajoutés', count: validPoints.length });
+          });
+        });
+    })
+    .catch(function(error) {
+      console.error('Append Delivery Trail Points Error:', error);
+      res.status(500).json({ success: false, message: 'Erreur lors de l\'ajout des points' });
+    });
+};
+
 exports.cancelDelivery = function(req, res) {
   var io = req.app.get('io');
   var userRole = req.user.role;
@@ -579,4 +624,64 @@ exports.cancelDelivery = function(req, res) {
       console.error('Cancel Delivery Error:', error);
       res.status(500).json({ success: false, message: 'Erreur' });
     });
+};
+
+// @desc    Upload emergency audio recording for a delivery
+// @route   PUT /api/deliveries/:deliveryId/emergency-recording
+// @access  Private (Rider or Driver)
+exports.uploadEmergencyRecording = async function(req, res) {
+  try {
+    var delivery = await Delivery.findById(req.params.deliveryId);
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: 'Livraison non trouvee' });
+    }
+
+    // Verify the user is either the rider or the driver of this delivery
+    var rider = await Rider.findOne({ userId: req.user._id });
+    var driver = await Driver.findOne({ userId: req.user._id });
+    var isRider = rider && delivery.riderId.toString() === rider._id.toString();
+    var isDriver = driver && delivery.driver && delivery.driver.toString() === driver._id.toString();
+
+    if (!isRider && !isDriver) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Fichier audio requis' });
+    }
+
+    var audioUrl = '/recordings/' + req.file.filename;
+    var duration = req.body.duration ? Number(req.body.duration) : 0;
+
+    delivery.emergencyRecordings.push({
+      recordedBy: req.user._id.toString(),
+      audioUrl: audioUrl,
+      recordedAt: new Date(),
+      duration: duration
+    });
+    await delivery.save();
+
+    // Send Telegram alert to admins
+    var https = require('https');
+    var TELEGRAM_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
+    var TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+    if (TELEGRAM_BOT && TELEGRAM_CHAT) {
+      var alertMsg = '🚨 Enregistrement d\'urgence — Livraison #' + delivery._id.toString().slice(-6) + '\nPar: ' + (isRider ? 'Client' : 'Livreur') + '\nDuree: ' + duration + 's';
+      var data = JSON.stringify({ chat_id: TELEGRAM_CHAT, text: alertMsg });
+      var opts = { hostname: 'api.telegram.org', path: '/bot' + TELEGRAM_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
+      var r = https.request(opts, function() {});
+      r.on('error', function() {});
+      r.write(data);
+      r.end();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Enregistrement sauvegarde',
+      recording: { audioUrl: audioUrl, recordedAt: new Date(), duration: duration }
+    });
+  } catch (error) {
+    console.error('Upload Emergency Recording Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de l\'upload de l\'enregistrement' });
+  }
 };

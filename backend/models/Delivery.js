@@ -100,7 +100,22 @@ var deliverySchema = new mongoose.Schema({
   pickedUpAt: Date,
   atDropoffAt: Date,
   deliveredAt: Date,
-  cancelledAt: Date
+  cancelledAt: Date,
+
+  // Emergency audio recordings
+  emergencyRecordings: [{
+    recordedBy: { type: String },
+    audioUrl: { type: String },
+    recordedAt: { type: Date, default: Date.now },
+    duration: { type: Number, default: 0 }
+  }],
+
+  // GPS trail recorded during the delivery
+  routeTrail: [{
+    latitude: Number,
+    longitude: Number,
+    timestamp: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
 deliverySchema.pre('save', function() {

@@ -81,6 +81,12 @@ export var rideService = {
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
   getUnpaidRide: function() { return api.get('/rides/unpaid'); },
+  uploadEmergencyRecording: function(rideId, audioUri, duration) {
+    var formData = new FormData();
+    formData.append('audio', { uri: audioUri, name: 'emergency-' + Date.now() + '.m4a', type: 'audio/m4a' });
+    if (duration) formData.append('duration', String(Math.round(duration)));
+    return api.put('/rides/' + rideId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+  },
 };
 
 export var driverService = {
@@ -94,6 +100,12 @@ export var deliveryService = {
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
   getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
   cancelDelivery: function(deliveryId, reason) { return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason }); },
+  uploadEmergencyRecording: function(deliveryId, audioUri, duration) {
+    var formData = new FormData();
+    formData.append('audio', { uri: audioUri, name: 'emergency-' + Date.now() + '.m4a', type: 'audio/m4a' });
+    if (duration) formData.append('duration', String(Math.round(duration)));
+    return api.put('/deliveries/' + deliveryId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+  },
 };
 
 export var orderService = {
