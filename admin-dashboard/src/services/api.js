@@ -34,6 +34,7 @@ export var adminService = {
   markCommissionPaid: function(id) { return api.put('/admin/drivers/' + id + '/commission-paid'); },
   verifyDriver: function(id, status, reason) { return api.put('/admin/drivers/' + id + '/verify', { status: status, reason: reason }); },
   getRides: function(params) { return api.get('/admin/rides', { params: params }); },
+  getRideDetails: function(rideId) { return api.get('/admin/rides/' + rideId); },
   getRiders: function(params) { return api.get('/admin/riders', { params: params }); },
   getRevenue: function(params) { return api.get('/admin/revenue', { params: params }); },
   toggleUserStatus: function(id) { return api.put('/admin/users/' + id + '/status'); },

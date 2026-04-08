@@ -240,6 +240,32 @@ exports.getAllRides = async (req, res) => {
   }
 };
 
+// @desc    Get single ride details (with routeTrail, emergencyRecordings)
+// @route   GET /api/admin/rides/:id
+// @access  Private (Admin only)
+exports.getRideDetails = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id)
+      .populate({
+        path: 'riderId',
+        populate: { path: 'userId', select: 'name phone' }
+      })
+      .populate({
+        path: 'driver',
+        populate: { path: 'userId', select: 'name phone' }
+      });
+
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
+
+    res.status(200).json({ success: true, ride });
+  } catch (error) {
+    console.error('Get Ride Details Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de la course' });
+  }
+};
+
 // @desc    Get all riders
 // @route   GET /api/admin/riders
 // @access  Private (Admin only)
