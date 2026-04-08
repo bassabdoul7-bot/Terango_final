@@ -78,7 +78,7 @@ var AppNavigator = function() {
     driverService.getVerificationStatus().then(function(res) {
       setDriverStatus({ status: res.verificationStatus, hasDocuments: res.hasDocuments });
     }).catch(function() {
-      setDriverStatus({ status: 'approved', hasDocuments: true });
+      setDriverStatus({ status: 'pending', hasDocuments: false });
     }).finally(function() {
       setStatusLoading(false);
     });
@@ -129,6 +129,8 @@ var AppNavigator = function() {
 };
 
 export default AppNavigator;
+
+
 
 
 
