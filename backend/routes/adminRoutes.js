@@ -60,6 +60,11 @@ router.get('/partners', getAllPartners);
 router.put('/partners/:id/verify', verifyPartner);
 router.put('/partners/:id/verify', verifyPartner);
 
+// Monitoring / Observability
+router.get('/logs', require('../controllers/adminController').getLogs);
+router.get('/logs/stats', require('../controllers/adminController').getLogStats);
+router.get('/health', require('../controllers/adminController').getHealth);
+
 // Commission management
 router.put('/drivers/:id/commission-paid', require('../controllers/adminController').markCommissionPaid);
 

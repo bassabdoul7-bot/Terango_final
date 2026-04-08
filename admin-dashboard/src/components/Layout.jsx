@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Car, Users, MapPin, DollarSign, LogOut, Camera, Handshake, Wrench, ClipboardList, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Car, Users, MapPin, DollarSign, LogOut, Camera, Handshake, Wrench, ClipboardList, Menu, X, Activity } from 'lucide-react';
 
 var adminLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
@@ -13,6 +13,7 @@ var adminLinks = [
   { to: '/services', icon: Wrench, label: 'Prestataires' },
   { to: '/service-requests', icon: ClipboardList, label: 'Demandes Services' },
   { to: '/partners', icon: Handshake, label: 'Partenaires' },
+  { to: '/monitoring', icon: Activity, label: 'Monitoring' },
 ];
 
 var partnerLinks = [
