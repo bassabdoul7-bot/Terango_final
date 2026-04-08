@@ -4,7 +4,7 @@ import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-re
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
-import { Audio } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { deliveryService } from '../services/api.service';
@@ -53,69 +53,31 @@ var ActiveDeliveryScreen = function(props) {
   var chatState = useState(false); var showChat = chatState[0]; var setShowChat = chatState[1];
   var mapRef = useRef(null); var socketRef = useRef(null); var pollRef = useRef(null); var searchTimerRef = useRef(null);
 
-  // ========== EMERGENCY RECORDING ==========
-  var recState = useState(false); var isRecording = recState[0]; var setIsRecording = recState[1];
-  var recTimeState = useState(0); var recordingTime = recTimeState[0]; var setRecordingTime = recTimeState[1];
+  // ========== EMERGENCY VIDEO RECORDING ==========
   var uploadingRecState = useState(false); var uploadingRecording = uploadingRecState[0]; var setUploadingRecording = uploadingRecState[1];
-  var recordingRef = useRef(null);
-  var recordingTimerRef = useRef(null);
-  var recordingPulse = useRef(new Animated.Value(1)).current;
-  var MAX_RECORDING_SECONDS = 300;
 
   function startEmergencyRecording() {
-    Audio.requestPermissionsAsync().then(function(permission) {
-      if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez le microphone pour enregistrer.'); return; }
-      Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: true }).then(function() {
-        var recording = new Audio.Recording();
-        recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.LOW_QUALITY).then(function() {
-          recording.startAsync().then(function() {
-            recordingRef.current = recording;
-            setIsRecording(true);
-            setRecordingTime(0);
-            recordingTimerRef.current = setInterval(function() {
-              setRecordingTime(function(prev) {
-                if (prev + 1 >= MAX_RECORDING_SECONDS) { stopEmergencyRecording(); return prev; }
-                return prev + 1;
-              });
-            }, 1000);
-            Animated.loop(Animated.sequence([
-              Animated.timing(recordingPulse, { toValue: 1.3, duration: 600, useNativeDriver: true }),
-              Animated.timing(recordingPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-            ])).start();
-          });
-        });
+    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
+      if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera pour enregistrer.'); return; }
+      ImagePicker.launchCameraAsync({
+        mediaTypes: 'videos',
+        videoMaxDuration: 120,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      }).then(function(result) {
+        if (result.canceled || !result.assets || result.assets.length === 0) return;
+        var video = result.assets[0];
+        var uri = video.uri;
+        var duration = video.duration ? Math.round(video.duration / 1000) : 0;
+        setUploadingRecording(true);
+        deliveryService.uploadEmergencyRecording(deliveryId, uri, duration).then(function() {
+          Alert.alert('Enregistrement sauvegarde', "L'enregistrement video d'urgence a ete envoye.");
+        }).catch(function(err) {
+          console.error('Upload recording error:', err);
+          Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
+        }).finally(function() { setUploadingRecording(false); });
       });
-    }).catch(function(err) { console.error('Start recording error:', err); Alert.alert('Erreur', "Impossible de demarrer l'enregistrement"); });
+    }).catch(function(err) { console.error('Emergency video error:', err); Alert.alert('Erreur', "Impossible de lancer la camera"); });
   }
-
-  function stopEmergencyRecording() {
-    if (recordingTimerRef.current) { clearInterval(recordingTimerRef.current); recordingTimerRef.current = null; }
-    recordingPulse.stopAnimation();
-    recordingPulse.setValue(1);
-    if (!recordingRef.current) { setIsRecording(false); return; }
-    var duration = recordingTime;
-    recordingRef.current.stopAndUnloadAsync().then(function() {
-      Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      var uri = recordingRef.current.getURI();
-      recordingRef.current = null;
-      setIsRecording(false);
-      if (!uri) return;
-      setUploadingRecording(true);
-      deliveryService.uploadEmergencyRecording(deliveryId, uri, duration).then(function() {
-        Alert.alert('Enregistrement sauvegarde', "L'enregistrement d'urgence a ete envoye.");
-      }).catch(function(err) {
-        console.error('Upload recording error:', err);
-        Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
-      }).finally(function() { setUploadingRecording(false); });
-    }).catch(function(err) { console.error('Stop recording error:', err); setIsRecording(false); });
-  }
-
-  useEffect(function() {
-    return function() {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-      if (recordingRef.current) { try { recordingRef.current.stopAndUnloadAsync(); } catch (e) {} }
-    };
-  }, []);
 
   useEffect(function() { fetchDelivery(); connectSocket(); startPolling(); return function() { if (socketRef.current) socketRef.current.disconnect(); if (pollRef.current) clearInterval(pollRef.current); if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, []);
   useEffect(function() { if (delivery && delivery.status === 'pending') { searchTimerRef.current = setInterval(function() { setSearchTime(function(p) { return p + 1; }); }, 1000); } else { if (searchTimerRef.current) clearInterval(searchTimerRef.current); } return function() { if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, [delivery ? delivery.status : null]);
@@ -192,19 +154,10 @@ var ActiveDeliveryScreen = function(props) {
 
       {delivery && ['accepted', 'at_pickup', 'picked_up', 'in_transit'].indexOf(delivery.status) !== -1 && (
         <View style={sosDeliveryStyles.container}>
-          {isRecording ? (
-            <View style={sosDeliveryStyles.recordingRow}>
-              <Animated.View style={[sosDeliveryStyles.pulseDot, { transform: [{ scale: recordingPulse }] }]} />
-              <Text style={sosDeliveryStyles.timerText}>{Math.floor(recordingTime / 60) + ':' + (recordingTime % 60).toString().padStart(2, '0')}</Text>
-              <TouchableOpacity style={sosDeliveryStyles.stopBtn} onPress={stopEmergencyRecording}>
-                <Text style={sosDeliveryStyles.stopBtnText}>Arreter</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={sosDeliveryStyles.sosBtn} onPress={startEmergencyRecording} disabled={uploadingRecording}>
-              {uploadingRecording ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDeliveryStyles.sosIcon}>{String.fromCodePoint(0x1F3A4)}</Text>}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={sosDeliveryStyles.sosBtn} onPress={startEmergencyRecording} disabled={uploadingRecording}>
+            {uploadingRecording ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDeliveryStyles.sosIcon}>{String.fromCodePoint(0x1F4F9)}</Text>}
+          </TouchableOpacity>
+          {uploadingRecording && <Text style={sosDeliveryStyles.uploadingText}>Envoi en cours...</Text>}
         </View>
       )}
 
@@ -318,14 +271,10 @@ var styles = StyleSheet.create({
 });
 
 var sosDeliveryStyles = StyleSheet.create({
-  container: { position: 'absolute', top: 110, right: 20, zIndex: 20 },
+  container: { position: 'absolute', top: 110, right: 20, zIndex: 20, alignItems: 'center' },
   sosBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E31B23', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 2, borderColor: 'rgba(227,27,35,0.5)' },
   sosIcon: { fontSize: 22 },
-  recordingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(227,27,35,0.9)', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 14, gap: 10, elevation: 8 },
-  pulseDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FF4444' },
-  timerText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  stopBtn: { backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 14 },
-  stopBtnText: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#E31B23' },
+  uploadingText: { fontSize: 10, fontFamily: 'LexendDeca_600SemiBold', color: '#E31B23', marginTop: 4, textAlign: 'center' },
 });
 
 export default ActiveDeliveryScreen;

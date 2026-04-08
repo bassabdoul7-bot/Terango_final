@@ -36,12 +36,12 @@ var recordingStorage = multer.diskStorage({
 });
 var recordingUpload = multer({
   storage: recordingStorage,
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: function(req, file, cb) {
-    var allowed = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.mp4', '.3gp', '.webm'];
+    var allowed = ['.m4a', '.mp3', '.wav', '.aac', '.ogg', '.mp4', '.3gp', '.webm', '.mov'];
     var ext = path.extname(file.originalname || '').toLowerCase();
-    if (allowed.indexOf(ext) !== -1 || file.mimetype.indexOf('audio') !== -1) { cb(null, true); }
-    else { cb(new Error('Format audio non supporte'), false); }
+    if (allowed.indexOf(ext) !== -1 || file.mimetype.indexOf('audio') !== -1 || file.mimetype.indexOf('video') !== -1) { cb(null, true); }
+    else { cb(new Error('Format media non supporte'), false); }
   }
 });
 
@@ -108,8 +108,8 @@ router.put('/:id/trail', protect, restrictTo('driver'), appendTrailPoints);
 // Share ride (Rider only)
 router.put('/:id/share', protect, restrictTo('rider'), shareRide);
 
-// Emergency audio recording (Rider or Driver)
-router.put('/:id/emergency-recording', protect, recordingUpload.single('audio'), uploadEmergencyRecording);
+// Emergency video/audio recording (Rider or Driver)
+router.put('/:id/emergency-recording', protect, recordingUpload.single('media'), uploadEmergencyRecording);
 
 // Cancel ride
 router.put(

@@ -859,7 +859,7 @@ exports.verifyPin = async (req, res) => {
   }
 };
 
-// @desc    Upload emergency audio recording for a ride
+// @desc    Upload emergency video recording for a ride
 // @route   PUT /api/rides/:id/emergency-recording
 // @access  Private (Rider or Driver)
 // @desc    Generate share link for a ride
@@ -918,7 +918,7 @@ exports.uploadEmergencyRecording = async (req, res) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Fichier audio requis' });
+      return res.status(400).json({ success: false, message: 'Fichier media requis' });
     }
 
     const audioUrl = '/recordings/' + req.file.filename;
@@ -937,7 +937,7 @@ exports.uploadEmergencyRecording = async (req, res) => {
     var TELEGRAM_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
     var TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID || '';
     if (TELEGRAM_BOT && TELEGRAM_CHAT) {
-      var alertMsg = '🚨 Enregistrement d\'urgence — Course #' + ride._id.toString().slice(-6) + '\nPar: ' + (isRider ? 'Passager' : 'Chauffeur') + '\nDuree: ' + duration + 's';
+      var alertMsg = '🚨 Enregistrement video d\'urgence — Course #' + ride._id.toString().slice(-6) + '\nPar: ' + (isRider ? 'Passager' : 'Chauffeur') + '\nDuree: ' + duration + 's';
       var data = JSON.stringify({ chat_id: TELEGRAM_CHAT, text: alertMsg });
       var opts = { hostname: 'api.telegram.org', path: '/bot' + TELEGRAM_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
       var r = https.request(opts, function() {});

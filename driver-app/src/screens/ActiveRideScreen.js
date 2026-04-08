@@ -6,7 +6,8 @@ const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import * as PolylineUtil from '@mapbox/polyline';
-import { Audio } from 'expo-av';
+
+
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import SuccessModal from '../components/SuccessModal';
@@ -136,72 +137,34 @@ function ActiveRideScreen(props) {
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
-  // ========== EMERGENCY RECORDING ==========
-  var emRecState = useState(false); var isEmRecording = emRecState[0]; var setIsEmRecording = emRecState[1];
-  var emRecTimeState = useState(0); var emRecordingTime = emRecTimeState[0]; var setEmRecordingTime = emRecTimeState[1];
+  // ========== EMERGENCY VIDEO RECORDING ==========
   var emUploadingState = useState(false); var emUploading = emUploadingState[0]; var setEmUploading = emUploadingState[1];
-  var emRecordingRef = useRef(null);
-  var emRecTimerRef = useRef(null);
-  var emRecPulse = useRef(new RNAnimated.Value(1)).current;
-  var EM_MAX_SECONDS = 300;
 
   function startEmergencyRecording() {
-    Audio.requestPermissionsAsync().then(function(permission) {
-      if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez le microphone pour enregistrer.'); return; }
-      Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true, staysActiveInBackground: true }).then(function() {
-        var recording = new Audio.Recording();
-        recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.LOW_QUALITY).then(function() {
-          recording.startAsync().then(function() {
-            emRecordingRef.current = recording;
-            setIsEmRecording(true);
-            setEmRecordingTime(0);
-            emRecTimerRef.current = setInterval(function() {
-              setEmRecordingTime(function(prev) {
-                if (prev + 1 >= EM_MAX_SECONDS) { stopEmergencyRecording(); return prev; }
-                return prev + 1;
-              });
-            }, 1000);
-            RNAnimated.loop(RNAnimated.sequence([
-              RNAnimated.timing(emRecPulse, { toValue: 1.3, duration: 600, useNativeDriver: true }),
-              RNAnimated.timing(emRecPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-            ])).start();
-          });
-        });
+    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
+      if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera pour enregistrer.'); return; }
+      ImagePicker.launchCameraAsync({
+        mediaTypes: 'videos',
+        videoMaxDuration: 120,
+        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+      }).then(function(result) {
+        if (result.canceled || !result.assets || result.assets.length === 0) return;
+        var video = result.assets[0];
+        var uri = video.uri;
+        var duration = video.duration ? Math.round(video.duration / 1000) : 0;
+        setEmUploading(true);
+        var uploadFn = deliveryMode
+          ? deliveryService.uploadEmergencyRecording(deliveryId, uri, duration)
+          : driverService.uploadEmergencyRecording(rideId, uri, duration);
+        uploadFn.then(function() {
+          Alert.alert('Enregistrement sauvegarde', "L'enregistrement video d'urgence a ete envoye.");
+        }).catch(function(err) {
+          console.error('Upload recording error:', err);
+          Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
+        }).finally(function() { setEmUploading(false); });
       });
-    }).catch(function(err) { console.error('Start recording error:', err); Alert.alert('Erreur', "Impossible de demarrer l'enregistrement"); });
+    }).catch(function(err) { console.error('Emergency video error:', err); Alert.alert('Erreur', "Impossible de lancer la camera"); });
   }
-
-  function stopEmergencyRecording() {
-    if (emRecTimerRef.current) { clearInterval(emRecTimerRef.current); emRecTimerRef.current = null; }
-    emRecPulse.stopAnimation();
-    emRecPulse.setValue(1);
-    if (!emRecordingRef.current) { setIsEmRecording(false); return; }
-    var duration = emRecordingTime;
-    emRecordingRef.current.stopAndUnloadAsync().then(function() {
-      Audio.setAudioModeAsync({ allowsRecordingIOS: false });
-      var uri = emRecordingRef.current.getURI();
-      emRecordingRef.current = null;
-      setIsEmRecording(false);
-      if (!uri) return;
-      setEmUploading(true);
-      var uploadFn = deliveryMode
-        ? deliveryService.uploadEmergencyRecording(deliveryId, uri, duration)
-        : driverService.uploadEmergencyRecording(rideId, uri, duration);
-      uploadFn.then(function() {
-        Alert.alert('Enregistrement sauvegarde', "L'enregistrement d'urgence a ete envoye.");
-      }).catch(function(err) {
-        console.error('Upload recording error:', err);
-        Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
-      }).finally(function() { setEmUploading(false); });
-    }).catch(function(err) { console.error('Stop recording error:', err); setIsEmRecording(false); });
-  }
-
-  useEffect(function() {
-    return function() {
-      if (emRecTimerRef.current) clearInterval(emRecTimerRef.current);
-      if (emRecordingRef.current) { try { emRecordingRef.current.stopAndUnloadAsync(); } catch (e) {} }
-    };
-  }, []);
 
   var isWaveRide = ride ? ride.paymentMethod === 'wave' : false;
 
@@ -651,19 +614,10 @@ function ActiveRideScreen(props) {
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
       {(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff') && (
         <View style={sosDriverStyles.container}>
-          {isEmRecording ? (
-            <View style={sosDriverStyles.recordingRow}>
-              <RNAnimated.View style={[sosDriverStyles.pulseDot, { transform: [{ scale: emRecPulse }] }]} />
-              <Text style={sosDriverStyles.timerText}>{Math.floor(emRecordingTime / 60) + ':' + (emRecordingTime % 60).toString().padStart(2, '0')}</Text>
-              <TouchableOpacity style={sosDriverStyles.stopBtn} onPress={stopEmergencyRecording}>
-                <Text style={sosDriverStyles.stopBtnText}>Arreter</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
-              {emUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDriverStyles.sosIcon}>{String.fromCodePoint(0x1F3A4)}</Text>}
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
+            {emUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDriverStyles.sosIcon}>{String.fromCodePoint(0x1F4F9)}</Text>}
+          </TouchableOpacity>
+          {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi en cours...</Text>}
         </View>
       )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
@@ -859,14 +813,10 @@ var styles = StyleSheet.create({
 });
 
 var sosDriverStyles = StyleSheet.create({
-  container: { position: 'absolute', bottom: 360, right: 20, zIndex: 20 },
+  container: { position: 'absolute', bottom: 360, right: 20, zIndex: 20, alignItems: 'center' },
   sosBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E31B23', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 2, borderColor: 'rgba(227,27,35,0.5)' },
   sosIcon: { fontSize: 22 },
-  recordingRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(227,27,35,0.9)', borderRadius: 24, paddingVertical: 10, paddingHorizontal: 14, gap: 10, elevation: 8 },
-  pulseDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: '#FF4444' },
-  timerText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  stopBtn: { backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 14 },
-  stopBtnText: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#E31B23' },
+  uploadingText: { fontSize: 10, fontFamily: 'LexendDeca_700Bold', color: '#E31B23', marginTop: 4, textAlign: 'center' },
 });
 
 export default ActiveRideScreen;
