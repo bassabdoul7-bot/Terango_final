@@ -20,7 +20,9 @@ const {
   completeRide,
   verifyPin,
   appendTrailPoints,
-  uploadEmergencyRecording
+  uploadEmergencyRecording,
+  shareRide,
+  getScheduledRides
 } = require('../controllers/rideController');
 
 // Emergency recording multer config
@@ -65,6 +67,7 @@ router.post(
 // Get my rides
 router.get('/active-ride', protect, getActiveRide);
 router.get('/my-rides', protect, getMyRides);
+router.get('/scheduled', protect, restrictTo('rider'), getScheduledRides);
 
 // Get ride by ID
 router.get('/:id', protect, getRide);
@@ -101,6 +104,9 @@ router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
 
 // Append GPS trail points (Driver only)
 router.put('/:id/trail', protect, restrictTo('driver'), appendTrailPoints);
+
+// Share ride (Rider only)
+router.put('/:id/share', protect, restrictTo('rider'), shareRide);
 
 // Emergency audio recording (Rider or Driver)
 router.put('/:id/emergency-recording', protect, recordingUpload.single('audio'), uploadEmergencyRecording);

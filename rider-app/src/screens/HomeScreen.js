@@ -70,6 +70,10 @@ function HomeScreen(props) {
   var saveAddress = saveAddrState[0];
   var setSaveAddress = saveAddrState[1];
 
+  var scheduledState = useState([]);
+  var scheduledRides = scheduledState[0];
+  var setScheduledRides = scheduledState[1];
+
   var socketRef = useRef(null);
   var appStateRef = useRef(AppState.currentState);
   var fetchInterval = useRef(null);
@@ -85,6 +89,7 @@ function HomeScreen(props) {
     loadSavedPlaces();
     if (!isGuest) {
       loadRideHistory();
+      loadScheduledRides();
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
     }
   }, []);
@@ -168,6 +173,30 @@ function HomeScreen(props) {
     }).catch(function(err) {
       console.log('History error:', err);
     });
+  }
+
+  function loadScheduledRides() {
+    rideService.getScheduledRides().then(function(response) {
+      if (response.success) {
+        setScheduledRides(response.rides || []);
+      }
+    }).catch(function(err) {
+      console.log('Scheduled rides error:', err);
+    });
+  }
+
+  function cancelScheduledRide(rideId) {
+    Alert.alert('Annuler la course', 'Voulez-vous annuler cette course programmee?', [
+      { text: 'Non', style: 'cancel' },
+      { text: 'Oui, annuler', style: 'destructive', onPress: function() {
+        rideService.cancelRide(rideId, 'Annulation par le passager').then(function() {
+          loadScheduledRides();
+          Alert.alert('Annulee', 'La course programmee a ete annulee.');
+        }).catch(function() {
+          Alert.alert('Erreur', 'Impossible d\'annuler la course.');
+        });
+      }}
+    ]);
   }
 
   function getLocation() {
@@ -710,6 +739,33 @@ function HomeScreen(props) {
             </View>
           </View>
         </Animated.View>
+
+        {scheduledRides.length > 0 && (
+          <View style={styles.scheduledSection}>
+            <Text style={styles.scheduledTitle}>{"\uD83D\uDD52 Courses programmees"}</Text>
+            {scheduledRides.map(function(ride) {
+              var schedTime = new Date(ride.scheduledTime);
+              var now = new Date();
+              var isToday = schedTime.toDateString() === now.toDateString();
+              var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+              var isTomorrow = schedTime.toDateString() === tomorrow.toDateString();
+              var timeStr = schedTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+              var dateLabel = isToday ? "Aujourd'hui " + timeStr : isTomorrow ? 'Demain ' + timeStr : schedTime.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + timeStr;
+              return (
+                <View key={ride._id} style={styles.scheduledCard}>
+                  <View style={styles.scheduledCardLeft}>
+                    <Text style={styles.scheduledTime}>{dateLabel}</Text>
+                    <Text style={styles.scheduledDest} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address : 'Destination'}</Text>
+                    <Text style={styles.scheduledFare}>{(ride.fare || 0).toLocaleString() + ' FCFA'}</Text>
+                  </View>
+                  <TouchableOpacity style={styles.scheduledCancelBtn} onPress={function() { cancelScheduledRide(ride._id); }}>
+                    <Text style={styles.scheduledCancelText}>Annuler</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
     );
   }
@@ -856,6 +912,24 @@ var styles = StyleSheet.create({
   },
   serviceEmoji: { fontSize: 28, fontFamily: 'LexendDeca_400Regular' },
   serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, textAlign: 'center' },
+
+  // Scheduled rides
+  scheduledSection: {
+    position: 'absolute', top: 140, left: 20, right: 20,
+    backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 14, elevation: 8,
+    borderWidth: 1, borderColor: COLORS.darkCardBorder, maxHeight: 200,
+  },
+  scheduledTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 10 },
+  scheduledCard: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 12, marginBottom: 6,
+  },
+  scheduledCardLeft: { flex: 1, marginRight: 10 },
+  scheduledTime: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.green },
+  scheduledDest: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginTop: 2 },
+  scheduledFare: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.yellow, marginTop: 2 },
+  scheduledCancelBtn: { backgroundColor: 'rgba(255,59,48,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
+  scheduledCancelText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#FF3B30' },
 
   // Bottom nav - DARK
   bottomNav: {

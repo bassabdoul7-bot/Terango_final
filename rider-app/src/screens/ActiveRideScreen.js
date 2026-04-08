@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
@@ -235,6 +235,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
         } } } catch (e) {} };
   const handleRetry = async () => { setRetrying(true); setRetryCount(prev => prev + 1); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
+  const handleShareRide = async () => {
+    try {
+      var result = await rideService.shareRide(rideId);
+      if (result.success && result.shareUrl) {
+        await Share.share({ message: 'Suivez ma course TeranGO en direct: ' + result.shareUrl });
+      }
+    } catch (e) {
+      console.error('Share ride error:', e);
+      Alert.alert('Erreur', 'Impossible de partager la course.');
+    }
+  };
   const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
   const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
@@ -330,6 +341,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <View style={styles.contactRow}>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+(ride?.driver?.userId?.phone || ''))}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={handleShareRide}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4E4)}</Text><Text style={styles.contactLabel}>Partager</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
               </View>

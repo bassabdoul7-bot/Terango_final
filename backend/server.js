@@ -89,6 +89,162 @@ const partnerRoutes = require('./routes/partnerRoutes');
 
 app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
 
+// ========== SHARE MY RIDE — Public page ==========
+app.get('/share/:token', async function(req, res) {
+  try {
+    var Ride = require('./models/Ride');
+    var ride = await Ride.findOne({ shareToken: req.params.token, shareEnabled: true })
+      .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
+      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone' } });
+
+    if (!ride) {
+      return res.status(404).send('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TeranGO</title></head><body style="background:#001A12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Lien invalide</h1><p>Ce lien de partage n\'existe pas ou a expire.</p></div></body></html>');
+    }
+
+    var riderName = (ride.riderId && ride.riderId.userId && ride.riderId.userId.name) ? ride.riderId.userId.name : 'Passager';
+    var driverName = (ride.driver && ride.driver.userId && ride.driver.userId.name) ? ride.driver.userId.name : 'Chauffeur';
+    var vehicleInfo = '';
+    if (ride.driver && ride.driver.vehicle) {
+      vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '');
+      if (ride.driver.vehicle.color) vehicleInfo += ' - ' + ride.driver.vehicle.color;
+      if (ride.driver.vehicle.licensePlate) vehicleInfo += ' (' + ride.driver.vehicle.licensePlate + ')';
+    }
+
+    var isFinished = ['completed', 'cancelled'].indexOf(ride.status) !== -1;
+    var statusLabel = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course en cours', completed: 'Course terminee', cancelled: 'Course annulee' }[ride.status] || ride.status;
+
+    var pickupLat = ride.pickup.coordinates.latitude;
+    var pickupLng = ride.pickup.coordinates.longitude;
+    var dropoffLat = ride.dropoff.coordinates.latitude;
+    var dropoffLng = ride.dropoff.coordinates.longitude;
+    var driverLat = (ride.driver && ride.driver.currentLocation && ride.driver.currentLocation.coordinates) ? ride.driver.currentLocation.coordinates.latitude : pickupLat;
+    var driverLng = (ride.driver && ride.driver.currentLocation && ride.driver.currentLocation.coordinates) ? ride.driver.currentLocation.coordinates.longitude : pickupLng;
+
+    res.send(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Suivre ma course - TeranGO</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#001A12; color:#fff; }
+  #map { width:100%; height:55vh; min-height:300px; }
+  .info-panel { padding:16px; max-width:600px; margin:0 auto; }
+  .status-badge { display:inline-block; background:rgba(212,175,55,0.15); color:#D4AF37; padding:6px 14px; border-radius:20px; font-weight:600; font-size:14px; margin-bottom:12px; border:1px solid rgba(212,175,55,0.3); }
+  .status-badge.finished { background:rgba(255,59,48,0.15); color:#FF3B30; border-color:rgba(255,59,48,0.3); }
+  .status-badge.in-progress { background:rgba(0,133,63,0.15); color:#00853F; border-color:rgba(0,133,63,0.3); }
+  .card { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card-title { font-size:12px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
+  .driver-row { display:flex; align-items:center; gap:12px; }
+  .driver-avatar { width:44px; height:44px; border-radius:22px; background:#00853F; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; flex-shrink:0; }
+  .driver-info { flex:1; }
+  .driver-name { font-size:16px; font-weight:700; }
+  .vehicle-info { font-size:13px; color:rgba(255,255,255,0.6); margin-top:2px; }
+  .address-row { display:flex; align-items:center; gap:10px; padding:8px 0; }
+  .dot-green { width:12px; height:12px; border-radius:6px; background:#00853F; flex-shrink:0; }
+  .dot-red { width:12px; height:12px; background:#FF3B30; flex-shrink:0; }
+  .address-text { font-size:14px; color:rgba(255,255,255,0.8); }
+  .divider { height:20px; margin-left:5px; border-left:2px dashed rgba(255,255,255,0.1); }
+  .fare-row { display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
+  .fare-amount { font-size:20px; font-weight:700; color:#D4AF37; }
+  .fare-label { font-size:13px; color:rgba(255,255,255,0.5); }
+  .footer { text-align:center; padding:20px 16px 30px; }
+  .footer-text { font-size:13px; color:rgba(255,255,255,0.4); }
+  .footer a { color:#00853F; text-decoration:none; font-weight:600; }
+  .finished-overlay { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,26,18,0.85); display:flex; align-items:center; justify-content:center; z-index:1000; flex-direction:column; }
+  .finished-overlay h2 { font-size:24px; margin-top:12px; }
+  .finished-overlay p { color:rgba(255,255,255,0.6); margin-top:8px; }
+</style>
+</head>
+<body>
+${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (ride.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2>Course terminee</h2><p>' + (ride.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>' : ''}
+<div id="map"></div>
+<div class="info-panel">
+  <div class="status-badge ${isFinished ? 'finished' : (ride.status === 'in_progress' ? 'in-progress' : '')}">${statusLabel}</div>
+
+  <div class="card">
+    <div class="card-title">Chauffeur</div>
+    <div class="driver-row">
+      <div class="driver-avatar">${driverName.charAt(0)}</div>
+      <div class="driver-info">
+        <div class="driver-name">${driverName}</div>
+        ${vehicleInfo ? '<div class="vehicle-info">' + vehicleInfo + '</div>' : ''}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Trajet de ${riderName}</div>
+    <div class="address-row"><div class="dot-green"></div><div class="address-text">${ride.pickup.address}</div></div>
+    <div class="divider"></div>
+    <div class="address-row"><div class="dot-red"></div><div class="address-text">${ride.dropoff.address}</div></div>
+    <div class="fare-row">
+      <div class="fare-label">Tarif</div>
+      <div class="fare-amount">${(ride.fare || 0).toLocaleString()} FCFA</div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p class="footer-text">Powered by <strong style="color:#00853F">TeranGO</strong> &mdash; <a href="https://play.google.com/store/apps/details?id=com.terango.rider" target="_blank">T&eacute;l&eacute;chargez l'app</a></p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"><\/script>
+<script>
+(function() {
+  var isFinished = ${isFinished ? 'true' : 'false'};
+  var shareToken = '${ride.shareToken}';
+  var pickupLat = ${pickupLat}, pickupLng = ${pickupLng};
+  var dropoffLat = ${dropoffLat}, dropoffLng = ${dropoffLng};
+  var driverLat = ${driverLat}, driverLng = ${driverLng};
+
+  var map = L.map('map', { zoomControl: false }).setView([driverLat, driverLng], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(map);
+
+  var greenIcon = L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:8px;background:#00853F;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+  var redIcon = L.divIcon({ className: '', html: '<div style="width:16px;height:16px;background:#FF3B30;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+  var driverIcon = L.divIcon({ className: '', html: '<div style="width:36px;height:36px;border-radius:18px;background:#D4AF37;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:18px">&#x1F697;</div>', iconSize: [36, 36], iconAnchor: [18, 18] });
+
+  L.marker([pickupLat, pickupLng], { icon: greenIcon }).addTo(map).bindPopup('Depart');
+  L.marker([dropoffLat, dropoffLng], { icon: redIcon }).addTo(map).bindPopup('Destination');
+  var driverMarker = L.marker([driverLat, driverLng], { icon: driverIcon }).addTo(map).bindPopup('Chauffeur');
+
+  // Fit bounds to show all markers
+  var bounds = L.latLngBounds([[pickupLat, pickupLng], [dropoffLat, dropoffLng], [driverLat, driverLng]]);
+  map.fitBounds(bounds, { padding: [40, 40] });
+
+  if (!isFinished) {
+    try {
+      var socket = io(window.location.origin + '/share', { transports: ['websocket', 'polling'] });
+      socket.on('connect', function() {
+        socket.emit('join-share-room', shareToken);
+      });
+      socket.on('share-location-update', function(data) {
+        if (data && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
+          driverMarker.setLatLng([data.latitude, data.longitude]);
+          map.panTo([data.latitude, data.longitude]);
+        }
+      });
+      socket.on('share-ride-ended', function(data) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;background:#001A12;color:#fff;font-family:sans-serif"><div style="font-size:48px">' + (data.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2 style="margin-top:12px">Course terminee</h2><p style="color:rgba(255,255,255,0.6);margin-top:8px">' + (data.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>';
+      });
+    } catch(e) { console.log('Socket error:', e); }
+  }
+})();
+<\/script>
+</body>
+</html>`);
+  } catch (error) {
+    console.error('Share page error:', error);
+    res.status(500).send('Erreur serveur');
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
 app.use('/api/drivers', driverRoutes);
@@ -218,6 +374,51 @@ setInterval(function() {
 }, 5 * 60 * 1000);
 
 
+// ========== Scheduled Ride Matcher (every 60 seconds) ==========
+setInterval(async function() {
+  try {
+    var ScheduledRide = require('./models/Ride');
+    var ScheduledRider = require('./models/Rider');
+    var { sendPushNotification } = require('./services/pushService');
+    var fifteenMinFromNow = new Date(Date.now() + 15 * 60 * 1000);
+    var scheduledRides = await ScheduledRide.find({
+      isScheduled: true,
+      status: 'scheduled',
+      scheduledNotified: false,
+      scheduledTime: { $lte: fifteenMinFromNow }
+    });
+    for (var i = 0; i < scheduledRides.length; i++) {
+      var ride = scheduledRides[i];
+      ride.status = 'pending';
+      ride.scheduledNotified = true;
+      await ride.save();
+      console.log('Scheduled ride ' + ride._id + ' activated (was scheduled for ' + ride.scheduledTime + ')');
+
+      // Trigger matching
+      var rideData = {
+        pickup: ride.pickup,
+        dropoff: ride.dropoff,
+        fare: ride.fare,
+        distance: ride.distance,
+        estimatedDuration: ride.estimatedDuration,
+        rideType: ride.rideType,
+        paymentMethod: ride.paymentMethod,
+        platformCommission: ride.platformCommission,
+        driverEarnings: ride.driverEarnings
+      };
+      matchingService.offerRideToDrivers(ride._id, ride.pickup.coordinates, rideData).catch(function(err) { console.error('Scheduled matching error:', err); });
+
+      // Send push notification to rider
+      var rider = await ScheduledRider.findById(ride.riderId);
+      if (rider) {
+        sendPushNotification(rider.userId, 'Course programmée', 'Votre course programmée démarre bientôt! Recherche de chauffeur...', { type: 'scheduled-ride-activated', rideId: ride._id.toString() });
+      }
+    }
+  } catch (e) {
+    console.error('Scheduled ride matcher error:', e.message);
+  }
+}, 60 * 1000);
+
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
   const token = socket.handshake.auth.token;
@@ -331,6 +532,25 @@ io.on('connection', function(socket) {
             location: { latitude: latitude, longitude: longitude },
             timestamp: now
           });
+
+          // Emit to share room if ride sharing is enabled
+          var RideShareModel = require('./models/Ride');
+          RideShareModel.findById(rideId).then(function(shareRide) {
+            if (shareRide && shareRide.shareEnabled && shareRide.shareToken) {
+              var shareRoom = 'share-' + shareRide.shareToken;
+              io.to(shareRoom).emit('share-location-update', {
+                latitude: latitude,
+                longitude: longitude,
+                timestamp: now
+              });
+              // Also emit to the /share namespace for unauthenticated viewers
+              io.of('/share').to(shareRoom).emit('share-location-update', {
+                latitude: latitude,
+                longitude: longitude,
+                timestamp: now
+              });
+            }
+          }).catch(function() {});
         }
         io.to('riders-watching').emit('nearby-driver-location', {
           driverId: driverId,
@@ -433,6 +653,14 @@ io.on('connection', function(socket) {
     socket.leave(orderId);
   });
 
+  // Share ride room (public — no auth required for the share page, but socket still needs auth)
+  // The share page uses a separate unauthenticated connection — see below
+  socket.on('join-share-room', function(shareToken) {
+    if (shareToken) {
+      socket.join('share-' + shareToken);
+      console.log('Socket ' + socket.id + ' joined share room: share-' + shareToken);
+    }
+  });
 
   // ========== CHAT ==========
   var Message = require("./models/Message");
@@ -548,6 +776,18 @@ io.on('connection', function(socket) {
       }, 60000);
     }
   });
+});
+
+// ========== Share Namespace (unauthenticated, for share page viewers) ==========
+var shareNamespace = io.of('/share');
+shareNamespace.on('connection', function(socket) {
+  socket.on('join-share-room', function(shareToken) {
+    if (shareToken && typeof shareToken === 'string' && shareToken.length === 32) {
+      socket.join('share-' + shareToken);
+      console.log('Share viewer ' + socket.id + ' joined share-' + shareToken);
+    }
+  });
+  socket.on('disconnect', function() {});
 });
 
 // ========== Graceful Shutdown ==========

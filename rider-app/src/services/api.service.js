@@ -81,6 +81,8 @@ export var rideService = {
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
   getUnpaidRide: function() { return api.get('/rides/unpaid'); },
+  getScheduledRides: function() { return api.get('/rides/scheduled'); },
+  shareRide: function(rideId) { return api.put('/rides/' + rideId + '/share'); },
   uploadEmergencyRecording: function(rideId, audioUri, duration) {
     var formData = new FormData();
     formData.append('audio', { uri: audioUri, name: 'emergency-' + Date.now() + '.m4a', type: 'audio/m4a' });

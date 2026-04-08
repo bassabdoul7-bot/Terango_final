@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image, Modal } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
@@ -22,6 +22,39 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [scheduledTime, setScheduledTime] = useState(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+
+  const getScheduleOptions = () => {
+    var now = new Date();
+    var tomorrow7 = new Date(now);
+    tomorrow7.setDate(tomorrow7.getDate() + 1);
+    tomorrow7.setHours(7, 0, 0, 0);
+    var tomorrow18 = new Date(now);
+    tomorrow18.setDate(tomorrow18.getDate() + 1);
+    tomorrow18.setHours(18, 0, 0, 0);
+    return [
+      { label: 'Dans 30 min', time: new Date(now.getTime() + 30 * 60 * 1000) },
+      { label: 'Dans 1 heure', time: new Date(now.getTime() + 60 * 60 * 1000) },
+      { label: 'Dans 2 heures', time: new Date(now.getTime() + 2 * 60 * 60 * 1000) },
+      { label: 'Demain matin (7h)', time: tomorrow7 },
+      { label: 'Demain soir (18h)', time: tomorrow18 },
+    ];
+  };
+
+  const formatScheduledTime = (date) => {
+    if (!date) return '';
+    var d = new Date(date);
+    var now = new Date();
+    var isToday = d.toDateString() === now.toDateString();
+    var tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    var isTomorrow = d.toDateString() === tomorrow.toDateString();
+    var timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return "Aujourd'hui " + timeStr;
+    if (isTomorrow) return 'Demain ' + timeStr;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + timeStr;
+  };
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
@@ -142,10 +175,18 @@ const RideSelectionScreen = ({ route, navigation }) => {
     if (!selectedType || !fareEstimates) return Alert.alert('Erreur', 'Selectionnez un type');
     setLoading(true);
     try {
-      const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration });
+      var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
+      if (scheduledTime) {
+        rideData.scheduledTime = scheduledTime.toISOString();
+      }
+      const r = await rideService.createRide(rideData);
       if (r.success) {
-        const newRideId = r.ride?.id || r.ride?._id;
-        navigation.replace('ActiveRide', { rideId: newRideId });
+        if (scheduledTime) {
+          Alert.alert('Course programmee!', r.message || 'Votre course a ete programmee.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
+        } else {
+          const newRideId = r.ride?.id || r.ride?._id;
+          navigation.replace('ActiveRide', { rideId: newRideId });
+        }
       }
     } catch (e) {
       Alert.alert('Erreur', e.response?.data?.message || 'Impossible de creer la course');
@@ -212,10 +253,34 @@ const RideSelectionScreen = ({ route, navigation }) => {
             {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur a l'arrivee</Text>}
             {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payez par Wave au chauffeur</Text>}
           </View>
+          <View style={styles.scheduleSection}>
+            <TouchableOpacity style={[styles.scheduleToggle, scheduledTime && styles.scheduleToggleActive]} onPress={() => { if (scheduledTime) { setScheduledTime(null); } else { setShowScheduleModal(true); } }} activeOpacity={0.7}>
+              <Text style={styles.scheduleIcon}>{"\uD83D\uDD52"}</Text>
+              <Text style={[styles.scheduleToggleText, scheduledTime && styles.scheduleToggleTextActive]}>{scheduledTime ? formatScheduledTime(scheduledTime) : 'Programmer'}</Text>
+              {scheduledTime && <TouchableOpacity onPress={() => setScheduledTime(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Text style={styles.scheduleClear}>{"\u2715"}</Text></TouchableOpacity>}
+            </TouchableOpacity>
+          </View>
           <View style={{ height: 16 }} />
         </ScrollView>
-        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
+        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : (scheduledTime ? 'Programmer \u2022 ' : 'Confirmer \u2022 ')+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
       </View>
+      <Modal visible={showScheduleModal} transparent animationType="fade">
+        <View style={styles.scheduleModalOverlay}>
+          <View style={styles.scheduleModalCard}>
+            <Text style={styles.scheduleModalTitle}>Programmer la course</Text>
+            <Text style={styles.scheduleModalSub}>Choisissez quand partir</Text>
+            {getScheduleOptions().map((opt, idx) => (
+              <TouchableOpacity key={idx} style={styles.scheduleOptionBtn} onPress={() => { setScheduledTime(opt.time); setShowScheduleModal(false); }} activeOpacity={0.7}>
+                <Text style={styles.scheduleOptionText}>{opt.label}</Text>
+                <Text style={styles.scheduleOptionTime}>{opt.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.scheduleModalCancel} onPress={() => setShowScheduleModal(false)}>
+              <Text style={styles.scheduleModalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -260,6 +325,22 @@ const styles = StyleSheet.create({
   paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   paymentOptionTextSelected: { color: COLORS.yellow },
   paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
+  scheduleSection: { marginTop: 10 },
+  scheduleToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
+  scheduleToggleActive: { borderColor: COLORS.green, backgroundColor: 'rgba(0,133,63,0.12)' },
+  scheduleIcon: { fontSize: 18 },
+  scheduleToggleText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  scheduleToggleTextActive: { color: COLORS.green },
+  scheduleClear: { fontSize: 14, color: COLORS.textLightMuted, marginLeft: 8, fontFamily: 'LexendDeca_700Bold' },
+  scheduleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  scheduleModalCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  scheduleModalTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
+  scheduleModalSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 },
+  scheduleOptionBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 8 },
+  scheduleOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  scheduleOptionTime: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted },
+  scheduleModalCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center' },
+  scheduleModalCancelText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 
