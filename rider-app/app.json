@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "TeranGO Client",
     "slug": "terango-rider",
@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 67,
+      "versionCode": 68,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
@@ -62,3 +62,4 @@
     }
   }
 }
+
