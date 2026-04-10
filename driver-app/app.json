@@ -1,4 +1,4 @@
-{
+﻿{
   "expo": {
     "name": "TeranGO Pro",
     "slug": "terango-driver",
@@ -30,7 +30,7 @@
         "backgroundColor": "#00853F"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 56,
+      "versionCode": 57,
       "package": "com.terango.driver",
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": false,
@@ -65,3 +65,4 @@
     }
   }
 }
+
