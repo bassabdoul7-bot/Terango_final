@@ -34,6 +34,24 @@ var OnboardingScreen = function(props) {
   var activeIndex = activeIndexState[0];
   var setActiveIndex = activeIndexState[1];
   var scrollX = useRef(new Animated.Value(0)).current;
+  var fadeAnim = useRef(new Animated.Value(0)).current;
+  var btnPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(function() {
+    Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }).start();
+  }, []);
+
+  useEffect(function() {
+    if (activeIndex === slides.length - 1) {
+      Animated.loop(Animated.sequence([
+        Animated.timing(btnPulse, { toValue: 1.05, duration: 800, useNativeDriver: true }),
+        Animated.timing(btnPulse, { toValue: 1, duration: 800, useNativeDriver: true }),
+      ])).start();
+    } else {
+      btnPulse.stopAnimation();
+      btnPulse.setValue(1);
+    }
+  }, [activeIndex]);
 
   useEffect(function() {
     var interval = setInterval(function() {
@@ -79,23 +97,26 @@ var OnboardingScreen = function(props) {
       >
         {slides.map(function(slide, index) {
           return (
-            <View key={index} style={styles.slide}>
+            <Animated.View key={index} style={[styles.slide, { opacity: fadeAnim }]}>
               <Image source={slide.image} style={styles.bgImage} resizeMode="cover" />
               <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(0,0,0,0.85)']}
-                locations={[0, 0.45, 1]}
+                colors={['rgba(0,0,0,0.15)', 'transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.92)']}
+                locations={[0, 0.2, 0.5, 1]}
                 style={styles.gradient}
               />
               <View style={styles.logoContainer}>
                 <View style={styles.logoCircle}>
                   <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
                 </View>
+                <Text style={styles.brandName}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
               </View>
               <View style={styles.textContainer}>
-                <Text style={styles.title}>{slide.title}</Text>
-                <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                <View style={styles.textBg}>
+                  <Text style={styles.title}>{slide.title}</Text>
+                  <Text style={styles.subtitle}>{slide.subtitle}</Text>
+                </View>
               </View>
-            </View>
+            </Animated.View>
           );
         })}
       </ScrollView>
@@ -133,9 +154,11 @@ var OnboardingScreen = function(props) {
           </TouchableOpacity>
         )}
 
-        <TouchableOpacity style={styles.commencerBtn} onPress={handleDone} activeOpacity={0.85}>
-          <Text style={styles.commencerText}>Commencer</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ width: '100%', transform: [{ scale: btnPulse }] }}>
+          <TouchableOpacity style={styles.commencerBtn} onPress={handleDone} activeOpacity={0.85}>
+            <Text style={styles.commencerText}>Commencer</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </View>
   );
@@ -145,8 +168,9 @@ var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   slide: { width: width, height: height },
   bgImage: { width: width, height: height, position: 'absolute' },
-  gradient: { position: 'absolute', left: 0, right: 0, bottom: 0, height: height * 0.65 },
+  gradient: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   logoContainer: { position: 'absolute', top: 60, left: 0, right: 0, alignItems: 'center' },
+  brandName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginTop: 8, letterSpacing: -0.5 },
   logoCircle: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center',
@@ -155,15 +179,21 @@ var styles = StyleSheet.create({
   logo: { width: 68, height: 68 },
   textContainer: {
     position: 'absolute', bottom: 200, left: 0, right: 0,
-    paddingHorizontal: 32, alignItems: 'center',
+    paddingHorizontal: 28, alignItems: 'center',
+  },
+  textBg: {
+    backgroundColor: 'rgba(0,0,0,0.25)', borderRadius: 20, paddingVertical: 24, paddingHorizontal: 20,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF',
-    textAlign: 'center', marginBottom: 12, lineHeight: 36,
+    fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF',
+    textAlign: 'center', marginBottom: 12, lineHeight: 38,
+    textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8,
   },
   subtitle: {
-    fontSize: 16, fontFamily: 'LexendDeca_400Regular', color: 'rgba(255,255,255,0.75)',
+    fontSize: 16, fontFamily: 'LexendDeca_400Regular', color: 'rgba(255,255,255,0.9)',
     textAlign: 'center', lineHeight: 24,
+    textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4,
   },
   bottomContainer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
