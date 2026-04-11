@@ -215,8 +215,8 @@ exports.getAllRides = async (req, res) => {
     }
     
     const rides = await Ride.find(query)
-      .populate('riderId', 'userId')
-      .populate('driverId', 'userId vehicle')
+      .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
+      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone' } })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
