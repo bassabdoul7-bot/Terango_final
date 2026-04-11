@@ -1,7 +1,9 @@
-﻿import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -20,12 +22,23 @@ import ActiveDeliveryScreen from '../screens/ActiveDeliveryScreen';
 const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
   const { isAuthenticated, isGuest, loading } = useAuth();
-  if (loading) { return null; }
+  const [showOnboarding, setShowOnboarding] = useState(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('onboardingDone').then((value) => {
+      setShowOnboarding(value !== '1');
+    });
+  }, []);
+
+  if (loading || showOnboarding === null) { return null; }
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {(!isAuthenticated && !isGuest) ? (
           <>
+          {showOnboarding && (
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          )}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           </>
