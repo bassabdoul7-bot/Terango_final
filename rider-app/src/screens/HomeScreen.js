@@ -618,6 +618,24 @@ function HomeScreen(props) {
           </View>
         </View>
 
+        <View style={styles.profileSection}>
+          <Text style={styles.profileSectionTitle}>{"Aide & Support"}</Text>
+          <View style={styles.profileGroup}>
+            <TouchableOpacity style={styles.profileRow} onPress={function(){Linking.openURL('https://wa.me/221784256407');}}>
+              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCAC'}</Text>
+              <View style={{flex:1}}><Text style={styles.profileRowLabel}>WhatsApp Senegal</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>+221 78 425 64 07</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.profileRow} onPress={function(){Linking.openURL('https://wa.me/17047263959');}}>
+              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCAC'}</Text>
+              <View style={{flex:1}}><Text style={styles.profileRowLabel}>WhatsApp US</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>+1 704 726 3959</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.profileRow,{borderBottomWidth:0}]} onPress={function(){Linking.openURL('mailto:contact@terango.sn');}}>
+              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCE7'}</Text>
+              <View style={{flex:1}}><Text style={styles.profileRowLabel}>Email</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>contact@terango.sn</Text></View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <FeedbackButton screen='Profile' />
 
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={function() {
