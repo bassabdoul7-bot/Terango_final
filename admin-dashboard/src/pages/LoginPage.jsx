@@ -25,7 +25,7 @@ export default function LoginPage() {
           setLoading(false);
           return;
         }
-        if (mode === 'admin' && userData.role !== 'admin') {
+        if (mode === 'admin' && userData.role !== 'admin' && userData.role !== 'moderator') {
           setError('Ce compte n\'est pas un compte administrateur');
           setLoading(false);
           return;
