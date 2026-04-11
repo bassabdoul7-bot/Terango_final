@@ -57,8 +57,8 @@ function AppRoutes() {
         <Route path="photos" element={<AdminOrModRoute><PhotosPage /></AdminOrModRoute>} />
         <Route path="operations" element={<AdminOrModRoute><OperationsPage /></AdminOrModRoute>} />
         <Route path="monitoring" element={<AdminOrModRoute><MonitoringPage /></AdminOrModRoute>} />
+        <Route path="riders" element={<AdminOrModRoute><RidersPage /></AdminOrModRoute>} />
         {/* Admin only routes */}
-        <Route path="riders" element={<AdminRoute><RidersPage /></AdminRoute>} />
         <Route path="revenue" element={<AdminRoute><RevenuePage /></AdminRoute>} />
         <Route path="partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />
         <Route path="services" element={<AdminRoute><ServiceProvidersPage /></AdminRoute>} />
