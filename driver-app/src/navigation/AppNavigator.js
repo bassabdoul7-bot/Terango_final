@@ -1,11 +1,13 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { driverService } from '../services/api.service';
 import COLORS from '../constants/colors';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -74,6 +76,15 @@ var AppNavigator = function() {
   var statusLoadingState = useState(true);
   var statusLoading = statusLoadingState[0];
   var setStatusLoading = statusLoadingState[1];
+  var onboardingState = useState(null);
+  var showOnboarding = onboardingState[0];
+  var setShowOnboarding = onboardingState[1];
+
+  useEffect(function() {
+    AsyncStorage.getItem('onboardingDone').then(function(value) {
+      setShowOnboarding(value !== '1');
+    });
+  }, []);
 
   var checkDriverStatus = function() {
     driverService.getVerificationStatus().then(function(res) {
@@ -90,7 +101,7 @@ var AppNavigator = function() {
     else { setDriverStatus(null); setStatusLoading(false); }
   }, [isAuthenticated]);
 
-  if (loading || (isAuthenticated && statusLoading)) { return null; }
+  if (loading || showOnboarding === null || (isAuthenticated && statusLoading)) { return null; }
 
   var needsDocumentUpload = isAuthenticated && driverStatus && driverStatus.status === 'pending' && !driverStatus.hasDocuments;
   var isPendingVerification = isAuthenticated && driverStatus && driverStatus.status === 'pending' && driverStatus.hasDocuments;
@@ -112,6 +123,9 @@ var AppNavigator = function() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <>
+            {showOnboarding && (
+              <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            )}
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Register" component={RegisterScreen} />
           </>
@@ -131,8 +145,3 @@ var AppNavigator = function() {
 };
 
 export default AppNavigator;
-
-
-
-
-

@@ -1,9 +1,13 @@
-﻿import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, Image, TouchableOpacity, StatusBar } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, Image, TouchableOpacity, StatusBar, ImageBackground, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
+
+var { width, height } = Dimensions.get('window');
+var HEADER_HEIGHT = height * 0.35;
 
 const LoginScreen = ({ navigation }) => {
   const { loginWithPin } = useAuth();
@@ -37,15 +41,30 @@ const LoginScreen = ({ navigation }) => {
     try { const response = await authService.resetPin(fullPhone, otp, newPin); if (response.success) { Alert.alert('Succ\u00e8s', 'PIN r\u00e9initialis\u00e9!'); setForgotMode(false); setOtp(''); setNewPin(''); setConfirmPin(''); setPin(''); } } catch (error) { Alert.alert('Erreur', error.message || 'Code invalide'); } finally { setLoading(false); }
   };
 
+  function renderHeader(subtitleText) {
+    return (
+      <ImageBackground source={require('../../assets/login-header.png')} style={styles.headerImage} resizeMode="cover">
+        <LinearGradient
+          colors={['transparent', 'rgba(0,26,18,0.7)', 'rgba(0,26,18,0.95)']}
+          locations={[0, 0.6, 1]}
+          style={styles.headerGradient}
+        />
+        <View style={styles.headerContent}>
+          <View style={styles.logoCircle}>
+            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
+          </View>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
+          <Text style={styles.appSubtitle}>{subtitleText}</Text>
+        </View>
+      </ImageBackground>
+    );
+  }
+
   if (forgotMode) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        <View style={styles.darkHeader}>
-          <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
-          <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
-        </View>
+        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+        {renderHeader("\u00c9space chauffeur")}
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -70,12 +89,8 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.darkHeader}>
-        <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" /></View>
-        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Pro</Text>
-        <Text style={styles.appSubtitle}>{"\u00c9space chauffeur"}</Text>
-      </View>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      {renderHeader("\u00c9space chauffeur")}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
@@ -107,29 +122,30 @@ const LoginScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  darkHeader: { backgroundColor: COLORS.darkCard, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  headerImage: { width: width, height: HEADER_HEIGHT },
+  headerGradient: { position: 'absolute', left: 0, right: 0, bottom: 0, height: HEADER_HEIGHT },
+  headerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 30 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginBottom: 4 },
-  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)' , fontFamily: 'LexendDeca_400Regular' },
+  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontFamily: 'LexendDeca_400Regular' },
   formArea: { flex: 1, marginTop: -20 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: { backgroundColor: '#e8f8e0', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
+  card: { backgroundColor: '#e8f8e0', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
   cardTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
-  cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
+  cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   label: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
   prefixBox: { backgroundColor: COLORS.darkCard, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   prefixText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   forgotText: { color: COLORS.green, fontSize: 14, fontFamily: 'LexendDeca_500Medium' },
   secondaryBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.background, alignItems: 'center', borderWidth: 1, borderColor: '#E5E5E5' },
   secondaryBtnText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray },
   registerLink: { flexDirection: 'row', justifyContent: 'center', marginTop: 24, marginBottom: 30 },
-  registerText: { color: COLORS.textDarkSub, fontSize: 15 , fontFamily: 'LexendDeca_400Regular' },
+  registerText: { color: COLORS.textDarkSub, fontSize: 15, fontFamily: 'LexendDeca_400Regular' },
   registerBold: { color: COLORS.green, fontSize: 15, fontFamily: 'LexendDeca_700Bold' },
 });
 
 export default LoginScreen;
-
