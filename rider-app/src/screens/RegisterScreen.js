@@ -1,7 +1,10 @@
 ﻿import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar } from 'react-native';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, ImageBackground, StatusBar, Dimensions } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
+
+var { width, height } = Dimensions.get('window');
 import { useAuth } from '../context/AuthContext';
 
 var RegisterScreen = function(props) {
@@ -27,12 +30,14 @@ var RegisterScreen = function(props) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.darkHeader}>
-        <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
-        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
-        <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
-      </View>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <ImageBackground source={require('../../assets/login-header.png')} style={styles.headerImage} resizeMode="cover">
+        <LinearGradient colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,26,18,1)']} locations={[0, 0.6, 1]} style={styles.headerGradient}>
+          <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
+          <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
+        </LinearGradient>
+      </ImageBackground>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
@@ -76,7 +81,8 @@ var RegisterScreen = function(props) {
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  darkHeader: { backgroundColor: COLORS.darkCard, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
+  headerImage: { width: width, height: height * 0.32 },
+  headerGradient: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 50 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginBottom: 4 },
