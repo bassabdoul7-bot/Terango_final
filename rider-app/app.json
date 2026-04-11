@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 74,
+      "versionCode": 75,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
@@ -53,13 +53,7 @@
       ],
       "expo-font",
       "@maplibre/maplibre-react-native",
-      "expo-secure-store",
-      [
-        "expo-sensors",
-        {
-          "motionPermission": false
-        }
-      ]
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

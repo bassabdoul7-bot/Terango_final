@@ -1,6 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image, Animated as RNAnimated, Share } from 'react-native';
-import { Accelerometer } from 'expo-sensors';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -190,25 +189,6 @@ function ActiveRideScreen(props) {
     } catch(e) { console.error('SOS trigger error:', e); }
     setTimeout(function() { sosTriggeredRef.current = false; }, 5000);
   }, [rideId]);
-
-  // Accelerometer shake detection
-  useEffect(function() {
-    if (!ride || ['completed','cancelled'].indexOf(ride.status) !== -1) return;
-    var sub = Accelerometer.addListener(function(data) {
-      var magnitude = Math.sqrt(data.x * data.x + data.y * data.y + data.z * data.z);
-      if (magnitude > 2.5) {
-        var now = Date.now();
-        shakeTimestamps.current.push(now);
-        shakeTimestamps.current = shakeTimestamps.current.filter(function(t) { return now - t < 2000; });
-        if (shakeTimestamps.current.length >= 3) {
-          shakeTimestamps.current = [];
-          triggerSOSFlow();
-        }
-      }
-    });
-    Accelerometer.setUpdateInterval(100);
-    return function() { sub && sub.remove(); };
-  }, [ride ? ride.status : null, rideId]);
 
   // Silent panic: 5 taps on status badge within 3 seconds
   var handleSilentPanic = useCallback(function() {
