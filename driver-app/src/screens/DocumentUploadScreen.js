@@ -138,7 +138,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
               <Text style={[styles.subtitle, {marginTop: 24, marginBottom: 16}]}>{"Classe du véhicule"}</Text>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "standard" && styles.typeCardSelected]} onPress={() => setVehicleClass("standard")}>
                 <Text style={styles.typeIcon}>{"\uD83D\uDE97"}</Text>
-                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Standard</Text><Text style={{fontSize:12,color:"#999",marginTop:2, fontFamily: 'LexendDeca_400Regular' }}>{"Véhicule sans climatisation"}</Text></View>
+                <View style={{flex:1}}><Text style={[styles.typeText, vehicleClass === "standard" && styles.typeTextSelected]}>Eco</Text><Text style={{fontSize:12,color:"#999",marginTop:2, fontFamily: 'LexendDeca_400Regular' }}>{"Véhicule sans climatisation"}</Text></View>
               </TouchableOpacity>
               <TouchableOpacity style={[styles.typeCard, vehicleClass === "comfort" && styles.typeCardSelected]} onPress={() => setVehicleClass("comfort")}>
                 <Text style={styles.typeIcon}>{"\u2744\uFE0F"}</Text>
