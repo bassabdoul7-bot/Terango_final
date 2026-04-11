@@ -461,6 +461,21 @@ exports.getServicePreferences = function(req, res) {
 // ========== DOCUMENT UPLOAD ==========
 
 exports.uploadDocuments = function(req, res) {
+  // Validate required fields
+  var missingFields = [];
+  if (!req.files || !req.files.selfie) missingFields.push('Selfie');
+  if (!req.files || !req.files.nationalId) missingFields.push('Carte d\'identite');
+  if (!req.files || !req.files.driverLicense) missingFields.push('Permis de conduire');
+  if (!req.files || !req.files.vehicleRegistration) missingFields.push('Carte grise');
+  if (!req.files || !req.files.vehicleFront) missingFields.push('Photo vehicule (avant)');
+  if (!req.body.vehicleType) missingFields.push('Type de vehicule');
+  if (!req.body.vehicleMake) missingFields.push('Marque du vehicule');
+  if (!req.body.licensePlate) missingFields.push('Plaque d\'immatriculation');
+  if (!req.body.waveNumber) missingFields.push('Numero Wave');
+  if (missingFields.length > 0) {
+    return res.status(400).json({ success: false, message: 'Champs requis manquants: ' + missingFields.join(', ') });
+  }
+
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
