@@ -274,104 +274,94 @@ exports.getActiveRide = function(req, res) {
     });
 };
 
-exports.getEarnings = function(req, res) {
-  Driver.findOne({ userId: req.user._id })
-    .then(function(driver) {
-      if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+exports.getEarnings = async function(req, res) {
+  try {
+    var driver = await Driver.findOne({ userId: req.user._id });
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+    }
+
+    var completedRides = await Ride.find({ driver: driver._id, status: 'completed' });
+
+    var totalEarnings = completedRides.reduce(function(sum, ride) {
+      return sum + (ride.driverEarnings || ride.fare || 0);
+    }, 0);
+
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    var todayEarnings = 0;
+    var todayRides = 0;
+
+    completedRides.forEach(function(ride) {
+      var rideDate = new Date(ride.completedAt || ride.updatedAt);
+      if (rideDate >= today) {
+        todayEarnings += (ride.driverEarnings || ride.fare || 0);
+        todayRides += 1;
       }
-
-      return Ride.find({ driver: driver._id, status: 'completed' });
-    })
-    .then(function(completedRides) {
-      if (!completedRides) return;
-
-      var totalEarnings = completedRides.reduce(function(sum, ride) {
-        return sum + (ride.driverEarnings || ride.fare || 0);
-      }, 0);
-
-      var today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      var todayEarnings = 0;
-      var todayRides = 0;
-
-      completedRides.forEach(function(ride) {
-        var rideDate = new Date(ride.completedAt || ride.updatedAt);
-        if (rideDate >= today) {
-          todayEarnings += (ride.driverEarnings || ride.fare || 0);
-          todayRides += 1;
-        }
-      });
-
-      var now = new Date();
-      var dayOfWeek = now.getDay();
-      var mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      var monday = new Date(now);
-      monday.setDate(now.getDate() - mondayOffset);
-      monday.setHours(0, 0, 0, 0);
-
-      var weeklyBreakdown = [0, 0, 0, 0, 0, 0, 0];
-      var weeklyRides = [0, 0, 0, 0, 0, 0, 0];
-
-      completedRides.forEach(function(ride) {
-        var rideDate = new Date(ride.completedAt || ride.updatedAt);
-        if (rideDate >= monday) {
-          var rideDay = rideDate.getDay();
-          var index = rideDay === 0 ? 6 : rideDay - 1;
-          weeklyBreakdown[index] += (ride.driverEarnings || ride.fare || 0);
-          weeklyRides[index] += 1;
-        }
-      });
-
-      var weekTotal = weeklyBreakdown.reduce(function(a, b) { return a + b; }, 0);
-      var weekRidesTotal = weeklyRides.reduce(function(a, b) { return a + b; }, 0);
-
-      res.status(200).json({
-        success: true,
-        earnings: {
-          total: totalEarnings,
-          today: todayEarnings,
-          todayRides: todayRides,
-          totalRides: completedRides.length,
-          weekTotal: weekTotal,
-          weekRides: weekRidesTotal,
-          weeklyBreakdown: weeklyBreakdown,
-          weeklyRides: weeklyRides
-        },
-        paymentInfo: {
-          method: 'Wave',
-          waveNumber: process.env.COMMISSION_WAVE_NUMBER || '',
-          instructions: 'Envoyez votre commission au numero Wave affiche dans l\'application'
-        }
-      });
-    })
-    .catch(function(error) {
-      console.error('Get Earnings Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation des gains' });
     });
+
+    var now = new Date();
+    var dayOfWeek = now.getDay();
+    var mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    var monday = new Date(now);
+    monday.setDate(now.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    var weeklyBreakdown = [0, 0, 0, 0, 0, 0, 0];
+    var weeklyRides = [0, 0, 0, 0, 0, 0, 0];
+
+    completedRides.forEach(function(ride) {
+      var rideDate = new Date(ride.completedAt || ride.updatedAt);
+      if (rideDate >= monday) {
+        var rideDay = rideDate.getDay();
+        var index = rideDay === 0 ? 6 : rideDay - 1;
+        weeklyBreakdown[index] += (ride.driverEarnings || ride.fare || 0);
+        weeklyRides[index] += 1;
+      }
+    });
+
+    var weekTotal = weeklyBreakdown.reduce(function(a, b) { return a + b; }, 0);
+    var weekRidesTotal = weeklyRides.reduce(function(a, b) { return a + b; }, 0);
+
+    res.status(200).json({
+      success: true,
+      earnings: {
+        total: totalEarnings,
+        today: todayEarnings,
+        todayRides: todayRides,
+        totalRides: completedRides.length,
+        weekTotal: weekTotal,
+        weekRides: weekRidesTotal,
+        weeklyBreakdown: weeklyBreakdown,
+        weeklyRides: weeklyRides
+      },
+      paymentInfo: {
+        method: 'Wave',
+        waveNumber: process.env.COMMISSION_WAVE_NUMBER || '',
+        instructions: 'Envoyez votre commission au numero Wave affiche dans l\'application'
+      }
+    });
+  } catch (error) {
+    console.error('Get Earnings Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la recuperation des gains' });
+  }
 };
 
-exports.getRideHistory = function(req, res) {
-  Driver.findOne({ userId: req.user._id })
-    .then(function(driver) {
-      if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
-      }
-
-      return Ride.find({ driver: driver._id, status: 'completed' })
-        .sort({ completedAt: -1 })
-        .limit(50);
-    })
-    .then(function(rides) {
-      if (rides) {
-        res.status(200).json({ success: true, rides: rides });
-      }
-    })
-    .catch(function(error) {
-      console.error('Get Ride History Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de historique' });
-    });
+exports.getRideHistory = async function(req, res) {
+  try {
+    var driver = await Driver.findOne({ userId: req.user._id });
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+    }
+    var rides = await Ride.find({ driver: driver._id, status: 'completed' })
+      .sort({ completedAt: -1 })
+      .limit(50);
+    res.status(200).json({ success: true, rides: rides });
+  } catch (error) {
+    console.error('Get Ride History Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de historique' });
+  }
 };
 
 exports.getOnlineCount = function(req, res) {
