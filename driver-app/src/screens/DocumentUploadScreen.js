@@ -55,27 +55,31 @@ const DocumentUploadScreen = ({ onComplete }) => {
   };
 
   const handleSubmit = async () => {
+    // Validate all required fields
+    if (!selfiePhoto) { Alert.alert('Photo requise', 'Prenez votre selfie'); return; }
+    if (!nationalIdPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte d\'identite'); return; }
+    if (!driverLicensePhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre permis de conduire'); return; }
+    if (!vehicleRegPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte grise'); return; }
+    if (!vehicleType) { Alert.alert('Champ requis', 'Selectionnez votre type de vehicule'); return; }
+    if (!vehicleMake.trim()) { Alert.alert('Champ requis', 'Entrez la marque de votre vehicule'); return; }
+    if (!licensePlate.trim()) { Alert.alert('Champ requis', 'Entrez votre plaque d\'immatriculation'); return; }
+    if (!waveNumber.trim()) { Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers'); return; }
+    if (!vehicleFrontPhoto) { Alert.alert('Photo requise', 'Prenez la photo avant de votre vehicule'); return; }
+
     setLoading(true);
     try {
       const formData = new FormData();
       formData.append('selfie', { uri: selfiePhoto.uri, type: 'image/jpeg', name: 'selfie.jpg' });
       formData.append('nationalId', { uri: nationalIdPhoto.uri, type: 'image/jpeg', name: 'cni.jpg' });
       formData.append('driverLicense', { uri: driverLicensePhoto.uri, type: 'image/jpeg', name: 'permis.jpg' });
-      if (vehicleRegPhoto) {
-        formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
-      }
-      formData.append('vehicleMake', vehicleMake);
+      formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
+      formData.append('vehicleMake', vehicleMake.trim());
       formData.append('vehicleType', vehicleType);
       if (vehicleClass) formData.append('vehicleClass', vehicleClass);
-      if (vehicleFrontPhoto) formData.append('vehicleFront', { uri: vehicleFrontPhoto.uri, type: 'image/jpeg', name: 'vehicle_front.jpg' });
+      formData.append('vehicleFront', { uri: vehicleFrontPhoto.uri, type: 'image/jpeg', name: 'vehicle_front.jpg' });
       if (vehicleBackPhoto) formData.append('vehicleBack', { uri: vehicleBackPhoto.uri, type: 'image/jpeg', name: 'vehicle_back.jpg' });
       if (vehicleInteriorPhoto) formData.append('vehicleInterior', { uri: vehicleInteriorPhoto.uri, type: 'image/jpeg', name: 'vehicle_interior.jpg' });
-      if (licensePlate) formData.append('licensePlate', licensePlate);
-      if (!waveNumber.trim()) {
-        Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers');
-        setLoading(false);
-        return;
-      }
+      formData.append('licensePlate', licensePlate.trim());
       formData.append('waveNumber', waveNumber.trim());
 
       await driverService.uploadDocuments(formData);
