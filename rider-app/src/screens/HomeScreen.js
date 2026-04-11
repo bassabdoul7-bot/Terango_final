@@ -90,12 +90,20 @@ function HomeScreen(props) {
   var searchCardOpacity = useRef(new Animated.Value(0)).current;
   var driverPulse = useRef(new Animated.Value(1)).current;
 
+  var [showEcPrompt, setShowEcPrompt] = useState(false);
+
   useEffect(function() {
     loadSavedPlaces();
     if (!isGuest) {
       loadRideHistory();
       loadScheduledRides();
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
+      // Show emergency contacts prompt on first launch
+      AsyncStorage.getItem('ecPromptShown').then(function(val) {
+        if (!val && (!user.emergencyContacts || user.emergencyContacts.length === 0)) {
+          setTimeout(function() { setShowEcPrompt(true); }, 2000);
+        }
+      });
     }
   }, []);
 
@@ -865,6 +873,22 @@ function HomeScreen(props) {
       </View>
 
       {renderSaveModal()}
+
+      <Modal visible={showEcPrompt} transparent animationType="fade">
+        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'center',alignItems:'center'}}>
+          <View style={{backgroundColor:COLORS.darkCard,borderRadius:24,padding:28,width:width-48,alignItems:'center',borderWidth:1,borderColor:COLORS.darkCardBorder}}>
+            <Text style={{fontSize:40,marginBottom:12}}>{'\uD83D\uDEE1\uFE0F'}</Text>
+            <Text style={{fontSize:20,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,marginBottom:8,textAlign:'center'}}>Votre securite compte</Text>
+            <Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightMuted,textAlign:'center',marginBottom:20,lineHeight:20}}>Ajoutez des contacts d'urgence. En cas de probleme pendant une course, ils seront alertes automatiquement avec votre position en direct.</Text>
+            <TouchableOpacity style={{width:'100%',paddingVertical:16,borderRadius:14,backgroundColor:COLORS.green,alignItems:'center',marginBottom:12}} onPress={function(){setShowEcPrompt(false);AsyncStorage.setItem('ecPromptShown','1');setActiveTab('profile');}}>
+              <Text style={{fontSize:16,fontFamily:'LexendDeca_700Bold',color:'#FFF'}}>Ajouter mes contacts</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={{paddingVertical:12}} onPress={function(){setShowEcPrompt(false);AsyncStorage.setItem('ecPromptShown','1');}}>
+              <Text style={{fontSize:14,fontFamily:'LexendDeca_500Medium',color:COLORS.textLightMuted}}>Plus tard</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
