@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 68,
+      "versionCode": 69,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
