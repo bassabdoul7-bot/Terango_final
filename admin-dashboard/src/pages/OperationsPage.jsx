@@ -86,8 +86,13 @@ function getDriverLocation(item) {
   var loc = null;
   if (item.driver && item.driver.currentLocation) loc = item.driver.currentLocation;
   else if (item.currentLocation) loc = item.currentLocation;
-  if (loc && loc.coordinates && loc.coordinates.length === 2) return [loc.coordinates[1], loc.coordinates[0]];
-  if (loc && loc.latitude) return [loc.latitude, loc.longitude];
+  if (!loc) return null;
+  // GeoJSON array format [lon, lat]
+  if (loc.coordinates && Array.isArray(loc.coordinates) && loc.coordinates.length === 2) return [loc.coordinates[1], loc.coordinates[0]];
+  // Object format { coordinates: { latitude, longitude } }
+  if (loc.coordinates && loc.coordinates.latitude) return [loc.coordinates.latitude, loc.coordinates.longitude];
+  // Direct format { latitude, longitude }
+  if (loc.latitude) return [loc.latitude, loc.longitude];
   return null;
 }
 
