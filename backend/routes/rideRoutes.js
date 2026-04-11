@@ -22,7 +22,8 @@ const {
   appendTrailPoints,
   uploadEmergencyRecording,
   shareRide,
-  getScheduledRides
+  getScheduledRides,
+  triggerSOS
 } = require('../controllers/rideController');
 
 // Emergency recording multer config
@@ -110,6 +111,9 @@ router.put('/:id/share', protect, restrictTo('rider'), shareRide);
 
 // Emergency video/audio recording (Rider or Driver)
 router.put('/:id/emergency-recording', protect, recordingUpload.single('media'), uploadEmergencyRecording);
+
+// SOS trigger (Rider or Driver)
+router.post('/:id/sos', protect, triggerSOS);
 
 // Cancel ride
 router.put(

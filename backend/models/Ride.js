@@ -173,6 +173,9 @@ const rideSchema = new mongoose.Schema({
     duration: { type: Number, default: 0 }
   }],
 
+  // Safety monitoring
+  minDistToDropoff: { type: Number, default: null },
+
   // Share my ride
   shareToken: { type: String, default: null },
   shareEnabled: { type: Boolean, default: false },

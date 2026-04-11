@@ -24,7 +24,7 @@ import COLORS from '../constants/colors';
 import FeedbackButton from '../components/FeedbackButton';
 import { useAuth } from '../context/AuthContext';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
-import { driverService, rideService } from '../services/api.service';
+import { driverService, rideService, authService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
 
@@ -67,6 +67,11 @@ function HomeScreen(props) {
 
   var saveAddrState = useState('');
   var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
+  var ecState = useState(user?.emergencyContacts || []); var emergencyContacts = ecState[0]; var setEmergencyContacts = ecState[1];
+  var ecEditState = useState(false); var showEcEdit = ecEditState[0]; var setShowEcEdit = ecEditState[1];
+  var ecNameState = useState(''); var ecName = ecNameState[0]; var setEcName = ecNameState[1];
+  var ecPhoneState = useState(''); var ecPhone = ecPhoneState[0]; var setEcPhone = ecPhoneState[1];
+  var ecSavingState = useState(false); var ecSaving = ecSavingState[0]; var setEcSaving = ecSavingState[1];
   var saveAddress = saveAddrState[0];
   var setSaveAddress = saveAddrState[1];
 
@@ -553,6 +558,55 @@ function HomeScreen(props) {
                 <View style={[styles.pinToggleDot, securityPinEnabled && styles.pinToggleDotOn]} />
               </View>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.profileSection}>
+          <Text style={styles.profileSectionTitle}>{"Contacts d'urgence"}</Text>
+          <View style={styles.profileGroup}>
+            {emergencyContacts.map(function(contact, idx) {
+              return (
+                <View key={idx} style={[styles.profileRow, idx === emergencyContacts.length - 1 && !showEcEdit && { borderBottomWidth: 0 }]}>
+                  <Text style={styles.profileEmoji}>{'\uD83D\uDC64'}</Text>
+                  <View style={{flex:1}}>
+                    <Text style={styles.profileLabel}>{contact.name}</Text>
+                    <Text style={{fontSize:12,color:'rgba(0,0,0,0.5)'}}>{contact.phone}</Text>
+                  </View>
+                  <TouchableOpacity onPress={function() {
+                    var updated = emergencyContacts.filter(function(_, i) { return i !== idx; });
+                    setEmergencyContacts(updated);
+                    setEcSaving(true);
+                    authService.updateEmergencyContacts(updated).finally(function() { setEcSaving(false); });
+                  }}><Text style={{fontSize:18,color:'#E31B23'}}>{'×'}</Text></TouchableOpacity>
+                </View>
+              );
+            })}
+            {emergencyContacts.length < 3 && !showEcEdit && (
+              <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0, justifyContent: 'center' }]} onPress={function() { setShowEcEdit(true); }}>
+                <Text style={{fontSize:14,color:COLORS.green,fontFamily:'LexendDeca_600SemiBold'}}>+ Ajouter un contact</Text>
+              </TouchableOpacity>
+            )}
+            {showEcEdit && (
+              <View style={{padding:12}}>
+                <TextInput placeholder="Nom" value={ecName} onChangeText={setEcName} style={{borderWidth:1,borderColor:'rgba(0,0,0,0.1)',borderRadius:10,padding:10,marginBottom:8,fontSize:14,fontFamily:'LexendDeca_400Regular'}} />
+                <TextInput placeholder="Telephone" value={ecPhone} onChangeText={setEcPhone} keyboardType="phone-pad" style={{borderWidth:1,borderColor:'rgba(0,0,0,0.1)',borderRadius:10,padding:10,marginBottom:8,fontSize:14,fontFamily:'LexendDeca_400Regular'}} />
+                <View style={{flexDirection:'row',gap:8}}>
+                  <TouchableOpacity style={{flex:1,padding:10,borderRadius:10,backgroundColor:'rgba(0,0,0,0.05)',alignItems:'center'}} onPress={function(){ setShowEcEdit(false); setEcName(''); setEcPhone(''); }}>
+                    <Text style={{fontSize:14,color:'rgba(0,0,0,0.5)'}}>Annuler</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{flex:1,padding:10,borderRadius:10,backgroundColor:COLORS.green,alignItems:'center'}} onPress={function(){
+                    if (!ecName.trim() || !ecPhone.trim()) { Alert.alert('Erreur', 'Nom et telephone requis'); return; }
+                    var updated = emergencyContacts.concat([{ name: ecName.trim(), phone: ecPhone.trim() }]);
+                    setEmergencyContacts(updated);
+                    setShowEcEdit(false); setEcName(''); setEcPhone('');
+                    setEcSaving(true);
+                    authService.updateEmergencyContacts(updated).finally(function() { setEcSaving(false); });
+                  }}>
+                    <Text style={{fontSize:14,color:'#fff',fontFamily:'LexendDeca_600SemiBold'}}>Enregistrer</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           </View>
         </View>
 

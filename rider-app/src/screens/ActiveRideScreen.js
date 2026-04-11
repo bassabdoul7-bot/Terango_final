@@ -1,6 +1,8 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share, Vibration, TextInput } from 'react-native';
+import { Accelerometer } from 'expo-sensors';
+import * as Haptics from 'expo-haptics';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
@@ -165,6 +167,61 @@ const ActiveRideScreen = ({ route, navigation }) => {
     }
   };
 
+  // ========== SHAKE TO SOS + SILENT PANIC ==========
+  const sosTriggeredRef = useRef(false);
+  const sosCooldownRef = useRef(0);
+  const shakeTimestamps = useRef([]);
+  const silentTapTimestamps = useRef([]);
+
+  const triggerSOSFlow = async () => {
+    var now = Date.now();
+    if (sosTriggeredRef.current || now - sosCooldownRef.current < 300000) return; // 5min cooldown
+    sosTriggeredRef.current = true;
+    sosCooldownRef.current = now;
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch(e) {}
+    try {
+      var result = await rideService.triggerSOS(rideId);
+      // Auto-share to emergency contacts
+      if (result && result.shareUrl) {
+        try {
+          await Share.share({ message: 'URGENCE: suivez ma position en direct: ' + result.shareUrl });
+        } catch(e) {}
+      }
+    } catch(e) { console.error('SOS trigger error:', e); }
+    setTimeout(function() { sosTriggeredRef.current = false; }, 5000);
+  };
+
+  // Accelerometer shake detection
+  useEffect(() => {
+    if (!ride || !['accepted', 'arrived', 'in_progress'].includes(ride?.status)) return;
+    var subscription = Accelerometer.addListener(function(data) {
+      var magnitude = Math.sqrt(data.x * data.x + data.y * data.y + data.z * data.z);
+      if (magnitude > 2.5) {
+        var now = Date.now();
+        shakeTimestamps.current.push(now);
+        // Keep only timestamps within last 2 seconds
+        shakeTimestamps.current = shakeTimestamps.current.filter(function(t) { return now - t < 2000; });
+        if (shakeTimestamps.current.length >= 3) {
+          shakeTimestamps.current = [];
+          triggerSOSFlow();
+        }
+      }
+    });
+    Accelerometer.setUpdateInterval(100);
+    return () => { subscription && subscription.remove(); };
+  }, [ride?.status, rideId]);
+
+  // Silent panic: 5 taps on status bar within 3 seconds
+  const handleSilentPanic = () => {
+    var now = Date.now();
+    silentTapTimestamps.current.push(now);
+    silentTapTimestamps.current = silentTapTimestamps.current.filter(function(t) { return now - t < 3000; });
+    if (silentTapTimestamps.current.length >= 5) {
+      silentTapTimestamps.current = [];
+      triggerSOSFlow();
+    }
+  };
+
   // Animated car rotation for driver marker
   const driverRotation = useRef(new Animated.Value(0)).current;
   const prevDriverLoc = useRef(null);
@@ -247,7 +304,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           </GeoJSONSource>
         )}
       </Map>
-      <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
+      <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><TouchableOpacity activeOpacity={1} onPress={handleSilentPanic} style={{flex:1}}><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></TouchableOpacity></View>
       {['accepted', 'arrived', 'in_progress'].includes(ride.status) && (
         <View style={sosStyles.container}>
           <TouchableOpacity style={sosStyles.sosBtn} onPress={startEmergencyRecording} disabled={uploadingRecording}>

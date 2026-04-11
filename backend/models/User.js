@@ -21,6 +21,10 @@ var userSchema = new mongoose.Schema({
   securityPinEnabled: { type: Boolean, default: false },
   totalRatings: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
+  emergencyContacts: [{
+    name: { type: String },
+    phone: { type: String }
+  }],
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

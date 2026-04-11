@@ -142,6 +142,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   updateServicePreferences: (prefs) => api.put('/drivers/service-preferences', prefs),
   updateWaveNumber: (waveNumber) => api.put('/drivers/wave-number', { waveNumber }),
   appendRideTrail: (rideId, points) => api.put('/rides/' + rideId + '/trail', { points }),
+  triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
   uploadEmergencyRecording: function(rideId, videoUri, duration) {
     var formData = new FormData();
     formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });

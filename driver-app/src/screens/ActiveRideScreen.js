@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image, Animated as RNAnimated } from 'react-native';
+import { AppState, View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions, ActivityIndicator, Modal, ScrollView, Linking, TextInput, Image, Animated as RNAnimated, Share } from 'react-native';
+import { Accelerometer } from 'expo-sensors';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -165,6 +166,57 @@ function ActiveRideScreen(props) {
       });
     }).catch(function(err) { console.error('Emergency video error:', err); Alert.alert('Erreur', "Impossible de lancer la camera"); });
   }
+
+  // ========== SHAKE TO SOS + SILENT PANIC ==========
+  var sosTriggeredRef = useRef(false);
+  var sosCooldownRef = useRef(0);
+  var shakeTimestamps = useRef([]);
+  var silentTapTimestamps = useRef([]);
+
+  var triggerSOSFlow = useCallback(async function() {
+    var now = Date.now();
+    if (sosTriggeredRef.current || now - sosCooldownRef.current < 300000) return;
+    sosTriggeredRef.current = true;
+    sosCooldownRef.current = now;
+    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch(e) {}
+    try {
+      var result = await driverService.triggerSOS(rideId);
+      if (result && result.shareUrl) {
+        try { await Share.share({ message: 'URGENCE: suivez ma position en direct: ' + result.shareUrl }); } catch(e) {}
+      }
+    } catch(e) { console.error('SOS trigger error:', e); }
+    setTimeout(function() { sosTriggeredRef.current = false; }, 5000);
+  }, [rideId]);
+
+  // Accelerometer shake detection
+  useEffect(function() {
+    if (!ride || ['completed','cancelled'].indexOf(ride.status) !== -1) return;
+    var sub = Accelerometer.addListener(function(data) {
+      var magnitude = Math.sqrt(data.x * data.x + data.y * data.y + data.z * data.z);
+      if (magnitude > 2.5) {
+        var now = Date.now();
+        shakeTimestamps.current.push(now);
+        shakeTimestamps.current = shakeTimestamps.current.filter(function(t) { return now - t < 2000; });
+        if (shakeTimestamps.current.length >= 3) {
+          shakeTimestamps.current = [];
+          triggerSOSFlow();
+        }
+      }
+    });
+    Accelerometer.setUpdateInterval(100);
+    return function() { sub && sub.remove(); };
+  }, [ride ? ride.status : null, rideId]);
+
+  // Silent panic: 5 taps on status badge within 3 seconds
+  var handleSilentPanic = useCallback(function() {
+    var now = Date.now();
+    silentTapTimestamps.current.push(now);
+    silentTapTimestamps.current = silentTapTimestamps.current.filter(function(t) { return now - t < 3000; });
+    if (silentTapTimestamps.current.length >= 5) {
+      silentTapTimestamps.current = [];
+      triggerSOSFlow();
+    }
+  }, [triggerSOSFlow]);
 
   var isWaveRide = ride ? ride.paymentMethod === 'wave' : false;
 
@@ -625,7 +677,7 @@ function ActiveRideScreen(props) {
       {toastMessage&&<View style={styles.toastContainer}><Text style={styles.toastText}>{toastMessage}</Text></View>}
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
-      <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View>}</View>
+      <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<TouchableOpacity activeOpacity={1} onPress={handleSilentPanic}><View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View></TouchableOpacity>}</View>
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>

@@ -70,6 +70,7 @@ export var authService = {
   updateProfile: function(data) { return api.put('/auth/profile', data); },
   registerPushToken: function(token) { return api.put('/auth/push-token', { pushToken: token }); },
   deleteAccount: function() { return api.delete('/auth/account'); },
+  updateEmergencyContacts: function(contacts) { return api.put('/auth/emergency-contacts', { contacts: contacts }); },
 };
 
 export var rideService = {
@@ -83,6 +84,7 @@ export var rideService = {
   getUnpaidRide: function() { return api.get('/rides/unpaid'); },
   getScheduledRides: function() { return api.get('/rides/scheduled'); },
   shareRide: function(rideId) { return api.put('/rides/' + rideId + '/share'); },
+  triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
   uploadEmergencyRecording: function(rideId, videoUri, duration) {
     var formData = new FormData();
     formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
