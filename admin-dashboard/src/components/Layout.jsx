@@ -17,6 +17,14 @@ var adminLinks = [
   { to: '/monitoring', icon: Activity, label: 'Monitoring' },
 ];
 
+var moderatorLinks = [
+  { to: '/drivers', icon: Car, label: 'Chauffeurs' },
+  { to: '/rides', icon: MapPin, label: 'Courses' },
+  { to: '/photos', icon: Camera, label: 'Photos' },
+  { to: '/operations', icon: Radar, label: 'Operations' },
+  { to: '/monitoring', icon: Activity, label: 'Monitoring' },
+];
+
 var partnerLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/my-drivers', icon: Car, label: 'Mes Chauffeurs' },
@@ -24,9 +32,9 @@ var partnerLinks = [
 ];
 
 export default function Layout() {
-  var { logout, user, isAdmin, isPartner } = useAuth();
+  var { logout, user, isAdmin, isModerator, isPartner } = useAuth();
   var navigate = useNavigate();
-  var links = isAdmin ? adminLinks : partnerLinks;
+  var links = isAdmin ? adminLinks : isModerator ? moderatorLinks : partnerLinks;
   var [sidebarOpen, setSidebarOpen] = useState(false);
 
   function handleLogout() {
@@ -78,7 +86,7 @@ export default function Layout() {
             <img src="https://res.cloudinary.com/dittpcisb/image/upload/w_80,h_80,c_fill,r_max,q_80/v1771047319/terango-brand/logo-driver.jpg" alt="TeranGO" className="w-11 h-11 rounded-full" style={{ border: '2px solid rgba(0,133,63,0.5)', boxShadow: '0 0 20px rgba(0,133,63,0.15)' }} />
             <div>
               <h1 className="text-xl font-extrabold text-white" style={{ letterSpacing: '-0.5px' }}>Teran<span style={{ color: '#D4AF37' }}>GO</span></h1>
-              <p className="text-xs font-medium" style={{ color: 'rgba(0,133,63,0.8)' }}>{isAdmin ? 'Administration' : 'Espace Partenaire'}</p>
+              <p className="text-xs font-medium" style={{ color: 'rgba(0,133,63,0.8)' }}>{isAdmin ? 'Administration' : isModerator ? 'Moderateur' : 'Espace Partenaire'}</p>
             </div>
           </div>
           {user && (

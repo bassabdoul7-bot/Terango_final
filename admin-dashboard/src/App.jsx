@@ -30,9 +30,16 @@ function AdminRoute({ children }) {
   return children;
 }
 
+function AdminOrModRoute({ children }) {
+  var { isAdmin, isModerator } = useAuth();
+  if (!isAdmin && !isModerator) return <Navigate to="/" />;
+  return children;
+}
+
 function RoleBasedDashboard() {
-  var { isAdmin, isPartner } = useAuth();
+  var { isAdmin, isModerator, isPartner } = useAuth();
   if (isPartner) return <PartnerDashboardPage />;
+  if (isModerator) return <Navigate to="/drivers" />;
   return <DashboardPage />;
 }
 
@@ -44,17 +51,18 @@ function AppRoutes() {
       <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <PartnerRegisterPage />} />
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<RoleBasedDashboard />} />
-        {/* Admin routes */}
-        <Route path="drivers" element={<AdminRoute><DriversPage /></AdminRoute>} />
+        {/* Admin + Moderator routes */}
+        <Route path="drivers" element={<AdminOrModRoute><DriversPage /></AdminOrModRoute>} />
+        <Route path="rides" element={<AdminOrModRoute><RidesPage /></AdminOrModRoute>} />
+        <Route path="photos" element={<AdminOrModRoute><PhotosPage /></AdminOrModRoute>} />
+        <Route path="operations" element={<AdminOrModRoute><OperationsPage /></AdminOrModRoute>} />
+        <Route path="monitoring" element={<AdminOrModRoute><MonitoringPage /></AdminOrModRoute>} />
+        {/* Admin only routes */}
         <Route path="riders" element={<AdminRoute><RidersPage /></AdminRoute>} />
-        <Route path="rides" element={<AdminRoute><RidesPage /></AdminRoute>} />
         <Route path="revenue" element={<AdminRoute><RevenuePage /></AdminRoute>} />
-        <Route path="photos" element={<AdminRoute><PhotosPage /></AdminRoute>} />
         <Route path="partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />
         <Route path="services" element={<AdminRoute><ServiceProvidersPage /></AdminRoute>} />
         <Route path="service-requests" element={<AdminRoute><ServiceRequestsPage /></AdminRoute>} />
-        <Route path="operations" element={<AdminRoute><OperationsPage /></AdminRoute>} />
-        <Route path="monitoring" element={<AdminRoute><MonitoringPage /></AdminRoute>} />
         {/* Partner routes */}
         <Route path="my-drivers" element={<PartnerDriversPage />} />
         <Route path="my-earnings" element={<PartnerEarningsPage />} />
