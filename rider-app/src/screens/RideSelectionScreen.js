@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIn
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
+import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import COLORS from '../constants/colors';
 import { rideService, driverService } from '../services/api.service';
 
@@ -24,6 +25,8 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [scheduledTime, setScheduledTime] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [stop, setStop] = useState(null);
+  const [showStopModal, setShowStopModal] = useState(false);
 
   const getScheduleOptions = () => {
     var now = new Date();
@@ -63,39 +66,59 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
 
-  const getGoogleRoute = async () => {
+  const getGoogleRoute = async (currentStop) => {
     try {
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}`;
+      var waypointParam = '';
+      if (currentStop) {
+        waypointParam = `&waypoints=${currentStop.coordinates.latitude},${currentStop.coordinates.longitude}`;
+      }
+      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}${waypointParam}&key=${GOOGLE_MAPS_KEY}`;
       const r = await fetch(url);
       const data = await r.json();
       if (data.status === 'OK' && data.routes.length > 0) {
-        const leg = data.routes[0].legs[0];
+        const legs = data.routes[0].legs;
+        var totalDistance = 0;
+        var totalDuration = 0;
+        for (var i = 0; i < legs.length; i++) {
+          totalDistance += legs[i].distance.value;
+          totalDuration += legs[i].duration.value;
+        }
         const coordinates = PolylineUtil.decode(data.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] }));
-        return { distance: leg.distance.value / 1000, duration: Math.round(leg.duration.value / 60), coordinates };
+        return { distance: totalDistance / 1000, duration: Math.round(totalDuration / 60), coordinates };
       }
     } catch (e) { console.log('Google Directions error:', e); }
     return null;
   };
 
-  const getOSRMRoute = async () => {
+  const getOSRMRoute = async (currentStop) => {
     try {
-      const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
+      var waypoints = `${pickup.coordinates.longitude},${pickup.coordinates.latitude}`;
+      if (currentStop) {
+        waypoints += `;${currentStop.coordinates.longitude},${currentStop.coordinates.latitude}`;
+      }
+      waypoints += `;${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}`;
+      const url = `https://osrm.terango.sn/route/v1/driving/${waypoints}?overview=full&geometries=polyline&steps=true`;
       const r = await fetch(url);
       const data = await r.json();
       if (data.code === 'Ok' && data.routes.length > 0) {
         const route = data.routes[0];
-        const leg = route.legs[0];
-        return { distance: leg.distance / 1000, duration: Math.round(leg.duration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
+        var totalDistance = 0;
+        var totalDuration = 0;
+        for (var i = 0; i < route.legs.length; i++) {
+          totalDistance += route.legs[i].distance;
+          totalDuration += route.legs[i].duration;
+        }
+        return { distance: totalDistance / 1000, duration: Math.round(totalDuration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
       }
     } catch (e) { console.log('OSRM error:', e); }
     return null;
   };
 
-  const getDirections = async () => {
+  const getDirections = async (currentStop) => {
     setCalculatingFare(true);
     try {
       // Try Google first (accurate distance + route line in one call)
-      const googleResult = await getGoogleRoute();
+      const googleResult = await getGoogleRoute(currentStop || null);
       if (googleResult) {
         setRouteCoordinates(googleResult.coordinates);
         setRealDistance(googleResult.distance);
@@ -105,7 +128,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
       }
 
       // Fallback to OSRM if Google fails
-      const osrmResult = await getOSRMRoute();
+      const osrmResult = await getOSRMRoute(currentStop || null);
       if (osrmResult) {
         setRouteCoordinates(osrmResult.coordinates);
         setRealDistance(osrmResult.distance);
@@ -176,6 +199,9 @@ const RideSelectionScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
+      if (stop) {
+        rideData.stops = [{ address: stop.address, coordinates: stop.coordinates }];
+      }
       if (scheduledTime) {
         rideData.scheduledTime = scheduledTime.toISOString();
       }
@@ -208,6 +234,11 @@ const RideSelectionScreen = ({ route, navigation }) => {
         <Marker id="dropoff" lngLat={[dropoff.coordinates.longitude, dropoff.coordinates.latitude]}>
           <View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View>
         </Marker>
+        {stop && (
+          <Marker id="stop" lngLat={[stop.coordinates.longitude, stop.coordinates.latitude]}>
+            <View style={styles.stopMarker}><View style={styles.stopDiamond} /></View>
+          </Marker>
+        )}
         {nearbyDrivers.map((d) => (
           <Marker key={d._id} id={`driver_${d._id}`} lngLat={[d.location.longitude, d.location.latitude]}>
             <View style={styles.driverMarker}><Text style={styles.driverIcon}>{"\uD83D\uDE97"}</Text></View>
@@ -238,6 +269,25 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
+          {stop ? (
+            <View style={styles.stopCard}>
+              <View style={styles.stopCardLeft}>
+                <View style={styles.stopCardDot} />
+                <View style={styles.stopCardTextWrap}>
+                  <Text style={styles.stopCardLabel}>Arret</Text>
+                  <Text style={styles.stopCardAddress} numberOfLines={1}>{stop.address}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => { setStop(null); getDirections(null); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.stopCardRemove}>{"\u2715"}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.addStopButton} onPress={() => setShowStopModal(true)} activeOpacity={0.7}>
+              <Text style={styles.addStopIcon}>+</Text>
+              <Text style={styles.addStopText}>Ajouter un arret</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.paymentSection}>
             <Text style={styles.paymentLabel}>Mode de paiement</Text>
             <View style={styles.paymentOptionsRow}>
@@ -264,6 +314,33 @@ const RideSelectionScreen = ({ route, navigation }) => {
         </ScrollView>
         <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : (scheduledTime ? 'Programmer \u2022 ' : 'Confirmer \u2022 ')+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
       </View>
+      <Modal visible={showStopModal} transparent animationType="slide">
+        <View style={styles.stopModalOverlay}>
+          <View style={styles.stopModalCard}>
+            <Text style={styles.stopModalTitle}>Ajouter un arret</Text>
+            <Text style={styles.stopModalSub}>Le chauffeur s'arretera a cette adresse</Text>
+            <NominatimAutocomplete
+              placeholder="Chercher une adresse..."
+              autoFocus={true}
+              onSelect={(data, details) => {
+                var selectedStop = {
+                  address: data.description,
+                  coordinates: {
+                    latitude: details.geometry.location.lat,
+                    longitude: details.geometry.location.lng
+                  }
+                };
+                setStop(selectedStop);
+                setShowStopModal(false);
+                getDirections(selectedStop);
+              }}
+            />
+            <TouchableOpacity style={styles.stopModalCancel} onPress={() => setShowStopModal(false)}>
+              <Text style={styles.stopModalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={showScheduleModal} transparent animationType="fade">
         <View style={styles.scheduleModalOverlay}>
           <View style={styles.scheduleModalCard}>
@@ -341,6 +418,24 @@ const styles = StyleSheet.create({
   scheduleOptionTime: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted },
   scheduleModalCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center' },
   scheduleModalCancelText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
+  stopDiamond: { width: 10, height: 10, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }] },
+  addStopButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed', marginBottom: 10, gap: 8 },
+  addStopIcon: { fontSize: 18, color: '#FF9500', fontFamily: 'LexendDeca_700Bold' },
+  addStopText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#FF9500' },
+  stopCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,149,0,0.1)', borderWidth: 1.5, borderColor: 'rgba(255,149,0,0.3)', marginBottom: 10 },
+  stopCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 },
+  stopCardDot: { width: 12, height: 12, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }], marginRight: 12 },
+  stopCardTextWrap: { flex: 1 },
+  stopCardLabel: { fontSize: 11, color: '#FF9500', fontFamily: 'LexendDeca_600SemiBold', marginBottom: 2 },
+  stopCardAddress: { fontSize: 13, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
+  stopCardRemove: { fontSize: 16, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_700Bold', padding: 4 },
+  stopModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-start', paddingTop: 80 },
+  stopModalCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, marginHorizontal: 16, maxHeight: '80%', borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  stopModalTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
+  stopModalSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 16 },
+  stopModalCancel: { marginTop: 16, paddingVertical: 14, alignItems: 'center' },
+  stopModalCancelText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 

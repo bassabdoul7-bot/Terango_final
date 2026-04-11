@@ -176,6 +176,17 @@ const rideSchema = new mongoose.Schema({
   // Safety monitoring
   minDistToDropoff: { type: Number, default: null },
 
+  // Intermediate stops (max 1 for now)
+  stops: [{
+    address: String,
+    coordinates: {
+      latitude: Number,
+      longitude: Number
+    },
+    arrivedAt: Date,
+    departedAt: Date
+  }],
+
   // Share my ride
   shareToken: { type: String, default: null },
   shareEnabled: { type: Boolean, default: false },

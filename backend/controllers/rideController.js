@@ -14,7 +14,22 @@ const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils
 // @access  Private (Rider only)
 exports.createRide = async (req, res) => {
   try {
-    const { pickup, dropoff, rideType, paymentMethod, scheduledTime } = req.body;
+    const { pickup, dropoff, rideType, paymentMethod, scheduledTime, stops } = req.body;
+
+    // Validate stops (max 1 intermediate stop)
+    const validatedStops = [];
+    if (stops && Array.isArray(stops) && stops.length > 0) {
+      const stop = stops[0]; // only first stop
+      if (stop && stop.address && stop.coordinates && stop.coordinates.latitude && stop.coordinates.longitude) {
+        validatedStops.push({
+          address: stop.address,
+          coordinates: {
+            latitude: stop.coordinates.latitude,
+            longitude: stop.coordinates.longitude
+          }
+        });
+      }
+    }
 
     const rider = await Rider.findOne({ userId: req.user._id });
     if (!rider) {
@@ -70,7 +85,8 @@ exports.createRide = async (req, res) => {
       status: isScheduled ? 'scheduled' : 'pending',
       isScheduled: !!isScheduled,
       scheduledTime: isScheduled ? new Date(scheduledTime) : null,
-      scheduledNotified: false
+      scheduledNotified: false,
+      stops: validatedStops
     });
 
     if (isScheduled) {
