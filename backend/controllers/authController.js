@@ -232,7 +232,7 @@ exports.adminLogin = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ success: false, message: 'Email et mot de passe requis' });
     }
-    const user = await User.findOne({ email: email.toLowerCase(), role: { $in: ['admin', 'partner'] } }).select('+password');
+    const user = await User.findOne({ email: email.toLowerCase(), role: { $in: ['admin', 'moderator', 'partner'] } }).select('+password');
     if (!user) {
       return res.status(401).json({ success: false, message: 'Identifiants invalides' });
     }

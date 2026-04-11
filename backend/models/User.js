@@ -12,7 +12,7 @@ var userSchema = new mongoose.Schema({
   photoVerified: { type: Boolean, default: false },
   role: {
     type: String,
-    enum: ['rider', 'driver', 'admin', 'restaurant', 'partner'],
+    enum: ['rider', 'driver', 'admin', 'moderator', 'restaurant', 'partner'],
     required: true
   },
   isActive: { type: Boolean, default: true },

@@ -19,8 +19,8 @@ const {
   verifyPartner
 } = require('../controllers/adminController');
 
-// All routes are admin-only
-router.use(protect, restrictTo('admin'));
+// All routes require admin or moderator role
+router.use(protect, restrictTo('admin', 'moderator'));
 
 // Dashboard statistics
 router.get('/dashboard', getDashboardStats);

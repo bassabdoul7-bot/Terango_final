@@ -41,10 +41,11 @@ export function AuthProvider({ children }) {
 
   var role = user ? user.role : null;
   var isAdmin = role === 'admin';
+  var isModerator = role === 'moderator';
   var isPartner = role === 'partner';
 
   return (
-    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token, role, isAdmin, isPartner }}>
+    <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token, role, isAdmin, isModerator, isPartner }}>
       {children}
     </AuthContext.Provider>
   );
