@@ -213,6 +213,12 @@ var HomeScreen = function(props) {
       )}
 
       <View style={styles.bottomCard}>
+        <View style={styles.quickAccessRow}>
+          <TouchableOpacity style={styles.quickAccessBtn} onPress={function() { navigation.navigate('Mechanics'); }}>
+            <Text style={styles.quickAccessIcon}>{'\uD83D\uDD27'}</Text>
+            <Text style={styles.quickAccessLabel}>Mecaniciens</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.welcomeTitle}>Pret a rouler?</Text>
         <Text style={styles.welcomeSub}>Vos passagers vous attendent</Text>
 
@@ -276,6 +282,10 @@ var styles = StyleSheet.create({
   menuBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,36,24,0.85)', borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
   menuIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
 
+  quickAccessRow: { flexDirection: 'row', justifyContent: 'flex-end', width: '100%', marginBottom: 12 },
+  quickAccessBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
+  quickAccessIcon: { fontSize: 14 },
+  quickAccessLabel: { fontSize: 12, fontFamily: 'LexendDeca_500Medium', color: COLORS.yellow },
   bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.92)', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 28, paddingBottom: 40, alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
   welcomeTitle: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold', marginBottom: 4 },
   welcomeSub: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginBottom: 20 },

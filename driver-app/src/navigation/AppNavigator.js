@@ -17,6 +17,7 @@ import DeliveryRequestsScreen from '../screens/DeliveryRequestsScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
 import DocumentUploadScreen from '../screens/DocumentUploadScreen';
 import PendingVerificationScreen from '../screens/PendingVerificationScreen';
+import MechanicsScreen from '../screens/MechanicsScreen';
 
 var Stack = createNativeStackNavigator();
 var Tab = createBottomTabNavigator();
@@ -121,6 +122,7 @@ var AppNavigator = function() {
             <Stack.Screen name="DeliveryRequests" component={DeliveryRequestsScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
             <Stack.Screen name="Menu" component={MenuScreen} />
+            <Stack.Screen name="Mechanics" component={MechanicsScreen} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
