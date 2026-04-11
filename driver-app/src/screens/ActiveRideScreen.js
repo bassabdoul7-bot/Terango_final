@@ -124,6 +124,9 @@ function ActiveRideScreen(props) {
   var voiceState = useState(true); var voiceEnabled = voiceState[0]; var setVoiceEnabled = voiceState[1];
   var lastStepState = useState(null); var lastAnnouncedStep = lastStepState[0]; var setLastAnnouncedStep = lastStepState[1];
   var nearDestState = useState(false); var isNearDestination = nearDestState[0]; var setIsNearDestination = nearDestState[1];
+  var stopReachedState = useState(false); var stopReached = stopReachedState[0]; var setStopReached = stopReachedState[1];
+  var nearStopState = useState(false); var isNearStop = nearStopState[0]; var setIsNearStop = nearStopState[1];
+  var isNearStopRef = useRef(false);
   var cancelModalState = useState(false); var showCancelModal = cancelModalState[0]; var setShowCancelModal = cancelModalState[1];
   var successModalState = useState(false); var showSuccessModal = successModalState[0]; var setShowSuccessModal = successModalState[1];
   var queueState = useState(null); var queuedRide = queueState[0]; var setQueuedRide = queueState[1];
@@ -314,7 +317,13 @@ function ActiveRideScreen(props) {
         destination = ride.dropoff ? ride.dropoff.coordinates : null;
       }
     } else {
-      destination = (ride.status==='accepted'||ride.status==='arrived') ? ride.pickup.coordinates : ride.dropoff.coordinates;
+      if (ride.status==='accepted'||ride.status==='arrived') {
+        destination = ride.pickup.coordinates;
+      } else if (ride.status === 'in_progress' && !stopReached && ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates) {
+        destination = ride.stops[0].coordinates;
+      } else {
+        destination = ride.dropoff.coordinates;
+      }
     }
     if(!destination)return;
 
@@ -323,7 +332,8 @@ function ActiveRideScreen(props) {
       Math.round(driverLocation.longitude*1000)/1000,
       destination.latitude,
       destination.longitude,
-      ride.status
+      ride.status,
+      stopReached ? 'sr' : 'ns'
     ].join('_');
 
     var cached = directionsCacheGet(cacheKey);
@@ -404,7 +414,7 @@ function ActiveRideScreen(props) {
             });
         }, 2000);
       });
-  },[ride,driverLocation]);
+  },[ride,driverLocation,stopReached]);
 
   var announceInstruction = useCallback(function(instruction){if(!voiceEnabled)return;speakNavigation(instruction);},[voiceEnabled]);
   var handleRecenter = useCallback(function(){if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:navigationStarted?30:0,heading:navigationStarted?heading:0,duration:500});}},[driverLocation,heading,navigationStarted]);
@@ -428,8 +438,33 @@ function ActiveRideScreen(props) {
         destination = ride.dropoff ? ride.dropoff.coordinates : null;
       }
     } else {
-      destination = (ride.status==='accepted'||ride.status==='arrived') ? ride.pickup.coordinates : ride.dropoff.coordinates;
+      if (ride.status==='accepted'||ride.status==='arrived') {
+        destination = ride.pickup.coordinates;
+      } else if (ride.status === 'in_progress' && !stopReached && ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates) {
+        destination = ride.stops[0].coordinates;
+      } else {
+        destination = ride.dropoff.coordinates;
+      }
     }
+
+    // Check proximity to intermediate stop
+    if (!deliveryMode && ride.status === 'in_progress' && !stopReached && ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates) {
+      var stopCoords = ride.stops[0].coordinates;
+      var distToStop = calcDistance(driverLocation.latitude, driverLocation.longitude, stopCoords.latitude, stopCoords.longitude);
+      if (isNearStopRef.current) {
+        if (distToStop > ARRIVAL_DISAPPEAR_THRESHOLD) {
+          isNearStopRef.current = false;
+          setIsNearStop(false);
+        }
+      } else {
+        if (distToStop <= ARRIVAL_APPEAR_THRESHOLD) {
+          isNearStopRef.current = true;
+          setIsNearStop(true);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(function(e) {});
+        }
+      }
+    }
+
     if(destination){
       var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);
       // Hysteresis: appear at 50m, disappear only beyond 75m
@@ -584,7 +619,13 @@ function ActiveRideScreen(props) {
       destination = ride.dropoff ? ride.dropoff.coordinates : null;
     }
   } else {
-    destination = (ride.status==='accepted'||ride.status==='arrived') ? (ride.pickup?ride.pickup.coordinates:null) : (ride.dropoff?ride.dropoff.coordinates:null);
+    if (ride.status==='accepted'||ride.status==='arrived') {
+      destination = ride.pickup ? ride.pickup.coordinates : null;
+    } else if (ride.status === 'in_progress' && !stopReached && ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates) {
+      destination = ride.stops[0].coordinates;
+    } else {
+      destination = ride.dropoff ? ride.dropoff.coordinates : null;
+    }
   }
 
   function getStatusText(){
@@ -597,7 +638,7 @@ function ActiveRideScreen(props) {
         default: return '';
       }
     }
-    switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return 'Course en cours';default:return '';}
+    switch(ride.status){case 'accepted':return 'En route vers le passager';case 'arrived':return 'En attente du passager';case 'in_progress':return (!stopReached && ride.stops && ride.stops.length > 0) ? 'En route vers l\'arret' : 'Course en cours';default:return '';}
   }
 
   function getActionButton(){
@@ -630,7 +671,12 @@ function ActiveRideScreen(props) {
           {ride.paymentMethod === 'wave' && <View style={styles.waveBanner}><Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text><Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text></View>}
           <GlassButton title="Demarrer la course" onPress={handleStartRide} loading={loading}/>
         </View>);
-      case 'in_progress':return(<View>{ride.paymentMethod === 'wave' && <View style={styles.waveBanner}><Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text><Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text></View>}{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);
+      case 'in_progress':
+        var hasStop = ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates;
+        if (hasStop && !stopReached) {
+          return(<View>{ride.paymentMethod === 'wave' && <View style={styles.waveBanner}><Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text><Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text></View>}{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers l'arret"}</Text></TouchableOpacity>}{isNearStop?<GlassButton title={String.fromCodePoint(0x1F4CD) + " Arret atteint"} onPress={function(){setStopReached(true);isNearStopRef.current=false;setIsNearStop(false);isNearDestRef.current=false;hapticFiredRef.current=false;setIsNearDestination(false);hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement("Vous etes arrive a l'arret");}} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de l'arret"}</Text></View>}</View>);
+        }
+        return(<View>{ride.paymentMethod === 'wave' && <View style={styles.waveBanner}><Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text><Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text></View>}{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{"Naviguer vers la destination"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Terminer la course" onPress={handleCompleteRide} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la destination"}</Text></View>}</View>);
       default:return null;
     }
   }
@@ -651,9 +697,14 @@ function ActiveRideScreen(props) {
         </Marker>
         {destination && (
           <Marker id="destination" lngLat={[destination.longitude, destination.latitude]}>
-            <View style={ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffMarker : styles.pickupMarker}>
-              <View style={ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffDot : styles.pickupDot} />
+            <View style={ride.status==="in_progress" && !stopReached && ride.stops && ride.stops.length > 0 ? styles.stopMarker : (ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffMarker : styles.pickupMarker)}>
+              <View style={ride.status==="in_progress" && !stopReached && ride.stops && ride.stops.length > 0 ? styles.stopDiamond : (ride.status==="in_progress"||ride.status==="picked_up"||ride.status==="at_dropoff" ? styles.dropoffDot : styles.pickupDot)} />
             </View>
+          </Marker>
+        )}
+        {ride.status === 'in_progress' && ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates && stopReached && (
+          <Marker id="stopReached" lngLat={[ride.stops[0].coordinates.longitude, ride.stops[0].coordinates.latitude]}>
+            <View style={styles.stopMarkerDone}><View style={styles.stopDiamondDone} /></View>
           </Marker>
         )}
         {routeCoordinates.length > 0 && (
@@ -681,7 +732,7 @@ function ActiveRideScreen(props) {
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
-        <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress'?styles.redSquare:styles.greenDot)}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress'?'Destination':'Point de depart')}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:''))}</Text></View></View></View>
+        <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? styles.orangeDiamond : (ride.status==='in_progress'?styles.redSquare:styles.greenDot))}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? 'Arret' : (ride.status==='in_progress'?'Destination':'Point de depart'))}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? ride.stops[0].address : (ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')))}</Text></View></View></View>
         <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{ride&&ride.rider&&ride.rider.phone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+ride.rider.phone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
         <View style={styles.actionContainer}>{getActionButton()}</View>
       </View>)}
@@ -835,6 +886,15 @@ var styles = StyleSheet.create({
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
+  orangeDiamond: { width: 14, height: 14, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }], marginRight: 12 },
+  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
+  pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
+  dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
+  dropoffDot: { width: 10, height: 10, backgroundColor: COLORS.red },
+  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
+  stopDiamond: { width: 10, height: 10, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }] },
+  stopMarkerDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,149,0,0.4)' },
+  stopDiamondDone: { width: 8, height: 8, backgroundColor: 'rgba(255,149,0,0.4)', transform: [{ rotate: '45deg' }] },
   addressTextContainer: { flex: 1 },
   addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
   addressText: { fontSize: 15, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
