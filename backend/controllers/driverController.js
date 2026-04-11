@@ -37,7 +37,7 @@ exports.completeProfile = function(req, res) {
       if (!driver) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
-      driver.driverLicenseNumber = driverLicenseNumber;
+      driver.driverLicense = driverLicenseNumber;
       driver.driverLicensePhoto = driverLicensePhoto;
       driver.vehicle = vehicle;
       if (waveNumber !== undefined) driver.waveNumber = waveNumber;
@@ -262,7 +262,7 @@ exports.getActiveRide = function(req, res) {
         return res.status(200).json({ success: true, ride: rideObj });
       }
 
-      User.findById(userIdRef).then(function(riderUser) {
+      return User.findById(userIdRef).then(function(riderUser) {
         var rideObj = activeRide.toObject();
         rideObj.rider = riderUser ? { name: riderUser.name, phone: riderUser.phone } : null;
         res.status(200).json({ success: true, ride: rideObj });
@@ -384,7 +384,7 @@ exports.uploadProfilePhoto = function(req, res) {
 
   var photoUrl = req.file.path;
 
-  User.findByIdAndUpdate(req.user.id, {
+  User.findByIdAndUpdate(req.user._id, {
     profilePhoto: photoUrl,
     photoStatus: 'pending',
     photoVerified: false

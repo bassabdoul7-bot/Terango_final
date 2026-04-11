@@ -207,7 +207,7 @@ exports.getOrders = function(req, res) {
   if (status) query.status = status;
 
   Order.find(query)
-    .populate('riderId', 'userId')
+    .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
     .sort({ createdAt: -1 })
     .limit(50)
     .then(function(orders) {
