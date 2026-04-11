@@ -36,7 +36,7 @@ exports.registerProvider = async function(req, res) {
 // Get provider profile
 exports.getProviderProfile = async function(req, res) {
   try {
-    var provider = await ServiceProvider.findOne({ userId: req.user.id }).populate('userId', 'firstName lastName email phone');
+    var provider = await ServiceProvider.findOne({ userId: req.user.id }).populate('userId', 'name email phone');
     if (!provider) return res.status(404).json({ success: false, message: 'Profil non trouve' });
     res.json({ success: true, data: provider });
   } catch (err) {
@@ -157,7 +157,7 @@ exports.getRequest = async function(req, res) {
   try {
     var request = await ServiceRequest.findById(req.params.id)
       .populate('provider', 'fullName phone photo rating totalJobs serviceCategories')
-      .populate('riderId', 'firstName lastName phone');
+      .populate('riderId', 'name phone');
     if (!request) return res.status(404).json({ success: false, message: 'Demande non trouvee' });
     res.json({ success: true, data: request });
   } catch (err) {
@@ -193,7 +193,7 @@ exports.getAvailableRequests = async function(req, res) {
     }
 
     var requests = await ServiceRequest.find(query)
-      .populate('riderId', 'firstName lastName')
+      .populate('riderId', 'name')
       .sort({ urgency: -1, createdAt: 1 })
       .limit(20);
 
@@ -401,7 +401,7 @@ exports.getAllProviders = async function(req, res) {
     if (req.query.category) query.serviceCategories = req.query.category;
 
     var providers = await ServiceProvider.find(query)
-      .populate('userId', 'firstName lastName email phone')
+      .populate('userId', 'name email phone')
       .sort({ createdAt: -1 });
 
     res.json({ success: true, data: providers });
@@ -436,7 +436,7 @@ exports.getAllRequests = async function(req, res) {
     if (req.query.category) query.category = req.query.category;
 
     var requests = await ServiceRequest.find(query)
-      .populate('riderId', 'firstName lastName phone')
+      .populate('riderId', 'name phone')
       .populate('provider', 'fullName phone')
       .sort({ createdAt: -1 })
       .limit(50);
