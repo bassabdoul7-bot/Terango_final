@@ -10,7 +10,7 @@ const RegisterScreen = ({ navigation }) => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [pin, setPin] = useState('');
-  const [confirmPin, setConfirmPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [loading, setLoading] = useState(false);
   const fullPhone = phone.startsWith('+221') ? phone : '+221' + phone;
 
@@ -18,8 +18,7 @@ const RegisterScreen = ({ navigation }) => {
     if (!name.trim()) { Alert.alert('Erreur', 'Nom requis'); return; }
     if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro invalide'); return; }
     if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour r\u00e9cup\u00e9ration du PIN)'); return; }
-    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
-    if (pin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
+    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'Le PIN doit contenir 6 chiffres'); return; }
     setLoading(true);
     try { await registerUser(fullPhone, name, email, pin); } catch (error) { Alert.alert('Erreur', error.message || 'Erreur lors de l\'inscription'); } finally { setLoading(false); }
   };
@@ -52,10 +51,13 @@ const RegisterScreen = ({ navigation }) => {
               <TextInput style={styles.input} placeholder="votre@email.com" placeholderTextColor="#999" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
               <Text style={styles.label}>{"Cr\u00e9er un PIN (6 chiffres)"}</Text>
-              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
-
-              <Text style={styles.label}>Confirmer le PIN</Text>
-              <TextInput style={styles.input} placeholder={"\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={confirmPin} onChangeText={setConfirmPin} keyboardType="number-pad" maxLength={6} secureTextEntry />
+              <View style={{flexDirection:'row',alignItems:'center'}}>
+                <TextInput style={[styles.input,{flex:1,marginBottom:0}]} placeholder={"\u2022\u2022\u2022\u2022\u2022\u2022"} placeholderTextColor="#999" value={pin} onChangeText={setPin} keyboardType="number-pad" maxLength={6} secureTextEntry={!showPin} />
+                <TouchableOpacity style={{padding:12,marginLeft:-48}} onPress={function(){setShowPin(!showPin);}}>
+                  <Text style={{fontSize:18}}>{showPin ? '\uD83D\uDE48' : '\uD83D\uDC41\uFE0F'}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{height:20}} />
 
               <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
             </View>
