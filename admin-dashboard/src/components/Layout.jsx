@@ -19,6 +19,7 @@ var adminLinks = [
 
 var moderatorLinks = [
   { to: '/drivers', icon: Car, label: 'Chauffeurs' },
+  { to: '/riders', icon: Users, label: 'Passagers' },
   { to: '/rides', icon: MapPin, label: 'Courses' },
   { to: '/photos', icon: Camera, label: 'Photos' },
   { to: '/operations', icon: Radar, label: 'Operations' },
