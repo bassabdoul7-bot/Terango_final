@@ -253,16 +253,21 @@ const DocumentUploadScreen = ({ onComplete }) => {
           </>
         )}
 
-        <Text style={styles.sectionLabel}>{"Num\u00e9ro Wave"}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 77 123 45 67"
-          placeholderTextColor="#999"
-          value={waveNumber}
-          onChangeText={setWaveNumber}
-          keyboardType="phone-pad"
-        />
-        <Text style={{fontSize: 12, color: '#1DC3E1', marginTop: 4, fontFamily: 'LexendDeca_400Regular'}}>{"Num\u00e9ro o\u00f9 vous recevrez les paiements Wave des passagers"}</Text>
+        <View style={{backgroundColor:'rgba(29,195,225,0.08)',borderRadius:14,padding:16,marginBottom:8,borderWidth:1,borderColor:'rgba(29,195,225,0.2)'}}>
+          <View style={{flexDirection:'row',alignItems:'center',marginBottom:8}}>
+            <Text style={{fontSize:24,marginRight:10}}>{'\uD83C\uDF0A'}</Text>
+            <Text style={{fontSize:16,fontFamily:'LexendDeca_700Bold',color:'#1DC3E1'}}>Votre numero Wave</Text>
+          </View>
+          <Text style={{fontSize:13,fontFamily:'LexendDeca_400Regular',color:'#999',lineHeight:18,marginBottom:12}}>Pour recevoir vos paiements des passagers qui choisissent de payer par Wave. Ce numero sera affiche au passager pendant la course.</Text>
+          <TextInput
+            style={[styles.input,{marginBottom:0,borderColor:'rgba(29,195,225,0.3)'}]}
+            placeholder="Ex: 77 123 45 67"
+            placeholderTextColor="#999"
+            value={waveNumber}
+            onChangeText={setWaveNumber}
+            keyboardType="phone-pad"
+          />
+        </View>
 
         <View style={{ height: 24 }} />
         {loading ? (
