@@ -4,6 +4,8 @@ const Driver = require('../models/Driver');
 const { sendPushNotification } = require('../services/pushService');
 const Rider = require('../models/Rider');
 const Partner = require('../models/Partner');
+const User = require('../models/User');
+const SafetyAlert = require('../models/SafetyAlert');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
 const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils/fare');
 
@@ -957,5 +959,73 @@ exports.uploadEmergencyRecording = async (req, res) => {
   }
 };
 
+// @desc    Trigger SOS alert
+// @route   POST /api/rides/:id/sos
+// @access  Private (Rider or Driver)
+exports.triggerSOS = async (req, res) => {
+  try {
+    var ride = await Ride.findById(req.params.id)
+      .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
+      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone' } });
+    if (!ride) {
+      return res.status(404).json({ success: false, message: 'Course non trouvee' });
+    }
 
+    var rider = await Rider.findOne({ userId: req.user._id });
+    var driver = await Driver.findOne({ userId: req.user._id });
+    var isRider = rider && ride.riderId._id.toString() === rider._id.toString();
+    var isDriver = driver && ride.driver && ride.driver._id.toString() === driver._id.toString();
+    if (!isRider && !isDriver) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
 
+    // Check if SOS already triggered for this ride
+    var existing = await SafetyAlert.findOne({ rideId: ride._id, type: 'sos_triggered' });
+    if (!existing) {
+      await SafetyAlert.create({
+        rideId: ride._id,
+        type: 'sos_triggered',
+        details: (isRider ? 'Passager' : 'Chauffeur') + ' a declenche le SOS'
+      });
+    }
+
+    // Send Telegram alert
+    var https = require('https');
+    var TELEGRAM_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
+    var TELEGRAM_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+    var triggerBy = isRider ? 'Passager' : 'Chauffeur';
+    var riderName = (ride.riderId && ride.riderId.userId && ride.riderId.userId.name) || 'Inconnu';
+    var driverName = (ride.driver && ride.driver.userId && ride.driver.userId.name) || 'Inconnu';
+    if (TELEGRAM_BOT && TELEGRAM_CHAT) {
+      var alertMsg = '\uD83C\uDD98 SOS DECLENCHE — Course #' + ride._id.toString().slice(-6) + '\nPar: ' + triggerBy + '\nPassager: ' + riderName + '\nChauffeur: ' + driverName;
+      var data = JSON.stringify({ chat_id: TELEGRAM_CHAT, text: alertMsg });
+      var opts = { hostname: 'api.telegram.org', path: '/bot' + TELEGRAM_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
+      var r = https.request(opts, function() {});
+      r.on('error', function() {});
+      r.write(data);
+      r.end();
+    }
+
+    // Send push to the other party
+    if (isRider && ride.driver && ride.driver.userId) {
+      sendPushNotification(ride.driver.userId._id, 'Alerte SOS', 'Votre passager a declenche une alerte SOS', { type: 'sos', rideId: ride._id.toString() });
+    } else if (isDriver && ride.riderId && ride.riderId.userId) {
+      sendPushNotification(ride.riderId.userId._id, 'Alerte SOS', 'Votre chauffeur a declenche une alerte SOS', { type: 'sos', rideId: ride._id.toString() });
+    }
+
+    // Auto-enable sharing if not enabled
+    var shareUrl = null;
+    if (!ride.shareToken || !ride.shareEnabled) {
+      var token = crypto.randomBytes(16).toString('hex');
+      ride.shareToken = token;
+      ride.shareEnabled = true;
+      await ride.save();
+    }
+    shareUrl = 'https://api.terango.sn/share/' + ride.shareToken;
+
+    res.status(200).json({ success: true, shareUrl: shareUrl });
+  } catch (error) {
+    console.error('SOS Trigger Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur SOS' });
+  }
+};

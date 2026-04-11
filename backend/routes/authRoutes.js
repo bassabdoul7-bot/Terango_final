@@ -14,7 +14,8 @@ const {
   loginWithPin,
   forgotPin,
   resetPin,
-  updateSecurityPin
+  updateSecurityPin,
+  updateEmergencyContacts
 } = require('../controllers/authController');
 
 // Send OTP
@@ -175,6 +176,9 @@ router.post('/register-partner', partnerUpload.single('idPhoto'), registerPartne
 
 // Security PIN toggle
 router.put('/security-pin', protect, updateSecurityPin);
+
+// Emergency contacts
+router.put('/emergency-contacts', protect, updateEmergencyContacts);
 
 // Delete account
 var { deleteAccount } = require('../controllers/authController');

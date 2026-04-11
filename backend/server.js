@@ -422,6 +422,80 @@ setInterval(async function() {
   }
 }, 60 * 1000);
 
+// ========== Smart Ride Safety Monitor (every 60 seconds) ==========
+setInterval(async function() {
+  try {
+    var SafetyAlertModel = require('./models/SafetyAlert');
+    var SafetyRide = require('./models/Ride');
+    var SafetyRider = require('./models/Rider');
+    var SafetyDriver = require('./models/Driver');
+    var { sendPushNotification: safetyPush } = require('./services/pushService');
+    var { calculateDistance: safetyCalcDist } = require('./utils/distance');
+
+    var activeRides = await SafetyRide.find({ status: 'in_progress' }).populate('riderId').populate('driver');
+    for (var i = 0; i < activeRides.length; i++) {
+      var ride = activeRides[i];
+      var rideIdStr = ride._id.toString();
+      var riderUserId = (ride.riderId && ride.riderId.userId) ? ride.riderId.userId : null;
+      var driverUserId = (ride.driver && ride.driver.userId) ? ride.driver.userId : null;
+
+      // Helper: create alert if not already exists for this ride + type
+      async function createSafetyAlert(rideObj, alertType, details) {
+        var exists = await SafetyAlertModel.findOne({ rideId: rideObj._id, type: alertType });
+        if (exists) return;
+        await SafetyAlertModel.create({ rideId: rideObj._id, type: alertType, details: details });
+        // Push to rider
+        if (riderUserId) {
+          safetyPush(riderUserId, 'Securite', 'Tout va bien? Si vous avez besoin d\'aide, appuyez sur le bouton SOS', { type: 'safety_alert', rideId: rideIdStr });
+        }
+        // Telegram
+        var rName = 'Inconnu'; var dName = 'Inconnu';
+        try { var ru = await require('./models/User').findById(riderUserId); if (ru) rName = ru.name; } catch(e) {}
+        try { var du = await require('./models/User').findById(driverUserId); if (du) dName = du.name; } catch(e) {}
+        sendTelegramAlert('\u26A0\uFE0F Alerte securite — Course #' + rideIdStr.slice(-6) + '\nType: ' + alertType + '\nPassager: ' + rName + '\nChauffeur: ' + dName + '\nDetails: ' + details);
+      }
+
+      // (a) Route deviation detection
+      if (ride.driver && ride.dropoff && ride.dropoff.coordinates) {
+        var driverLoc = await driverLocationService.getDriverLocation(ride.driver._id.toString());
+        if (driverLoc && driverLoc.location) {
+          var distToDropoff = safetyCalcDist(
+            driverLoc.location.latitude, driverLoc.location.longitude,
+            ride.dropoff.coordinates.latitude, ride.dropoff.coordinates.longitude
+          );
+          // Update minDistToDropoff
+          if (ride.minDistToDropoff === null || distToDropoff < ride.minDistToDropoff) {
+            ride.minDistToDropoff = distToDropoff;
+            await SafetyRide.updateOne({ _id: ride._id }, { minDistToDropoff: distToDropoff });
+          }
+          // If current distance is 3km+ more than minimum, deviation
+          if (ride.minDistToDropoff !== null && distToDropoff > ride.minDistToDropoff + 3) {
+            await createSafetyAlert(ride, 'route_deviation', 'Distance actuelle: ' + distToDropoff.toFixed(1) + 'km, minimum: ' + ride.minDistToDropoff.toFixed(1) + 'km');
+          }
+        }
+      }
+
+      // (b) Duration anomaly
+      if (ride.startedAt && ride.estimatedDuration > 10) {
+        var elapsedMin = (Date.now() - new Date(ride.startedAt).getTime()) / 60000;
+        if (elapsedMin > ride.estimatedDuration * 3) {
+          await createSafetyAlert(ride, 'duration_anomaly', 'Duree: ' + Math.round(elapsedMin) + 'min, estimee: ' + ride.estimatedDuration + 'min');
+        }
+      }
+
+      // (d) Driver offline during ride
+      if (ride.driver) {
+        var isOnline = await driverLocationService.isDriverOnline(ride.driver._id.toString());
+        if (!isOnline) {
+          await createSafetyAlert(ride, 'driver_offline', 'Chauffeur deconnecte pendant la course');
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Safety monitor error:', e.message);
+  }
+}, 60 * 1000);
+
 // ========== Socket.io Authentication ==========
 io.use(function(socket, next) {
   const token = socket.handshake.auth.token;
@@ -440,6 +514,7 @@ io.use(function(socket, next) {
 
 // ========== Rate Limiter for Location Updates ==========
 const lastLocationUpdate = new Map();
+const lastLocationPosition = new Map(); // For speed calculation
 const LOCATION_UPDATE_INTERVAL = 3000; // 3 seconds minimum
 
 // ========== Socket.io Events ==========
@@ -525,6 +600,35 @@ io.on('connection', function(socket) {
     const last = lastLocationUpdate.get(driverId) || 0;
     if (now - last < LOCATION_UPDATE_INTERVAL) return;
     lastLocationUpdate.set(driverId, now);
+
+    // ===== Speed detection =====
+    var prevPos = lastLocationPosition.get(driverId);
+    if (prevPos && rideId) {
+      var timeDiffHours = (now - prevPos.time) / 3600000;
+      if (timeDiffHours > 0) {
+        var { calculateDistance: calcDist } = require('./utils/distance');
+        var distKm = calcDist(prevPos.lat, prevPos.lng, latitude, longitude);
+        var speedKmh = distKm / timeDiffHours;
+        if (speedKmh > 130) {
+          var SafetyAlertSpeed = require('./models/SafetyAlert');
+          SafetyAlertSpeed.findOne({ rideId: rideId, type: 'speed_alert' }).then(function(existing) {
+            if (!existing) {
+              SafetyAlertSpeed.create({ rideId: rideId, type: 'speed_alert', details: 'Vitesse detectee: ' + Math.round(speedKmh) + ' km/h' });
+              sendTelegramAlert('\u26A0\uFE0F Vitesse excessive — Course #' + String(rideId).slice(-6) + ' — ' + Math.round(speedKmh) + ' km/h');
+              var RiderForSpeed = require('./models/Rider');
+              var RideForSpeed = require('./models/Ride');
+              RideForSpeed.findById(rideId).populate('riderId').then(function(speedRide) {
+                if (speedRide && speedRide.riderId && speedRide.riderId.userId) {
+                  var { sendPushNotification: pushSpeed } = require('./services/pushService');
+                  pushSpeed(speedRide.riderId.userId, 'Securite', 'Tout va bien? Si vous avez besoin d\'aide, appuyez sur le bouton SOS', { type: 'safety_alert', rideId: rideId });
+                }
+              }).catch(function() {});
+            }
+          }).catch(function() {});
+        }
+      }
+    }
+    lastLocationPosition.set(driverId, { lat: latitude, lng: longitude, time: now });
 
     driverLocationService.updateDriverLocation(driverId, latitude, longitude, { vehicle: vehicle, rating: rating })
       .then(function() {

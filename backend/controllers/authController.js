@@ -707,6 +707,23 @@ exports.updateSecurityPin = async (req, res) => {
 };
 
 
+exports.updateEmergencyContacts = async (req, res) => {
+  try {
+    var { contacts } = req.body;
+    if (!Array.isArray(contacts) || contacts.length > 3) {
+      return res.status(400).json({ success: false, message: 'Maximum 3 contacts' });
+    }
+    var valid = contacts.filter(function(c) { return c && c.name && c.phone; }).map(function(c) {
+      return { name: String(c.name).substring(0, 50), phone: String(c.phone).substring(0, 20) };
+    });
+    await User.findByIdAndUpdate(req.user._id, { emergencyContacts: valid });
+    res.status(200).json({ success: true, contacts: valid });
+  } catch (error) {
+    console.error('Update emergency contacts error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 exports.deleteAccount = async (req, res) => {
   try {
     const userId = req.user.id || req.user._id;
