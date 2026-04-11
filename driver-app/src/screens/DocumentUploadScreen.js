@@ -59,12 +59,12 @@ const DocumentUploadScreen = ({ onComplete }) => {
     if (!selfiePhoto) { Alert.alert('Photo requise', 'Prenez votre selfie'); return; }
     if (!nationalIdPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte d\'identite'); return; }
     if (!driverLicensePhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre permis de conduire'); return; }
-    if (!vehicleRegPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte grise'); return; }
     if (!vehicleType) { Alert.alert('Champ requis', 'Selectionnez votre type de vehicule'); return; }
+    if (vehicleType === 'car' && !vehicleRegPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte grise'); return; }
     if (!vehicleMake.trim()) { Alert.alert('Champ requis', 'Entrez la marque de votre vehicule'); return; }
-    if (!licensePlate.trim()) { Alert.alert('Champ requis', 'Entrez votre plaque d\'immatriculation'); return; }
+    if (vehicleType === 'car' && !licensePlate.trim()) { Alert.alert('Champ requis', 'Entrez votre plaque d\'immatriculation'); return; }
     if (!waveNumber.trim()) { Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers'); return; }
-    if (!vehicleFrontPhoto) { Alert.alert('Photo requise', 'Prenez la photo avant de votre vehicule'); return; }
+    if (!vehicleFrontPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre vehicule'); return; }
 
     setLoading(true);
     try {
