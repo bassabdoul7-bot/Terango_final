@@ -5,9 +5,17 @@ import { CheckCircle, XCircle, Search, ChevronLeft, ChevronRight, Eye, X } from 
 var statusColors = {
   approved: 'text-emerald-400 bg-emerald-400/10',
   pending: 'text-yellow-400 bg-yellow-400/10',
+  incomplete: 'text-gray-400 bg-gray-400/10',
   rejected: 'text-red-400 bg-red-400/10'
 };
-var statusLabels = { approved: 'Approuve', pending: 'En attente', rejected: 'Rejete' };
+var statusLabels = { approved: 'Approuve', pending: 'Documents soumis', incomplete: 'Inscription incomplete', rejected: 'Rejete' };
+
+function getDriverStatus(driver) {
+  if (driver.verificationStatus === 'approved') return 'approved';
+  if (driver.verificationStatus === 'rejected') return 'rejected';
+  if (driver.selfiePhoto && driver.nationalIdPhoto && driver.driverLicensePhoto) return 'pending';
+  return 'incomplete';
+}
 
 export default function DriversPage() {
   var [drivers, setDrivers] = useState([]);
@@ -365,7 +373,7 @@ export default function DriversPage() {
                 var name = (d.userId && d.userId.name) || 'N/A';
                 var phone = (d.userId && d.userId.phone) || 'N/A';
                 var veh = d.vehicle ? (d.vehicle.make || '') : '-';
-                var st = d.verificationStatus || 'pending';
+                var st = getDriverStatus(d);
                 var docs = (d.selfiePhoto ? 1 : 0) + (d.nationalIdPhoto ? 1 : 0) + (d.driverLicensePhoto ? 1 : 0);
 
                 return (
