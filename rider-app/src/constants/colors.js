@@ -1,4 +1,4 @@
-﻿// TeranGO - Senegal Theme Colors
+// TeranGO - Senegal Theme Colors
 // Design: White background + Dark green cards/headers/nav
 export const COLORS = {
   // Senegal Flag Colors

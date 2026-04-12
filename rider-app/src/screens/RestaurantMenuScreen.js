@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, StatusBar, Image, Alert, Modal, TextInput } from 'react-native';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
