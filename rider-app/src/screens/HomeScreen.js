@@ -13,6 +13,7 @@ import {
   Animated,
   Easing,
   AppState,
+  Linking,
 } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
