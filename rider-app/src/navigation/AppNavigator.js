@@ -36,9 +36,6 @@ const AppNavigator = () => {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {(!isAuthenticated && !isGuest) ? (
           <>
-          {showOnboarding && (
-            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-          )}
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           </>
