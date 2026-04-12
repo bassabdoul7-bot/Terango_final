@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share, Vibration, TextInput } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
@@ -177,7 +176,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
     if (sosTriggeredRef.current || now - sosCooldownRef.current < 300000) return; // 5min cooldown
     sosTriggeredRef.current = true;
     sosCooldownRef.current = now;
-    try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch(e) {}
+    try { Vibration.vibrate(500); } catch(e) {}
     try {
       var result = await rideService.triggerSOS(rideId);
       // Auto-share to emergency contacts
