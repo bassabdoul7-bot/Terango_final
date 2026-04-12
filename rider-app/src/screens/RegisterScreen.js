@@ -31,13 +31,11 @@ var RegisterScreen = function(props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ImageBackground source={require('../../assets/login-header.jpg')} style={styles.headerImage} resizeMode="cover">
-        <LinearGradient colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,26,18,1)']} locations={[0, 0.6, 1]} style={styles.headerGradient}>
+      <View style={[styles.headerImage, {backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center', paddingTop: 50}]}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
           <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
           <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
-        </LinearGradient>
-      </ImageBackground>
+      </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>

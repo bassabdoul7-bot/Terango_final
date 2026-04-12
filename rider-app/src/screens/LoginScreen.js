@@ -46,12 +46,7 @@ var LoginScreen = function(props) {
 
   function renderHeader(subtitleText) {
     return (
-      <ImageBackground source={require('../../assets/login-header.jpg')} style={styles.headerImage} resizeMode="cover">
-        <LinearGradient
-          colors={['transparent', 'rgba(0,26,18,0.7)', 'rgba(0,26,18,0.95)']}
-          locations={[0, 0.6, 1]}
-          style={styles.headerGradient}
-        />
+      <View style={[styles.headerImage, {backgroundColor: COLORS.darkCard}]}>
         <View style={styles.headerContent}>
           <View style={styles.logoCircle}>
             <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
@@ -59,7 +54,7 @@ var LoginScreen = function(props) {
           <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Client</Text>
           <Text style={styles.appSubtitle}>{subtitleText}</Text>
         </View>
-      </ImageBackground>
+      </View>
     );
   }
 
