@@ -1,4 +1,4 @@
-﻿import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from 'expo-secure-store';
 import io from 'socket.io-client';
 
 var SOCKET_URL = 'https://api.terango.sn';

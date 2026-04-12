@@ -1,4 +1,4 @@
-﻿import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';

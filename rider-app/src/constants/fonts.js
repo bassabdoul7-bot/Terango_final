@@ -1,4 +1,4 @@
-﻿// Font family mapping for Lexend Deca
+// Font family mapping for Lexend Deca
 const FONTS = {
   light: 'LexendDeca_300Light',
   regular: 'LexendDeca_400Regular',

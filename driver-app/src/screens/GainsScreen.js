@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, StatusBar } from "react-native";
 import COLORS from "../constants/colors";
 import { COMMISSION_WAVE_NUMBER, COMMISSION_CAP } from "../constants/commission";

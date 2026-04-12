@@ -1,4 +1,4 @@
-﻿export function calculateDistance(lat1, lon1, lat2, lon2) {
+export function calculateDistance(lat1, lon1, lat2, lon2) {
   var R = 6371;
   var dLat = toRad(lat2 - lat1);
   var dLon = toRad(lon2 - lon1);

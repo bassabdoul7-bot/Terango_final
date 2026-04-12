@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import COLORS from '../constants/colors';
 
