@@ -11,17 +11,17 @@ var { width, height } = Dimensions.get('window');
 
 var slides = [
   {
-    image: require('../../assets/onboarding1.png'),
+    image: require('../../assets/onboarding1.jpg'),
     title: 'Gagnez avec TeranGO',
     subtitle: 'Conduisez et gagnez a votre rythme',
   },
   {
-    image: require('../../assets/onboarding2.png'),
+    image: require('../../assets/onboarding2.jpg'),
     title: 'Navigation en temps reel',
     subtitle: 'Guidage vocal et itineraire optimal',
   },
   {
-    image: require('../../assets/onboarding3.png'),
+    image: require('../../assets/onboarding3.jpg'),
     title: "Rejoignez l'equipe",
     subtitle: 'Commission la plus basse du marche: 5% seulement',
   },

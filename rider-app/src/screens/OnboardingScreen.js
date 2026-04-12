@@ -11,17 +11,17 @@ var { width, height } = Dimensions.get('window');
 
 var slides = [
   {
-    image: require('../../assets/onboarding1.png'),
+    image: require('../../assets/onboarding1.jpg'),
     title: 'Votre chauffeur en un clic',
     subtitle: 'Commandez une course en quelques secondes, partout a Dakar',
   },
   {
-    image: require('../../assets/onboarding2.png'),
+    image: require('../../assets/onboarding2.jpg'),
     title: 'Courses, livraisons et plus',
     subtitle: 'Transport, colis, commandes, restaurants \u2014 tout dans une app',
   },
   {
-    image: require('../../assets/onboarding3.png'),
+    image: require('../../assets/onboarding3.jpg'),
     title: 'Securite et confiance',
     subtitle: 'Votre securite est notre priorite absolue',
   },

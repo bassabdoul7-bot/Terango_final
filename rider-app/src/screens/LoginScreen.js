@@ -46,7 +46,7 @@ var LoginScreen = function(props) {
 
   function renderHeader(subtitleText) {
     return (
-      <ImageBackground source={require('../../assets/login-header.png')} style={styles.headerImage} resizeMode="cover">
+      <ImageBackground source={require('../../assets/login-header.jpg')} style={styles.headerImage} resizeMode="cover">
         <LinearGradient
           colors={['transparent', 'rgba(0,26,18,0.7)', 'rgba(0,26,18,0.95)']}
           locations={[0, 0.6, 1]}
