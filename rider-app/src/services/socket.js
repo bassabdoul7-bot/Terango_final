@@ -1,10 +1,10 @@
-import * as SecureStore from 'expo-secure-store';
+﻿import AsyncStorage from '@react-native-async-storage/async-storage';
 import io from 'socket.io-client';
 
 var SOCKET_URL = 'https://api.terango.sn';
 
 export async function createAuthSocket(options) {
-  var token = await SecureStore.getItemAsync('token');
+  var token = await AsyncStorage.getItem('token');
   var socketOptions = {
     transports: ['websocket'],
     reconnection: true,

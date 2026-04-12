@@ -6,24 +6,16 @@ import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Med
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 
-// Initialize error reporter safely
-try {
-  reportError.init();
-  if (typeof ErrorUtils !== 'undefined') {
-    const defaultHandler = ErrorUtils.getGlobalHandler();
-    ErrorUtils.setGlobalHandler((error, isFatal) => {
-      try { reportError('Global', error?.message || 'Unknown crash', error?.stack); } catch(e) {}
-      if (defaultHandler) defaultHandler(error, isFatal);
-    });
-  }
-} catch(e) {}
+const defaultHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  reportError('Global', error?.message || 'Unknown crash', error?.stack);
+  if (defaultHandler) defaultHandler(error, isFatal);
+});
 
-try {
-  Text.defaultProps = Text.defaultProps || {};
-  Text.defaultProps.style = { fontFamily: 'LexendDeca_400Regular' };
-  TextInput.defaultProps = TextInput.defaultProps || {};
-  TextInput.defaultProps.style = { fontFamily: 'LexendDeca_400Regular' };
-} catch(e) {}
+Text.defaultProps = Text.defaultProps || {};
+Text.defaultProps.style = { fontFamily: 'LexendDeca_400Regular' };
+TextInput.defaultProps = TextInput.defaultProps || {};
+TextInput.defaultProps.style = { fontFamily: 'LexendDeca_400Regular' };
 
 export default function App() {
   const [fontsLoaded] = useFonts({

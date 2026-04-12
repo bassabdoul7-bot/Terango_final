@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Alert, ActivityIndicator, StatusBar, KeyboardAvoidingView, Platform,
@@ -42,46 +42,20 @@ function CommandeScreen(props) {
     }
   }, []);
 
-  var GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
-  var paymentMethodState = useState('cash'); var paymentMethod = paymentMethodState[0]; var setPaymentMethod = paymentMethodState[1];
-  var roadDistanceState = useState(0); var roadDistance = roadDistanceState[0]; var setRoadDistance = roadDistanceState[1];
-
   function haversineDistance(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = (lat2 - lat1) * Math.PI / 180; var dLon = (lon2 - lon1) * Math.PI / 180; var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
-
-  function getRoadDistance(pCoords, dCoords) {
-    var googleUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=' + pCoords.latitude + ',' + pCoords.longitude + '&destination=' + dCoords.latitude + ',' + dCoords.longitude + '&key=' + GOOGLE_MAPS_KEY;
-    return fetch(googleUrl).then(function(r) { return r.json(); }).then(function(data) {
-      if (data.status === 'OK' && data.routes.length > 0) {
-        return data.routes[0].legs[0].distance.value / 1000;
-      }
-      return null;
-    }).catch(function() { return null; }).then(function(dist) {
-      if (dist) return dist;
-      var osrmUrl = 'https://osrm.terango.sn/route/v1/driving/' + pCoords.longitude + ',' + pCoords.latitude + ';' + dCoords.longitude + ',' + dCoords.latitude + '?overview=false';
-      return fetch(osrmUrl).then(function(r) { return r.json(); }).then(function(data) {
-        if (data.code === 'Ok' && data.routes.length > 0) return data.routes[0].legs[0].distance / 1000;
-        return null;
-      }).catch(function() { return null; });
-    }).then(function(dist) {
-      if (dist) return dist;
-      return haversineDistance(pCoords.latitude, pCoords.longitude, dCoords.latitude, dCoords.longitude) * 1.3;
-    });
-  }
 
   function fetchEstimate() {
     if (!pickup || !dropoff) { Alert.alert('Erreur', 'Veuillez indiquer les adresses.'); return; }
     if (!itemsList.trim()) { Alert.alert('Erreur', 'Veuillez d\u00e9crire ce que vous voulez commander.'); return; }
     setLoading(true);
-    getRoadDistance(pickup.coordinates, dropoff.coordinates).then(function(dist) {
-      setRoadDistance(dist);
-      return deliveryService.getEstimate('commande', dist, 'petit');
-    }).then(function(response) { setLoading(false); if (response.success) { setEstimate(response.estimate); setStep(3); } else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); } }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion.'); });
+    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
+    deliveryService.getEstimate('commande', dist, 'petit').then(function(response) { setLoading(false); if (response.success) { setEstimate(response.estimate); setStep(3); } else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); } }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion.'); });
   }
 
   function handleConfirm() {
     setConfirming(true);
-    var dist = roadDistance || haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude) * 1.3;
-    var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: paymentMethod, commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
+    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
+    var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: 'cash', commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
     deliveryService.createDelivery(data).then(function(response) { setConfirming(false); if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); } else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); } }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la commande.'); });
   }
 
@@ -161,18 +135,8 @@ function CommandeScreen(props) {
           <View style={styles.priceDivider} />
           <View style={styles.priceRow}><Text style={styles.priceTotalLabel}>{"Total estim\u00e9"}</Text><Text style={styles.priceTotalValue}>{totalWithItems.toLocaleString() + ' FCFA'}</Text></View>
         </View>
-        <View style={styles.noteCard}><Text style={styles.noteIcon}>{'\uD83D\uDCA1'}</Text><Text style={styles.noteText}>{"Le livreur ach\u00e8te vos articles et vous payez le tout \u00e0 la livraison."}</Text></View>
-        <Text style={styles.paymentSectionLabel}>Mode de paiement</Text>
-        <View style={styles.paymentOptionsRow}>
-          <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={function() { setPaymentMethod('cash'); }}>
-            <Text style={styles.paymentOptionIcon}>{'\uD83D\uDCB5'}</Text>
-            <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && styles.paymentOptionTextSelected]}>{"\u00c9sp\u00e8ces"}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && styles.paymentOptionWave]} onPress={function() { setPaymentMethod('wave'); }}>
-            <Text style={styles.paymentOptionIcon}>{'\uD83C\uDF0A'}</Text>
-            <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && styles.paymentOptionTextWave]}>Wave</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={styles.noteCard}><Text style={styles.noteIcon}>{'\uD83D\uDCA1'}</Text><Text style={styles.noteText}>{"Le livreur ach\u00e8te vos articles et vous payez le tout \u00e0 la livraison en esp\u00e8ces."}</Text></View>
+        <View style={styles.paymentRow}><Text style={styles.paymentIcon}>{'\uD83D\uDCB5'}</Text><Text style={styles.paymentText}>{"Paiement en esp\u00e8ces \u00e0 la livraison"}</Text></View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>{confirming ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.confirmBtnText}>Confirmer la commande</Text>}</TouchableOpacity>
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -253,15 +217,9 @@ var styles = StyleSheet.create({
   noteCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(255, 149, 0, 0.08)', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255, 149, 0, 0.2)' },
   noteIcon: { fontSize: 18, marginRight: 10, marginTop: 2, fontFamily: 'LexendDeca_400Regular' },
   noteText: { flex: 1, fontSize: 13, color: COLORS.textDarkSub, lineHeight: 19, fontFamily: 'LexendDeca_400Regular' },
-  paymentSectionLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub, marginBottom: 10 },
-  paymentOptionsRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: COLORS.darkCard, borderWidth: 2, borderColor: 'transparent', gap: 8 },
-  paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  paymentOptionWave: { borderColor: COLORS.wave, backgroundColor: 'rgba(29,195,225,0.12)' },
-  paymentOptionIcon: { fontSize: 20 },
-  paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
-  paymentOptionTextSelected: { color: COLORS.yellow },
-  paymentOptionTextWave: { color: COLORS.wave },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  paymentIcon: { fontSize: 22, marginRight: 12, fontFamily: 'LexendDeca_400Regular' },
+  paymentText: { fontSize: 15, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   confirmBtn: { backgroundColor: COLORS.yellow, borderRadius: 16, padding: 18, alignItems: 'center' },
   confirmBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
 });

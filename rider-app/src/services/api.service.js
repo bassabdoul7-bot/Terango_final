@@ -1,62 +1,19 @@
-import { DeviceEventEmitter } from 'react-native';
+﻿import { DeviceEventEmitter } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 
 var API_URL = 'https://api.terango.sn/api';
-var ALLOWED_HOSTS = ['api.terango.sn'];
 
 var api = axios.create({ baseURL: API_URL, timeout: 60000, headers: { 'Content-Type': 'application/json' } });
 
 api.interceptors.request.use(
-  async function(config) {
-    var token = await SecureStore.getItemAsync('token');
-    if (token) { config.headers.Authorization = 'Bearer ' + token; }
-
-    // Enforce HTTPS and allowed domain on every request
-    var fullURL = config.baseURL ? config.baseURL + config.url : config.url;
-    if (fullURL && !fullURL.startsWith('https://')) {
-      return Promise.reject(new Error('SSL_VIOLATION: Only HTTPS requests are allowed'));
-    }
-    try {
-      var urlHost = new URL(fullURL).hostname;
-      if (ALLOWED_HOSTS.indexOf(urlHost) === -1) {
-        return Promise.reject(new Error('DOMAIN_VIOLATION: Request to untrusted host: ' + urlHost));
-      }
-    } catch (e) {
-      return Promise.reject(new Error('URL_PARSE_ERROR: Could not parse request URL'));
-    }
-
-    return config;
-  },
+  async function(config) { var token = await AsyncStorage.getItem('token'); if (token) { config.headers.Authorization = 'Bearer ' + token; } return config; },
   function(error) { return Promise.reject(error); }
 );
 
 api.interceptors.response.use(
-  function(response) {
-    // Verify the response came from an allowed host (detect unexpected redirects)
-    var responseURL = response.request && response.request.responseURL;
-    if (responseURL) {
-      try {
-        var respHost = new URL(responseURL).hostname;
-        if (ALLOWED_HOSTS.indexOf(respHost) === -1) {
-          return Promise.reject(new Error('REDIRECT_VIOLATION: Response from untrusted host: ' + respHost));
-        }
-        if (!responseURL.startsWith('https://')) {
-          return Promise.reject(new Error('SSL_VIOLATION: Response received over non-HTTPS connection'));
-        }
-      } catch (e) { /* URL parsing failed, allow response */ }
-    }
-    return response.data;
-  },
-  function(error) {
-    if (error.response && error.response.status === 401) {
-      SecureStore.deleteItemAsync('token');
-      AsyncStorage.removeItem('user');
-      DeviceEventEmitter.emit('force-logout');
-    }
-    return Promise.reject(error);
-  }
+  function(response) { return response.data; },
+  function(error) { if (error.response && error.response.status === 401) { AsyncStorage.removeItem('token'); AsyncStorage.removeItem('user'); DeviceEventEmitter.emit('force-logout'); } return Promise.reject(error); }
 );
 
 export var authService = {
@@ -70,7 +27,6 @@ export var authService = {
   updateProfile: function(data) { return api.put('/auth/profile', data); },
   registerPushToken: function(token) { return api.put('/auth/push-token', { pushToken: token }); },
   deleteAccount: function() { return api.delete('/auth/account'); },
-  updateEmergencyContacts: function(contacts) { return api.put('/auth/emergency-contacts', { contacts: contacts }); },
 };
 
 export var rideService = {
@@ -81,16 +37,6 @@ export var rideService = {
   getMyRides: function() { return api.get('/rides/my-rides'); },
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
-  getUnpaidRide: function() { return api.get('/rides/unpaid'); },
-  getScheduledRides: function() { return api.get('/rides/scheduled'); },
-  shareRide: function(rideId) { return api.put('/rides/' + rideId + '/share'); },
-  triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
-  uploadEmergencyRecording: function(rideId, videoUri, duration) {
-    var formData = new FormData();
-    formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
-    if (duration) formData.append('duration', String(Math.round(duration)));
-    return api.put('/rides/' + rideId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 });
-  },
 };
 
 export var driverService = {
@@ -104,12 +50,6 @@ export var deliveryService = {
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
   getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
   cancelDelivery: function(deliveryId, reason) { return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason }); },
-  uploadEmergencyRecording: function(deliveryId, videoUri, duration) {
-    var formData = new FormData();
-    formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
-    if (duration) formData.append('duration', String(Math.round(duration)));
-    return api.put('/deliveries/' + deliveryId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 });
-  },
 };
 
 export var orderService = {

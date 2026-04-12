@@ -1,10 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, ImageBackground, StatusBar, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+﻿import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
-
-var { width, height } = Dimensions.get('window');
 import { useAuth } from '../context/AuthContext';
 
 var RegisterScreen = function(props) {
@@ -15,7 +12,7 @@ var RegisterScreen = function(props) {
   var phoneState = useState(''); var phone = phoneState[0]; var setPhone = phoneState[1];
   var emailState = useState(''); var email = emailState[0]; var setEmail = emailState[1];
   var pinState = useState(''); var pin = pinState[0]; var setPin = pinState[1];
-  var showPinState = useState(false); var showPin = showPinState[0]; var setShowPin = showPinState[1];
+  var confirmPinState = useState(''); var confirmPin = confirmPinState[0]; var setConfirmPin = confirmPinState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
   var fullPhone = phone.startsWith('+221') ? phone : '+221' + phone;
 
@@ -23,18 +20,19 @@ var RegisterScreen = function(props) {
     if (!name.trim()) { Alert.alert('Erreur', 'Nom requis'); return; }
     if (!phone || phone.length < 9) { Alert.alert('Erreur', 'Num\u00e9ro invalide'); return; }
     if (!email.trim() || !email.includes('@')) { Alert.alert('Erreur', 'Email valide requis (pour r\u00e9cup\u00e9ration du PIN)'); return; }
-    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'Le PIN doit contenir 6 chiffres'); return; }
+    if (!pin || pin.length !== 6) { Alert.alert('Erreur', 'PIN de 4 chiffres requis'); return; }
+    if (pin !== confirmPin) { Alert.alert('Erreur', 'Les PINs ne correspondent pas'); return; }
     setLoading(true);
     registerUser(fullPhone, name, email, pin).then(function() { setLoading(false); }).catch(function(error) { setLoading(false); Alert.alert('Erreur', error.message || 'Erreur lors de l\'inscription'); });
   }
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <View style={[styles.headerImage, {backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center', paddingTop: 50}]}>
-          <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
-          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
-          <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.darkHeader}>
+        <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
+        <Text style={styles.appSubtitle}>{"Cr\u00e9ez votre compte"}</Text>
       </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -56,13 +54,10 @@ var RegisterScreen = function(props) {
               <TextInput style={styles.input} placeholder='votre@email.com' placeholderTextColor={COLORS.gray} value={email} onChangeText={setEmail} keyboardType='email-address' autoCapitalize='none' />
 
               <Text style={styles.label}>{"Cr\u00e9er un PIN (6 chiffres)"}</Text>
-              <View style={{flexDirection:'row',alignItems:'center'}}>
-                <TextInput style={[styles.input,{flex:1,marginBottom:0}]} placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={6} secureTextEntry={!showPin} />
-                <TouchableOpacity style={{padding:12,marginLeft:-48}} onPress={function(){setShowPin(!showPin);}}>
-                  <Text style={{fontSize:18}}>{showPin ? '\uD83D\uDE48' : '\uD83D\uDC41\uFE0F'}</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={{height:20}} />
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={pin} onChangeText={setPin} keyboardType='number-pad' maxLength={6} secureTextEntry />
+
+              <Text style={styles.label}>Confirmer le PIN</Text>
+              <TextInput style={styles.input} placeholder={'\u2022\u2022\u2022\u2022\u2022\u2022'} placeholderTextColor={COLORS.gray} value={confirmPin} onChangeText={setConfirmPin} keyboardType='number-pad' maxLength={6} secureTextEntry />
 
               <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
             </View>
@@ -79,8 +74,7 @@ var RegisterScreen = function(props) {
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  headerImage: { width: width, height: height * 0.32 },
-  headerGradient: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 50 },
+  darkHeader: { backgroundColor: COLORS.darkCard, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginBottom: 4 },

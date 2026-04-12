@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar, ImageBackground, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+﻿import React, { useState } from 'react';
+import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard, Alert, TouchableOpacity, Image, StatusBar } from 'react-native';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../services/api.service';
-
-var { width, height } = Dimensions.get('window');
-var HEADER_HEIGHT = height * 0.35;
 
 var LoginScreen = function(props) {
   var navigation = props.navigation;
@@ -44,25 +40,15 @@ var LoginScreen = function(props) {
     authService.resetPin(fullPhone, otp, newPin).then(function(response) { setLoading(false); if (response.success) { Alert.alert('Succ\u00e8s', 'PIN r\u00e9initialis\u00e9!'); setForgotMode(false); setOtp(''); setNewPin(''); setConfirmPin(''); setPin(''); } }).catch(function(error) { setLoading(false); Alert.alert('Erreur', error.message || 'Code invalide'); });
   }
 
-  function renderHeader(subtitleText) {
-    return (
-      <View style={[styles.headerImage, {backgroundColor: COLORS.darkCard}]}>
-        <View style={styles.headerContent}>
-          <View style={styles.logoCircle}>
-            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
-          </View>
-          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text> Client</Text>
-          <Text style={styles.appSubtitle}>{subtitleText}</Text>
-        </View>
-      </View>
-    );
-  }
-
   if (forgotMode) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-        {renderHeader("\u0052\u00e9initialiser votre PIN")}
+        <StatusBar barStyle="light-content" />
+        <View style={styles.darkHeader}>
+          <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+          <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
+          <Text style={styles.appSubtitle}>{"\u0052\u00e9initialiser votre PIN"}</Text>
+        </View>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
@@ -89,8 +75,12 @@ var LoginScreen = function(props) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      {renderHeader('Votre course, votre chemin')}
+      <StatusBar barStyle="light-content" />
+      <View style={styles.darkHeader}>
+        <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
+        <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
+        <Text style={styles.appSubtitle}>Votre course, votre chemin</Text>
+      </View>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.formArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps='handled'>
@@ -125,16 +115,14 @@ var LoginScreen = function(props) {
 
 var styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  headerImage: { width: width, height: HEADER_HEIGHT },
-  headerGradient: { position: 'absolute', left: 0, right: 0, bottom: 0, height: HEADER_HEIGHT },
-  headerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 30 },
+  darkHeader: { backgroundColor: COLORS.darkCard, paddingTop: 70, paddingBottom: 40, alignItems: 'center', borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   logoCircle: { width: 90, height: 90, borderRadius: 45, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginBottom: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8, overflow: 'hidden' },
   logo: { width: 85, height: 85 },
   appTitle: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginBottom: 4 },
-  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontFamily: 'LexendDeca_400Regular' },
+  appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.5)' , fontFamily: 'LexendDeca_400Regular' },
   formArea: { flex: 1, marginTop: -20 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: { backgroundColor: '#e8f8e0', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
+  card: { backgroundColor: '#e8f8e0', borderRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
   cardTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
   cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   label: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
