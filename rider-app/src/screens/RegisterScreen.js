@@ -31,7 +31,7 @@ var RegisterScreen = function(props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ImageBackground source={require('../../assets/login-header.png')} style={styles.headerImage} resizeMode="cover">
+      <ImageBackground source={require('../../assets/login-header.jpg')} style={styles.headerImage} resizeMode="cover">
         <LinearGradient colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.6)', 'rgba(0,26,18,1)']} locations={[0, 0.6, 1]} style={styles.headerGradient}>
           <View style={styles.logoCircle}><Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode='contain' /></View>
           <Text style={styles.appTitle}>Teran<Text style={{color: COLORS.yellow}}>GO</Text></Text>
