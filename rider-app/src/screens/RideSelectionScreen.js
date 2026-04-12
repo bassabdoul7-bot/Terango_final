@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image, Modal } from 'react-native';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
-import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import COLORS from '../constants/colors';
 import { rideService, driverService } from '../services/api.service';
+
+
 
 const { width, height } = Dimensions.get('window');
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -22,123 +23,30 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDistance, setRealDistance] = useState(0);
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [scheduledTime, setScheduledTime] = useState(null);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [stop, setStop] = useState(null);
-  const [showStopModal, setShowStopModal] = useState(false);
-
-  const getScheduleOptions = () => {
-    var now = new Date();
-    var tomorrow7 = new Date(now);
-    tomorrow7.setDate(tomorrow7.getDate() + 1);
-    tomorrow7.setHours(7, 0, 0, 0);
-    var tomorrow18 = new Date(now);
-    tomorrow18.setDate(tomorrow18.getDate() + 1);
-    tomorrow18.setHours(18, 0, 0, 0);
-    return [
-      { label: 'Dans 30 min', time: new Date(now.getTime() + 30 * 60 * 1000) },
-      { label: 'Dans 1 heure', time: new Date(now.getTime() + 60 * 60 * 1000) },
-      { label: 'Dans 2 heures', time: new Date(now.getTime() + 2 * 60 * 60 * 1000) },
-      { label: 'Demain matin (7h)', time: tomorrow7 },
-      { label: 'Demain soir (18h)', time: tomorrow18 },
-    ];
-  };
-
-  const formatScheduledTime = (date) => {
-    if (!date) return '';
-    var d = new Date(date);
-    var now = new Date();
-    var isToday = d.toDateString() === now.toDateString();
-    var tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    var isTomorrow = d.toDateString() === tomorrow.toDateString();
-    var timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    if (isToday) return "Aujourd'hui " + timeStr;
-    if (isTomorrow) return 'Demain ' + timeStr;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + timeStr;
-  };
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
 
   const fetchNearbyDrivers = async () => { try { const r = await driverService.getNearbyDrivers(pickup.coordinates.latitude, pickup.coordinates.longitude, 10); if (r.success) setNearbyDrivers(r.drivers); } catch (e) {} };
 
-  const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
-
-  const getGoogleRoute = async (currentStop) => {
+  const getDirections = async () => {
+    setCalculatingFare(true);
     try {
-      var waypointParam = '';
-      if (currentStop) {
-        waypointParam = `&waypoints=${currentStop.coordinates.latitude},${currentStop.coordinates.longitude}`;
-      }
-      const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}${waypointParam}&key=${GOOGLE_MAPS_KEY}`;
-      const r = await fetch(url);
-      const data = await r.json();
-      if (data.status === 'OK' && data.routes.length > 0) {
-        const legs = data.routes[0].legs;
-        var totalDistance = 0;
-        var totalDuration = 0;
-        for (var i = 0; i < legs.length; i++) {
-          totalDistance += legs[i].distance.value;
-          totalDuration += legs[i].duration.value;
-        }
-        const coordinates = PolylineUtil.decode(data.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] }));
-        return { distance: totalDistance / 1000, duration: Math.round(totalDuration / 60), coordinates };
-      }
-    } catch (e) { console.log('Google Directions error:', e); }
-    return null;
-  };
-
-  const getOSRMRoute = async (currentStop) => {
-    try {
-      var waypoints = `${pickup.coordinates.longitude},${pickup.coordinates.latitude}`;
-      if (currentStop) {
-        waypoints += `;${currentStop.coordinates.longitude},${currentStop.coordinates.latitude}`;
-      }
-      waypoints += `;${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}`;
-      const url = `https://osrm.terango.sn/route/v1/driving/${waypoints}?overview=full&geometries=polyline&steps=true`;
+      const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
       const r = await fetch(url);
       const data = await r.json();
       if (data.code === 'Ok' && data.routes.length > 0) {
         const route = data.routes[0];
-        var totalDistance = 0;
-        var totalDuration = 0;
-        for (var i = 0; i < route.legs.length; i++) {
-          totalDistance += route.legs[i].distance;
-          totalDuration += route.legs[i].duration;
-        }
-        return { distance: totalDistance / 1000, duration: Math.round(totalDuration / 60), coordinates: PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })) };
+        const leg = route.legs[0];
+        const km = leg.distance / 1000;
+        setRealDistance(km);
+        setRealDuration(Math.round(leg.duration / 60));
+        setRouteCoordinates(PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })));
+        calculateFares(km, Math.round(leg.duration / 60));
+      } else {
+        Alert.alert('Erreur', "Impossible de calculer l'itineraire");
+        navigation.goBack();
       }
-    } catch (e) { console.log('OSRM error:', e); }
-    return null;
-  };
-
-  const getDirections = async (currentStop) => {
-    setCalculatingFare(true);
-    try {
-      // Try Google first (accurate distance + route line in one call)
-      const googleResult = await getGoogleRoute(currentStop || null);
-      if (googleResult) {
-        setRouteCoordinates(googleResult.coordinates);
-        setRealDistance(googleResult.distance);
-        setRealDuration(googleResult.duration);
-        calculateFares(googleResult.distance, googleResult.duration);
-        return;
-      }
-
-      // Fallback to OSRM if Google fails
-      const osrmResult = await getOSRMRoute(currentStop || null);
-      if (osrmResult) {
-        setRouteCoordinates(osrmResult.coordinates);
-        setRealDistance(osrmResult.distance);
-        setRealDuration(osrmResult.duration);
-        calculateFares(osrmResult.distance, osrmResult.duration);
-        return;
-      }
-
-      Alert.alert('Erreur', "Impossible de calculer l'itineraire");
-      navigation.goBack();
     } catch (e) {
       Alert.alert('Erreur', 'Erreur lors du calcul');
       navigation.goBack();
@@ -146,28 +54,20 @@ const RideSelectionScreen = ({ route, navigation }) => {
   };
 
   const calculateFares = (distance, duration) => {
+    var isSuburb = distance > 10;
     var hour = new Date().getHours();
     var surge = (hour >= 7 && hour < 9) ? 1.2 : (hour >= 17 && hour < 20) ? 1.3 : 1.0;
-    function calcFare(base, cityRate, subRate, intercityRate, longDistRate, minRate, minFare) {
-      var distFare;
-      if (distance > 70) {
-        distFare = (10 * cityRate) + (20 * subRate) + (40 * intercityRate) + ((distance - 70) * longDistRate);
-      } else if (distance > 30) {
-        distFare = (10 * cityRate) + (20 * subRate) + ((distance - 30) * intercityRate);
-      } else if (distance > 10) {
-        distFare = (10 * cityRate) + ((distance - 10) * subRate);
-      } else {
-        distFare = distance * cityRate;
-      }
+    function calcFare(base, cityRate, subRate, minRate, minFare) {
+      var distFare = isSuburb ? (10 * cityRate) + ((distance - 10) * subRate) : (distance * cityRate);
       var timeFare = duration * minRate;
       var surged = Math.round((base + distFare + timeFare) * surge);
       var total = Math.ceil(surged / 100) * 100;
       return Math.max(total, minFare);
     }
     setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Eco', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(515, 86, 171, 200, 260, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(740, 115, 215, 250, 325, 37, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1150, 160, 265, 310, 400, 46, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      standard: { type: 'standard', name: 'TeranGO Standard', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(461, 73, 142, 29, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(665, 100, 180, 38, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1045, 140, 220, 48, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
     });
     setCalculatingFare(false);
   };
@@ -188,32 +88,12 @@ const RideSelectionScreen = ({ route, navigation }) => {
     geometry: { type: 'LineString', coordinates: routeCoordinates.map(c => [c.longitude, c.latitude]) }
   } : null;
 
-  const paymentOptions = [
-    { key: 'cash', label: 'Especes', icon: '\uD83D\uDCB5', color: COLORS.yellow },
-    { key: 'wave', label: 'Wave', icon: '\uD83C\uDF0A', color: COLORS.wave },
-  ];
-  const selectedPaymentOption = paymentOptions.find(p => p.key === paymentMethod) || paymentOptions[0];
-
   const handleBookRide = async () => {
     if (!selectedType || !fareEstimates) return Alert.alert('Erreur', 'Selectionnez un type');
     setLoading(true);
     try {
-      var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
-      if (stop) {
-        rideData.stops = [{ address: stop.address, coordinates: stop.coordinates }];
-      }
-      if (scheduledTime) {
-        rideData.scheduledTime = scheduledTime.toISOString();
-      }
-      const r = await rideService.createRide(rideData);
-      if (r.success) {
-        if (scheduledTime) {
-          Alert.alert('Course programmee!', r.message || 'Votre course a ete programmee.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
-        } else {
-          const newRideId = r.ride?.id || r.ride?._id;
-          navigation.replace('ActiveRide', { rideId: newRideId });
-        }
-      }
+      const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: 'cash', distance: realDistance, estimatedDuration: realDuration });
+      if (r.success) navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id });
     } catch (e) {
       Alert.alert('Erreur', e.response?.data?.message || 'Impossible de creer la course');
     } finally { setLoading(false); }
@@ -234,11 +114,6 @@ const RideSelectionScreen = ({ route, navigation }) => {
         <Marker id="dropoff" lngLat={[dropoff.coordinates.longitude, dropoff.coordinates.latitude]}>
           <View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View>
         </Marker>
-        {stop && (
-          <Marker id="stop" lngLat={[stop.coordinates.longitude, stop.coordinates.latitude]}>
-            <View style={styles.stopMarker}><View style={styles.stopDiamond} /></View>
-          </Marker>
-        )}
         {nearbyDrivers.map((d) => (
           <Marker key={d._id} id={`driver_${d._id}`} lngLat={[d.location.longitude, d.location.latitude]}>
             <View style={styles.driverMarker}><Text style={styles.driverIcon}>{"\uD83D\uDE97"}</Text></View>
@@ -269,95 +144,11 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
-          {stop ? (
-            <View style={styles.stopCard}>
-              <View style={styles.stopCardLeft}>
-                <View style={styles.stopCardDot} />
-                <View style={styles.stopCardTextWrap}>
-                  <Text style={styles.stopCardLabel}>Arret</Text>
-                  <Text style={styles.stopCardAddress} numberOfLines={1}>{stop.address}</Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => { setStop(null); getDirections(null); }} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={styles.stopCardRemove}>{"\u2715"}</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.addStopButton} onPress={() => setShowStopModal(true)} activeOpacity={0.7}>
-              <Text style={styles.addStopIcon}>+</Text>
-              <Text style={styles.addStopText}>Ajouter un arret</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.paymentSection}>
-            <Text style={styles.paymentLabel}>Mode de paiement</Text>
-            <View style={styles.paymentOptionsRow}>
-              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={() => setPaymentMethod('cash')} activeOpacity={0.7}>
-                <Text style={styles.paymentOptionIcon}>{'\uD83D\uDCB5'}</Text>
-                <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && styles.paymentOptionTextSelected]}>Especes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && { borderColor: COLORS.wave, backgroundColor: 'rgba(29,195,225,0.12)' }]} onPress={() => setPaymentMethod('wave')} activeOpacity={0.7}>
-                <Text style={styles.paymentOptionIcon}>{'\uD83C\uDF0A'}</Text>
-                <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && { color: COLORS.wave }]}>Wave</Text>
-              </TouchableOpacity>
-            </View>
-            {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur a l'arrivee</Text>}
-            {paymentMethod === 'wave' && <Text style={[styles.paymentHint, { color: COLORS.wave }]}>Payez par Wave au chauffeur</Text>}
-          </View>
-          <View style={styles.scheduleSection}>
-            <TouchableOpacity style={[styles.scheduleToggle, scheduledTime && styles.scheduleToggleActive]} onPress={() => { if (scheduledTime) { setScheduledTime(null); } else { setShowScheduleModal(true); } }} activeOpacity={0.7}>
-              <Text style={styles.scheduleIcon}>{"\uD83D\uDD52"}</Text>
-              <Text style={[styles.scheduleToggleText, scheduledTime && styles.scheduleToggleTextActive]}>{scheduledTime ? formatScheduledTime(scheduledTime) : 'Programmer'}</Text>
-              {scheduledTime && <TouchableOpacity onPress={() => setScheduledTime(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}><Text style={styles.scheduleClear}>{"\u2715"}</Text></TouchableOpacity>}
-            </TouchableOpacity>
-          </View>
+          <View style={styles.paymentCard}><Text style={styles.paymentLabel}>Paiement</Text><View style={styles.paymentRow}><View style={styles.paymentIconBg}><Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text></View><Text style={styles.paymentText}>{"Esp\u00e8ces"}</Text><Text style={styles.paymentArrow}>{"\u203A"}</Text></View></View>
           <View style={{ height: 16 }} />
         </ScrollView>
-        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : (scheduledTime ? 'Programmer \u2022 ' : 'Confirmer \u2022 ')+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
+        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
       </View>
-      <Modal visible={showStopModal} transparent animationType="slide">
-        <View style={styles.stopModalOverlay}>
-          <View style={styles.stopModalCard}>
-            <Text style={styles.stopModalTitle}>Ajouter un arret</Text>
-            <Text style={styles.stopModalSub}>Le chauffeur s'arretera a cette adresse</Text>
-            <NominatimAutocomplete
-              placeholder="Chercher une adresse..."
-              autoFocus={true}
-              onSelect={(data, details) => {
-                var selectedStop = {
-                  address: data.description,
-                  coordinates: {
-                    latitude: details.geometry.location.lat,
-                    longitude: details.geometry.location.lng
-                  }
-                };
-                setStop(selectedStop);
-                setShowStopModal(false);
-                getDirections(selectedStop);
-              }}
-            />
-            <TouchableOpacity style={styles.stopModalCancel} onPress={() => setShowStopModal(false)}>
-              <Text style={styles.stopModalCancelText}>Annuler</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-      <Modal visible={showScheduleModal} transparent animationType="fade">
-        <View style={styles.scheduleModalOverlay}>
-          <View style={styles.scheduleModalCard}>
-            <Text style={styles.scheduleModalTitle}>Programmer la course</Text>
-            <Text style={styles.scheduleModalSub}>Choisissez quand partir</Text>
-            {getScheduleOptions().map((opt, idx) => (
-              <TouchableOpacity key={idx} style={styles.scheduleOptionBtn} onPress={() => { setScheduledTime(opt.time); setShowScheduleModal(false); }} activeOpacity={0.7}>
-                <Text style={styles.scheduleOptionText}>{opt.label}</Text>
-                <Text style={styles.scheduleOptionTime}>{opt.time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.scheduleModalCancel} onPress={() => setShowScheduleModal(false)}>
-              <Text style={styles.scheduleModalCancelText}>Annuler</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -393,49 +184,13 @@ const styles = StyleSheet.create({
   rideCapacity: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   rideTime: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
   rideFare: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-  paymentSection: { marginTop: 4 },
+  paymentCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   paymentLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, marginBottom: 10 },
-  paymentOptionsRow: { flexDirection: 'row', gap: 10 },
-  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
-  paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  paymentOptionIcon: { fontSize: 20 },
-  paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
-  paymentOptionTextSelected: { color: COLORS.yellow },
-  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
-  scheduleSection: { marginTop: 10 },
-  scheduleToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
-  scheduleToggleActive: { borderColor: COLORS.green, backgroundColor: 'rgba(0,133,63,0.12)' },
-  scheduleIcon: { fontSize: 18 },
-  scheduleToggleText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
-  scheduleToggleTextActive: { color: COLORS.green },
-  scheduleClear: { fontSize: 14, color: COLORS.textLightMuted, marginLeft: 8, fontFamily: 'LexendDeca_700Bold' },
-  scheduleModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  scheduleModalCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  scheduleModalTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
-  scheduleModalSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20 },
-  scheduleOptionBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 16, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', marginBottom: 8 },
-  scheduleOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
-  scheduleOptionTime: { fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted },
-  scheduleModalCancel: { marginTop: 8, paddingVertical: 14, alignItems: 'center' },
-  scheduleModalCancelText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
-  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
-  stopDiamond: { width: 10, height: 10, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }] },
-  addStopButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)', borderStyle: 'dashed', marginBottom: 10, gap: 8 },
-  addStopIcon: { fontSize: 18, color: '#FF9500', fontFamily: 'LexendDeca_700Bold' },
-  addStopText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#FF9500' },
-  stopCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 14, backgroundColor: 'rgba(255,149,0,0.1)', borderWidth: 1.5, borderColor: 'rgba(255,149,0,0.3)', marginBottom: 10 },
-  stopCardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 },
-  stopCardDot: { width: 12, height: 12, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }], marginRight: 12 },
-  stopCardTextWrap: { flex: 1 },
-  stopCardLabel: { fontSize: 11, color: '#FF9500', fontFamily: 'LexendDeca_600SemiBold', marginBottom: 2 },
-  stopCardAddress: { fontSize: 13, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
-  stopCardRemove: { fontSize: 16, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_700Bold', padding: 4 },
-  stopModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-start', paddingTop: 80 },
-  stopModalCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, marginHorizontal: 16, maxHeight: '80%', borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  stopModalTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
-  stopModalSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 16 },
-  stopModalCancel: { marginTop: 16, paddingVertical: 14, alignItems: 'center' },
-  stopModalCancelText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  paymentRow: { flexDirection: 'row', alignItems: 'center' },
+  paymentIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
+  paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
+  paymentArrow: { fontSize: 22, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 

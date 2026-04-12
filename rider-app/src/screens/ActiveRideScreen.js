@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share, Vibration, TextInput } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
-import * as ImagePicker from 'expo-image-picker';
 import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
@@ -114,92 +113,23 @@ const SearchingAnimation = ({ searchTime }) => {
     </View>
   );
 };
-const NoDriversScreen = ({ ride, onRetry, onGoHome, retrying, retryCount }) => (
+const NoDriversScreen = ({ ride, onRetry, onGoHome, retrying }) => (
   <View style={noDriversStyles.container}><View style={noDriversStyles.content}>
     <Text style={noDriversStyles.icon}>{"\uD83D\uDE14"}</Text><Text style={noDriversStyles.title}>Aucun chauffeur disponible</Text><Text style={noDriversStyles.subtitle}>{"D\u00e9sol\u00e9, aucun chauffeur disponible pour le moment."}</Text>
     <View style={noDriversStyles.rideInfo}><View style={noDriversStyles.addressRow}><View style={noDriversStyles.greenDot} /><Text style={noDriversStyles.addressText} numberOfLines={1}>{ride?.pickup?.address}</Text></View><View style={noDriversStyles.addressRow}><View style={noDriversStyles.redSquare} /><Text style={noDriversStyles.addressText} numberOfLines={1}>{ride?.dropoff?.address}</Text></View><Text style={noDriversStyles.fareText}>{ride?.fare?.toLocaleString()+' FCFA'}</Text></View>
-    {retryCount >= 3 && <Text style={noDriversStyles.retryHint}>{"R\u00e9essayer dans quelques minutes"}</Text>}
     <TouchableOpacity style={noDriversStyles.retryButton} onPress={onRetry} disabled={retrying}>{retrying ? <ActivityIndicator color="#FFF" /> : <Text style={noDriversStyles.retryButtonText}>{"\uD83D\uDD04 R\u00e9essayer"}</Text>}</TouchableOpacity>
     <TouchableOpacity style={noDriversStyles.homeButton} onPress={onGoHome}><Text style={noDriversStyles.homeButtonText}>{"Retour \u00e0 l'accueil"}</Text></TouchableOpacity>
   </View></View>
 );
 const ActiveRideScreen = ({ route, navigation }) => {
-  const { rideId: initialRideId, forcePayment } = route.params;
+  const { rideId: initialRideId } = route.params;
   const mapRef = useRef(null);
   const cameraRef = useRef(null); const socketRef = useRef(null); const pollInterval = useRef(null); const etaInterval = useRef(null); const searchTimerRef = useRef(null); const alertShownRef = useRef(false);
   const [showChat, setShowChat] = useState(false);
-  const [rideId, setRideId] = useState(initialRideId); const [ride, setRide] = useState(null); const [loading, setLoading] = useState(true); const [routeCoordinates, setRouteCoordinates] = useState([]); const [driverLocation, setDriverLocation] = useState(null); const [eta, setEta] = useState(null); const [distance, setDistance] = useState(null); const [showCancelModal, setShowCancelModal] = useState(false); const [cancelling, setCancelling] = useState(false); const [searchTime, setSearchTime] = useState(0); const [showNoDrivers, setShowNoDrivers] = useState(false); const [retrying, setRetrying] = useState(false); const [retryCount, setRetryCount] = useState(0);
+  const [rideId, setRideId] = useState(initialRideId); const [ride, setRide] = useState(null); const [loading, setLoading] = useState(true); const [routeCoordinates, setRouteCoordinates] = useState([]); const [driverLocation, setDriverLocation] = useState(null); const [eta, setEta] = useState(null); const [distance, setDistance] = useState(null); const [showCancelModal, setShowCancelModal] = useState(false); const [cancelling, setCancelling] = useState(false); const [searchTime, setSearchTime] = useState(0); const [showNoDrivers, setShowNoDrivers] = useState(false); const [retrying, setRetrying] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showFareAnimation, setShowFareAnimation] = useState(false);
   const [completedFare, setCompletedFare] = useState(0);
-  // ========== EMERGENCY VIDEO RECORDING ==========
-  const [uploadingRecording, setUploadingRecording] = useState(false);
-
-  const startEmergencyRecording = async () => {
-    try {
-      const permission = await ImagePicker.requestCameraPermissionsAsync();
-      if (permission.status !== 'granted') {
-        Alert.alert('Permission requise', 'Activez la camera pour enregistrer.');
-        return;
-      }
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'videos',
-        videoMaxDuration: 120,
-        videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
-      });
-      if (result.canceled || !result.assets || result.assets.length === 0) return;
-      const video = result.assets[0];
-      const uri = video.uri;
-      const duration = video.duration ? Math.round(video.duration / 1000) : 0;
-      setUploadingRecording(true);
-      try {
-        await rideService.uploadEmergencyRecording(rideId, uri, duration);
-        Alert.alert('Enregistrement sauvegarde', 'L\'enregistrement video d\'urgence a ete envoye.');
-      } catch (err) {
-        console.error('Upload recording error:', err);
-        Alert.alert('Erreur', 'Impossible d\'envoyer l\'enregistrement. Reessayez.');
-      } finally { setUploadingRecording(false); }
-    } catch (err) {
-      console.error('Emergency video error:', err);
-      Alert.alert('Erreur', 'Impossible de lancer la camera');
-    }
-  };
-
-  // ========== SHAKE TO SOS + SILENT PANIC ==========
-  const sosTriggeredRef = useRef(false);
-  const sosCooldownRef = useRef(0);
-  const shakeTimestamps = useRef([]);
-  const silentTapTimestamps = useRef([]);
-
-  const triggerSOSFlow = async () => {
-    var now = Date.now();
-    if (sosTriggeredRef.current || now - sosCooldownRef.current < 300000) return; // 5min cooldown
-    sosTriggeredRef.current = true;
-    sosCooldownRef.current = now;
-    try { Vibration.vibrate(500); } catch(e) {}
-    try {
-      var result = await rideService.triggerSOS(rideId);
-      // Auto-share to emergency contacts
-      if (result && result.shareUrl) {
-        try {
-          await Share.share({ message: 'URGENCE: suivez ma position en direct: ' + result.shareUrl });
-        } catch(e) {}
-      }
-    } catch(e) { console.error('SOS trigger error:', e); }
-    setTimeout(function() { sosTriggeredRef.current = false; }, 5000);
-  };
-
-  // Silent panic: 5 taps on status bar within 3 seconds
-  const handleSilentPanic = () => {
-    var now = Date.now();
-    silentTapTimestamps.current.push(now);
-    silentTapTimestamps.current = silentTapTimestamps.current.filter(function(t) { return now - t < 3000; });
-    if (silentTapTimestamps.current.length >= 5) {
-      silentTapTimestamps.current = [];
-      triggerSOSFlow();
-    }
-  };
-
   // Animated car rotation for driver marker
   const driverRotation = useRef(new Animated.Value(0)).current;
   const prevDriverLoc = useRef(null);
@@ -218,30 +148,18 @@ const ActiveRideScreen = ({ route, navigation }) => {
   }, [driverLocation]);
   const handleBackPress = () => { if (showNoDrivers) { navigation.replace('Home'); return; } if (!ride) { navigation.goBack(); return; } if (ride.status === 'pending') { Alert.alert('Recherche en cours', 'Voulez-vous annuler?', [{ text: 'Rester', style: 'cancel' }, { text: 'Annuler', style: 'destructive', onPress: () => handleCancelRide('Annul\u00e9 par le passager') }]); } else if (['accepted', 'arrived', 'in_progress'].includes(ride.status)) { Alert.alert('Course en cours', 'Vous avez une course active.'); } else { navigation.navigate('Home'); } };
   useEffect(() => { fetchRideDetails(); pollInterval.current = setInterval(fetchRideDetails, 5000); return () => { if (pollInterval.current) clearInterval(pollInterval.current); if (etaInterval.current) clearInterval(etaInterval.current); if (socketRef.current) socketRef.current.disconnect(); }; }, [rideId]);
-  useEffect(() => { if (ride?.driver?.userId && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (etaInterval.current) { clearInterval(etaInterval.current); } fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
-  const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (["accepted", "in_progress"].includes(rd.status) && routeCoordinates.length === 0) { try { await getDirections(rd); } catch(e) {} }
-    if (!alertShownRef.current) { if (rd.status === "completed") { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace("Rating", { ride: rd }); }, 4000); } else if (rd.status === "cancelled") { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert("Course annul\u00e9e", "Votre course a \u00e9t\u00e9 annul\u00e9e.", [{ text: "OK", onPress: () => navigation.replace("Home") }]); } else if (rd.status === "no_drivers_available") { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
-  const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => { if (d && d.location && typeof d.location.latitude === 'number' && typeof d.location.longitude === 'number') setDriverLocation(d.location); }); socketRef.current.on('ride-accepted', function() { setTimeout(fetchRideDetails, 1500); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); socketRef.current.on('ride-status', (data) => { if (data && data.status) { if (data.status === 'arrived' || data.status === 'in_progress') { fetchRideDetails(); } else if (data.status === 'completed') { fetchRideDetails(); } } }); };
-  const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || !loc) return; if (ride.status === 'accepted' && ride.pickup?.coordinates) { try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} } else if (ride.status === 'in_progress' && ride.dropoff?.coordinates) { try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.dropoff.coordinates.longitude},${ride.dropoff.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} } };
-  const getDirections = async (rd) => { try { var waypoints = `${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude}`; if (rd.stops && rd.stops.length > 0 && rd.stops[0].coordinates) { waypoints += `;${rd.stops[0].coordinates.longitude},${rd.stops[0].coordinates.latitude}`; } waypoints += `;${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}`; const url = `https://osrm.terango.sn/route/v1/driving/${waypoints}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) { try { await new Promise(function(r) { setTimeout(r, 500); });
+  useEffect(() => { if (ride?.driver?.userId && ['accepted', 'in_progress', 'arrived'].includes(ride.status)) { connectToSocket(); if (!etaInterval.current) { fetchETA(); etaInterval.current = setInterval(fetchETA, 10000); } if (pollInterval.current) { clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 8000); } } }, [ride?.status, ride?.driver?._id]);
+  const fetchRideDetails = async () => { try { const r = await rideService.getRide(rideId); const rd = r.ride; setRide(rd); if (rd.driver?.currentLocation?.coordinates && !driverLocation) setDriverLocation(rd.driver.currentLocation.coordinates); if (["accepted", "in_progress"].includes(rd.status) && routeCoordinates.length === 0) { try { await getDirections(rd); } catch(e) {} } if (!alertShownRef.current) { if (rd.status === "completed") { alertShownRef.current = true; clearInterval(pollInterval.current); setCompletedFare(rd.fare || 0); setShowFareAnimation(true); setShowConfetti(true); setTimeout(() => { navigation.replace("Rating", { ride: rd }); }, 4000); } else if (rd.status === "cancelled") { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert("Course annul\u00e9e", "Votre course a \u00e9t\u00e9 annul\u00e9e.", [{ text: "OK", onPress: () => navigation.replace("Home") }]); } else if (rd.status === "no_drivers_available") { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } } setLoading(false); } catch (e) { setLoading(false); } };
+  const connectToSocket = async () => { if (socketRef.current?.connected) return; socketRef.current = await createAuthSocket(); socketRef.current.on('connect', () => socketRef.current.emit('join-ride-room', rideId)); socketRef.current.on('driver-location-update', (d) => { if (d && d.location && typeof d.location.latitude === 'number' && typeof d.location.longitude === 'number') setDriverLocation(d.location); }); socketRef.current.on('ride-accepted', function() { setTimeout(fetchRideDetails, 1500); }); socketRef.current.on('ride-no-drivers', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); setShowNoDrivers(true); } }); socketRef.current.on('ride-cancelled', () => { if (!alertShownRef.current) { alertShownRef.current = true; clearInterval(pollInterval.current); Alert.alert('Course annul\u00e9e', 'Votre course a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: () => navigation.replace('Home') }]); } }); };
+  const fetchETA = async () => { const loc = driverLocation || ride?.driver?.currentLocation?.coordinates; if (!ride || ride.status !== 'accepted' || !loc || !ride.pickup?.coordinates) return; try { const url = `https://osrm.terango.sn/route/v1/driving/${loc.longitude},${loc.latitude};${ride.pickup.coordinates.longitude},${ride.pickup.coordinates.latitude}?overview=false&steps=false`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]?.legs[0]) { setEta(Math.round(data.routes[0].legs[0].duration / 60)); setDistance(data.routes[0].legs[0].distance < 1000 ? Math.round(data.routes[0].legs[0].distance) + ' m' : (data.routes[0].legs[0].distance/1000).toFixed(1) + ' km'); } } catch (e) {} };
+  const getDirections = async (rd) => { try { const url = `https://osrm.terango.sn/route/v1/driving/${rd.pickup.coordinates.longitude},${rd.pickup.coordinates.latitude};${rd.dropoff.coordinates.longitude},${rd.dropoff.coordinates.latitude}?overview=full&geometries=polyline`; const r = await fetch(url); const data = await r.json(); if (data.code === 'Ok' && data.routes[0]) { const coords = PolylineUtil.decode(data.routes[0].geometry).map(p => ({ latitude: p[0], longitude: p[1] })); setRouteCoordinates(coords); if (cameraRef.current && coords.length > 0) { try { await new Promise(function(r) { setTimeout(r, 500); });
           const lats = coords.map(c => c.latitude);
           const lons = coords.map(c => c.longitude);
           cameraRef.current.fitBounds([Math.max(...lons), Math.max(...lats)], [Math.min(...lons), Math.min(...lats)], [120, 50, 350, 50], 500); } catch(e) { console.log('fitBounds error:', e); }
         } } } catch (e) {} };
-  const handleRetry = async () => { setRetrying(true); setRetryCount(prev => prev + 1); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
+  const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
-  const handleShareRide = async () => {
-    try {
-      var result = await rideService.shareRide(rideId);
-      if (result.success && result.shareUrl) {
-        await Share.share({ message: 'Suivez ma course TeranGO en direct: ' + result.shareUrl });
-      }
-    } catch (e) {
-      console.error('Share ride error:', e);
-      Alert.alert('Erreur', 'Impossible de partager la course.');
-    }
-  };
-  const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
+  const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
   const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
   if (showFareAnimation) {
@@ -256,7 +174,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       </View>
     );
   }
-  if (showNoDrivers) return <NoDriversScreen ride={ride} onRetry={handleRetry} onGoHome={() => navigation.replace('Home')} retrying={retrying} retryCount={retryCount} />;
+  if (showNoDrivers) return <NoDriversScreen ride={ride} onRetry={handleRetry} onGoHome={() => navigation.replace('Home')} retrying={retrying} />;
   if (loading || !ride) return (<View style={styles.loadingContainer}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>Chargement...</Text></View>);
   return (
     <View style={styles.container}>
@@ -268,11 +186,6 @@ const ActiveRideScreen = ({ route, navigation }) => {
         <Marker id="dropoff" lngLat={[ride.dropoff.coordinates.longitude, ride.dropoff.coordinates.latitude]}>
           <View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View>
         </Marker>
-        {ride.stops && ride.stops.length > 0 && ride.stops[0].coordinates && (
-          <Marker id="stop0" lngLat={[ride.stops[0].coordinates.longitude, ride.stops[0].coordinates.latitude]}>
-            <View style={styles.stopMarker}><View style={styles.stopDiamond} /></View>
-          </Marker>
-        )}
         {driverLocation && (
           <Marker id="driver" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
             <View style={styles.driverMarkerOuter}>
@@ -287,31 +200,17 @@ const ActiveRideScreen = ({ route, navigation }) => {
           </GeoJSONSource>
         )}
       </Map>
-      <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><TouchableOpacity activeOpacity={1} onPress={handleSilentPanic} style={{flex:1}}><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></TouchableOpacity></View>
-      {['accepted', 'arrived', 'in_progress'].includes(ride.status) && (
-        <View style={sosStyles.container}>
-          <TouchableOpacity style={sosStyles.sosBtn} onPress={startEmergencyRecording} disabled={uploadingRecording}>
-            {uploadingRecording ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosStyles.sosIcon}>{String.fromCodePoint(0x1F4F9)}</Text>}
-          </TouchableOpacity>
-          {uploadingRecording && <Text style={sosStyles.uploadingText}>Envoi en cours...</Text>}
-        </View>
-      )}
+      <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
       <View style={styles.bottomCard}>
         {ride.status === 'pending' && (<>
           <SearchingAnimation searchTime={searchTime} />
-          <View style={styles.fareCard}><Text style={[styles.fareLabel, ride.paymentMethod === 'wave' && { color: COLORS.wave }]}>{ride.paymentMethod === 'wave' ? '\uD83C\uDF0A Wave' : '\uD83D\uDCB5 Especes'}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
+          <View style={styles.fareCard}><Text style={styles.fareLabel}>{"\uD83D\uDCB5 Esp\u00e8ces"}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
         {ride.status !== 'pending' && !(ride.driver && ride.driver.userId) && (
           <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:COLORS.textLightSub,marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
         )}
-        {ride.status !== 'pending' && ride.driver && ride.driver.userId && (<>
-          {ride.paymentMethod === 'wave' && (
-            <View style={styles.waveBanner}>
-              <Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text>
-              <Text style={styles.waveBannerText}>{'Payez ' + (ride.fare || 0).toLocaleString() + ' FCFA par Wave au ' + (ride.driver?.waveNumber || ride.driver?.userId?.phone || 'chauffeur')}</Text>
-            </View>
-          )}
+        {ride.status !== 'pending' && ride.driver && ride.driver.userId && (
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
             {ride.driver && ride.driver.userId && ride.driver.userId.name && (
               <View style={styles.driverCard}>
@@ -332,8 +231,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <View style={styles.contactRow}>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+(ride?.driver?.userId?.phone || ''))}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.contactButton} onPress={handleShareRide}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4E4)}</Text><Text style={styles.contactLabel}>Partager</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'WhatsApp SN',onPress:()=>Linking.openURL('https://wa.me/221784256407')},{text:'WhatsApp US',onPress:()=>Linking.openURL('https://wa.me/17047263959')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
               </View>
             )}
@@ -344,11 +242,11 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <Text style={styles.pinHint}>{"Donnez ce code \u00e0 votre chauffeur"}</Text>
               </View>
             )}
-            <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View>{ride?.stops && ride.stops.length > 0 && (<><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.stopDiamond} /></View><View style={styles.addressContent}><Text style={[styles.addressLabel, {color: '#FF9500'}]}>Arret</Text><Text style={styles.addressText} numberOfLines={1}>{ride.stops[0].address || 'Arret'}</Text></View></View></>)}<View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
+            <View style={styles.addressCard}><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.greenDot} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>{"D\u00e9part"}</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.pickup?.address || 'Depart'}</Text></View></View><View style={styles.addressDivider} /><View style={styles.addressRow}><View style={styles.addressIconWrap}><View style={styles.redSquare} /></View><View style={styles.addressContent}><Text style={styles.addressLabel}>Destination</Text><Text style={styles.addressText} numberOfLines={1}>{ride?.dropoff?.address || 'Destination'}</Text></View></View></View>
             {['pending', 'accepted'].includes(ride.status) && <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />}
             <View style={{height: 10}} />
           </ScrollView>
-        </>)}
+        )}
       </View>
       <Modal visible={showChat} animationType="slide" onRequestClose={() => setShowChat(false)}><ChatScreen socket={socketRef.current} rideId={rideId} deliveryId={null} myRole="rider" myUserId={null} otherName={ride?.driver?.userId?.name || 'Chauffeur'} onClose={() => setShowChat(false)} /></Modal>
       <CancelModal visible={showCancelModal} onClose={() => setShowCancelModal(false)} onConfirm={handleCancelRide} loading={cancelling} />
@@ -367,7 +265,6 @@ const noDriversStyles = StyleSheet.create({
   redSquare: { width: 12, height: 12, backgroundColor: COLORS.red, marginRight: 12 },
   addressText: { flex: 1, fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   fareText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, textAlign: 'center', marginTop: 8 },
-  retryHint: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_500Medium', textAlign: 'center', marginBottom: 12 },
   retryButton: { backgroundColor: COLORS.green, paddingVertical: 16, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 12 },
   retryButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
   homeButton: { paddingVertical: 14, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
@@ -414,8 +311,6 @@ const styles = StyleSheet.create({
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
   dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
-  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
-  stopDiamond: { width: 10, height: 10, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }] },
   driverMarkerOuter: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   driverCarImage: { width: 70, height: 50 },
   driverArrowTop: { width: 0, height: 0, borderLeftWidth: 16, borderRightWidth: 16, borderBottomWidth: 30, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: '#D4AF37' },
@@ -469,15 +364,6 @@ const styles = StyleSheet.create({
   fareCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   fareLabel: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-  waveBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,195,225,0.12)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(29,195,225,0.3)' },
-  waveBannerIcon: { fontSize: 24, marginRight: 10 },
-  waveBannerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#1DC3E1', lineHeight: 20 },
-});
-const sosStyles = StyleSheet.create({
-  container: { position: 'absolute', top: 110, right: 20, zIndex: 20, alignItems: 'center' },
-  sosBtn: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#E31B23', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 2, borderColor: 'rgba(227,27,35,0.5)' },
-  sosIcon: { fontSize: 22 },
-  uploadingText: { fontSize: 10, fontFamily: 'LexendDeca_600SemiBold', color: '#E31B23', marginTop: 4, textAlign: 'center' },
 });
 class ActiveRideErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
   Animated,
   Easing,
   AppState,
-  Linking,
 } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
@@ -25,7 +24,7 @@ import COLORS from '../constants/colors';
 import FeedbackButton from '../components/FeedbackButton';
 import { useAuth } from '../context/AuthContext';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
-import { driverService, rideService, authService } from '../services/api.service';
+import { driverService, rideService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
 
@@ -68,17 +67,8 @@ function HomeScreen(props) {
 
   var saveAddrState = useState('');
   var pinState = useState(user?.securityPinEnabled || false); var securityPinEnabled = pinState[0]; var setSecurityPinEnabled = pinState[1];
-  var ecState = useState(user?.emergencyContacts || []); var emergencyContacts = ecState[0]; var setEmergencyContacts = ecState[1];
-  var ecEditState = useState(false); var showEcEdit = ecEditState[0]; var setShowEcEdit = ecEditState[1];
-  var ecNameState = useState(''); var ecName = ecNameState[0]; var setEcName = ecNameState[1];
-  var ecPhoneState = useState(''); var ecPhone = ecPhoneState[0]; var setEcPhone = ecPhoneState[1];
-  var ecSavingState = useState(false); var ecSaving = ecSavingState[0]; var setEcSaving = ecSavingState[1];
   var saveAddress = saveAddrState[0];
   var setSaveAddress = saveAddrState[1];
-
-  var scheduledState = useState([]);
-  var scheduledRides = scheduledState[0];
-  var setScheduledRides = scheduledState[1];
 
   var socketRef = useRef(null);
   var appStateRef = useRef(AppState.currentState);
@@ -91,20 +81,11 @@ function HomeScreen(props) {
   var searchCardOpacity = useRef(new Animated.Value(0)).current;
   var driverPulse = useRef(new Animated.Value(1)).current;
 
-  var [showEcPrompt, setShowEcPrompt] = useState(false);
-
   useEffect(function() {
     loadSavedPlaces();
     if (!isGuest) {
       loadRideHistory();
-      loadScheduledRides();
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
-      // Show emergency contacts prompt on first launch
-      AsyncStorage.getItem('ecPromptShown').then(function(val) {
-        if (!val && user && (!user.emergencyContacts || user.emergencyContacts.length === 0)) {
-          setTimeout(function() { setShowEcPrompt(true); }, 2000);
-        }
-      });
     }
   }, []);
 
@@ -144,7 +125,6 @@ function HomeScreen(props) {
             socketRef.current.connect();
           }
           fetchNearbyDrivers();
-          rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
         }
       }
       appStateRef.current = nextAppState;
@@ -187,30 +167,6 @@ function HomeScreen(props) {
     }).catch(function(err) {
       console.log('History error:', err);
     });
-  }
-
-  function loadScheduledRides() {
-    rideService.getScheduledRides().then(function(response) {
-      if (response.success) {
-        setScheduledRides(response.rides || []);
-      }
-    }).catch(function(err) {
-      console.log('Scheduled rides error:', err);
-    });
-  }
-
-  function cancelScheduledRide(rideId) {
-    Alert.alert('Annuler la course', 'Voulez-vous annuler cette course programmee?', [
-      { text: 'Non', style: 'cancel' },
-      { text: 'Oui, annuler', style: 'destructive', onPress: function() {
-        rideService.cancelRide(rideId, 'Annulation par le passager').then(function() {
-          loadScheduledRides();
-          Alert.alert('Annulee', 'La course programmee a ete annulee.');
-        }).catch(function() {
-          Alert.alert('Erreur', 'Impossible d\'annuler la course.');
-        });
-      }}
-    ]);
   }
 
   function getLocation() {
@@ -273,12 +229,6 @@ function HomeScreen(props) {
         setNearbyDrivers(function(prev) {
           return prev.filter(function(d) { return d._id !== data.driverId; });
         });
-      });
-
-      socket.on('ride-status', function(data) {
-        if (data && data.rideId && ['accepted', 'arrived', 'in_progress'].includes(data.status)) {
-          navigation.replace('ActiveRide', { rideId: data.rideId });
-        }
       });
     }).catch(function(err) {
       console.log('Socket error:', err);
@@ -570,73 +520,6 @@ function HomeScreen(props) {
           </View>
         </View>
 
-        <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>{"Contacts d'urgence"}</Text>
-          <View style={styles.profileGroup}>
-            {emergencyContacts.map(function(contact, idx) {
-              return (
-                <View key={idx} style={[styles.profileRow, idx === emergencyContacts.length - 1 && !showEcEdit && { borderBottomWidth: 0 }]}>
-                  <Text style={styles.profileEmoji}>{'\uD83D\uDC64'}</Text>
-                  <View style={{flex:1}}>
-                    <Text style={styles.profileLabel}>{contact.name}</Text>
-                    <Text style={{fontSize:12,color:'rgba(0,0,0,0.5)'}}>{contact.phone}</Text>
-                  </View>
-                  <TouchableOpacity onPress={function() {
-                    var updated = emergencyContacts.filter(function(_, i) { return i !== idx; });
-                    setEmergencyContacts(updated);
-                    setEcSaving(true);
-                    authService.updateEmergencyContacts(updated).finally(function() { setEcSaving(false); });
-                  }}><Text style={{fontSize:18,color:'#E31B23'}}>{'×'}</Text></TouchableOpacity>
-                </View>
-              );
-            })}
-            {emergencyContacts.length < 3 && !showEcEdit && (
-              <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0, justifyContent: 'center' }]} onPress={function() { setShowEcEdit(true); }}>
-                <Text style={{fontSize:14,color:COLORS.green,fontFamily:'LexendDeca_600SemiBold'}}>+ Ajouter un contact</Text>
-              </TouchableOpacity>
-            )}
-            {showEcEdit && (
-              <View style={{padding:12}}>
-                <TextInput placeholder="Nom" value={ecName} onChangeText={setEcName} style={{borderWidth:1,borderColor:'rgba(0,0,0,0.1)',borderRadius:10,padding:10,marginBottom:8,fontSize:14,fontFamily:'LexendDeca_400Regular'}} />
-                <TextInput placeholder="Telephone" value={ecPhone} onChangeText={setEcPhone} keyboardType="phone-pad" style={{borderWidth:1,borderColor:'rgba(0,0,0,0.1)',borderRadius:10,padding:10,marginBottom:8,fontSize:14,fontFamily:'LexendDeca_400Regular'}} />
-                <View style={{flexDirection:'row',gap:8}}>
-                  <TouchableOpacity style={{flex:1,padding:10,borderRadius:10,backgroundColor:'rgba(0,0,0,0.05)',alignItems:'center'}} onPress={function(){ setShowEcEdit(false); setEcName(''); setEcPhone(''); }}>
-                    <Text style={{fontSize:14,color:'rgba(0,0,0,0.5)'}}>Annuler</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{flex:1,padding:10,borderRadius:10,backgroundColor:COLORS.green,alignItems:'center'}} onPress={function(){
-                    if (!ecName.trim() || !ecPhone.trim()) { Alert.alert('Erreur', 'Nom et telephone requis'); return; }
-                    var updated = emergencyContacts.concat([{ name: ecName.trim(), phone: ecPhone.trim() }]);
-                    setEmergencyContacts(updated);
-                    setShowEcEdit(false); setEcName(''); setEcPhone('');
-                    setEcSaving(true);
-                    authService.updateEmergencyContacts(updated).finally(function() { setEcSaving(false); });
-                  }}>
-                    <Text style={{fontSize:14,color:'#fff',fontFamily:'LexendDeca_600SemiBold'}}>Enregistrer</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-          </View>
-        </View>
-
-        <View style={styles.profileSection}>
-          <Text style={styles.profileSectionTitle}>{"Aide & Support"}</Text>
-          <View style={styles.profileGroup}>
-            <TouchableOpacity style={styles.profileRow} onPress={function(){Linking.openURL('https://wa.me/221784256407');}}>
-              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCAC'}</Text>
-              <View style={{flex:1}}><Text style={styles.profileRowLabel}>WhatsApp Senegal</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>+221 78 425 64 07</Text></View>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.profileRow} onPress={function(){Linking.openURL('https://wa.me/17047263959');}}>
-              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCAC'}</Text>
-              <View style={{flex:1}}><Text style={styles.profileRowLabel}>WhatsApp US</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>+1 704 726 3959</Text></View>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.profileRow,{borderBottomWidth:0}]} onPress={function(){Linking.openURL('mailto:contact@terango.sn');}}>
-              <Text style={{fontSize:18,marginRight:12}}>{'\uD83D\uDCE7'}</Text>
-              <View style={{flex:1}}><Text style={styles.profileRowLabel}>Email</Text><Text style={{fontSize:12,color:COLORS.textDarkMuted,fontFamily:'LexendDeca_400Regular'}}>contact@terango.sn</Text></View>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         <FeedbackButton screen='Profile' />
 
         <TouchableOpacity style={styles.deleteAccountBtn} onPress={function() {
@@ -820,33 +703,6 @@ function HomeScreen(props) {
             </View>
           </View>
         </Animated.View>
-
-        {scheduledRides.length > 0 && (
-          <View style={styles.scheduledSection}>
-            <Text style={styles.scheduledTitle}>{"\uD83D\uDD52 Courses programmees"}</Text>
-            {scheduledRides.map(function(ride) {
-              var schedTime = new Date(ride.scheduledTime);
-              var now = new Date();
-              var isToday = schedTime.toDateString() === now.toDateString();
-              var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
-              var isTomorrow = schedTime.toDateString() === tomorrow.toDateString();
-              var timeStr = schedTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-              var dateLabel = isToday ? "Aujourd'hui " + timeStr : isTomorrow ? 'Demain ' + timeStr : schedTime.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + timeStr;
-              return (
-                <View key={ride._id} style={styles.scheduledCard}>
-                  <View style={styles.scheduledCardLeft}>
-                    <Text style={styles.scheduledTime}>{dateLabel}</Text>
-                    <Text style={styles.scheduledDest} numberOfLines={1}>{ride.dropoff ? ride.dropoff.address : 'Destination'}</Text>
-                    <Text style={styles.scheduledFare}>{(ride.fare || 0).toLocaleString() + ' FCFA'}</Text>
-                  </View>
-                  <TouchableOpacity style={styles.scheduledCancelBtn} onPress={function() { cancelScheduledRide(ride._id); }}>
-                    <Text style={styles.scheduledCancelText}>Annuler</Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })}
-          </View>
-        )}
       </View>
     );
   }
@@ -892,22 +748,6 @@ function HomeScreen(props) {
       </View>
 
       {renderSaveModal()}
-
-      <Modal visible={showEcPrompt} transparent animationType="fade">
-        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'center',alignItems:'center'}}>
-          <View style={{backgroundColor:COLORS.darkCard,borderRadius:24,padding:28,width:width-48,alignItems:'center',borderWidth:1,borderColor:COLORS.darkCardBorder}}>
-            <Text style={{fontSize:40,marginBottom:12}}>{'\uD83D\uDEE1\uFE0F'}</Text>
-            <Text style={{fontSize:20,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,marginBottom:8,textAlign:'center'}}>Votre securite compte</Text>
-            <Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightMuted,textAlign:'center',marginBottom:20,lineHeight:20}}>Ajoutez des contacts d'urgence. En cas de probleme pendant une course, ils seront alertes automatiquement avec votre position en direct.</Text>
-            <TouchableOpacity style={{width:'100%',paddingVertical:16,borderRadius:14,backgroundColor:COLORS.green,alignItems:'center',marginBottom:12}} onPress={function(){setShowEcPrompt(false);AsyncStorage.setItem('ecPromptShown','1');setActiveTab('profile');}}>
-              <Text style={{fontSize:16,fontFamily:'LexendDeca_700Bold',color:'#FFF'}}>Ajouter mes contacts</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={{paddingVertical:12}} onPress={function(){setShowEcPrompt(false);AsyncStorage.setItem('ecPromptShown','1');}}>
-              <Text style={{fontSize:14,fontFamily:'LexendDeca_500Medium',color:COLORS.textLightMuted}}>Plus tard</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1009,24 +849,6 @@ var styles = StyleSheet.create({
   },
   serviceEmoji: { fontSize: 28, fontFamily: 'LexendDeca_400Regular' },
   serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, textAlign: 'center' },
-
-  // Scheduled rides
-  scheduledSection: {
-    position: 'absolute', top: 140, left: 20, right: 20,
-    backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 14, elevation: 8,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder, maxHeight: 200,
-  },
-  scheduledTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 10 },
-  scheduledCard: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 12, marginBottom: 6,
-  },
-  scheduledCardLeft: { flex: 1, marginRight: 10 },
-  scheduledTime: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.green },
-  scheduledDest: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginTop: 2 },
-  scheduledFare: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.yellow, marginTop: 2 },
-  scheduledCancelBtn: { backgroundColor: 'rgba(255,59,48,0.15)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
-  scheduledCancelText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#FF3B30' },
 
   // Bottom nav - DARK
   bottomNav: {
