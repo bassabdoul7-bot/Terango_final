@@ -545,7 +545,7 @@ exports.getVerificationStatus = function(req, res) {
         success: true,
         verificationStatus: driver.verificationStatus,
         rejectionReason: driver.rejectionReason || null,
-        hasDocuments: !!(driver.nationalIdPhoto && driver.driverLicensePhoto),
+        hasDocuments: !!(driver.selfiePhoto && driver.nationalIdPhoto && driver.driverLicensePhoto && driver.vehicleFrontPhoto),
         documents: {
           selfiePhoto: driver.selfiePhoto || null,
           nationalIdPhoto: driver.nationalIdPhoto || null,
