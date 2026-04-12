@@ -100,7 +100,7 @@ function HomeScreen(props) {
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
       // Show emergency contacts prompt on first launch
       AsyncStorage.getItem('ecPromptShown').then(function(val) {
-        if (!val && (!user.emergencyContacts || user.emergencyContacts.length === 0)) {
+        if (!val && user && (!user.emergencyContacts || user.emergencyContacts.length === 0)) {
           setTimeout(function() { setShowEcPrompt(true); }, 2000);
         }
       });
