@@ -72,14 +72,14 @@ const DocumentUploadScreen = ({ onComplete }) => {
       formData.append('selfie', { uri: selfiePhoto.uri, type: 'image/jpeg', name: 'selfie.jpg' });
       formData.append('nationalId', { uri: nationalIdPhoto.uri, type: 'image/jpeg', name: 'cni.jpg' });
       formData.append('driverLicense', { uri: driverLicensePhoto.uri, type: 'image/jpeg', name: 'permis.jpg' });
-      formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
+      if (vehicleRegPhoto) formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
       formData.append('vehicleMake', vehicleMake.trim());
       formData.append('vehicleType', vehicleType);
       if (vehicleClass) formData.append('vehicleClass', vehicleClass);
       formData.append('vehicleFront', { uri: vehicleFrontPhoto.uri, type: 'image/jpeg', name: 'vehicle_front.jpg' });
       if (vehicleBackPhoto) formData.append('vehicleBack', { uri: vehicleBackPhoto.uri, type: 'image/jpeg', name: 'vehicle_back.jpg' });
       if (vehicleInteriorPhoto) formData.append('vehicleInterior', { uri: vehicleInteriorPhoto.uri, type: 'image/jpeg', name: 'vehicle_interior.jpg' });
-      formData.append('licensePlate', licensePlate.trim());
+      if (licensePlate.trim()) formData.append('licensePlate', licensePlate.trim());
       formData.append('waveNumber', waveNumber.trim());
 
       await driverService.uploadDocuments(formData);

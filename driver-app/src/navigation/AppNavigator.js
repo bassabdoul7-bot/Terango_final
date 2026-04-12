@@ -88,16 +88,20 @@ var AppNavigator = function() {
 
   var checkDriverStatus = function() {
     driverService.getVerificationStatus().then(function(res) {
-      setDriverStatus({ status: res.verificationStatus, hasDocuments: res.hasDocuments });
+      if (res && res.success !== false) {
+        setDriverStatus({ status: res.verificationStatus, hasDocuments: res.hasDocuments });
+      } else {
+        setDriverStatus(null);
+      }
     }).catch(function() {
-      setDriverStatus({ status: 'pending', hasDocuments: false });
+      setDriverStatus(null);
     }).finally(function() {
       setStatusLoading(false);
     });
   };
 
   useEffect(function() {
-    if (isAuthenticated) { checkDriverStatus(); }
+    if (isAuthenticated) { setStatusLoading(true); checkDriverStatus(); }
     else { setDriverStatus(null); setStatusLoading(false); }
   }, [isAuthenticated]);
 
@@ -106,16 +110,20 @@ var AppNavigator = function() {
   var needsDocumentUpload = isAuthenticated && driverStatus && driverStatus.status === 'pending' && !driverStatus.hasDocuments;
   var isPendingVerification = isAuthenticated && driverStatus && driverStatus.status === 'pending' && driverStatus.hasDocuments;
 
-  if (needsDocumentUpload) {
-    return React.createElement(DocumentUploadScreen, {
-      onComplete: function() { setDriverStatus({ status: 'pending', hasDocuments: true }); }
-    });
+  if (isAuthenticated && needsDocumentUpload) {
+    return React.createElement(NavigationContainer, null,
+      React.createElement(DocumentUploadScreen, {
+        onComplete: function() { setDriverStatus({ status: 'pending', hasDocuments: true }); }
+      })
+    );
   }
-  if (isPendingVerification) {
-    return React.createElement(PendingVerificationScreen, {
-      onApproved: function() { setDriverStatus({ status: 'approved', hasDocuments: true }); },
-      onUploadNeeded: function() { setDriverStatus({ status: 'pending', hasDocuments: false }); }
-    });
+  if (isAuthenticated && isPendingVerification) {
+    return React.createElement(NavigationContainer, null,
+      React.createElement(PendingVerificationScreen, {
+        onApproved: function() { setDriverStatus({ status: 'approved', hasDocuments: true }); },
+        onUploadNeeded: function() { setDriverStatus({ status: 'pending', hasDocuments: false }); }
+      })
+    );
   }
 
   return (
