@@ -601,7 +601,9 @@ function HomeScreen(props) {
           </LinearGradient>
         </ImageBackground>
 
-        <Animated.View style={[{paddingHorizontal:20, marginTop:-10}, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
+        <Animated.View style={[{backgroundColor: COLORS.darkCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, paddingTop: 14, minHeight: screenHeight * 0.65, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)'}, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
+          <View style={{width:40, height:4, backgroundColor:'rgba(255,255,255,0.15)', borderRadius:2, alignSelf:'center', marginBottom:16}} />
+          <View style={{paddingHorizontal: 20}}
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
               <Text style={styles.searchIcon}>{"🔍"}</Text>
@@ -676,8 +678,8 @@ function HomeScreen(props) {
               </TouchableOpacity>
             </View>
           </View>
+          </View>
         </Animated.View>
-        <View style={{height: 100}} />
       </ScrollView>
     );
   }
