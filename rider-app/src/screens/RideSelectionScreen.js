@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Dimensions, Image, Modal, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
@@ -24,6 +25,10 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [scheduledTime, setScheduledTime] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
@@ -118,12 +123,58 @@ const RideSelectionScreen = ({ route, navigation }) => {
     geometry: { type: 'LineString', coordinates: routeCoordinates.map(c => [c.longitude, c.latitude]) }
   } : null;
 
+  const formatScheduledTime = (date) => {
+    if (!date) return '';
+    var d = new Date(date);
+    var now = new Date();
+    var isToday = d.toDateString() === now.toDateString();
+    var tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    var isTomorrow = d.toDateString() === tomorrow.toDateString();
+    var timeStr = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return "Aujourd'hui " + timeStr;
+    if (isTomorrow) return 'Demain ' + timeStr;
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + timeStr;
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedDate) {
+      var d = new Date(selectedDate);
+      if (scheduledTime) { d.setHours(scheduledTime.getHours(), scheduledTime.getMinutes()); }
+      setTempDate(d);
+      setShowTimePicker(true);
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (event.type === 'dismissed') return;
+    if (selectedTime) {
+      var d = new Date(tempDate);
+      d.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+      if (d.getTime() < Date.now() + 30 * 60 * 1000) {
+        Alert.alert('Erreur', 'La course doit etre programmee au moins 30 minutes a l\'avance');
+        return;
+      }
+      setScheduledTime(d);
+    }
+  };
+
   const handleBookRide = async () => {
     if (!selectedType || !fareEstimates) return Alert.alert('Erreur', 'Selectionnez un type');
     setLoading(true);
     try {
-      const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration });
-      if (r.success) navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id });
+      var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
+      if (scheduledTime) rideData.scheduledTime = scheduledTime.toISOString();
+      const r = await rideService.createRide(rideData);
+      if (r.success) {
+        if (scheduledTime) {
+          Alert.alert('Course programmee!', r.message || 'Votre course a ete programmee pour ' + formatScheduledTime(scheduledTime), [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
+        } else {
+          navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id });
+        }
+      }
     } catch (e) {
       Alert.alert('Erreur', e.response?.data?.message || 'Impossible de creer la course');
     } finally { setLoading(false); }
@@ -189,9 +240,22 @@ const RideSelectionScreen = ({ route, navigation }) => {
             {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur</Text>}
             {paymentMethod === 'wave' && <Text style={[styles.paymentHint,{color:'#1DC3E1'}]}>Payez par Wave au chauffeur</Text>}
           </View>
+          <View style={{marginTop:8}}>
+            <TouchableOpacity style={[styles.paymentOption, scheduledTime && {borderColor:COLORS.yellow,backgroundColor:'rgba(212,175,55,0.08)'}]} onPress={function(){setShowDatePicker(true);}} activeOpacity={0.7}>
+              <Text style={{fontSize:20}}>{'\uD83D\uDD52'}</Text>
+              <Text style={[styles.paymentOptionText, scheduledTime && {color:COLORS.yellow}]}>{scheduledTime ? formatScheduledTime(scheduledTime) : 'Programmer'}</Text>
+              {scheduledTime && <TouchableOpacity onPress={function(){setScheduledTime(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}><Text style={{fontSize:16,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>}
+            </TouchableOpacity>
+          </View>
           <View style={{ height: 16 }} />
         </ScrollView>
-        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
+        <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : (scheduledTime ? 'Programmer \u2022 ' : 'Confirmer \u2022 ')+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
+        {showDatePicker && (
+          <DateTimePicker value={tempDate} mode="date" display="default" minimumDate={new Date()} onChange={handleDateChange} />
+        )}
+        {showTimePicker && (
+          <DateTimePicker value={tempDate} mode="time" display="default" is24Hour={true} onChange={handleTimeChange} />
+        )}
       </View>
     </View>
   );
