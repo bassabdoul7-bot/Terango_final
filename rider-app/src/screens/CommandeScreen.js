@@ -44,19 +44,35 @@ function CommandeScreen(props) {
 
   function haversineDistance(lat1, lon1, lat2, lon2) { var R = 6371; var dLat = (lat2 - lat1) * Math.PI / 180; var dLon = (lon2 - lon1) * Math.PI / 180; var a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2); return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); }
 
+  async function getRoadDistance() {
+    try {
+      var gUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=' + pickup.coordinates.latitude + ',' + pickup.coordinates.longitude + '&destination=' + dropoff.coordinates.latitude + ',' + dropoff.coordinates.longitude + '&key=AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+      var gR = await fetch(gUrl); var gData = await gR.json();
+      if (gData.status === 'OK' && gData.routes.length > 0) return gData.routes[0].legs[0].distance.value / 1000;
+    } catch(e) {}
+    try {
+      var oUrl = 'https://osrm.terango.sn/route/v1/driving/' + pickup.coordinates.longitude + ',' + pickup.coordinates.latitude + ';' + dropoff.coordinates.longitude + ',' + dropoff.coordinates.latitude + '?overview=false';
+      var oR = await fetch(oUrl); var oData = await oR.json();
+      if (oData.code === 'Ok' && oData.routes.length > 0) return oData.routes[0].distance / 1000;
+    } catch(e) {}
+    return haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude) * 1.3;
+  }
+
   function fetchEstimate() {
     if (!pickup || !dropoff) { Alert.alert('Erreur', 'Veuillez indiquer les adresses.'); return; }
     if (!itemsList.trim()) { Alert.alert('Erreur', 'Veuillez d\u00e9crire ce que vous voulez commander.'); return; }
     setLoading(true);
-    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
-    deliveryService.getEstimate('commande', dist, 'petit').then(function(response) { setLoading(false); if (response.success) { setEstimate(response.estimate); setStep(3); } else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); } }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion.'); });
+    getRoadDistance().then(function(dist) {
+      deliveryService.getEstimate('commande', dist, 'petit').then(function(response) { setLoading(false); if (response.success) { setEstimate(response.estimate); setStep(3); } else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); } }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion.'); });
+    });
   }
 
   function handleConfirm() {
     setConfirming(true);
-    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
-    var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: 'cash', commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
-    deliveryService.createDelivery(data).then(function(response) { setConfirming(false); if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); } else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); } }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la commande.'); });
+    getRoadDistance().then(function(dist) {
+      var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: 'cash', commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
+      deliveryService.createDelivery(data).then(function(response) { setConfirming(false); if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); } else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); } }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la commande.'); });
+    });
   }
 
   function renderStep1() {

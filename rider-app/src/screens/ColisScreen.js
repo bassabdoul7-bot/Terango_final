@@ -27,6 +27,7 @@ function ColisScreen(props) {
   var estimateState = useState(null); var estimate = estimateState[0]; var setEstimate = estimateState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
   var confirmingState = useState(false); var confirming = confirmingState[0]; var setConfirming = confirmingState[1];
+  var pmState = useState('cash'); var paymentMethod = pmState[0]; var setPaymentMethod = pmState[1];
   var pickupAddrState = useState(''); var pickupAddress = pickupAddrState[0]; var setPickupAddress = pickupAddrState[1];
 
   useEffect(function() {
@@ -51,28 +52,46 @@ function ColisScreen(props) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   }
 
+  async function getRoadDistance() {
+    try {
+      var gUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=' + pickup.coordinates.latitude + ',' + pickup.coordinates.longitude + '&destination=' + dropoff.coordinates.latitude + ',' + dropoff.coordinates.longitude + '&key=AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+      var gR = await fetch(gUrl);
+      var gData = await gR.json();
+      if (gData.status === 'OK' && gData.routes.length > 0) return gData.routes[0].legs[0].distance.value / 1000;
+    } catch(e) {}
+    try {
+      var oUrl = 'https://osrm.terango.sn/route/v1/driving/' + pickup.coordinates.longitude + ',' + pickup.coordinates.latitude + ';' + dropoff.coordinates.longitude + ',' + dropoff.coordinates.latitude + '?overview=false';
+      var oR = await fetch(oUrl);
+      var oData = await oR.json();
+      if (oData.code === 'Ok' && oData.routes.length > 0) return oData.routes[0].distance / 1000;
+    } catch(e) {}
+    return haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude) * 1.3;
+  }
+
   function fetchEstimate() {
     if (!pickup || !dropoff) { Alert.alert('Erreur', 'Veuillez remplir les adresses de d\u00e9part et arriv\u00e9e.'); return; }
     setLoading(true);
-    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
-    deliveryService.getEstimate('colis', dist, size).then(function(response) {
-      setLoading(false);
-      if (response.success) { setEstimate(response.estimate); setStep(3); }
-      else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); }
-    }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion au serveur.'); });
+    getRoadDistance().then(function(dist) {
+      deliveryService.getEstimate('colis', dist, size).then(function(response) {
+        setLoading(false);
+        if (response.success) { setEstimate(response.estimate); setStep(3); }
+        else { Alert.alert('Erreur', 'Impossible de calculer le prix.'); }
+      }).catch(function() { setLoading(false); Alert.alert('Erreur', 'Erreur de connexion au serveur.'); });
+    });
   }
 
   function handleConfirm() {
     if (!recipientName.trim() || !recipientPhone.trim()) { Alert.alert('Erreur', 'Nom et t\u00e9l\u00e9phone du destinataire requis.'); return; }
     if (!description.trim()) { Alert.alert('Erreur', 'Veuillez d\u00e9crire votre colis.'); return; }
     setConfirming(true);
-    var dist = haversineDistance(pickup.coordinates.latitude, pickup.coordinates.longitude, dropoff.coordinates.latitude, dropoff.coordinates.longitude);
-    var data = { serviceType: 'colis', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: instructions }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: recipientName, contactPhone: recipientPhone }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: 'cash', packageDetails: { size: size, description: description, isFragile: isFragile } };
-    deliveryService.createDelivery(data).then(function(response) {
-      setConfirming(false);
-      if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); }
-      else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); }
-    }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la livraison.'); });
+    getRoadDistance().then(function(dist) {
+      var data = { serviceType: 'colis', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: instructions }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: recipientName, contactPhone: recipientPhone }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: paymentMethod, packageDetails: { size: size, description: description, isFragile: isFragile } };
+      deliveryService.createDelivery(data).then(function(response) {
+        setConfirming(false);
+        if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); }
+        else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); }
+      }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la livraison.'); });
+    });
   }
 
   var sizes = [
