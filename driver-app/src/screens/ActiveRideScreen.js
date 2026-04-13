@@ -145,7 +145,7 @@ function ActiveRideScreen(props) {
   var emUploadingState = useState(false); var emUploading = emUploadingState[0]; var setEmUploading = emUploadingState[1];
   var emRecordingState = useState(false); var emRecording = emRecordingState[0]; var setEmRecording = emRecordingState[1];
   var emTimerState = useState(0); var emTimer = emTimerState[0]; var setEmTimer = emTimerState[1];
-  var cameraRef = useRef(null);
+  var videoCamRef = useRef(null);
   var emTimerRef = useRef(null);
   var emPulse = useRef(new Animated.Value(1)).current;
   var MAX_RECORD_SEC = 120;
@@ -168,8 +168,8 @@ function ActiveRideScreen(props) {
       }, 1000);
       // Start recording after camera mounts
       setTimeout(function() {
-        if (cameraRef.current) {
-          cameraRef.current.recordAsync({ maxDuration: MAX_RECORD_SEC }).then(function(video) {
+        if (videoCamRef.current) {
+          videoCamRef.current.recordAsync({ maxDuration: MAX_RECORD_SEC }).then(function(video) {
             if (video && video.uri) uploadEmergencyVideo(video.uri, emTimer);
           }).catch(function(err) { console.error('Record error:', err); });
         }
@@ -178,7 +178,7 @@ function ActiveRideScreen(props) {
   }
 
   function stopEmergencyRecording() {
-    if (cameraRef.current) { try { cameraRef.current.stopRecording(); } catch(e) {} }
+    if (videoCamRef.current) { try { videoCamRef.current.stopRecording(); } catch(e) {} }
     if (emTimerRef.current) { clearInterval(emTimerRef.current); emTimerRef.current = null; }
     emPulse.stopAnimation(); emPulse.setValue(1);
     setEmRecording(false);
@@ -743,7 +743,7 @@ function ActiveRideScreen(props) {
           {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi en cours...</Text>}
         </View>
         {emRecording && (
-          <CameraView ref={cameraRef} style={{position:'absolute',width:1,height:1,opacity:0}} facing="front" mode="video" />
+          <CameraView ref={videoCamRef} style={{position:'absolute',width:1,height:1,opacity:0}} facing="front" mode="video" />
         )}
       )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
