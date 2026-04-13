@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  ImageBackground,
   Modal,
   TextInput,
   ScrollView,
@@ -13,7 +14,12 @@ import {
   Animated,
   Easing,
   AppState,
+  Dimensions,
+  Linking,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+var screenWidth = Dimensions.get('window').width;
+var screenHeight = Dimensions.get('window').height;
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -573,61 +579,29 @@ function HomeScreen(props) {
   // ========== HOME MAP VIEW ==========
   function renderHomeTab() {
     return (
-      <View style={{ flex: 1 }}>
-        {location && (
-          <Map
-            style={styles.map}
-            mapStyle={TERANGO_STYLE}
-            logo={false}
-            attribution={false}
-          >
-            <Camera
-              center={[location.longitude, location.latitude]}
-              zoom={14}
-            />
-            <Marker
-              id="userLocation"
-              lngLat={[location.longitude, location.latitude]}
-            >
-              <View style={styles.userMarker}>
-                <View style={styles.userMarkerInner} />
+      <ScrollView style={{ flex: 1, backgroundColor: COLORS.background }} showsVerticalScrollIndicator={false} bounces={false}>
+        <ImageBackground source={require('../../assets/home-hero.jpg')} style={{width: screenWidth, height: screenHeight * 0.38}} resizeMode="cover">
+          <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.15)', 'rgba(0,26,18,0.85)', 'rgba(0,26,18,1)']} locations={[0, 0.3, 0.75, 1]} style={{flex:1, justifyContent:'flex-end', paddingBottom: 20, paddingHorizontal: 20}}>
+            <Animated.View style={{opacity: welcomeOpacity, transform: [{translateY: welcomeSlide}]}}>
+              <View style={{flexDirection:'row', alignItems:'center', marginBottom: 8}}>
+                <View style={{width:48, height:48, borderRadius:24, backgroundColor:'#FFF', alignItems:'center', justifyContent:'center', marginRight:12, overflow:'hidden', elevation:4}}>
+                  <Image source={require('../../assets/images/logo.png')} style={{width:44, height:44}} resizeMode="contain" />
+                </View>
+                <View>
+                  <Text style={{fontSize:14, fontFamily:'LexendDeca_400Regular', color:'rgba(255,255,255,0.7)'}}>Bonjour,</Text>
+                  <Text style={{fontSize:20, fontFamily:'LexendDeca_700Bold', color:'#FFF'}}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
+                </View>
               </View>
-            </Marker>
-            {nearbyDrivers.map(function(driver) {
-              return (
-                <Marker
-                  key={driver._id}
-                  id={`driver_${driver._id}`}
-                  coordinate={[driver.location.longitude, driver.location.latitude]}
-                >
-                  <Animated.View style={[styles.driverMarker, { transform: [{ scale: driverPulse }] }]}>
-                    <View style={styles.driverArrowSmall} />
-                  </Animated.View>
-                </Marker>
-              );
-            })}
-          </Map>
-        )}
+              {nearbyDrivers.length > 0 && (
+                <View style={{backgroundColor:'rgba(0,133,63,0.2)', borderRadius:12, paddingHorizontal:12, paddingVertical:6, alignSelf:'flex-start', marginTop:4}}>
+                  <Text style={{fontSize:12, fontFamily:'LexendDeca_600SemiBold', color:COLORS.green}}>{nearbyDrivers.length + ' chauffeur' + (nearbyDrivers.length > 1 ? 's' : '') + ' disponible' + (nearbyDrivers.length > 1 ? 's' : '')}</Text>
+                </View>
+              )}
+            </Animated.View>
+          </LinearGradient>
+        </ImageBackground>
 
-        {nearbyDrivers.length > 0 && (
-          <View style={styles.driverCountBadge}>
-            <Text style={styles.driverCountText}>
-              {nearbyDrivers.length + ' chauffeur' + (nearbyDrivers.length > 1 ? 's' : '') + ' disponible' + (nearbyDrivers.length > 1 ? 's' : '')}
-            </Text>
-          </View>
-        )}
-
-        <Animated.View style={[styles.topBar, { opacity: welcomeOpacity, transform: [{ translateY: welcomeSlide }] }]}>
-          <View style={styles.logoContainer}>
-            <Image source={require('../../assets/images/logo.png')} style={styles.logo} resizeMode="contain" />
-          </View>
-          <View style={styles.greetingCard}>
-            <Text style={styles.greeting}>Bonjour,</Text>
-            <Text style={styles.userName}>{(user && user.name) ? user.name : 'Utilisateur'}</Text>
-          </View>
-          </Animated.View>
-
-        <Animated.View style={[styles.searchCard, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
+        <Animated.View style={[{paddingHorizontal:20, marginTop:-10}, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
               <Text style={styles.searchIcon}>{"🔍"}</Text>
@@ -703,7 +677,8 @@ function HomeScreen(props) {
             </View>
           </View>
         </Animated.View>
-      </View>
+        <View style={{height: 100}} />
+      </ScrollView>
     );
   }
 
