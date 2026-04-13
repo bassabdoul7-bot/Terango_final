@@ -23,15 +23,37 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDistance, setRealDistance] = useState(0);
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
 
   useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
 
   const fetchNearbyDrivers = async () => { try { const r = await driverService.getNearbyDrivers(pickup.coordinates.latitude, pickup.coordinates.longitude, 10); if (r.success) setNearbyDrivers(r.drivers); } catch (e) {} };
 
+  const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+
   const getDirections = async () => {
     setCalculatingFare(true);
     try {
+      // Try Google first
+      try {
+        const gUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}`;
+        const gR = await fetch(gUrl);
+        const gData = await gR.json();
+        if (gData.status === 'OK' && gData.routes.length > 0) {
+          const leg = gData.routes[0].legs[0];
+          const km = leg.distance.value / 1000;
+          const mins = Math.round(leg.duration.value / 60);
+          const coords = PolylineUtil.decode(gData.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] }));
+          setRealDistance(km);
+          setRealDuration(mins);
+          setRouteCoordinates(coords);
+          calculateFares(km, mins);
+          return;
+        }
+      } catch (e) { console.log('Google Directions error:', e); }
+
+      // Fallback to OSRM
       const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
       const r = await fetch(url);
       const data = await r.json();
@@ -54,20 +76,28 @@ const RideSelectionScreen = ({ route, navigation }) => {
   };
 
   const calculateFares = (distance, duration) => {
-    var isSuburb = distance > 10;
     var hour = new Date().getHours();
     var surge = (hour >= 7 && hour < 9) ? 1.2 : (hour >= 17 && hour < 20) ? 1.3 : 1.0;
-    function calcFare(base, cityRate, subRate, minRate, minFare) {
-      var distFare = isSuburb ? (10 * cityRate) + ((distance - 10) * subRate) : (distance * cityRate);
+    function calcFare(base, cityRate, subRate, intercityRate, longDistRate, minRate, minFare) {
+      var distFare;
+      if (distance > 70) {
+        distFare = (10 * cityRate) + (20 * subRate) + (40 * intercityRate) + ((distance - 70) * longDistRate);
+      } else if (distance > 30) {
+        distFare = (10 * cityRate) + (20 * subRate) + ((distance - 30) * intercityRate);
+      } else if (distance > 10) {
+        distFare = (10 * cityRate) + ((distance - 10) * subRate);
+      } else {
+        distFare = distance * cityRate;
+      }
       var timeFare = duration * minRate;
       var surged = Math.round((base + distFare + timeFare) * surge);
       var total = Math.ceil(surged / 100) * 100;
       return Math.max(total, minFare);
     }
     setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Standard', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(461, 73, 142, 29, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(665, 100, 180, 38, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1045, 140, 220, 48, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      standard: { type: 'standard', name: 'TeranGO Eco', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(515, 86, 171, 200, 260, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(740, 115, 215, 250, 325, 37, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1150, 160, 265, 310, 400, 46, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
     });
     setCalculatingFare(false);
   };
@@ -92,7 +122,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
     if (!selectedType || !fareEstimates) return Alert.alert('Erreur', 'Selectionnez un type');
     setLoading(true);
     try {
-      const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: 'cash', distance: realDistance, estimatedDuration: realDuration });
+      const r = await rideService.createRide({ pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration });
       if (r.success) navigation.replace('ActiveRide', { rideId: r.ride?.id || r.ride?._id });
     } catch (e) {
       Alert.alert('Erreur', e.response?.data?.message || 'Impossible de creer la course');
@@ -144,7 +174,21 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
-          <View style={styles.paymentCard}><Text style={styles.paymentLabel}>Paiement</Text><View style={styles.paymentRow}><View style={styles.paymentIconBg}><Text style={styles.paymentIcon}>{"\uD83D\uDCB5"}</Text></View><Text style={styles.paymentText}>{"Esp\u00e8ces"}</Text><Text style={styles.paymentArrow}>{"\u203A"}</Text></View></View>
+          <View style={{marginTop:4}}>
+            <Text style={styles.paymentLabel}>Mode de paiement</Text>
+            <View style={{flexDirection:'row',gap:10}}>
+              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={() => setPaymentMethod('cash')} activeOpacity={0.7}>
+                <Text style={{fontSize:20}}>{'\uD83D\uDCB5'}</Text>
+                <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && {color:COLORS.yellow}]}>Especes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && {borderColor:'#1DC3E1',backgroundColor:'rgba(29,195,225,0.12)'}]} onPress={() => setPaymentMethod('wave')} activeOpacity={0.7}>
+                <Text style={{fontSize:20}}>{'\uD83C\uDF0A'}</Text>
+                <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && {color:'#1DC3E1'}]}>Wave</Text>
+              </TouchableOpacity>
+            </View>
+            {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur</Text>}
+            {paymentMethod === 'wave' && <Text style={[styles.paymentHint,{color:'#1DC3E1'}]}>Payez par Wave au chauffeur</Text>}
+          </View>
           <View style={{ height: 16 }} />
         </ScrollView>
         <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : 'Confirmer \u2022 '+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
@@ -191,6 +235,10 @@ const styles = StyleSheet.create({
   paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
   paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
   paymentArrow: { fontSize: 22, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
+  paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
+  paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
 
