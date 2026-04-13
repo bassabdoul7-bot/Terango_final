@@ -51,7 +51,7 @@ app.use(helmet());
 // General API rate limit: 100 requests per 15 minutes (skip /api/logs — has its own limiter)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   skip: function(req) { return req.path.startsWith('/logs'); },
