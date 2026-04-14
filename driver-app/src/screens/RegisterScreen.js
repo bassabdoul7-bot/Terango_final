@@ -64,7 +64,7 @@ const RegisterScreen = ({ navigation }) => {
               </View>
               <View style={{height:20}} />
 
-              <GlassButton title={loading ? 'Inscription...' : 'S\'inscrire'} onPress={handleRegister} loading={loading} />
+              <GlassButton title={loading ? 'Chargement...' : 'Continuer'} onPress={handleRegister} loading={loading} />
             </View>
             <TouchableOpacity style={styles.registerLink} onPress={() => navigation.navigate('Login')}>
               <Text style={styles.registerText}>{"D\u00e9j\u00e0 un compte? "}</Text>
