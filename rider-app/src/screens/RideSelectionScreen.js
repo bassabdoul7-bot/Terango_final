@@ -137,28 +137,24 @@ const RideSelectionScreen = ({ route, navigation }) => {
   };
 
   const handleDateChange = (event, selectedDate) => {
-    setShowDatePicker(false);
-    if (event.type === 'dismissed') return;
-    if (selectedDate) {
-      var d = new Date(selectedDate);
-      if (scheduledTime) { d.setHours(scheduledTime.getHours(), scheduledTime.getMinutes()); }
-      setTempDate(d);
-      setShowTimePicker(true);
-    }
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (!selectedDate || event.type === 'dismissed') return;
+    var d = new Date(selectedDate);
+    setTempDate(d);
+    setTimeout(function() { setShowTimePicker(true); }, 300);
   };
 
   const handleTimeChange = (event, selectedTime) => {
-    setShowTimePicker(false);
-    if (event.type === 'dismissed') return;
-    if (selectedTime) {
-      var d = new Date(tempDate);
-      d.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
-      if (d.getTime() < Date.now() + 30 * 60 * 1000) {
-        Alert.alert('Erreur', 'La course doit etre programmee au moins 30 minutes a l\'avance');
-        return;
-      }
-      setScheduledTime(d);
+    if (Platform.OS === 'android') setShowTimePicker(false);
+    if (!selectedTime || event.type === 'dismissed') return;
+    var d = new Date(tempDate);
+    d.setHours(selectedTime.getHours(), selectedTime.getMinutes(), 0, 0);
+    if (d.getTime() < Date.now() + 30 * 60 * 1000) {
+      Alert.alert('Erreur', 'La course doit etre programmee au moins 30 minutes a l\'avance');
+      return;
     }
+    setScheduledTime(d);
+    console.log('Scheduled time set:', d.toISOString());
   };
 
   const handleBookRide = async () => {
@@ -166,7 +162,10 @@ const RideSelectionScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
-      if (scheduledTime) rideData.scheduledTime = scheduledTime.toISOString();
+      if (scheduledTime) {
+        rideData.scheduledTime = scheduledTime.toISOString();
+        console.log('Booking scheduled ride for:', rideData.scheduledTime);
+      }
       const r = await rideService.createRide(rideData);
       if (r.success) {
         if (scheduledTime) {
