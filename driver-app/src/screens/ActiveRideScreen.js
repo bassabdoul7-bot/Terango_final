@@ -740,10 +740,8 @@ function ActiveRideScreen(props) {
             </TouchableOpacity>
           )}
           {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi en cours...</Text>}
+          {emRecording && <CameraView ref={videoCamRef} style={{position:'absolute',width:1,height:1,opacity:0}} facing="front" mode="video" />}
         </View>
-      )}
-      {emRecording && (
-        <CameraView ref={videoCamRef} style={{position:'absolute',width:1,height:1,opacity:0}} facing="front" mode="video" />
       )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
       {navigationStarted&&(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff')&&<TouchableOpacity style={styles.floatingChatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.floatingChatIcon}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity>}
