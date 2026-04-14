@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { useAuth } from '../context/AuthContext';
 import { driverService } from '../services/api.service';
 import COLORS from '../constants/colors';
@@ -126,8 +127,20 @@ var AppNavigator = function() {
     );
   }
 
+  var navigationRef = useRef(null);
+
+  useEffect(function() {
+    var sub = Notifications.addNotificationResponseReceivedListener(function(response) {
+      var data = response.notification.request.content.data;
+      if (data && data.type === 'new-ride-offer' && data.rideId && navigationRef.current) {
+        try { navigationRef.current.navigate('RideRequests'); } catch(e) {}
+      }
+    });
+    return function() { sub.remove(); };
+  }, []);
+
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <>
