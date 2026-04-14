@@ -20,7 +20,6 @@
     "expo": "~54.0.32",
     "expo-av": "~16.0.8",
     "expo-blur": "~15.0.8",
-    "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.20",
     "expo-device": "~8.0.10",
