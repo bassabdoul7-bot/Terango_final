@@ -5,7 +5,7 @@ import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-re
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraView } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as PolylineUtil from '@mapbox/polyline';
 
 
@@ -152,9 +152,9 @@ function ActiveRideScreen(props) {
 
   function startEmergencyRecording() {
     if (emRecording) { stopEmergencyRecording(); return; }
-    require('expo-camera').Camera.requestCameraPermissionsAsync().then(function(permission) {
+    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
       if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera.'); return; }
-      require('expo-camera').Camera.requestMicrophonePermissionsAsync().then(function(micPerm) {
+      ImagePicker.requestMediaLibraryPermissionsAsync().then(function(micPerm) {
         setEmRecording(true);
         setEmTimer(0);
         Animated.loop(Animated.sequence([
