@@ -152,28 +152,30 @@ function ActiveRideScreen(props) {
 
   function startEmergencyRecording() {
     if (emRecording) { stopEmergencyRecording(); return; }
-    ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
+    require('expo-camera').Camera.requestCameraPermissionsAsync().then(function(permission) {
       if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera.'); return; }
-      setEmRecording(true);
-      setEmTimer(0);
-      Animated.loop(Animated.sequence([
-        Animated.timing(emPulse, { toValue: 1.4, duration: 600, useNativeDriver: true }),
-        Animated.timing(emPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-      ])).start();
-      emTimerRef.current = setInterval(function() {
-        setEmTimer(function(prev) {
-          if (prev + 1 >= MAX_RECORD_SEC) { stopEmergencyRecording(); return prev; }
-          return prev + 1;
-        });
-      }, 1000);
-      // Start recording after camera mounts
-      setTimeout(function() {
-        if (videoCamRef.current) {
-          videoCamRef.current.recordAsync({ maxDuration: MAX_RECORD_SEC }).then(function(video) {
-            if (video && video.uri) uploadEmergencyVideo(video.uri, emTimer);
-          }).catch(function(err) { console.error('Record error:', err); });
-        }
-      }, 500);
+      require('expo-camera').Camera.requestMicrophonePermissionsAsync().then(function(micPerm) {
+        setEmRecording(true);
+        setEmTimer(0);
+        Animated.loop(Animated.sequence([
+          Animated.timing(emPulse, { toValue: 1.4, duration: 600, useNativeDriver: true }),
+          Animated.timing(emPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
+        ])).start();
+        emTimerRef.current = setInterval(function() {
+          setEmTimer(function(prev) {
+            if (prev + 1 >= MAX_RECORD_SEC) { stopEmergencyRecording(); return prev; }
+            return prev + 1;
+          });
+        }, 1000);
+        // Start recording after camera mounts (give it time to initialize)
+        setTimeout(function() {
+          if (videoCamRef.current) {
+            videoCamRef.current.recordAsync({ maxDuration: MAX_RECORD_SEC }).then(function(video) {
+              if (video && video.uri) uploadEmergencyVideo(video.uri, emTimer);
+            }).catch(function(err) { console.error('Record error:', err); });
+          }
+        }, 1500);
+      });
     }).catch(function() { Alert.alert('Erreur', 'Impossible de lancer la camera'); });
   }
 
@@ -740,7 +742,7 @@ function ActiveRideScreen(props) {
             </TouchableOpacity>
           )}
           {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi en cours...</Text>}
-          {emRecording && <CameraView ref={videoCamRef} style={{position:'absolute',width:1,height:1,opacity:0}} facing="front" mode="video" />}
+          {emRecording && <CameraView ref={videoCamRef} style={{position:'absolute',top:-80,right:0,width:80,height:60,borderRadius:8,opacity:0.3}} facing="front" mode="video" />}
         </View>
       )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
