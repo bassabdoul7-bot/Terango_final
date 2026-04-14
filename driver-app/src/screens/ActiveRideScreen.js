@@ -5,7 +5,7 @@ import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-re
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+// CameraView removed — causes crash on ActiveRideScreen mount
 import * as PolylineUtil from '@mapbox/polyline';
 
 
@@ -141,49 +141,33 @@ function ActiveRideScreen(props) {
   var [pendingDeliveryStatus, setPendingDeliveryStatus] = useState(null);
   var [deliveryPhoto, setDeliveryPhoto] = useState(null);
 
-  // ========== EMERGENCY SILENT VIDEO RECORDING ==========
+  // ========== EMERGENCY VIDEO RECORDING ==========
   var emUploadingState = useState(false); var emUploading = emUploadingState[0]; var setEmUploading = emUploadingState[1];
-  var emRecordingState = useState(false); var emRecording = emRecordingState[0]; var setEmRecording = emRecordingState[1];
-  var emTimerState = useState(0); var emTimer = emTimerState[0]; var setEmTimer = emTimerState[1];
-  var videoCamRef = useRef(null);
-  var emTimerRef = useRef(null);
-  var emPulse = useRef(new Animated.Value(1)).current;
-  var MAX_RECORD_SEC = 120;
 
   function startEmergencyRecording() {
-    if (emRecording) { stopEmergencyRecording(); return; }
     ImagePicker.requestCameraPermissionsAsync().then(function(permission) {
       if (permission.status !== 'granted') { Alert.alert('Permission requise', 'Activez la camera.'); return; }
-      ImagePicker.requestMediaLibraryPermissionsAsync().then(function(micPerm) {
-        setEmRecording(true);
-        setEmTimer(0);
-        Animated.loop(Animated.sequence([
-          Animated.timing(emPulse, { toValue: 1.4, duration: 600, useNativeDriver: true }),
-          Animated.timing(emPulse, { toValue: 1, duration: 600, useNativeDriver: true }),
-        ])).start();
-        emTimerRef.current = setInterval(function() {
-          setEmTimer(function(prev) {
-            if (prev + 1 >= MAX_RECORD_SEC) { stopEmergencyRecording(); return prev; }
-            return prev + 1;
-          });
-        }, 1000);
-        // Start recording after camera mounts (give it time to initialize)
-        setTimeout(function() {
-          if (videoCamRef.current) {
-            videoCamRef.current.recordAsync({ maxDuration: MAX_RECORD_SEC }).then(function(video) {
-              if (video && video.uri) uploadEmergencyVideo(video.uri, emTimer);
-            }).catch(function(err) { console.error('Record error:', err); });
-          }
-        }, 1500);
+      ImagePicker.launchCameraAsync({
+        mediaTypes: 'videos',
+        videoMaxDuration: 120,
+        videoQuality: 1,
+      }).then(function(result) {
+        if (result.canceled || !result.assets || result.assets.length === 0) return;
+        var video = result.assets[0];
+        var uri = video.uri;
+        var duration = video.duration ? Math.round(video.duration / 1000) : 0;
+        setEmUploading(true);
+        var uploadFn = deliveryMode
+          ? deliveryService.uploadEmergencyRecording(deliveryId, uri, duration)
+          : driverService.uploadEmergencyRecording(rideId, uri, duration);
+        uploadFn.then(function() {
+          Alert.alert('Enregistrement sauvegarde', "La video d'urgence a ete envoyee.");
+        }).catch(function(err) {
+          console.error('Upload recording error:', err);
+          Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
+        }).finally(function() { setEmUploading(false); });
       });
     }).catch(function() { Alert.alert('Erreur', 'Impossible de lancer la camera'); });
-  }
-
-  function stopEmergencyRecording() {
-    if (videoCamRef.current) { try { videoCamRef.current.stopRecording(); } catch(e) {} }
-    if (emTimerRef.current) { clearInterval(emTimerRef.current); emTimerRef.current = null; }
-    emPulse.stopAnimation(); emPulse.setValue(1);
-    setEmRecording(false);
   }
 
   function uploadEmergencyVideo(uri, duration) {
@@ -727,22 +711,10 @@ function ActiveRideScreen(props) {
       <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
       {(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff') && (
         <View style={sosDriverStyles.container}>
-          {emRecording && (
-            <View style={sosDriverStyles.recordingRow}>
-              <RNAnimated.View style={[sosDriverStyles.pulseDot, {transform:[{scale:emPulse}]}]} />
-              <Text style={sosDriverStyles.timerText}>{Math.floor(emTimer/60)+':'+('0'+emTimer%60).slice(-2)}</Text>
-              <TouchableOpacity style={sosDriverStyles.stopBtn} onPress={stopEmergencyRecording}>
-                <Text style={{color:'#FFF',fontSize:12,fontFamily:'LexendDeca_600SemiBold'}}>Stop</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {!emRecording && (
-            <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
-              {emUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDriverStyles.sosIcon}>{String.fromCodePoint(0x1F4F9)}</Text>}
-            </TouchableOpacity>
-          )}
-          {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi en cours...</Text>}
-          {emRecording && <CameraView ref={videoCamRef} style={{position:'absolute',top:-80,right:0,width:80,height:60,borderRadius:8,opacity:0.3}} facing="front" mode="video" />}
+          <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
+            {emUploading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={sosDriverStyles.sosIcon}>{String.fromCodePoint(0x1F4F9)}</Text>}
+          </TouchableOpacity>
+          {emUploading && <Text style={sosDriverStyles.uploadingText}>Envoi...</Text>}
         </View>
       )}
       {navigationStarted&&<TouchableOpacity style={styles.recalculateButton} onPress={handleForceRecalculate}><Text style={styles.recalculateText}>Recalculer</Text></TouchableOpacity>}
