@@ -196,7 +196,6 @@ function ActiveRideScreen(props) {
       Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
     }).finally(function() { setEmUploading(false); });
   }
-  }
 
   // ========== SHAKE TO SOS + SILENT PANIC ==========
   var sosTriggeredRef = useRef(false);
