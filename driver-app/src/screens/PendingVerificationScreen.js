@@ -34,7 +34,7 @@ const PendingVerificationScreen = ({ onApproved, onUploadNeeded }) => {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <Text style={styles.icon}>â³</Text>
+          <Text style={styles.icon}>{"23F3"}</Text>
         </View>
         <Text style={styles.title}>Verification en cours</Text>
         <Text style={styles.subtitle}>
