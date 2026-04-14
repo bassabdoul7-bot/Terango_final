@@ -477,19 +477,13 @@ exports.uploadDocuments = function(req, res) {
         if (req.files.selfie) driver.selfiePhoto = req.files.selfie[0].path;
         if (req.files.nationalId) driver.nationalIdPhoto = req.files.nationalId[0].path;
         if (req.files.driverLicense) driver.driverLicensePhoto = req.files.driverLicense[0].path;
-        if (req.files.vehicleRegistration) {
-          if (!driver.vehicle) driver.vehicle = {};
-          driver.vehicle.registrationPhoto = req.files.vehicleRegistration[0].path;
-        }
       }
-      if (req.body.vehicleMake) {
-        if (!driver.vehicle) driver.vehicle = {};
-        driver.vehicle.make = req.body.vehicleMake;
-      }
-      if (req.body.licensePlate) {
-        if (!driver.vehicle) driver.vehicle = {};
-        driver.vehicle.licensePlate = req.body.licensePlate;
-      }
+      var veh = driver.vehicle || {};
+      if (req.body.vehicleMake) veh.make = req.body.vehicleMake;
+      if (req.body.licensePlate) veh.licensePlate = req.body.licensePlate;
+      if (req.files && req.files.vehicleRegistration) veh.registrationPhoto = req.files.vehicleRegistration[0].path;
+      driver.vehicle = veh;
+      driver.markModified('vehicle');
       // Wave number
       if (req.body.waveNumber !== undefined) driver.waveNumber = req.body.waveNumber;
       // Vehicle class
