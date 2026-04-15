@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import * as PolylineUtil from '@mapbox/polyline';
 import GlassButton from '../components/GlassButton';
+import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import COLORS from '../constants/colors';
 import { rideService, driverService } from '../services/api.service';
 
@@ -25,30 +26,36 @@ const RideSelectionScreen = ({ route, navigation }) => {
   const [realDuration, setRealDuration] = useState(0);
   const [nearbyDrivers, setNearbyDrivers] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [stop, setStop] = useState(null);
+  const [showStopModal, setShowStopModal] = useState(false);
   const [scheduledTime, setScheduledTime] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [tempDate, setTempDate] = useState(new Date());
 
-  useEffect(() => { getDirections(); fetchNearbyDrivers(); }, []);
+  useEffect(() => { getDirections(stop); fetchNearbyDrivers(); }, []);
   useEffect(() => { if (routeCoordinates.length > 0) fitMapToRoute(); }, [routeCoordinates]);
+  useEffect(() => { if (stop !== null) getDirections(stop); }, [stop]);
 
   const fetchNearbyDrivers = async () => { try { const r = await driverService.getNearbyDrivers(pickup.coordinates.latitude, pickup.coordinates.longitude, 10); if (r.success) setNearbyDrivers(r.drivers); } catch (e) {} };
 
   const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
 
-  const getDirections = async () => {
+  const getDirections = async (currentStop) => {
     setCalculatingFare(true);
     try {
       // Try Google first
       try {
-        const gUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}&key=${GOOGLE_MAPS_KEY}`;
+        var waypointParam = '';
+        if (currentStop) waypointParam = `&waypoints=${currentStop.coordinates.latitude},${currentStop.coordinates.longitude}`;
+        const gUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}${waypointParam}&key=${GOOGLE_MAPS_KEY}`;
         const gR = await fetch(gUrl);
         const gData = await gR.json();
         if (gData.status === 'OK' && gData.routes.length > 0) {
-          const leg = gData.routes[0].legs[0];
-          const km = leg.distance.value / 1000;
-          const mins = Math.round(leg.duration.value / 60);
+          var totalDist = 0, totalDur = 0;
+          gData.routes[0].legs.forEach(function(leg) { totalDist += leg.distance.value; totalDur += leg.duration.value; });
+          const km = totalDist / 1000;
+          const mins = Math.round(totalDur / 60);
           const coords = PolylineUtil.decode(gData.routes[0].overview_polyline.points).map(p => ({ latitude: p[0], longitude: p[1] }));
           setRealDistance(km);
           setRealDuration(mins);
@@ -59,17 +66,21 @@ const RideSelectionScreen = ({ route, navigation }) => {
       } catch (e) { console.log('Google Directions error:', e); }
 
       // Fallback to OSRM
-      const url = `https://osrm.terango.sn/route/v1/driving/${pickup.coordinates.longitude},${pickup.coordinates.latitude};${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}?overview=full&geometries=polyline&steps=true`;
+      var osrmWaypoints = `${pickup.coordinates.longitude},${pickup.coordinates.latitude}`;
+      if (currentStop) osrmWaypoints += `;${currentStop.coordinates.longitude},${currentStop.coordinates.latitude}`;
+      osrmWaypoints += `;${dropoff.coordinates.longitude},${dropoff.coordinates.latitude}`;
+      const url = `https://osrm.terango.sn/route/v1/driving/${osrmWaypoints}?overview=full&geometries=polyline&steps=true`;
       const r = await fetch(url);
       const data = await r.json();
       if (data.code === 'Ok' && data.routes.length > 0) {
         const route = data.routes[0];
-        const leg = route.legs[0];
-        const km = leg.distance / 1000;
+        var totalDist2 = 0, totalDur2 = 0;
+        route.legs.forEach(function(l) { totalDist2 += l.distance; totalDur2 += l.duration; });
+        const km = totalDist2 / 1000;
         setRealDistance(km);
-        setRealDuration(Math.round(leg.duration / 60));
+        setRealDuration(Math.round(totalDur2 / 60));
         setRouteCoordinates(PolylineUtil.decode(route.geometry).map(p => ({ latitude: p[0], longitude: p[1] })));
-        calculateFares(km, Math.round(leg.duration / 60));
+        calculateFares(km, Math.round(totalDur2 / 60));
       } else {
         Alert.alert('Erreur', "Impossible de calculer l'itineraire");
         navigation.goBack();
@@ -162,6 +173,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       var rideData = { pickup: { address: pickup.address, coordinates: pickup.coordinates }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates }, rideType: selectedType, paymentMethod: paymentMethod, distance: realDistance, estimatedDuration: realDuration };
+      if (stop) rideData.stops = [{ address: stop.address, coordinates: stop.coordinates }];
       if (scheduledTime) {
         rideData.scheduledTime = scheduledTime.toISOString();
         console.log('Booking scheduled ride for:', rideData.scheduledTime);
@@ -194,6 +206,11 @@ const RideSelectionScreen = ({ route, navigation }) => {
         <Marker id="dropoff" lngLat={[dropoff.coordinates.longitude, dropoff.coordinates.latitude]}>
           <View style={styles.dropoffMarker}><View style={styles.dropoffSquare} /></View>
         </Marker>
+        {stop && (
+          <Marker id="stop" lngLat={[stop.coordinates.longitude, stop.coordinates.latitude]}>
+            <View style={{width:26,height:26,borderRadius:13,backgroundColor:COLORS.darkCard,alignItems:'center',justifyContent:'center',borderWidth:3,borderColor:'#FF9500'}}><View style={{width:10,height:10,backgroundColor:'#FF9500',transform:[{rotate:'45deg'}]}} /></View>
+          </Marker>
+        )}
         {nearbyDrivers.map((d) => (
           <Marker key={d._id} id={`driver_${d._id}`} lngLat={[d.location.longitude, d.location.latitude]}>
             <View style={styles.driverMarker}><Text style={styles.driverIcon}>{"\uD83D\uDE97"}</Text></View>
@@ -224,6 +241,20 @@ const RideSelectionScreen = ({ route, navigation }) => {
               </View>
             </TouchableOpacity>
           ))}
+          {!stop ? (
+            <TouchableOpacity style={{flexDirection:'row',alignItems:'center',justifyContent:'center',padding:14,borderRadius:14,borderWidth:1.5,borderColor:'rgba(255,149,0,0.3)',borderStyle:'dashed',marginBottom:10,gap:8}} onPress={function(){setShowStopModal(true);}} activeOpacity={0.7}>
+              <Text style={{fontSize:16}}>+</Text>
+              <Text style={{fontSize:14,fontFamily:'LexendDeca_500Medium',color:'#FF9500'}}>Ajouter un arret</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,149,0,0.08)',borderRadius:14,padding:12,marginBottom:10,borderWidth:1,borderColor:'rgba(255,149,0,0.2)'}}>
+              <View style={{width:10,height:10,backgroundColor:'#FF9500',transform:[{rotate:'45deg'}],marginRight:10}} />
+              <Text style={{flex:1,fontSize:13,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight}} numberOfLines={1}>{stop.address}</Text>
+              <TouchableOpacity onPress={function(){setStop(null);getDirections(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+                <Text style={{fontSize:16,color:COLORS.textLightMuted}}>{'\u2715'}</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           <View style={{marginTop:4}}>
             <Text style={styles.paymentLabel}>Mode de paiement</Text>
             <View style={{flexDirection:'row',gap:10}}>
@@ -256,6 +287,17 @@ const RideSelectionScreen = ({ route, navigation }) => {
           <DateTimePicker value={tempDate} mode="time" display="default" is24Hour={true} onChange={handleTimeChange} />
         )}
       </View>
+      <Modal visible={showStopModal} animationType="slide" transparent>
+        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'flex-end'}}>
+          <View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:'70%'}}>
+            <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <Text style={{fontSize:18,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight}}>Ajouter un arret</Text>
+              <TouchableOpacity onPress={function(){setShowStopModal(false);}}><Text style={{fontSize:22,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>
+            </View>
+            <NominatimAutocomplete placeholder="Rechercher une adresse..." onSelect={function(place) { setStop({ address: place.address || place.display_name, coordinates: { latitude: parseFloat(place.lat), longitude: parseFloat(place.lon) } }); setShowStopModal(false); }} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
