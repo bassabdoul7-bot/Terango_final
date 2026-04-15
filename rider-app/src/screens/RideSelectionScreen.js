@@ -242,42 +242,35 @@ const RideSelectionScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           ))}
           {!stop ? (
-            <TouchableOpacity style={{flexDirection:'row',alignItems:'center',justifyContent:'center',padding:14,borderRadius:14,borderWidth:1.5,borderColor:'rgba(255,149,0,0.3)',borderStyle:'dashed',marginBottom:10,gap:8}} onPress={function(){setShowStopModal(true);}} activeOpacity={0.7}>
-              <Text style={{fontSize:16}}>+</Text>
-              <Text style={{fontSize:14,fontFamily:'LexendDeca_500Medium',color:'#FF9500'}}>Ajouter un arret</Text>
+            <TouchableOpacity style={{flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,borderWidth:1.5,borderColor:'rgba(255,149,0,0.3)',borderStyle:'dashed',marginBottom:6,gap:6}} onPress={function(){setShowStopModal(true);}} activeOpacity={0.7}>
+              <Text style={{fontSize:14,color:'#FF9500'}}>+</Text>
+              <Text style={{fontSize:13,fontFamily:'LexendDeca_500Medium',color:'#FF9500'}}>Ajouter un arret</Text>
             </TouchableOpacity>
           ) : (
-            <View style={{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,149,0,0.08)',borderRadius:14,padding:12,marginBottom:10,borderWidth:1,borderColor:'rgba(255,149,0,0.2)'}}>
-              <View style={{width:10,height:10,backgroundColor:'#FF9500',transform:[{rotate:'45deg'}],marginRight:10}} />
-              <Text style={{flex:1,fontSize:13,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight}} numberOfLines={1}>{stop.address}</Text>
+            <View style={{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,149,0,0.08)',borderRadius:12,padding:10,marginBottom:6,borderWidth:1,borderColor:'rgba(255,149,0,0.2)'}}>
+              <View style={{width:8,height:8,backgroundColor:'#FF9500',transform:[{rotate:'45deg'}],marginRight:8}} />
+              <Text style={{flex:1,fontSize:12,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight}} numberOfLines={1}>{stop.address}</Text>
               <TouchableOpacity onPress={function(){setStop(null);getDirections(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-                <Text style={{fontSize:16,color:COLORS.textLightMuted}}>{'\u2715'}</Text>
+                <Text style={{fontSize:14,color:COLORS.textLightMuted}}>{'\u2715'}</Text>
               </TouchableOpacity>
             </View>
           )}
-          <View style={{marginTop:4}}>
-            <Text style={styles.paymentLabel}>Mode de paiement</Text>
-            <View style={{flexDirection:'row',gap:10}}>
-              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={() => setPaymentMethod('cash')} activeOpacity={0.7}>
-                <Text style={{fontSize:20}}>{'\uD83D\uDCB5'}</Text>
-                <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && {color:COLORS.yellow}]}>Especes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && {borderColor:'#1DC3E1',backgroundColor:'rgba(29,195,225,0.12)'}]} onPress={() => setPaymentMethod('wave')} activeOpacity={0.7}>
-                <Text style={{fontSize:20}}>{'\uD83C\uDF0A'}</Text>
-                <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && {color:'#1DC3E1'}]}>Wave</Text>
-              </TouchableOpacity>
-            </View>
-            {paymentMethod === 'cash' && <Text style={styles.paymentHint}>Payez en especes au chauffeur</Text>}
-            {paymentMethod === 'wave' && <Text style={[styles.paymentHint,{color:'#1DC3E1'}]}>Payez par Wave au chauffeur</Text>}
-          </View>
-          <View style={{marginTop:8}}>
+          <View style={{flexDirection:'row',gap:8,marginBottom:6}}>
+            <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'cash' && styles.paymentOptionSelected]} onPress={() => setPaymentMethod('cash')} activeOpacity={0.7}>
+              <Text style={{fontSize:16}}>{'\uD83D\uDCB5'}</Text>
+              <Text style={[styles.paymentOptionText, paymentMethod === 'cash' && {color:COLORS.yellow}]}>Especes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.paymentOption, paymentMethod === 'wave' && {borderColor:'#1DC3E1',backgroundColor:'rgba(29,195,225,0.12)'}]} onPress={() => setPaymentMethod('wave')} activeOpacity={0.7}>
+              <Text style={{fontSize:16}}>{'\uD83C\uDF0A'}</Text>
+              <Text style={[styles.paymentOptionText, paymentMethod === 'wave' && {color:'#1DC3E1'}]}>Wave</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={[styles.paymentOption, scheduledTime && {borderColor:COLORS.yellow,backgroundColor:'rgba(212,175,55,0.08)'}]} onPress={function(){setShowDatePicker(true);}} activeOpacity={0.7}>
-              <Text style={{fontSize:20}}>{'\uD83D\uDD52'}</Text>
+              <Text style={{fontSize:16}}>{'\uD83D\uDD52'}</Text>
               <Text style={[styles.paymentOptionText, scheduledTime && {color:COLORS.yellow}]}>{scheduledTime ? formatScheduledTime(scheduledTime) : 'Programmer'}</Text>
-              {scheduledTime && <TouchableOpacity onPress={function(){setScheduledTime(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}><Text style={{fontSize:16,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>}
+              {scheduledTime && <TouchableOpacity onPress={function(){setScheduledTime(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}><Text style={{fontSize:12,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>}
             </TouchableOpacity>
           </View>
-          <View style={{ height: 16 }} />
+          <View style={{ height: 8 }} />
         </ScrollView>
         <View style={styles.confirmSection}><GlassButton title={loading ? 'Confirmation...' : (scheduledTime ? 'Programmer \u2022 ' : 'Confirmer \u2022 ')+(fareEstimates[selectedType]?.fare.toLocaleString())+' FCFA'} onPress={handleBookRide} loading={loading} /></View>
         {showDatePicker && (
@@ -287,9 +280,9 @@ const RideSelectionScreen = ({ route, navigation }) => {
           <DateTimePicker value={tempDate} mode="time" display="default" is24Hour={true} onChange={handleTimeChange} />
         )}
       </View>
-      <Modal visible={showStopModal} animationType="slide" transparent>
-        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'flex-end'}}>
-          <View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:'70%'}}>
+      <Modal visible={showStopModal} animationType="fade" transparent>
+        <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'center',paddingHorizontal:20}}>
+          <View style={{backgroundColor:COLORS.darkCard,borderRadius:20,padding:20,maxHeight:'60%',borderWidth:1,borderColor:COLORS.darkCardBorder}}>
             <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <Text style={{fontSize:18,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight}}>Ajouter un arret</Text>
               <TouchableOpacity onPress={function(){setShowStopModal(false);}}><Text style={{fontSize:22,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>
@@ -306,7 +299,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
-  map: { width, height: height * 0.48 },
+  map: { width, height: height * 0.35 },
   pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
   dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
@@ -324,7 +317,7 @@ const styles = StyleSheet.create({
   bottomSheet: { flex: 1, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   sheetHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   scrollView: { flex: 1, paddingHorizontal: 16 },
-  rideCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, marginBottom: 10, borderWidth: 2, borderColor: 'transparent' },
+  rideCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 6, borderWidth: 2, borderColor: 'transparent' },
   rideCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
   rideLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   rideImage: { width: 70, height: 50, marginRight: 10 },
@@ -340,9 +333,9 @@ const styles = StyleSheet.create({
   paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
   paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
   paymentArrow: { fontSize: 22, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
-  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 14, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 8 },
+  paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 4 },
   paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  paymentOptionText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
+  paymentOptionText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
   confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
 });
