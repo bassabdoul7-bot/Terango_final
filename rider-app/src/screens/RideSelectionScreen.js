@@ -294,7 +294,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
               <Text style={{fontSize:18,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight}}>Ajouter un arret</Text>
               <TouchableOpacity onPress={function(){setShowStopModal(false);}}><Text style={{fontSize:22,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>
             </View>
-            <NominatimAutocomplete placeholder="Rechercher une adresse..." onSelect={function(place) { setStop({ address: place.address || place.display_name, coordinates: { latitude: parseFloat(place.lat), longitude: parseFloat(place.lon) } }); setShowStopModal(false); }} />
+            <NominatimAutocomplete placeholder="Rechercher une adresse..." onSelect={function(place) { var lat = place.geometry && place.geometry.location ? place.geometry.location.lat : (place.lat ? parseFloat(place.lat) : 0); var lng = place.geometry && place.geometry.location ? place.geometry.location.lng : (place.lon ? parseFloat(place.lon) : 0); setStop({ address: place.description || place.address || 'Arret', coordinates: { latitude: lat, longitude: lng } }); setShowStopModal(false); }} />
           </View>
         </View>
       </Modal>
