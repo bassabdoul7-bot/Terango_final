@@ -204,7 +204,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       <View style={styles.bottomCard}>
         {ride.status === 'pending' && (<>
           <SearchingAnimation searchTime={searchTime} />
-          <View style={styles.fareCard}><Text style={styles.fareLabel}>{"\uD83D\uDCB5 Esp\u00e8ces"}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
+          <View style={styles.fareCard}><Text style={[styles.fareLabel, ride.paymentMethod === 'wave' && {color:'#1DC3E1'}]}>{ride.paymentMethod === 'wave' ? '\uD83C\uDF0A Wave' : '\uD83D\uDCB5 Especes'}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
         {ride.status !== 'pending' && !(ride.driver && ride.driver.userId) && (
