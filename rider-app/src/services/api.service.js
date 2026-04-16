@@ -19,7 +19,7 @@ api.interceptors.response.use(
 export var authService = {
   sendOTP: function(phone, mode) { return api.post('/auth/send-otp', { phone: phone, mode: mode }); },
   register: (phone, name, email, pin, role) => api.post('/auth/register', { phone, name, email, pin, role }),
-  loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin }),
+  loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin, role: 'rider' }),
   forgotPin: (phone) => api.post('/auth/forgot-pin', { phone }),
   resetPin: (phone, otp, newPin) => api.post('/auth/reset-pin', { phone, otp, newPin }),
   verifyOTP: function(phone, otp, name, role) { return api.post('/auth/verify-otp', { phone: phone, otp: otp, name: name, role: role }); },
