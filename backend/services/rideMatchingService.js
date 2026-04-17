@@ -1,5 +1,5 @@
 ﻿const Driver = require('../models/Driver');
-const { sendPushNotification } = require('./pushService');
+const { sendPushNotification, sendPushToMultiple } = require('./pushService');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
 const { calculateDistance } = require('../utils/distance');
@@ -14,8 +14,9 @@ class RideMatchingService {
 
     // Configuration
     this.DRIVER_RESPONSE_TIMEOUT = 60000;
-    this.MAX_SEARCH_TIME = 60000;
-    this.SEARCH_RETRY_INTERVAL = 15000;
+    this.MAX_SEARCH_TIME = 300000; // 5 minutes
+    this.SEARCH_RETRY_INTERVAL = 30000; // 30 seconds
+    this.BLAST_NOTIFICATION_THRESHOLD = 60000; // Send blast after 60s with no match
   }
 
   setDriverLocationService(driverLocationService) {
@@ -105,6 +106,62 @@ class RideMatchingService {
     }
   }
 
+  async blastNotifyNearbyDrivers(rideId, pickupCoords, rideData) {
+    try {
+      const ride = await Ride.findById(rideId);
+      if (!ride || ride.status !== 'pending') return;
+
+      // Query ALL approved drivers (not just online) within 20km
+      const allDrivers = await Driver.find({
+        verificationStatus: 'approved',
+        isBlockedForPayment: { $ne: true },
+        isSuspended: { $ne: true },
+        isBanned: { $ne: true },
+        currentLocation: { $exists: true }
+      }).populate('userId', 'name phone');
+
+      const nearbyApproved = allDrivers.filter(driver => {
+        if (!driver.currentLocation || !driver.currentLocation.coordinates) return false;
+        const dist = calculateDistance(
+          pickupCoords.latitude, pickupCoords.longitude,
+          driver.currentLocation.coordinates.latitude,
+          driver.currentLocation.coordinates.longitude
+        );
+        return dist <= 20; // 20km
+      });
+
+      if (nearbyApproved.length === 0) {
+        console.log(`Blast notification: no approved drivers within 20km for ride ${rideId}`);
+        return;
+      }
+
+      const pickupAddr = rideData.pickup?.address || 'Depart';
+      const dropoffAddr = rideData.dropoff?.address || 'Arrivee';
+      const fare = rideData.fare || 0;
+      const title = 'Course disponible!';
+      const body = pickupAddr.substring(0, 40) + ' → ' + dropoffAddr.substring(0, 40) + ' • ' + fare + ' FCFA';
+      const notifData = { type: 'ride-available', rideId: rideId.toString() };
+
+      const userIds = nearbyApproved.map(d => d.userId?._id || d.userId).filter(Boolean);
+      await sendPushToMultiple(userIds, title, body, notifData);
+
+      // Also emit socket event to each driver
+      nearbyApproved.forEach(driver => {
+        this.io.to('driver-' + driver._id.toString()).emit('ride-available-blast', {
+          rideId: rideId.toString(),
+          pickup: rideData.pickup,
+          dropoff: rideData.dropoff,
+          fare: fare,
+          rideType: rideData.rideType
+        });
+      });
+
+      console.log(`Blast notification sent to ${nearbyApproved.length} approved drivers for ride ${rideId}`);
+    } catch (error) {
+      console.error('Blast Notify Error:', error);
+    }
+  }
+
   async searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt) {
     var rideType = rideData.rideType || null;
     try {
@@ -140,6 +197,14 @@ class RideMatchingService {
 
         const searchData = this.searchTimeouts.get(rideId);
         const elapsedTime = Date.now() - (searchData?.startTime || Date.now());
+
+        // After 60 seconds with no match, trigger blast notification (once)
+        if (elapsedTime >= this.BLAST_NOTIFICATION_THRESHOLD && !searchData?.blastSent) {
+          console.log(`Triggering blast notification for ride ${rideId} after ${Math.round(elapsedTime / 1000)}s`);
+          searchData.blastSent = true;
+          this.searchTimeouts.set(rideId, searchData);
+          this.blastNotifyNearbyDrivers(rideId, pickupCoords, rideData).catch(err => console.error('Blast error:', err));
+        }
 
         if (elapsedTime >= this.MAX_SEARCH_TIME) {
           await this.markNoDriversAvailable(rideId);
@@ -260,6 +325,17 @@ class RideMatchingService {
         return;
       }
 
+      // Final blast notification before giving up (if not already sent)
+      const searchData = this.searchTimeouts.get(rideId);
+      if (searchData && !searchData.blastSent) {
+        await this.blastNotifyNearbyDrivers(rideId, ride.pickup?.coordinates || {}, {
+          pickup: ride.pickup,
+          dropoff: ride.dropoff,
+          fare: ride.fare,
+          rideType: ride.rideType
+        });
+      }
+
       console.log(`? No drivers available for ride ${rideId} after exhaustive search`);
       await Ride.findByIdAndUpdate(rideId, { status: 'no_drivers_available' });
 
@@ -277,6 +353,51 @@ class RideMatchingService {
       this.cleanupSearch(rideId);
     } catch (error) {
       console.error('Mark No Drivers Error:', error);
+    }
+  }
+
+  async blastNotifyNearbyDrivers(rideId, pickupCoords, rideData) {
+    try {
+      // Find ALL approved drivers within 20km (including offline ones)
+      var allDrivers = await Driver.find({
+        verificationStatus: 'approved',
+        isBanned: { $ne: true },
+        isSuspended: { $ne: true },
+        isBlockedForPayment: { $ne: true }
+      }).populate('userId', 'name phone pushToken');
+
+      var { calculateDistance } = require('../utils/distance');
+      var notified = 0;
+
+      for (var i = 0; i < allDrivers.length; i++) {
+        var d = allDrivers[i];
+        if (!d.userId || !d.userId.pushToken) continue;
+
+        // Check distance if driver has location
+        if (d.currentLocation && d.currentLocation.coordinates) {
+          var dist = calculateDistance(
+            pickupCoords.latitude || pickupCoords[1],
+            pickupCoords.longitude || pickupCoords[0],
+            d.currentLocation.coordinates.latitude,
+            d.currentLocation.coordinates.longitude
+          );
+          if (dist > 20) continue; // Skip drivers more than 20km away
+        }
+
+        var pickupAddr = rideData.pickup && rideData.pickup.address ? rideData.pickup.address.substring(0, 30) : 'Proximite';
+        var fare = rideData.fare || 0;
+        sendPushNotification(
+          d.userId._id,
+          'Course disponible!',
+          pickupAddr + ' \u2022 ' + fare.toLocaleString() + ' FCFA \u2022 Connectez-vous!',
+          { type: 'ride-available', rideId: rideId }
+        );
+        notified++;
+      }
+
+      console.log('Blast notification sent to ' + notified + ' drivers for ride ' + rideId);
+    } catch (error) {
+      console.error('Blast Notify Error:', error);
     }
   }
 
