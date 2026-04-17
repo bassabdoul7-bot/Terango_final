@@ -12,15 +12,18 @@ exports.getDashboardStats = async (req, res) => {
   try {
     // Total counts
     const totalRiders = await Rider.countDocuments();
-    const totalDrivers = await Driver.countDocuments();
+    const totalDrivers = await Driver.countDocuments({ selfiePhoto: { $ne: null }, nationalIdPhoto: { $ne: null } });
     const totalRides = await Ride.countDocuments({ status: 'completed' });
-    
+
     // Active drivers
     const activeDrivers = await Driver.countDocuments({ isOnline: true });
-    
-    // Pending verifications
-    const pendingVerifications = await Driver.countDocuments({ 
-      verificationStatus: 'pending' 
+
+    // Pending verifications (only those with docs submitted)
+    const pendingVerifications = await Driver.countDocuments({
+      verificationStatus: 'pending',
+      selfiePhoto: { $ne: null },
+      nationalIdPhoto: { $ne: null },
+      driverLicensePhoto: { $ne: null }
     });
     
     // Today's rides
@@ -127,6 +130,10 @@ exports.getAllDrivers = async (req, res) => {
     const query = {};
     if (status) {
       query.verificationStatus = status;
+    }
+    // By default, exclude incomplete registrations (no docs)
+    if (!req.query.includeIncomplete) {
+      query.selfiePhoto = { $ne: null };
     }
     
     const drivers = await Driver.find(query)
