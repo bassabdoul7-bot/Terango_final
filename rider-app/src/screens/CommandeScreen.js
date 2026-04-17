@@ -33,6 +33,7 @@ function CommandeScreen(props) {
   var estimateState = useState(null); var estimate = estimateState[0]; var setEstimate = estimateState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
   var confirmingState = useState(false); var confirming = confirmingState[0]; var setConfirming = confirmingState[1];
+  var pmState = useState('cash'); var paymentMethod = pmState[0]; var setPaymentMethod = pmState[1];
 
   useEffect(function() {
     if (currentLocation) {
@@ -70,7 +71,7 @@ function CommandeScreen(props) {
   function handleConfirm() {
     setConfirming(true);
     getRoadDistance().then(function(dist) {
-      var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: 'cash', commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
+      var data = { serviceType: 'commande', pickup: { address: pickup.address, coordinates: pickup.coordinates, instructions: 'Magasin: ' + storeName }, dropoff: { address: dropoff.address, coordinates: dropoff.coordinates, contactName: 'Moi', contactPhone: '' }, distance: dist, estimatedDuration: Math.round((dist / 30) * 60), paymentMethod: paymentMethod, commandeDetails: { storeName: storeName, storeType: storeType, itemsList: itemsList, estimatedItemsCost: parseInt(estimatedCost) || 0 } };
       deliveryService.createDelivery(data).then(function(response) { setConfirming(false); if (response.success) { navigation.replace('ActiveDeliveryScreen', { deliveryId: response.delivery._id }); } else { Alert.alert('Info', response.message || 'Aucun livreur disponible.'); } }).catch(function() { setConfirming(false); Alert.alert('Erreur', 'Impossible de cr\u00e9er la commande.'); });
     });
   }
@@ -152,7 +153,16 @@ function CommandeScreen(props) {
           <View style={styles.priceRow}><Text style={styles.priceTotalLabel}>{"Total estim\u00e9"}</Text><Text style={styles.priceTotalValue}>{totalWithItems.toLocaleString() + ' FCFA'}</Text></View>
         </View>
         <View style={styles.noteCard}><Text style={styles.noteIcon}>{'\uD83D\uDCA1'}</Text><Text style={styles.noteText}>{"Le livreur ach\u00e8te vos articles et vous payez le tout \u00e0 la livraison en esp\u00e8ces."}</Text></View>
-        <View style={styles.paymentRow}><Text style={styles.paymentIcon}>{'\uD83D\uDCB5'}</Text><Text style={styles.paymentText}>{"Paiement en esp\u00e8ces \u00e0 la livraison"}</Text></View>
+        <View style={{flexDirection:'row',gap:8,marginBottom:10}}>
+          <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='cash'?'rgba(212,175,55,0.15)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='cash'?COLORS.yellow:'transparent',gap:6}} onPress={function(){setPaymentMethod('cash');}}>
+            <Text style={{fontSize:16}}>{'\uD83D\uDCB5'}</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:COLORS.textLightMuted}}>Especes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='wave'?'rgba(29,195,225,0.12)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='wave'?'#1DC3E1':'transparent',gap:6}} onPress={function(){setPaymentMethod('wave');}}>
+            <Text style={{fontSize:16}}>{'\uD83C\uDF0A'}</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':COLORS.textLightMuted}}>Wave</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>{confirming ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.confirmBtnText}>Confirmer la commande</Text>}</TouchableOpacity>
         <View style={{ height: 40 }} />
       </ScrollView>

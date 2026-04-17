@@ -208,7 +208,16 @@ function ColisScreen(props) {
           <View style={styles.priceDivider} />
           <View style={styles.priceRow}><Text style={styles.priceTotalLabel}>Total</Text><Text style={styles.priceTotalValue}>{estimate.fare.toLocaleString() + ' FCFA'}</Text></View>
         </View>
-        <View style={styles.paymentRow}><Text style={styles.paymentIcon}>{'\uD83D\uDCB5'}</Text><Text style={styles.paymentText}>{"Paiement en esp\u00e8ces"}</Text></View>
+        <View style={{flexDirection:'row',gap:8,marginBottom:10}}>
+          <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='cash'?'rgba(212,175,55,0.15)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='cash'?COLORS.yellow:'transparent',gap:6}} onPress={function(){setPaymentMethod('cash');}}>
+            <Text style={{fontSize:16}}>{'\uD83D\uDCB5'}</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:COLORS.textLightMuted}}>Especes</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='wave'?'rgba(29,195,225,0.12)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='wave'?'#1DC3E1':'transparent',gap:6}} onPress={function(){setPaymentMethod('wave');}}>
+            <Text style={{fontSize:16}}>{'\uD83C\uDF0A'}</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':COLORS.textLightMuted}}>Wave</Text>
+          </TouchableOpacity>
+        </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>
           {confirming ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.confirmBtnText}>{'Confirmer \u2022 ' + estimate.fare.toLocaleString() + ' FCFA'}</Text>}
         </TouchableOpacity>
