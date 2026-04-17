@@ -243,6 +243,15 @@ export default function DriversPage() {
               {selected.vehicle && selected.vehicle.registrationPhoto && (
                 <DocImage label="Carte grise" url={selected.vehicle.registrationPhoto} />
               )}
+              {selected.vehicleFrontPhoto && (
+                <DocImage label="Photo vehicule (avant)" url={selected.vehicleFrontPhoto} />
+              )}
+              {selected.vehicleBackPhoto && (
+                <DocImage label="Photo vehicule (arriere)" url={selected.vehicleBackPhoto} />
+              )}
+              {selected.vehicleInteriorPhoto && (
+                <DocImage label="Photo vehicule (interieur)" url={selected.vehicleInteriorPhoto} />
+              )}
 
               {/* Commission */}
               {(selected.commissionBalance || 0) > 0 && (
