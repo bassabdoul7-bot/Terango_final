@@ -131,12 +131,18 @@ exports.getAllDrivers = async (req, res) => {
     if (status) {
       query.verificationStatus = status;
     }
-    // By default, exclude incomplete registrations (pending with no docs)
-    if (!req.query.includeIncomplete) {
-      query.$or = [
-        { verificationStatus: { $in: ['approved', 'rejected'] } },
-        { verificationStatus: 'pending', selfiePhoto: { $ne: null } }
-      ];
+    if (req.query.includeIncomplete === '1') {
+      // Show ONLY incompletes: pending with no selfie
+      query.verificationStatus = 'pending';
+      query.selfiePhoto = null;
+    } else {
+      // Default: show approved + rejected + pending WITH docs
+      if (!status) {
+        query.$or = [
+          { verificationStatus: { $in: ['approved', 'rejected'] } },
+          { verificationStatus: 'pending', selfiePhoto: { $ne: null } }
+        ];
+      }
     }
     
     const drivers = await Driver.find(query)
