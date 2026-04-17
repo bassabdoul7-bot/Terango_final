@@ -63,6 +63,10 @@ function HomeScreen(props) {
   var rideHistory = historyState[0];
   var setRideHistory = historyState[1];
 
+  var favDriversState = useState([]);
+  var favDrivers = favDriversState[0];
+  var setFavDrivers = favDriversState[1];
+
   var modalState = useState(false);
   var showSaveModal = modalState[0];
   var setShowSaveModal = modalState[1];
@@ -91,6 +95,7 @@ function HomeScreen(props) {
     loadSavedPlaces();
     if (!isGuest) {
       loadRideHistory();
+      loadFavoriteDrivers();
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
     }
   }, []);
@@ -173,6 +178,14 @@ function HomeScreen(props) {
     }).catch(function(err) {
       console.log('History error:', err);
     });
+  }
+
+  function loadFavoriteDrivers() {
+    rideService.getFavoriteDrivers().then(function(response) {
+      if (response.success) {
+        setFavDrivers(response.drivers || []);
+      }
+    }).catch(function() {});
   }
 
   function getLocation() {
@@ -696,6 +709,33 @@ function HomeScreen(props) {
               </TouchableOpacity>
             </View>
           </View>
+          {favDrivers.length > 0 && (
+            <View style={{marginTop:16}}>
+              <Text style={styles.servicesTitle}>Mes chauffeurs</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginTop:8}}>
+                {favDrivers.map(function(d) {
+                  var name = d.userId ? d.userId.name : 'Chauffeur';
+                  var photo = d.userId ? d.userId.profilePhoto : null;
+                  var isOnline = d.isOnline;
+                  return (
+                    <TouchableOpacity key={d._id} style={{alignItems:'center',marginRight:16,width:70}} onPress={function() {
+                      if (!location) { Alert.alert('GPS', 'En attente de votre position...'); return; }
+                      Alert.alert('Demander ' + name + '?', 'Voulez-vous demander ce chauffeur directement?', [
+                        { text: 'Non', style: 'cancel' },
+                        { text: 'Oui', onPress: function() { navigation.navigate('SearchDestination', { currentLocation: location, requestDriverId: d._id, requestDriverName: name }); } }
+                      ]);
+                    }}>
+                      <View style={{width:56,height:56,borderRadius:28,backgroundColor:COLORS.darkCard,alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:isOnline ? COLORS.green : 'rgba(255,255,255,0.1)'}}>
+                        {photo ? <Image source={{uri:photo}} style={{width:52,height:52,borderRadius:26}} /> : <Text style={{fontSize:22,color:COLORS.textLight}}>{name.charAt(0)}</Text>}
+                      </View>
+                      <View style={{position:'absolute',top:0,right:12,width:12,height:12,borderRadius:6,backgroundColor:isOnline ? COLORS.green : '#666',borderWidth:2,borderColor:COLORS.background}} />
+                      <Text style={{fontSize:11,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight,marginTop:4}} numberOfLines={1}>{name.split(' ')[0]}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
           </View>
         </Animated.View>
       </ScrollView>
