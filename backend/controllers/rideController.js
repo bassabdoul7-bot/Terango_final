@@ -207,6 +207,7 @@ exports.getActiveRide = async (req, res) => {
 exports.getMyRides = async (req, res) => {
   try {
     const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) return res.status(200).json({ success: true, count: 0, rides: [] });
 
     const rides = await Ride.find({ riderId: rider._id, status: 'completed' })
       .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone rating profilePhoto' } })
@@ -773,6 +774,212 @@ exports.rateRide = async (req, res) => {
       success: false,
       message: "Erreur lors de l'enregistrement de la note"
     });
+  }
+};
+
+// @desc    Request a specific driver for a ride
+// @route   POST /api/rides/request-driver
+// @access  Private (Rider only)
+exports.requestDriver = async (req, res) => {
+  try {
+    const { driverId, pickup, dropoff, rideType, paymentMethod, distance, estimatedDuration } = req.body;
+
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Profil passager non trouve' });
+    }
+
+    // Prevent duplicate active rides
+    const activeRide = await Ride.findOne({
+      riderId: rider._id,
+      status: { $in: ['pending', 'accepted', 'arrived', 'in_progress'] }
+    });
+    if (activeRide) {
+      return res.status(400).json({ success: false, message: 'Vous avez deja une course en cours' });
+    }
+
+    const driver = await Driver.findById(driverId).populate('userId', 'name phone');
+    if (!driver || driver.verificationStatus !== 'approved') {
+      return res.status(404).json({ success: false, message: 'Chauffeur non trouve ou non approuve' });
+    }
+
+    const dist = distance || calculateDistance(
+      pickup.coordinates.latitude, pickup.coordinates.longitude,
+      dropoff.coordinates.latitude, dropoff.coordinates.longitude
+    );
+    const duration = estimatedDuration || estimateDuration(dist);
+    const fareResult = calculateFare(dist, rideType || 'standard', duration);
+    const earnings = calculateEarnings(fareResult.fare);
+
+    const ride = await Ride.create({
+      riderId: rider._id,
+      pickup,
+      dropoff,
+      rideType: rideType || 'standard',
+      distance: dist,
+      estimatedDuration: duration,
+      fare: earnings.fare,
+      surgeMultiplier: fareResult.surgeMultiplier,
+      pickupFee: fareResult.pickupFee,
+      platformCommission: earnings.platformCommission,
+      driverEarnings: earnings.driverEarnings,
+      paymentMethod: paymentMethod || 'cash',
+      paymentStatus: 'pending',
+      status: 'pending',
+      requestedDriver: driverId
+    });
+
+    // Send push notification ONLY to the requested driver
+    const riderUser = await User.findById(req.user._id);
+    const riderName = riderUser?.name || 'Un passager';
+    sendPushNotification(driver.userId._id || driver.userId, riderName + ' vous demande une course', pickup.address + ' -> ' + dropoff.address + ' • ' + earnings.fare + ' FCFA', { type: 'ride-request-direct', rideId: ride._id.toString() });
+
+    // Emit socket event to that driver
+    const io = req.app.get('io');
+    io.to('driver-' + driverId).emit('new-ride-offer', {
+      rideId: ride._id,
+      pickup: ride.pickup,
+      dropoff: ride.dropoff,
+      fare: ride.fare,
+      distance: ride.distance,
+      estimatedDuration: ride.estimatedDuration,
+      rideType: ride.rideType,
+      paymentMethod: ride.paymentMethod,
+      platformCommission: ride.platformCommission,
+      driverEarnings: ride.driverEarnings,
+      directRequest: true,
+      riderName: riderName,
+      offerExpiresIn: 180000
+    });
+
+    // If driver doesn't accept in 3 minutes, mark as no_drivers_available
+    setTimeout(async () => {
+      try {
+        const updatedRide = await Ride.findById(ride._id);
+        if (updatedRide && updatedRide.status === 'pending') {
+          await Ride.findByIdAndUpdate(ride._id, { status: 'no_drivers_available' });
+          io.to(ride._id.toString()).emit('ride-no-drivers', {
+            message: 'Le chauffeur n\'a pas repondu'
+          });
+          sendPushNotification(req.user._id, 'Chauffeur indisponible', 'Le chauffeur demande n\'a pas repondu. Veuillez reessayer.', { type: 'ride-no-drivers', rideId: ride._id.toString() });
+        }
+      } catch (err) {
+        console.error('Direct request timeout error:', err);
+      }
+    }, 180000);
+
+    res.status(201).json({
+      success: true,
+      message: 'Demande envoyee au chauffeur',
+      ride: {
+        id: ride._id,
+        pickup: ride.pickup,
+        dropoff: ride.dropoff,
+        distance: ride.distance,
+        estimatedDuration: ride.estimatedDuration,
+        fare: ride.fare,
+        rideType: ride.rideType,
+        status: ride.status,
+        paymentMethod: ride.paymentMethod,
+        requestedDriver: driverId
+      }
+    });
+  } catch (error) {
+    console.error('Request Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la demande au chauffeur' });
+  }
+};
+
+// @desc    Add a driver to favorites
+// @route   PUT /api/rides/favorite-driver/:driverId
+// @access  Private (Rider only)
+exports.addFavoriteDriver = async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Profil passager non trouve' });
+    }
+
+    const driverId = req.params.driverId;
+    const driver = await Driver.findById(driverId);
+    if (!driver || driver.verificationStatus !== 'approved') {
+      return res.status(404).json({ success: false, message: 'Chauffeur non trouve' });
+    }
+
+    // Max 10 favorites
+    if (rider.favoriteDrivers && rider.favoriteDrivers.length >= 10) {
+      return res.status(400).json({ success: false, message: 'Maximum 10 chauffeurs favoris' });
+    }
+
+    // Avoid duplicates
+    const alreadyFav = rider.favoriteDrivers && rider.favoriteDrivers.some(function(id) { return id.toString() === driverId; });
+    if (alreadyFav) {
+      return res.status(400).json({ success: false, message: 'Chauffeur deja dans vos favoris' });
+    }
+
+    rider.favoriteDrivers = rider.favoriteDrivers || [];
+    rider.favoriteDrivers.push(driverId);
+    await rider.save();
+
+    res.status(200).json({ success: true, message: 'Chauffeur ajoute aux favoris' });
+  } catch (error) {
+    console.error('Add Favorite Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Remove a driver from favorites
+// @route   DELETE /api/rides/favorite-driver/:driverId
+// @access  Private (Rider only)
+exports.removeFavoriteDriver = async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Profil passager non trouve' });
+    }
+
+    const driverId = req.params.driverId;
+    rider.favoriteDrivers = (rider.favoriteDrivers || []).filter(function(id) { return id.toString() !== driverId; });
+    await rider.save();
+
+    res.status(200).json({ success: true, message: 'Chauffeur retire des favoris' });
+  } catch (error) {
+    console.error('Remove Favorite Driver Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
+// @desc    Get favorite drivers with online status
+// @route   GET /api/rides/favorite-drivers
+// @access  Private (Rider only)
+exports.getFavoriteDrivers = async (req, res) => {
+  try {
+    const rider = await Rider.findOne({ userId: req.user._id }).populate({
+      path: 'favoriteDrivers',
+      populate: { path: 'userId', select: 'name phone rating profilePhoto' }
+    });
+    if (!rider) {
+      return res.status(404).json({ success: false, message: 'Profil passager non trouve' });
+    }
+
+    const drivers = (rider.favoriteDrivers || []).map(function(driver) {
+      if (!driver || !driver.userId) return null;
+      return {
+        _id: driver._id,
+        name: driver.userId.name,
+        phone: driver.userId.phone,
+        rating: driver.userId.rating,
+        profilePhoto: driver.userId.profilePhoto,
+        isOnline: driver.isOnline,
+        isAvailable: driver.isAvailable,
+        vehicle: driver.vehicle
+      };
+    }).filter(Boolean);
+
+    res.status(200).json({ success: true, drivers: drivers });
+  } catch (error) {
+    console.error('Get Favorite Drivers Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
   }
 };
 
