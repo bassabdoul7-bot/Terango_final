@@ -32,11 +32,13 @@ export default function DriversPage() {
   var [promptModal, setPromptModal] = useState(null); // { title, placeholder, onConfirm }
   var [promptValue, setPromptValue] = useState("");
   var [commissionFilter, setCommissionFilter] = useState(false);
+  var [showIncomplete, setShowIncomplete] = useState(false);
 
   function load() {
     setLoading(true);
     var params = { page: page, limit: 15 };
     if (filter) params.status = filter;
+    if (showIncomplete) params.includeIncomplete = 1;
     adminService.getDrivers(params).then(function(res) {
       setDrivers(res.drivers || []);
       setTotalPages(res.totalPages || 1);
@@ -44,7 +46,7 @@ export default function DriversPage() {
     }).catch(function() { setLoading(false); });
   }
 
-  useEffect(function() { load(); }, [filter, page]);
+  useEffect(function() { load(); }, [filter, page, showIncomplete]);
 
   function verify(id, status) {
     if (status === 'rejected') {
@@ -340,6 +342,10 @@ export default function DriversPage() {
           <button onClick={function() { setCommissionFilter(!commissionFilter); }}
             className={'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' + (commissionFilter ? 'bg-red-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
             Commission due
+          </button>
+          <button onClick={function() { setShowIncomplete(!showIncomplete); setPage(1); }}
+            className={'px-4 py-2 rounded-lg text-sm font-medium transition-colors ' + (showIncomplete ? 'bg-gray-500 text-white' : 'bg-gray-800 text-gray-400 hover:text-white')}>
+            {showIncomplete ? 'Masquer incompletes' : 'Voir incompletes'}
           </button>
         </div>
       </div>
