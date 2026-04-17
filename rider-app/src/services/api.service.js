@@ -37,6 +37,10 @@ export var rideService = {
   getMyRides: function() { return api.get('/rides/my-rides'); },
   cancelRide: function(rideId, reason) { return api.put('/rides/' + rideId + '/cancel', { reason: reason }); },
   rateRide: function(rideId, rating, review) { return api.put('/rides/' + rideId + '/rate', { rating: rating, review: review }); },
+  getFavoriteDrivers: function() { return api.get('/rides/favorite-drivers'); },
+  addFavoriteDriver: function(driverId) { return api.put('/rides/favorite-driver/' + driverId); },
+  removeFavoriteDriver: function(driverId) { return api.delete('/rides/favorite-driver/' + driverId); },
+  requestDriver: function(driverId, rideData) { return api.post('/rides/request-driver', Object.assign({ driverId: driverId }, rideData)); },
 };
 
 export var driverService = {
