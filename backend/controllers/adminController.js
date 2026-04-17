@@ -131,9 +131,12 @@ exports.getAllDrivers = async (req, res) => {
     if (status) {
       query.verificationStatus = status;
     }
-    // By default, exclude incomplete registrations (no docs)
+    // By default, exclude incomplete registrations (pending with no docs)
     if (!req.query.includeIncomplete) {
-      query.selfiePhoto = { $ne: null };
+      query.$or = [
+        { verificationStatus: { $in: ['approved', 'rejected'] } },
+        { verificationStatus: 'pending', selfiePhoto: { $ne: null } }
+      ];
     }
     
     const drivers = await Driver.find(query)
