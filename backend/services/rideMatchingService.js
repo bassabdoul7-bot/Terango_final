@@ -416,51 +416,6 @@ class RideMatchingService {
     }
   }
 
-  async blastNotifyNearbyDrivers(rideId, pickupCoords, rideData) {
-    try {
-      // Find ALL approved drivers within 20km (including offline ones)
-      var allDrivers = await Driver.find({
-        verificationStatus: 'approved',
-        isBanned: { $ne: true },
-        isSuspended: { $ne: true },
-        isBlockedForPayment: { $ne: true }
-      }).populate('userId', 'name phone pushToken');
-
-      var { calculateDistance } = require('../utils/distance');
-      var notified = 0;
-
-      for (var i = 0; i < allDrivers.length; i++) {
-        var d = allDrivers[i];
-        if (!d.userId || !d.userId.pushToken) continue;
-
-        // Check distance if driver has location
-        if (d.currentLocation && d.currentLocation.coordinates) {
-          var dist = calculateDistance(
-            pickupCoords.latitude || pickupCoords[1],
-            pickupCoords.longitude || pickupCoords[0],
-            d.currentLocation.coordinates.latitude,
-            d.currentLocation.coordinates.longitude
-          );
-          if (dist > 20) continue; // Skip drivers more than 20km away
-        }
-
-        var pickupAddr = rideData.pickup && rideData.pickup.address ? rideData.pickup.address.substring(0, 30) : 'Proximite';
-        var fare = rideData.fare || 0;
-        sendPushNotification(
-          d.userId._id,
-          'Course disponible!',
-          pickupAddr + ' \u2022 ' + fare.toLocaleString() + ' FCFA \u2022 Connectez-vous!',
-          { type: 'ride-available', rideId: rideId }
-        );
-        notified++;
-      }
-
-      console.log('Blast notification sent to ' + notified + ' drivers for ride ' + rideId);
-    } catch (error) {
-      console.error('Blast Notify Error:', error);
-    }
-  }
-
   async handleDriverAcceptance(rideId, driverId) {
     try {
       // Use atomic update - only accept if still pending
