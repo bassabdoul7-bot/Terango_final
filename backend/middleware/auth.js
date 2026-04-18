@@ -10,7 +10,7 @@ exports.protect = async (req, res, next) => {
   }
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    return res.status(401).json({ success: false, message: 'Non autorise, veuillez vous connecter' });
   }
 
   try {
@@ -18,13 +18,13 @@ exports.protect = async (req, res, next) => {
     req.user = await User.findById(decoded.id).select('-password');
 
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'User not found' });
+      return res.status(401).json({ success: false, message: 'Utilisateur non trouve' });
     }
 
     next();
   } catch (error) {
     console.error('Auth Error:', error.message);
-    return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+    return res.status(401).json({ success: false, message: 'Session expiree, veuillez vous reconnecter' });
   }
 };
 
@@ -34,7 +34,7 @@ exports.restrictTo = (...roles) => {
     if (req.user.role !== 'admin' && !roles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to perform this action'
+        message: 'Vous n\'avez pas la permission d\'effectuer cette action'
       });
     }
     next();
