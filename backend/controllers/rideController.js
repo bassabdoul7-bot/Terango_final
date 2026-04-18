@@ -270,13 +270,16 @@ exports.acceptRide = async (req, res) => {
       });
     }
 
-    driver.isAvailable = false;
-    await driver.save();
+    if (!result.queued) {
+      driver.isAvailable = false;
+      await driver.save();
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Course accept\u00e9e',
-      ride: result.ride
+      message: result.queued ? 'Course ajoutee a votre file d\u0027attente' : 'Course accept\u00e9e',
+      ride: result.ride,
+      queued: !!result.queued
     });
 
   } catch (error) {
