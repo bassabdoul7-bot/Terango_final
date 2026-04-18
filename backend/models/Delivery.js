@@ -57,6 +57,7 @@ var deliverySchema = new mongoose.Schema({
     type: String,
     enum: [
       'pending',
+      'queued',
       'accepted',
       'at_pickup',
       'picked_up',

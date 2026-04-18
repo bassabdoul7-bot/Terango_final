@@ -53,7 +53,7 @@ const rideSchema = new mongoose.Schema({
   // Ride Details
   status: {
     type: String,
-    enum: ['pending', 'scheduled', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled', 'no_drivers_available'],
+    enum: ['pending', 'scheduled', 'queued', 'accepted', 'arrived', 'in_progress', 'completed', 'cancelled', 'no_drivers_available'],
     default: 'pending'
   },
   isScheduled: { type: Boolean, default: false },

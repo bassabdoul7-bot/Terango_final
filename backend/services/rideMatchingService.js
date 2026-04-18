@@ -2,6 +2,7 @@
 const { sendPushNotification, sendPushToMultiple } = require('./pushService');
 const User = require('../models/User');
 const Ride = require('../models/Ride');
+const Delivery = require('../models/Delivery');
 const { calculateDistance } = require('../utils/distance');
 
 class RideMatchingService {
@@ -79,6 +80,49 @@ class RideMatchingService {
       return driversWithDistance;
     } catch (error) {
       console.error('Find Nearby Drivers Error:', error);
+      return [];
+    }
+  }
+
+  async findQueueEligibleDrivers(pickupCoords, maxRadius, rideType) {
+    try {
+      const activeRides = await Ride.find({ status: 'in_progress' }).select('driver');
+      const activeDeliveries = await Delivery.find({
+        status: { $in: ['picked_up', 'in_transit', 'at_dropoff'] }
+      }).select('driver');
+
+      const busyIds = [
+        ...activeRides.map(r => r.driver).filter(Boolean),
+        ...activeDeliveries.map(d => d.driver).filter(Boolean)
+      ];
+      if (busyIds.length === 0) return [];
+
+      var q = {
+        _id: { $in: busyIds },
+        queueEnabled: true,
+        'queuedJob.refId': null,
+        isBlockedForPayment: { $ne: true }
+      };
+      if (rideType === 'comfort') q.vehicleClass = 'comfort';
+      else if (rideType === 'xl') q.vehicleClass = 'xl';
+      else if (rideType === 'standard') q.vehicleType = 'car';
+
+      const drivers = await Driver.find(q).populate('userId', 'name phone rating');
+
+      return drivers
+        .map(driver => {
+          if (!driver.currentLocation || !driver.currentLocation.coordinates) return null;
+          const distance = calculateDistance(
+            pickupCoords.latitude, pickupCoords.longitude,
+            driver.currentLocation.coordinates.latitude,
+            driver.currentLocation.coordinates.longitude
+          );
+          return { driver, distance, driverId: driver._id.toString() };
+        })
+        .filter(item => item !== null && item.distance <= maxRadius)
+        .sort((a, b) => a.distance - b.distance);
+    } catch (error) {
+      console.error('Find Queue Eligible Drivers Error:', error);
       return [];
     }
   }
@@ -192,6 +236,17 @@ class RideMatchingService {
       const rejectedDrivers = this.pendingOffers.get(rideId)?.rejectedDrivers || [];
       nearbyDrivers = nearbyDrivers.filter(d => !rejectedDrivers.includes(d.driverId));
 
+      let tier = 'free';
+      if (nearbyDrivers.length === 0) {
+        const queueEligible = await this.findQueueEligibleDrivers(pickupCoords, radius, rideType);
+        const filteredQueue = queueEligible.filter(d => !rejectedDrivers.includes(d.driverId));
+        if (filteredQueue.length > 0) {
+          console.log(`Using ${filteredQueue.length} queue-eligible drivers for ride ${rideId}`);
+          nearbyDrivers = filteredQueue;
+          tier = 'queue';
+        }
+      }
+
       if (nearbyDrivers.length === 0) {
         console.log(`? No drivers found (attempt ${attempt + 1}) for ride ${rideId}`);
 
@@ -227,6 +282,9 @@ class RideMatchingService {
       if (!this.pendingOffers.has(rideId)) {
         this.pendingOffers.set(rideId, { rejectedDrivers: [] });
       }
+      const existingOfferData = this.pendingOffers.get(rideId);
+      existingOfferData.tier = tier;
+      this.pendingOffers.set(rideId, existingOfferData);
 
       await this.offerToNextDriver(rideId, nearbyDrivers, 0, rideData, pickupCoords);
     } catch (error) {
@@ -282,11 +340,13 @@ class RideMatchingService {
       offerData.pickupCoords = pickupCoords;
       this.pendingOffers.set(rideId, offerData);
 
+      const willBeQueued = (this.pendingOffers.get(rideId) || {}).tier === 'queue';
       const offerPayload = {
         rideId,
         ...rideData,
         distanceToPickup: distance,
-        offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT
+        offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT,
+        willBeQueued
       };
 
       // FIXED: Use rooms instead of dynamic event names
@@ -414,6 +474,11 @@ class RideMatchingService {
       const pinRequired = !!(riderUserDoc?.securityPinEnabled || driverUserDoc?.securityPinEnabled);
       const securityPin = pinRequired ? String(Math.floor(1000 + Math.random() * 9000)) : null;
 
+      // Queue path: driver is already on a job. Route to queue branch.
+      if (driverDoc && driverDoc.isAvailable === false) {
+        return await this.handleQueuedAcceptance(rideId, driverId, pinRequired, securityPin);
+      }
+
       const ride = await Ride.findOneAndUpdate(
         { _id: rideId, status: 'pending' },
         { driver: driverId, status: 'accepted', acceptedAt: new Date(), pinRequired, securityPin },
@@ -475,6 +540,68 @@ class RideMatchingService {
     } catch (error) {
       console.error('Handle Driver Acceptance Error:', error);
       return { success: false, message: "Erreur lors de l'acceptation de la course" };
+    }
+  }
+
+  async handleQueuedAcceptance(rideId, driverId, pinRequired, securityPin) {
+    try {
+      const driverClaimed = await Driver.findOneAndUpdate(
+        { _id: driverId, queueEnabled: true, 'queuedJob.refId': null },
+        { 'queuedJob.jobType': 'ride', 'queuedJob.refId': rideId, 'queuedJob.queuedAt': new Date() },
+        { new: true }
+      );
+      if (!driverClaimed) {
+        return { success: false, message: 'File d\u0027attente indisponible ou deja occupee' };
+      }
+
+      const ride = await Ride.findOneAndUpdate(
+        { _id: rideId, status: 'pending' },
+        { driver: driverId, status: 'queued', pinRequired, securityPin },
+        { new: true }
+      );
+      if (!ride) {
+        await Driver.findByIdAndUpdate(driverId, {
+          'queuedJob.jobType': null, 'queuedJob.refId': null, 'queuedJob.queuedAt': null
+        });
+        return { success: false, message: 'Cette course a deja ete acceptee par un autre chauffeur' };
+      }
+
+      console.log('Driver ' + driverId + ' queued ride ' + rideId);
+      const offerData = this.pendingOffers.get(rideId);
+      this.cleanupSearch(rideId);
+
+      const driver = await Driver.findById(driverId).populate('userId', 'name phone rating profilePhoto');
+
+      this.io.to(rideId.toString()).emit('ride-queued', {
+        driverId: driver._id,
+        driver: {
+          name: driver.userId?.name,
+          phone: driver.userId?.phone,
+          rating: driver.userId?.rating,
+          profilePhoto: driver.userId?.profilePhoto,
+          vehicle: driver.vehicle
+        }
+      });
+
+      const Rider = require('../models/Rider');
+      const queuedRider = await Rider.findById(ride.riderId);
+      if (queuedRider) {
+        const driverName = driver.userId?.name || 'Un chauffeur';
+        sendPushNotification(queuedRider.userId, 'Chauffeur trouve!', driverName + ' termine une course puis vient vous chercher', { type: 'ride-queued', rideId: rideId });
+      }
+
+      if (offerData?.driversList) {
+        offerData.driversList.forEach(d => {
+          if (d.driverId !== driverId.toString()) {
+            this.io.to('driver-' + d.driverId).emit('ride-taken', { rideId });
+          }
+        });
+      }
+
+      return { success: true, ride, queued: true };
+    } catch (error) {
+      console.error('Handle Queued Acceptance Error:', error);
+      return { success: false, message: 'Erreur lors de la mise en file d\u0027attente' };
     }
   }
 

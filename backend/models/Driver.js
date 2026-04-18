@@ -62,6 +62,12 @@ var driverSchema = new mongoose.Schema({
   rejectionReason: { type: String },
   isOnline: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: true },
+  queueEnabled: { type: Boolean, default: false },
+  queuedJob: {
+    jobType: { type: String, enum: ['ride', 'delivery'], default: null },
+    refId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    queuedAt: { type: Date, default: null }
+  },
   acceptedServices: {
     rides: { type: Boolean, default: true },
     colis: { type: Boolean, default: false },

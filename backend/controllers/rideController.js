@@ -270,13 +270,16 @@ exports.acceptRide = async (req, res) => {
       });
     }
 
-    driver.isAvailable = false;
-    await driver.save();
+    if (!result.queued) {
+      driver.isAvailable = false;
+      await driver.save();
+    }
 
     res.status(200).json({
       success: true,
-      message: 'Course accept\u00e9e',
-      ride: result.ride
+      message: result.queued ? 'Course ajoutee a votre file d\u0027attente' : 'Course accept\u00e9e',
+      ride: result.ride,
+      queued: !!result.queued
     });
 
   } catch (error) {
@@ -362,7 +365,8 @@ exports.updateRideStatus = async (req, res) => {
       driver.totalEarnings += ride.driverEarnings;
       driver.weeklyEarnings += ride.driverEarnings;
       driver.totalRides += 1;
-      driver.isAvailable = true;
+      const hasQueuedJob = !!(driver.queuedJob && driver.queuedJob.refId);
+      driver.isAvailable = !hasQueuedJob;
 
       // Track commission debt
       var earningsData = calculateEarnings(ride.fare, !!(driver.partnerId), driver.tier || 'goorgoorlu');
@@ -388,6 +392,11 @@ exports.updateRideStatus = async (req, res) => {
       status: ride.status,
       timestamp: new Date()
     });
+
+    if (ride.status === 'completed' && driver && driver.queuedJob && driver.queuedJob.refId) {
+      const { promoteQueuedJob } = require('../services/tripQueueService');
+      await promoteQueuedJob(driver._id, io);
+    }
 
     res.status(200).json({
       success: true,
@@ -533,7 +542,8 @@ exports.completeRide = async (req, res) => {
     driver.totalRides = (driver.totalRides || 0) + 1;
     driver.completedRides = (driver.completedRides || 0) + 1;
     driver.tier = getTierFromRides(driver.completedRides);
-    driver.isAvailable = true;
+    const hasQueuedJob = !!(driver.queuedJob && driver.queuedJob.refId);
+    driver.isAvailable = !hasQueuedJob;
 
     // Track commission debt
     driver.commissionBalance = (driver.commissionBalance || 0) + (partnerEarnings.platformCommission || 0);
@@ -590,6 +600,11 @@ exports.completeRide = async (req, res) => {
       var shareRoom = 'share-' + ride.shareToken;
       io.to(shareRoom).emit('share-ride-ended', { status: 'completed' });
       io.of('/share').to(shareRoom).emit('share-ride-ended', { status: 'completed' });
+    }
+
+    if (hasQueuedJob) {
+      const { promoteQueuedJob } = require('../services/tripQueueService');
+      await promoteQueuedJob(driver._id, io);
     }
 
     res.status(200).json({

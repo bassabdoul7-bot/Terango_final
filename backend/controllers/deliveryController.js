@@ -354,19 +354,24 @@ exports.updateDeliveryStatus = function(req, res) {
       if (newStatus === 'delivered') {
         delivery.deliveredAt = new Date();
         delivery.paymentStatus = 'completed';
-        // Free up driver + track commission
+        // Free up driver (or promote queued ride) + track commission
         Driver.findById(delivery.driver).then(function(d) {
-          if (d) {
-            d.isAvailable = true;
-            d.totalDeliveries = (d.totalDeliveries || 0) + 1;
-            d.totalEarnings = (d.totalEarnings || 0) + (delivery.driverEarnings || 0);
-            d.commissionBalance = (d.commissionBalance || 0) + (delivery.platformCommission || 0);
-            if (d.commissionBalance >= (d.commissionCap || 750)) {
-              d.isBlockedForPayment = true;
-            }
-            d.save();
+          if (!d) return;
+          var hasQueuedJob = !!(d.queuedJob && d.queuedJob.refId);
+          d.isAvailable = !hasQueuedJob;
+          d.totalDeliveries = (d.totalDeliveries || 0) + 1;
+          d.totalEarnings = (d.totalEarnings || 0) + (delivery.driverEarnings || 0);
+          d.commissionBalance = (d.commissionBalance || 0) + (delivery.platformCommission || 0);
+          if (d.commissionBalance >= (d.commissionCap || 750)) {
+            d.isBlockedForPayment = true;
           }
-        });
+          return d.save().then(function() {
+            if (hasQueuedJob) {
+              var promote = require('../services/tripQueueService').promoteQueuedJob;
+              return promote(d._id, io);
+            }
+          });
+        }).catch(function(err) { console.error('Driver free/promote on delivery complete:', err); });
       }
 
       if (req.body.photo) {
