@@ -26,6 +26,10 @@ const riderSchema = new mongoose.Schema({
       default: false
     }
   }],
+  favoriteDrivers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Driver'
+  }],
   totalRides: {
     type: Number,
     default: 0

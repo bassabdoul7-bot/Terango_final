@@ -23,7 +23,11 @@ const {
   uploadEmergencyRecording,
   shareRide,
   getScheduledRides,
-  triggerSOS
+  triggerSOS,
+  requestDriver,
+  addFavoriteDriver,
+  removeFavoriteDriver,
+  getFavoriteDrivers
 } = require('../controllers/rideController');
 
 // Emergency recording multer config
@@ -64,6 +68,14 @@ router.post(
   validate,
   createRide
 );
+
+// Favorite drivers (Rider only)
+router.get('/favorite-drivers', protect, restrictTo('rider'), getFavoriteDrivers);
+router.put('/favorite-driver/:driverId', protect, restrictTo('rider'), addFavoriteDriver);
+router.delete('/favorite-driver/:driverId', protect, restrictTo('rider'), removeFavoriteDriver);
+
+// Request specific driver (Rider only)
+router.post('/request-driver', protect, restrictTo('rider'), requestDriver);
 
 // Get my rides
 router.get('/active-ride', protect, getActiveRide);
