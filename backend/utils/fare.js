@@ -17,8 +17,8 @@ exports.calculateFare = function(distance, rideType, durationMinutes, pickupDist
   if (!pickupDistanceKm) pickupDistanceKm = 0;
 
   var baseFares = { standard: 515, comfort: 740, xl: 1150 };
-  var perKmRates = { standard: 86, comfort: 115, xl: 160 };
-  var perMinRates = { standard: 28, comfort: 37, xl: 46 };
+  var perKmRates = { standard: 94, comfort: 100, xl: 160 };
+  var perMinRates = { standard: 31, comfort: 32, xl: 46 };
   var suburbPerKmRates = { standard: 171, comfort: 215, xl: 265 };
   var intercityPerKmRates = { standard: 200, comfort: 250, xl: 310 };
   var longDistPerKmRates = { standard: 260, comfort: 325, xl: 400 };
