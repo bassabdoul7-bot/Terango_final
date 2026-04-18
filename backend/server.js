@@ -55,17 +55,17 @@ const generalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skip: function(req) { return req.path.startsWith('/logs'); },
-  message: { success: false, message: 'Too many requests, please try again later.' }
+  message: { success: false, message: 'Trop de requetes, veuillez reessayer plus tard.' }
 });
 app.use('/api', generalLimiter);
 
-// Auth endpoints rate limit: 10 requests per 15 minutes
+// Auth endpoints rate limit
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { success: false, message: 'Too many authentication attempts, please try again later.' }
+  message: { success: false, message: 'Trop de tentatives, veuillez reessayer plus tard.' }
 });
 app.use('/api/auth', authLimiter);
 
