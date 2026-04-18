@@ -87,7 +87,7 @@ export const authService = {
   registerPushToken: (pushToken) => api.put('/auth/push-token', { pushToken }),
 
   register: (phone, name, email, pin, role) => api.post('/auth/register', { phone, name, email, pin, role }),
-  loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin }),
+  loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin, role: 'driver' }),
   forgotPin: (phone) => api.post('/auth/forgot-pin', { phone }),
   resetPin: (phone, otp, newPin) => api.post('/auth/reset-pin', { phone, otp, newPin }),
   sendOTP: (phone, mode) => api.post('/auth/send-otp', { phone, mode }),
