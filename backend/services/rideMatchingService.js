@@ -183,7 +183,7 @@ class RideMatchingService {
       const dropoffAddr = rideData.dropoff?.address || 'Arrivee';
       const fare = rideData.fare || 0;
       const title = 'Course disponible!';
-      const body = pickupAddr.substring(0, 40) + ' → ' + dropoffAddr.substring(0, 40) + ' • ' + fare + ' FCFA';
+      const body = pickupAddr.substring(0, 40) + ' → ' + dropoffAddr.substring(0, 40) + ' • ' + fare + ' FCFA • Connectez-vous!';
       const notifData = { type: 'ride-available', rideId: rideId.toString() };
 
       const userIds = nearbyApproved.map(d => d.userId?._id || d.userId).filter(Boolean);
