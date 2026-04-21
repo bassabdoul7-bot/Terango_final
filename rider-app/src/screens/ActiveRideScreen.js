@@ -9,6 +9,7 @@ import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
+import CAR_IMAGES from '../constants/carImages';
 const { width, height } = Dimensions.get('window');
 // ========== CONFETTI CELEBRATION COMPONENT ==========
 const ConfettiCelebration = ({ visible }) => {
@@ -94,7 +95,7 @@ const CancelModal = ({ visible, onClose, onConfirm, loading }) => {
     </Modal>
   );
 };
-const SearchingAnimation = ({ searchTime }) => {
+const SearchingAnimation = ({ searchTime, rideType }) => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const orbitAnim = useRef(new Animated.Value(0)).current;
   const carPulseAnim = useRef(new Animated.Value(1)).current;
@@ -106,7 +107,7 @@ const SearchingAnimation = ({ searchTime }) => {
       <Animated.View style={[searchStyles.pulseCircle, searchStyles.pulseCircle1, { transform: [{ scale: pulseAnim }] }]} />
       <Animated.View style={[searchStyles.pulseCircle, searchStyles.pulseCircle2, { transform: [{ scale: Animated.multiply(pulseAnim, 0.85) }] }]} />
       <View style={searchStyles.centerCircle} />
-      <Animated.View style={[searchStyles.carContainer, { transform: [{ translateX: orbitAnim.interpolate({ inputRange: [0, 1], outputRange: [-35, 35] }) }, { translateY: orbitAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: carPulseAnim }] }]}><View style={searchStyles.carIcon}><Text style={{ fontSize: 24, fontFamily: 'LexendDeca_400Regular' }}>{"\uD83D\uDE97"}</Text></View></Animated.View>
+      <Animated.View style={[searchStyles.carContainer, { transform: [{ translateX: orbitAnim.interpolate({ inputRange: [0, 1], outputRange: [-35, 35] }) }, { translateY: orbitAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: carPulseAnim }] }]}><View style={searchStyles.carIcon}><Image source={{ uri: (CAR_IMAGES[rideType] || CAR_IMAGES.standard).uri }} style={searchStyles.carImage} resizeMode="contain" /></View></Animated.View>
       <View style={searchStyles.timerContainer}><Text style={searchStyles.timerText}>{formatTime(searchTime)}</Text></View>
       <Text style={searchStyles.statusText}>{getStatus()}</Text>
       {searchTime >= 30 && <Text style={searchStyles.tipText}>{"\uD83D\uDCA1 Essayez aux heures de pointe"}</Text>}
@@ -203,7 +204,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       <View style={styles.topBar}><TouchableOpacity style={styles.backButton} onPress={handleBackPress}><Text style={styles.backIcon}>{"\u2190"}</Text></TouchableOpacity><View style={styles.statusCard}><Text style={styles.statusIcon}>{getStatusConfig().icon}</Text><Text style={styles.statusText}>{getStatusConfig().message}</Text></View></View>
       <View style={styles.bottomCard}>
         {ride.status === 'pending' && (<>
-          <SearchingAnimation searchTime={searchTime} />
+          <SearchingAnimation searchTime={searchTime} rideType={ride?.rideType} />
           <View style={styles.fareCard}><Text style={[styles.fareLabel, ride.paymentMethod === 'wave' && {color:'#1DC3E1'}]}>{ride.paymentMethod === 'wave' ? '\uD83C\uDF0A Wave' : '\uD83D\uDCB5 Especes'}</Text><Text style={styles.fareAmount}>{ride.fare?.toLocaleString()+' FCFA'}</Text></View>
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
@@ -296,7 +297,8 @@ const searchStyles = StyleSheet.create({
   pulseCircle2: { width: 90, height: 90, top: 25, borderColor: 'rgba(0,133,63,0.5)' },
   centerCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(0,133,63,0.15)', position: 'absolute', top: 40 },
   carContainer: { position: 'absolute', top: 15 },
-  carIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', elevation: 6 },
+  carIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', elevation: 6 },
+  carImage: { width: 52, height: 38 },
   timerContainer: { marginTop: 85, backgroundColor: 'rgba(0,133,63,0.12)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
   timerText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.green },
   statusText: { marginTop: 10, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, textAlign: 'center' },

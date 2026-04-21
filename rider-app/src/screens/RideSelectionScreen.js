@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
   rideCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 6, borderWidth: 2, borderColor: 'transparent' },
   rideCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
   rideLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
-  rideImage: { width: 70, height: 50, marginRight: 10 },
+  rideImage: { width: 110, height: 75, marginRight: 12 },
   rideInfo: { flex: 1 },
   rideName: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
   rideCapacity: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
