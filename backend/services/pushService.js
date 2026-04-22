@@ -64,6 +64,22 @@ async function sendPushToMultiple(userIds, title, body, data) {
     try {
       await expo.sendPushNotificationsAsync(chunks[j]);
     } catch (e) {
+      // PUSH_TOO_MANY_EXPERIENCE_IDS: batch contained tokens from multiple
+      // Expo projects (e.g. a dual-registered user has a rider-app token on
+      // their user record while we're pushing to drivers). Fall back to
+      // sending each message individually so the valid ones still land.
+      if (e && (e.code === 'PUSH_TOO_MANY_EXPERIENCE_IDS' ||
+                (e.message && e.message.indexOf('same project') !== -1))) {
+        console.log('Mixed-project push batch; falling back to per-token sends for ' + chunks[j].length + ' messages');
+        for (var k = 0; k < chunks[j].length; k++) {
+          try {
+            await expo.sendPushNotificationsAsync([chunks[j][k]]);
+          } catch (perErr) {
+            console.error('Per-token push failed for ' + chunks[j][k].to + ':', perErr.message || perErr);
+          }
+        }
+        continue;
+      }
       console.error('Push notification failed:', e);
       // Retry once after 2 seconds
       try {
