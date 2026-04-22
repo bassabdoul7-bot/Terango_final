@@ -818,9 +818,21 @@ io.on('connection', function(socket) {
     if (socket.driverId) {
       var dId = socket.driverId;
       lastLocationUpdate.delete(dId);
-      setTimeout(function() {
+      setTimeout(async function() {
         var activeSocket = Array.from(io.sockets.sockets.values()).find(function(s) { return s.driverId === dId; });
         if (!activeSocket) {
+          // Respect background foreground-service heartbeat: if the driver's
+          // lastLocationUpdate in Mongo is recent (<90s), they're still alive
+          // via HTTP heartbeat even though the socket dropped. Don't wipe them.
+          try {
+            var Driver = require('./models/Driver');
+            var drv = await Driver.findById(dId).select('lastLocationUpdate');
+            if (drv && drv.lastLocationUpdate && (Date.now() - new Date(drv.lastLocationUpdate).getTime() < 90000)) {
+              console.log('Driver ' + dId + ' has recent heartbeat, skipping offline-on-disconnect');
+              return;
+            }
+          } catch (e) { /* fall through and offline as normal */ }
+
           driverLocationService.setDriverOffline(dId)
             .then(function() {
               io.to('riders-watching').emit('driver-went-offline', { driverId: dId });
