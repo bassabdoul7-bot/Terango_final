@@ -140,6 +140,8 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
     try {
+      // Stop foreground-service heartbeat if it was running
+      try { const { stopBackgroundOnline } = require('../services/backgroundOnline'); await stopBackgroundOnline(); } catch (e) {}
       await SecureStore.deleteItemAsync('token');
       await AsyncStorage.removeItem('user');
       await AsyncStorage.removeItem('driver');

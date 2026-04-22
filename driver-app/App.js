@@ -5,6 +5,10 @@ import { Text, TextInput, ActivityIndicator, View } from 'react-native';
 import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Medium, LexendDeca_600SemiBold, LexendDeca_700Bold, LexendDeca_800ExtraBold } from '@expo-google-fonts/lexend-deca';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
+// Register the background heartbeat task at module load so TaskManager
+// can resume it after cold start. Safe even for offline drivers — the
+// task only actually runs while location updates are active.
+import './src/services/backgroundOnline';
 
 // Initialize error reporter (flush persisted logs, start periodic flush)
 reportError.init();

@@ -10,6 +10,7 @@ import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import CAR_IMAGES from '../constants/carImages';
 import { driverService, deliveryService } from '../services/api.service';
+import { stopBackgroundOnline } from '../services/backgroundOnline';
 import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
@@ -107,7 +108,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
 
   const showRequestCard = () => { Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 50, friction: 8 }).start(); if (mapRef.current && currentRequest) { if (cameraRef.current) { var pLat=currentRequest.pickup.coordinates.latitude; var pLon=currentRequest.pickup.coordinates.longitude; var dLat=currentRequest.dropoff.coordinates.latitude; var dLon=currentRequest.dropoff.coordinates.longitude; cameraRef.current.fitBounds([Math.min(pLon,dLon),Math.min(pLat,dLat),Math.max(pLon,dLon),Math.max(pLat,dLat)],{top:100,right:50,bottom:400,left:50},500); } } };
   const hideRequestCard = () => { Animated.timing(slideAnim, { toValue: height, duration: 300, useNativeDriver: true }).start(); };
-  const handleGoOffline = async () => { setShowOfflineModal(false); try { await driverService.toggleOnlineStatus(false); if (socket && driverId) socket.emit('driver-offline', driverId); navigation.replace('Home'); } catch (e) { Alert.alert('Erreur', 'Impossible de passer hors ligne'); } };
+  const handleGoOffline = async () => { setShowOfflineModal(false); try { await driverService.toggleOnlineStatus(false); if (socket && driverId) socket.emit('driver-offline', driverId); stopBackgroundOnline().catch(function() {}); navigation.replace('Home'); } catch (e) { Alert.alert('Erreur', 'Impossible de passer hors ligne'); } };
 
   const handleAccept = async () => {
     if (!currentRequest) return; stopRideAlert(); if (offerTimeout) { clearTimeout(offerTimeout); setOfferTimeout(null); } setLoading(true);

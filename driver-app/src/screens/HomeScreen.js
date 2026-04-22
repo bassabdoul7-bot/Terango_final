@@ -18,6 +18,7 @@ import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { COMMISSION_WAVE_NUMBER } from '../constants/commission';
 import { driverService } from '../services/api.service';
+import { startBackgroundOnline } from '../services/backgroundOnline';
 import { useAuth } from '../context/AuthContext';
 
 var HomeScreen = function(props) {
@@ -138,6 +139,8 @@ var HomeScreen = function(props) {
       if (socket) {
         socket.emit('driver-online', { driverId: driver._id, latitude: location.latitude, longitude: location.longitude, vehicle: driver.vehicle, rating: user.rating || 5.0 });
       }
+      // Start foreground service heartbeat so driver stays online across long backgrounding
+      startBackgroundOnline().catch(function() {});
       navigation.replace('RideRequests', { driverId: driver._id, location: location });
     }).catch(function(error) {
       console.error('Toggle online error:', error);
