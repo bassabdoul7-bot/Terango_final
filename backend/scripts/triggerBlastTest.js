@@ -63,23 +63,47 @@ process.chdir(path.join(__dirname, '..'));
     return;
   }
 
-  // Build a synthetic rideData (no persistence — blast doesn't need a Ride doc)
-  const rideData = {
+  // The blast method does Ride.findById to check status==='pending',
+  // so we need a real pending Ride doc. Create one, blast, clean up.
+  // Pick any rider doc to satisfy the required riderId field.
+  const anyRider = await Rider.findOne();
+  if (!anyRider) {
+    console.error('No Rider documents in DB; cannot create test ride.');
+    await mongoose.disconnect();
+    return;
+  }
+
+  const testRide = await Ride.create({
+    riderId: anyRider._id,
     pickup: { address: 'Test pickup', coordinates: { latitude: lat, longitude: lng } },
     dropoff: { address: 'Test dropoff', coordinates: { latitude: lat + 0.02, longitude: lng + 0.02 } },
+    rideType: 'standard',
+    distance: 3,
+    estimatedDuration: 10,
     fare: 2000,
-    rideType: 'standard'
-  };
+    paymentMethod: 'cash',
+    status: 'pending'
+  });
+  console.log('Created synthetic ride ' + testRide._id);
 
-  // Instantiate the matching service with a no-op io. The blast only needs
-  // the push service, which is a separate module.
-  const fakeIo = { to: () => ({ emit: () => {} }) };
-  const RideMatchingService = require('../services/rideMatchingService');
-  const matcher = new RideMatchingService(fakeIo);
+  try {
+    const fakeIo = { to: () => ({ emit: () => {} }) };
+    const RideMatchingService = require('../services/rideMatchingService');
+    const matcher = new RideMatchingService(fakeIo);
 
-  console.log('Firing blastNotifyNearbyDrivers...');
-  await matcher.blastNotifyNearbyDrivers('blast-test-' + Date.now(), rideData.pickup.coordinates, rideData);
-  console.log('Blast call returned. Check drivers\' phones.');
+    const rideData = {
+      pickup: testRide.pickup,
+      dropoff: testRide.dropoff,
+      fare: testRide.fare,
+      rideType: testRide.rideType
+    };
 
-  await mongoose.disconnect();
+    console.log('Firing blastNotifyNearbyDrivers...');
+    await matcher.blastNotifyNearbyDrivers(testRide._id, rideData.pickup.coordinates, rideData);
+    console.log('Blast call returned. Check drivers\' phones.');
+  } finally {
+    await Ride.deleteOne({ _id: testRide._id });
+    console.log('Cleaned up synthetic ride.');
+    await mongoose.disconnect();
+  }
 })().catch(e => { console.error(e); process.exit(1); });
