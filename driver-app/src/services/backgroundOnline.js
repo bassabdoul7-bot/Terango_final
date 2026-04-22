@@ -39,8 +39,9 @@ export async function startBackgroundOnline() {
   try {
     var fg = await Location.getForegroundPermissionsAsync();
     if (fg.status !== 'granted') return false;
-    // Request background on Android; on denial the foreground-service still works.
-    try { await Location.requestBackgroundPermissionsAsync(); } catch (e) {}
+    // Foreground service with notification needs only ACCESS_FINE_LOCATION on
+    // Android 10+; no ACCESS_BACKGROUND_LOCATION required (and avoiding it
+    // sidesteps Play Console's sensitive-permission declaration).
     var alreadyStarted = false;
     try { alreadyStarted = await Location.hasStartedLocationUpdatesAsync(LOCATION_TASK_NAME); } catch (e) { alreadyStarted = false; }
     if (alreadyStarted) return true;
