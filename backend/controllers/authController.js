@@ -272,7 +272,14 @@ exports.registerPushToken = async (req, res) => {
     if (!pushToken) {
       return res.status(400).json({ success: false, message: 'Token requis' });
     }
-    await User.findByIdAndUpdate(req.user._id, { pushToken: pushToken });
+    // Write to role-specific field so dual-registered users can have both
+    // driverPushToken and riderPushToken simultaneously (each phone/app gets
+    // its own Expo project token). Also mirror to legacy pushToken for
+    // backwards compatibility with send paths not yet migrated.
+    var update = { pushToken: pushToken };
+    if (req.user.role === 'driver') update.driverPushToken = pushToken;
+    else if (req.user.role === 'rider') update.riderPushToken = pushToken;
+    await User.findByIdAndUpdate(req.user._id, update);
     res.json({ success: true, message: 'Token enregistré' });
   } catch (error) {
     console.error('Register Push Token Error:', error);

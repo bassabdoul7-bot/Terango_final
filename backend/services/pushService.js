@@ -3,16 +3,28 @@ var User = require('../models/User');
 
 var expo = new Expo();
 
-async function sendPushNotification(userId, title, body, data) {
+// Pick the Expo push token that matches the target app. `role` is optional;
+// when given ('driver' or 'rider') we prefer the role-specific token (so a
+// dual-registered user's iPhone rider app doesn't steal driver pushes from
+// their Android driver app). Falls back to the legacy single pushToken.
+function resolvePushToken(user, role) {
+  if (!user) return '';
+  if (role === 'driver' && user.driverPushToken && Expo.isExpoPushToken(user.driverPushToken)) return user.driverPushToken;
+  if (role === 'rider' && user.riderPushToken && Expo.isExpoPushToken(user.riderPushToken)) return user.riderPushToken;
+  return user.pushToken && Expo.isExpoPushToken(user.pushToken) ? user.pushToken : '';
+}
+
+async function sendPushNotification(userId, title, body, data, role) {
   try {
     var user = await User.findById(userId);
-    if (!user || !user.pushToken || !Expo.isExpoPushToken(user.pushToken)) {
-      console.log('No valid push token for user:', userId);
+    var token = resolvePushToken(user, role);
+    if (!token) {
+      console.log('No valid push token for user:', userId, 'role:', role || 'legacy');
       return;
     }
 
     var message = {
-      to: user.pushToken,
+      to: token,
       sound: 'default',
       title: title,
       body: body,
@@ -40,14 +52,15 @@ async function sendPushNotification(userId, title, body, data) {
   }
 }
 
-async function sendPushToMultiple(userIds, title, body, data) {
+async function sendPushToMultiple(userIds, title, body, data, role) {
   var messages = [];
   for (var i = 0; i < userIds.length; i++) {
     try {
       var user = await User.findById(userIds[i]);
-      if (user && user.pushToken && Expo.isExpoPushToken(user.pushToken)) {
+      var token = resolvePushToken(user, role);
+      if (token) {
         messages.push({
-          to: user.pushToken,
+          to: token,
           sound: 'default',
           title: title,
           body: body,

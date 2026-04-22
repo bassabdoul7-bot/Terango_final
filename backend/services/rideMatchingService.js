@@ -187,7 +187,7 @@ class RideMatchingService {
       const notifData = { type: 'ride-available', rideId: rideId.toString() };
 
       const userIds = nearbyApproved.map(d => d.userId?._id || d.userId).filter(Boolean);
-      await sendPushToMultiple(userIds, title, body, notifData);
+      await sendPushToMultiple(userIds, title, body, notifData, 'driver');
 
       // Also emit socket event to each driver
       nearbyApproved.forEach(driver => {
@@ -353,7 +353,7 @@ class RideMatchingService {
       this.io.to(`driver-${driverId}`).emit('new-ride-offer', offerPayload);
 
       // Push notify driver
-      sendPushNotification(driver.userId, 'Nouvelle course!', 'Un passager demande une course \u00e0 ' + (rideData.dropoff && rideData.dropoff.address ? rideData.dropoff.address.substring(0, 30) : 'proximit\u00e9'), { type: 'new-ride-offer', rideId: rideId });
+      sendPushNotification(driver.userId, 'Nouvelle course!', 'Un passager demande une course \u00e0 ' + (rideData.dropoff && rideData.dropoff.address ? rideData.dropoff.address.substring(0, 30) : 'proximit\u00e9'), { type: 'new-ride-offer', rideId: rideId }, 'driver');
 
       // Set timeout for driver response
       const timeout = setTimeout(async () => {
