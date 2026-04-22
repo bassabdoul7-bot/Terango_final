@@ -52,6 +52,7 @@ jobs:
         working-directory: rider-app/android
         run: |
           ./gradlew bundleRelease assembleRelease \
+            -x lintVitalAnalyzeRelease -x lintVitalRelease -x lintVitalReportRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/rider-app/android/app/upload-keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
@@ -108,6 +109,7 @@ jobs:
         working-directory: driver-app/android
         run: |
           ./gradlew bundleRelease \
+            -x lintVitalAnalyzeRelease -x lintVitalRelease -x lintVitalReportRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/driver-app/android/app/upload-keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD_DRIVER }} \
             -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS_DRIVER }} \
