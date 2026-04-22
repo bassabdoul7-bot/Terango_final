@@ -24,6 +24,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   const [rideRequests, setRideRequests] = useState([]);
   const [currentRequest, setCurrentRequest] = useState(null);
   const [socket, setSocket] = useState(null);
+  const socketRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [earnings, setEarnings] = useState({ today: 0, ridesCompleted: 0 });
   const [showOfflineModal, setShowOfflineModal] = useState(false);
@@ -74,7 +75,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     } catch (e) {}
   };
 
-  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); var earningsInterval = setInterval(fetchEarnings, 30000); return () => { if (socket) { if (driverId) socket.emit('driver-offline', driverId); socket.disconnect(); } if (offerTimeout) clearTimeout(offerTimeout); clearInterval(earningsInterval); if (locationIntervalRef.current) clearInterval(locationIntervalRef.current); stopRideAlert(); }; }, []);
+  useEffect(() => { getLocation(); connectSocket(); fetchEarnings(); var earningsInterval = setInterval(fetchEarnings, 30000); return () => { if (socketRef.current) { if (driverId) socketRef.current.emit('driver-offline', driverId); socketRef.current.disconnect(); socketRef.current = null; } if (offerTimeout) clearTimeout(offerTimeout); clearInterval(earningsInterval); if (locationIntervalRef.current) clearInterval(locationIntervalRef.current); stopRideAlert(); }; }, []);
   useEffect(() => { currentRequestRef.current = currentRequest; if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); } return () => { stopRideAlert(); }; }, [currentRequest]);
   useEffect(() => { if (!currentRequest) { Animated.loop(Animated.sequence([Animated.timing(scanAnim, { toValue: 1, duration: 1500, useNativeDriver: true }), Animated.timing(scanAnim, { toValue: 0, duration: 1500, useNativeDriver: true })])).start(); } else { scanAnim.setValue(0); } }, [currentRequest]);
   useEffect(() => { activeServicesRef.current = activeServices; }, [activeServices]);
@@ -93,7 +94,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
   useEffect(() => { var appState = AppState.currentState; var sub = AppState.addEventListener("change", function(next) { if (appState.match(/inactive|background/) && next === "active") { if (socket) { if (!socket.connected) socket.connect(); if (driverId) socket.emit("driver-online", { driverId: driverId, latitude: location?.latitude, longitude: location?.longitude }); } if (driverId && location) { driverService.toggleOnlineStatus(true, location.latitude, location.longitude).catch(function() {}); } } appState = next; }); return () => sub.remove(); }, [socket, driverId, location]);
   const connectSocket = () => {
     if (!driverId) return;
-    createAuthSocket().then(function(newSocket) { setSocket(newSocket);
+    createAuthSocket().then(function(newSocket) { socketRef.current = newSocket; setSocket(newSocket);
       newSocket.on('connect', () => { newSocket.emit('driver-online', { driverId, latitude: location?.latitude, longitude: location?.longitude }); });
       newSocket.on('new-ride-offer', (rideData) => { rideData._offerType = 'ride'; if (!activeServicesRef.current.rides) return; if (currentRequestRef.current) { setRideRequests(prev => [...prev, rideData]); return; } if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); } setCurrentRequest(rideData); setRideRequests(prev => [...prev, rideData]); var t = setTimeout(() => { handleReject(); }, rideData.offerExpiresIn || 15000); offerTimeoutRef.current = t; setOfferTimeout(t); });
       newSocket.on('ride-taken', () => { Alert.alert('Course prise', 'Un autre chauffeur a accepte cette course'); stopRideAlert(); if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; } var req = currentRequestRef.current; if (req) { setRideRequests(function(prev) { var remaining = prev.filter(function(r) { return r.rideId !== req.rideId; }); var next = remaining.length > 0 ? remaining[0] : null; setCurrentRequest(next); return remaining; }); } });

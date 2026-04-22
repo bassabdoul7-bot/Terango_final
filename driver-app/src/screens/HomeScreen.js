@@ -42,6 +42,7 @@ var HomeScreen = function(props) {
   var socketState = useState(null);
   var socket = socketState[0];
   var setSocket = socketState[1];
+  var socketRef = useRef(null);
 
   var blockedState = useState(false);
   var isBlockedForPayment = blockedState[0];
@@ -80,11 +81,12 @@ var HomeScreen = function(props) {
       }
     }).catch(function(err) { console.error('getActiveRide error:', err); });
     createAuthSocket().then(function(newSocket) {
+      socketRef.current = newSocket;
       setSocket(newSocket);
       newSocket.on('connect', function() { console.log('Socket connected:', newSocket.id); });
       newSocket.on('disconnect', function() { console.log('Socket disconnected'); });
     });
-    return function() { if (socket) { socket.disconnect(); } if (locationWatcherRef.current) { locationWatcherRef.current.remove(); locationWatcherRef.current = null; } };
+    return function() { if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; } if (locationWatcherRef.current) { locationWatcherRef.current.remove(); locationWatcherRef.current = null; } };
   }, []);
 
   useEffect(function() {
