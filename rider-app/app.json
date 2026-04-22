@@ -28,7 +28,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 105,
+      "versionCode": 106,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
@@ -53,8 +53,19 @@
       ],
       "expo-font",
       "@maplibre/maplibre-react-native",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-updates"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/424c8f48-0e23-489f-9a51-4f6e28cd7e95",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "424c8f48-0e23-489f-9a51-4f6e28cd7e95"
