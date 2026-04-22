@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
+import CAR_IMAGES from '../constants/carImages';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -51,9 +52,19 @@ function MainTabs() {
           tabBarIcon: function(props2) {
             var focused = props2.focused;
             var iconBg = focused ? COLORS.darkCard : 'rgba(0,26,18,0.12)';
+            var inner;
+            if (route.name === 'Courses') {
+              inner = React.createElement(Image, {
+                source: { uri: CAR_IMAGES.standard.uri },
+                style: { width: 36, height: 26 },
+                resizeMode: 'contain'
+              });
+            } else {
+              inner = React.createElement(Text, { style: { fontSize: 24 } }, tabIcons[route.name]);
+            }
             return React.createElement(View, {
               style: { width: 46, height: 46, borderRadius: 23, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }
-            }, React.createElement(Text, { style: { fontSize: 24 } }, tabIcons[route.name]));
+            }, inner);
           },
         };
       }}

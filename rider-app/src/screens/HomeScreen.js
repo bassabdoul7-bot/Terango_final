@@ -682,7 +682,7 @@ function HomeScreen(props) {
             <View style={styles.servicesGrid}>
               <TouchableOpacity style={styles.serviceCard} onPress={function() { if (!location) { Alert.alert('Position GPS', 'En attente de votre position...'); return; } navigation.navigate('SearchDestination', { currentLocation: location }); }}>
                 <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(0, 133, 63, 0.25)' }]}>
-                  <Text style={styles.serviceEmoji}>{"🚗"}</Text>
+                  <Image source={{ uri: CAR_IMAGES.standard.uri }} style={styles.serviceCarImg} resizeMode="contain" />
                 </View>
                 <Text style={styles.serviceLabel}>Course</Text>
               </TouchableOpacity>
@@ -883,6 +883,7 @@ var styles = StyleSheet.create({
     marginBottom: 6, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', elevation: 3,
   },
   serviceEmoji: { fontSize: 28, fontFamily: 'LexendDeca_400Regular' },
+  serviceCarImg: { width: 44, height: 32 },
   serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, textAlign: 'center' },
 
   // Bottom nav - DARK
