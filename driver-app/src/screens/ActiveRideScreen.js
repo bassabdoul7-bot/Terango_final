@@ -249,24 +249,36 @@ function ActiveRideScreen(props) {
 
   useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('RideRequests');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
 
-  // Check ride status when app returns to foreground
+  // Check ride status + re-announce driver-online when app returns to foreground
   useEffect(function() {
     var sub = AppState.addEventListener("change", function(state) {
-      if (state === "active" && rideId) {
-        driverService.getRide(rideId).then(function(res) {
-          if (res && res.success && res.ride) {
-            if (res.ride.status === "cancelled") {
-              if (!cancelledRef.current) {
-                cancelledRef.current = true;
-                Alert.alert("Course annulee", "Le passager a annule la course.", [{ text: "OK", onPress: function() { navigation.replace("RideRequests"); } }]);
+      if (state === "active") {
+        // Re-announce online so server doesn't leave us ghosted after OS paused JS in background
+        if (socketRef.current) {
+          if (!socketRef.current.connected) socketRef.current.connect();
+          if (driver && driver._id) {
+            socketRef.current.emit('driver-online', { driverId: driver._id, latitude: driverLocation ? driverLocation.latitude : 0, longitude: driverLocation ? driverLocation.longitude : 0 });
+          }
+        }
+        if (driver && driver._id && driverLocation) {
+          driverService.toggleOnlineStatus(true, driverLocation.latitude, driverLocation.longitude).catch(function() {});
+        }
+        if (rideId) {
+          driverService.getRide(rideId).then(function(res) {
+            if (res && res.success && res.ride) {
+              if (res.ride.status === "cancelled") {
+                if (!cancelledRef.current) {
+                  cancelledRef.current = true;
+                  Alert.alert("Course annulee", "Le passager a annule la course.", [{ text: "OK", onPress: function() { navigation.replace("RideRequests"); } }]);
+                }
               }
             }
-          }
-        }).catch(function(err) { console.error('AppState ride status check failed:', err); });
+          }).catch(function(err) { console.error('AppState ride status check failed:', err); });
+        }
       }
     });
     return function() { sub.remove(); };
-  }, [rideId]);
+  }, [rideId, driver, driverLocation]);
 
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(err){console.error('Failed to accept queued ride:',err);setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(err){console.error('Failed to reject queued ride:',err);});}

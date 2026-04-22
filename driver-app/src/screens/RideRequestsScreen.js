@@ -89,7 +89,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
     } catch (e) { console.error('Location error:', e); }
   };
 
-  useEffect(() => { var appState = AppState.currentState; var sub = AppState.addEventListener("change", function(next) { if (appState.match(/inactive|background/) && next === "active") { if (socket && !socket.connected) { socket.connect(); socket.emit("driver-online", { driverId: driverId, latitude: location?.latitude, longitude: location?.longitude }); } } appState = next; }); return () => sub.remove(); }, [socket, driverId, location]);
+  useEffect(() => { var appState = AppState.currentState; var sub = AppState.addEventListener("change", function(next) { if (appState.match(/inactive|background/) && next === "active") { if (socket) { if (!socket.connected) socket.connect(); if (driverId) socket.emit("driver-online", { driverId: driverId, latitude: location?.latitude, longitude: location?.longitude }); } if (driverId && location) { driverService.toggleOnlineStatus(true, location.latitude, location.longitude).catch(function() {}); } } appState = next; }); return () => sub.remove(); }, [socket, driverId, location]);
   const connectSocket = () => {
     if (!driverId) return;
     createAuthSocket().then(function(newSocket) { setSocket(newSocket);
