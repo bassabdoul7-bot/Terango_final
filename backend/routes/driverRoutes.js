@@ -55,6 +55,7 @@ router.get('/verification-status', protect, restrictTo('driver'), ctrl.getVerifi
 router.put('/complete-profile', protect, restrictTo('driver'), ctrl.completeProfile);
 router.put('/toggle-online', protect, restrictTo('driver'), ctrl.toggleOnlineStatus);
 router.put('/location', protect, restrictTo('driver'), ctrl.updateLocation);
+router.post('/heartbeat', protect, restrictTo('driver'), ctrl.heartbeat);
 router.get('/active-ride', protect, restrictTo('driver'), ctrl.getActiveRide);
 router.get('/earnings', protect, restrictTo('driver'), ctrl.getEarnings);
 router.get('/ride-history', protect, restrictTo('driver'), ctrl.getRideHistory);

@@ -189,6 +189,39 @@ exports.updateLocation = function(req, res) {
     });
 };
 
+// Lightweight background heartbeat from the driver-app foreground service.
+// Re-asserts driver is online + refreshes their Redis geo-entry so long
+// backgrounding doesn't evict them from the matching pool.
+exports.heartbeat = function(req, res) {
+  var latitude = req.body.latitude;
+  var longitude = req.body.longitude;
+  if (latitude == null || longitude == null) {
+    return res.status(400).json({ success: false, message: 'lat/lng required' });
+  }
+  Driver.findOne({ userId: req.user._id })
+    .populate('userId', 'rating')
+    .then(function(driver) {
+      if (!driver) return res.status(404).json({ success: false });
+      if (driver.isBlockedForPayment) return res.status(403).json({ success: false, blocked: true });
+      var driverLocationService = req.app.get('driverLocationService');
+      return driverLocationService.setDriverOnline(driver._id.toString(), latitude, longitude, {
+        vehicle: driver.vehicle,
+        rating: (driver.userId && driver.userId.rating) ? driver.userId.rating : 5.0
+      }).then(function() {
+        driver.isOnline = true;
+        driver.lastLocationUpdate = new Date();
+        driver.currentLocation = { type: 'Point', coordinates: { latitude: latitude, longitude: longitude } };
+        return driver.save();
+      }).then(function() {
+        res.status(200).json({ success: true });
+      });
+    })
+    .catch(function(error) {
+      console.error('Heartbeat error:', error);
+      res.status(500).json({ success: false });
+    });
+};
+
 exports.getNearbyDrivers = function(req, res) {
   var latitude = req.query.latitude;
   var longitude = req.query.longitude;
