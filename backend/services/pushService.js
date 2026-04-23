@@ -1,5 +1,6 @@
 var { Expo } = require('expo-server-sdk');
 var User = require('../models/User');
+var fcm = require('./fcmService');
 
 var expo = new Expo();
 
@@ -7,11 +8,48 @@ var expo = new Expo();
 // when given ('driver' or 'rider') we prefer the role-specific token (so a
 // dual-registered user's iPhone rider app doesn't steal driver pushes from
 // their Android driver app). Falls back to the legacy single pushToken.
+function tokenLooksValid(token) {
+  if (!token || typeof token !== 'string') return false;
+  return Expo.isExpoPushToken(token) || fcm.isFcmToken(token);
+}
+
 function resolvePushToken(user, role) {
   if (!user) return '';
-  if (role === 'driver' && user.driverPushToken && Expo.isExpoPushToken(user.driverPushToken)) return user.driverPushToken;
-  if (role === 'rider' && user.riderPushToken && Expo.isExpoPushToken(user.riderPushToken)) return user.riderPushToken;
-  return user.pushToken && Expo.isExpoPushToken(user.pushToken) ? user.pushToken : '';
+  if (role === 'driver' && tokenLooksValid(user.driverPushToken)) return user.driverPushToken;
+  if (role === 'rider' && tokenLooksValid(user.riderPushToken)) return user.riderPushToken;
+  return tokenLooksValid(user.pushToken) ? user.pushToken : '';
+}
+
+// Route a single outbound push to the right transport based on token format.
+async function sendSingle(token, title, body, data) {
+  if (fcm.isFcmToken(token)) {
+    try {
+      await fcm.sendToToken(token, title, body, data);
+    } catch (e) {
+      console.error('[push] FCM send failed for', token.substring(0, 20) + '...:', e.message);
+    }
+    return;
+  }
+  // Assume Expo token
+  var message = {
+    to: token,
+    sound: 'default',
+    title: title,
+    body: body,
+    data: data || {}
+  };
+  var chunks = expo.chunkPushNotifications([message]);
+  for (var i = 0; i < chunks.length; i++) {
+    try {
+      await expo.sendPushNotificationsAsync(chunks[i]);
+    } catch (err) {
+      console.error('Push send error:', err);
+      try {
+        await new Promise(function(r) { setTimeout(r, 2000); });
+        await expo.sendPushNotificationsAsync(chunks[i]);
+      } catch (retry) { console.error('Push retry failed:', retry); }
+    }
+  }
 }
 
 async function sendPushNotification(userId, title, body, data, role) {
@@ -22,44 +60,25 @@ async function sendPushNotification(userId, title, body, data, role) {
       console.log('No valid push token for user:', userId, 'role:', role || 'legacy');
       return;
     }
-
-    var message = {
-      to: token,
-      sound: 'default',
-      title: title,
-      body: body,
-      data: data || {}
-    };
-
-    var chunks = expo.chunkPushNotifications([message]);
-    for (var i = 0; i < chunks.length; i++) {
-      try {
-        await expo.sendPushNotificationsAsync(chunks[i]);
-      } catch (err) {
-        console.error('Push send error:', err);
-        // Retry once after 2 seconds
-        try {
-          await new Promise(function(resolve) { setTimeout(resolve, 2000); });
-          await expo.sendPushNotificationsAsync(chunks[i]);
-        } catch (retryErr) {
-          console.error('Push send retry failed:', retryErr);
-        }
-      }
-    }
-    console.log('Push sent to', user.name, ':', title);
+    await sendSingle(token, title, body, data);
+    console.log('Push sent to', user.name, '(' + (fcm.isFcmToken(token) ? 'FCM' : 'Expo') + '):', title);
   } catch (error) {
     console.error('Push notification error:', error);
   }
 }
 
 async function sendPushToMultiple(userIds, title, body, data, role) {
-  var messages = [];
+  var expoMessages = [];
+  var fcmTokens = [];
   for (var i = 0; i < userIds.length; i++) {
     try {
       var user = await User.findById(userIds[i]);
       var token = resolvePushToken(user, role);
-      if (token) {
-        messages.push({
+      if (!token) continue;
+      if (fcm.isFcmToken(token)) {
+        fcmTokens.push(token);
+      } else {
+        expoMessages.push({
           to: token,
           sound: 'default',
           title: title,
@@ -71,16 +90,24 @@ async function sendPushToMultiple(userIds, title, body, data, role) {
       console.error('Push notification failed:', e);
     }
   }
-  if (messages.length === 0) return;
-  var chunks = expo.chunkPushNotifications(messages);
+
+  // FCM path (Android native, direct to Google)
+  if (fcmTokens.length > 0) {
+    try {
+      var fcmRes = await fcm.sendToMany(fcmTokens, title, body, data);
+      console.log('[push] FCM multicast: ' + fcmRes.successCount + ' ok, ' + fcmRes.failureCount + ' failed');
+    } catch (e) {
+      console.error('[push] FCM multicast error:', e.message);
+    }
+  }
+
+  // Expo path (legacy / iOS / unmigrated users)
+  if (expoMessages.length === 0) return;
+  var chunks = expo.chunkPushNotifications(expoMessages);
   for (var j = 0; j < chunks.length; j++) {
     try {
       await expo.sendPushNotificationsAsync(chunks[j]);
     } catch (e) {
-      // PUSH_TOO_MANY_EXPERIENCE_IDS: batch contained tokens from multiple
-      // Expo projects (e.g. a dual-registered user has a rider-app token on
-      // their user record while we're pushing to drivers). Fall back to
-      // sending each message individually so the valid ones still land.
       if (e && (e.code === 'PUSH_TOO_MANY_EXPERIENCE_IDS' ||
                 (e.message && e.message.indexOf('same project') !== -1))) {
         console.log('Mixed-project push batch; falling back to per-token sends for ' + chunks[j].length + ' messages');
@@ -94,7 +121,6 @@ async function sendPushToMultiple(userIds, title, body, data, role) {
         continue;
       }
       console.error('Push notification failed:', e);
-      // Retry once after 2 seconds
       try {
         await new Promise(function(resolve) { setTimeout(resolve, 2000); });
         await expo.sendPushNotificationsAsync(chunks[j]);

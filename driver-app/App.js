@@ -9,6 +9,10 @@ import AppNavigator from './src/navigation/AppNavigator';
 // can resume it after cold start. Safe even for offline drivers — the
 // task only actually runs while location updates are active.
 import './src/services/backgroundOnline';
+// Register FCM background message handler at module scope (required by
+// @react-native-firebase/messaging to receive pushes while app is killed).
+import { registerBackgroundHandler } from './src/services/notifications';
+registerBackgroundHandler();
 
 // Initialize error reporter (flush persisted logs, start periodic flush)
 reportError.init();

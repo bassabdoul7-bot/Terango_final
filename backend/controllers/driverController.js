@@ -222,6 +222,24 @@ exports.heartbeat = function(req, res) {
     });
 };
 
+// Returns any ride offer currently being made to this driver via the
+// matching service's in-memory pendingOffers map. Driver-app polls this on
+// foreground to recover offers sent while the socket was asleep.
+exports.getCurrentOffer = function(req, res) {
+  Driver.findOne({ userId: req.user._id }).then(function(driver) {
+    if (!driver) return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+    var matchingService = req.app.get('matchingService');
+    if (!matchingService || typeof matchingService.getCurrentOfferForDriver !== 'function') {
+      return res.status(200).json({ success: true, offer: null });
+    }
+    var offer = matchingService.getCurrentOfferForDriver(driver._id);
+    res.status(200).json({ success: true, offer: offer || null });
+  }).catch(function(err) {
+    console.error('getCurrentOffer error:', err);
+    res.status(500).json({ success: false });
+  });
+};
+
 exports.getNearbyDrivers = function(req, res) {
   var latitude = req.query.latitude;
   var longitude = req.query.longitude;

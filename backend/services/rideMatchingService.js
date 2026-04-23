@@ -84,6 +84,29 @@ class RideMatchingService {
     }
   }
 
+  /**
+   * Look up any offer currently being made to the given driver.
+   * Used by the driver-app on foreground to recover offers that were sent
+   * while the app was backgrounded and the socket emit went to a dead socket.
+   */
+  getCurrentOfferForDriver(driverId) {
+    var targetId = driverId && driverId.toString ? driverId.toString() : String(driverId);
+    for (var entry of this.pendingOffers.entries()) {
+      var rideId = entry[0];
+      var offerData = entry[1];
+      if (offerData && offerData.currentDriverId && offerData.currentDriverId.toString() === targetId) {
+        var driverEntry = (offerData.driversList || []).find(function(d) { return d.driverId === targetId; });
+        return Object.assign({}, offerData.rideData || {}, {
+          rideId: rideId,
+          distanceToPickup: driverEntry ? driverEntry.distance : null,
+          offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT,
+          willBeQueued: offerData.tier === 'queue'
+        });
+      }
+    }
+    return null;
+  }
+
   async findQueueEligibleDrivers(pickupCoords, maxRadius, rideType) {
     try {
       const activeRides = await Ride.find({ status: 'in_progress' }).select('driver');
