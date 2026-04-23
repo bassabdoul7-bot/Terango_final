@@ -30,7 +30,7 @@
         "backgroundColor": "#00853F"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 89,
+      "versionCode": 90,
       "package": "com.terango.driver",
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": false,

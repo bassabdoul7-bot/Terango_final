@@ -280,6 +280,24 @@ function ActiveRideScreen(props) {
     return function() { sub.remove(); };
   }, [rideId, driver, driverLocation]);
 
+  // Safety-net poll: if the socket missed the 'ride-cancelled' event (e.g.
+  // because the driver was backgrounded when the rider cancelled) and the
+  // AppState foreground handler didn't catch it, this interval will.
+  useEffect(function() {
+    if (!rideId) return undefined;
+    var poll = setInterval(function() {
+      driverService.getRide(rideId).then(function(res) {
+        if (!res || !res.success || !res.ride) return;
+        if (res.ride.status === 'cancelled' && !cancelledRef.current) {
+          cancelledRef.current = true;
+          clearInterval(poll);
+          Alert.alert('Course annulee', 'Le passager a annule la course.', [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]);
+        }
+      }).catch(function() {});
+    }, 15000);
+    return function() { clearInterval(poll); };
+  }, [rideId]);
+
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(err){console.error('Failed to accept queued ride:',err);setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(err){console.error('Failed to reject queued ride:',err);});}
 
