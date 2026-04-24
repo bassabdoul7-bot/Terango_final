@@ -280,21 +280,26 @@ function ActiveRideScreen(props) {
     return function() { sub.remove(); };
   }, [rideId, driver, driverLocation]);
 
-  // Safety-net poll: if the socket missed the 'ride-cancelled' event (e.g.
-  // because the driver was backgrounded when the rider cancelled) and the
-  // AppState foreground handler didn't catch it, this interval will.
+  // Safety-net poll: if the socket missed the 'ride-cancelled' event or the
+  // AppState handler never fired, this gets the driver off the stale trip
+  // screen. Polls every 8s; navigates immediately on detected cancel or
+  // missing ride, regardless of cancelledRef state.
   useEffect(function() {
     if (!rideId) return undefined;
     var poll = setInterval(function() {
       driverService.getRide(rideId).then(function(res) {
-        if (!res || !res.success || !res.ride) return;
-        if (res.ride.status === 'cancelled' && !cancelledRef.current) {
-          cancelledRef.current = true;
+        var gone = !res || !res.success || !res.ride;
+        var cancelled = res && res.success && res.ride && res.ride.status === 'cancelled';
+        if (gone || cancelled) {
           clearInterval(poll);
-          Alert.alert('Course annulee', 'Le passager a annule la course.', [{ text: 'OK', onPress: function() { navigation.replace('RideRequests'); } }]);
+          if (!cancelledRef.current) {
+            cancelledRef.current = true;
+            Alert.alert('Course annulee', 'Le passager a annule la course.', [{ text: 'OK' }]);
+          }
+          navigation.replace('RideRequests');
         }
       }).catch(function() {});
-    }, 15000);
+    }, 8000);
     return function() { clearInterval(poll); };
   }, [rideId]);
 
@@ -568,7 +573,7 @@ function ActiveRideScreen(props) {
   useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;var now=Date.now();if(now-lastCameraUpdateTime.current<2000)return;var headingDiff=Math.abs(heading-lastCameraHeading.current);if(headingDiff>180)headingDiff=360-headingDiff;if(headingDiff<10&&now-lastCameraUpdateTime.current<2000)return;lastCameraUpdateTime.current=now;lastCameraHeading.current=heading;cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:500});},[driverLocation,navigationStarted,heading]);
   var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:1000});}},[driverLocation,heading]);
   function handleCancelRide(){setShowCancelModal(true);}
-  function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){}).catch(function(err){console.error('Cancel ride/delivery error:',err);Alert.alert('Erreur',"Impossible d'annuler");}).finally(function(){setLoading(false);});}
+  function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){navigation.replace('RideRequests');}).catch(function(err){console.error('Cancel ride/delivery error:',err);var status=err && err.response && err.response.status; if (status===400||status===404){ navigation.replace('RideRequests'); } else { Alert.alert('Erreur',"Impossible d'annuler"); }}).finally(function(){setLoading(false);});}
   function handleContactSupport(){Alert.alert('Contacter le Support','Choisissez',[{text:'Annuler',style:'cancel'},{text:'WhatsApp SN',onPress:function(){Linking.openURL('https://wa.me/221784256407');}},{text:'WhatsApp US',onPress:function(){Linking.openURL('https://wa.me/17047263959');}}]);}
   var handleArrived = useCallback(function(){setLoading(true);driverService.updateRideStatus(rideId,'arrived').then(function(){setRide(function(prev){return Object.assign({},prev,{status:'arrived'});});hasFetchedRoute.current=false;setNavigationStarted(false);speakAnnouncement("Vous etes arrive au point de depart");}).catch(function(e){Alert.alert('Erreur',(e.response&&e.response.data&&e.response.data.message)||'Erreur');}).finally(function(){setLoading(false);});},[rideId]);
   var handleVerifyPin = useCallback(function(){
