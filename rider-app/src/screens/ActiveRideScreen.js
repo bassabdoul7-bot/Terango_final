@@ -10,6 +10,7 @@ import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
 import ChatScreen from './ChatScreen';
 import CAR_IMAGES from '../constants/carImages';
+import * as ImagePicker from 'expo-image-picker';
 const { width, height } = Dimensions.get('window');
 // ========== CONFETTI CELEBRATION COMPONENT ==========
 const ConfettiCelebration = ({ visible }) => {
@@ -160,6 +161,42 @@ const ActiveRideScreen = ({ route, navigation }) => {
         } } } catch (e) {} };
   const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
+
+  const [sosSending, setSosSending] = useState(false);
+  const handleSOS = () => {
+    Alert.alert(
+      'Alerte SOS',
+      "Envoyer une alerte d'urgence ? Une video sera enregistree comme preuve.",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: "Envoyer l'alerte", style: 'destructive', onPress: async () => {
+          setSosSending(true);
+          try { await rideService.triggerSOS(rideId); } catch (e) { console.error('SOS error:', e); }
+          setSosSending(false);
+          try {
+            const perm = await ImagePicker.requestCameraPermissionsAsync();
+            if (perm.status !== 'granted') {
+              Alert.alert('Permission requise', 'Activez la camera pour enregistrer une video de securite.');
+              return;
+            }
+            const result = await ImagePicker.launchCameraAsync({
+              mediaTypes: 'videos',
+              videoMaxDuration: 120,
+              videoQuality: 1,
+            });
+            if (result.canceled || !result.assets || result.assets.length === 0) return;
+            const v = result.assets[0];
+            const duration = v.duration ? Math.round(v.duration / 1000) : 0;
+            await rideService.uploadEmergencyRecording(rideId, v.uri, duration);
+            Alert.alert('Enregistrement envoye', 'Votre video de securite a ete sauvegardee.');
+          } catch (err) {
+            console.error('SOS recording error:', err);
+            Alert.alert('Erreur', "Impossible d'envoyer l'enregistrement.");
+          }
+        }}
+      ]
+    );
+  };
   const getStatusConfig = () => { if (!ride) return { message: '', icon: '\uD83D\uDD04' }; switch (ride.status) { case 'pending': return { message: "Recherche d'un chauffeur...", icon: '\uD83D\uDD0D' }; case 'queued': return { message: 'Chauffeur termine une course...', icon: '\u23F3' }; case 'accepted': return { message: eta ? `Arriv\u00e9e dans ${eta} min (${distance})` : 'Chauffeur en route...', icon: '\uD83D\uDE97' }; case 'arrived': return { message: 'Le chauffeur est arriv\u00e9!', icon: '\uD83D\uDCCD' }; case 'in_progress': return { message: 'Course en cours', icon: '\uD83D\uDEE3\uFE0F' }; default: return { message: '', icon: '\uD83D\uDD04' }; } };
   const renderStars = (rating) => [...Array(5)].map((_, i) => (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{"\u2605"}</Text>));
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
@@ -232,7 +269,8 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <View style={styles.contactRow}>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+(ride?.driver?.userId?.phone || ''))}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={handleSOS} disabled={sosSending}><Text style={[styles.contactBtnIcon, { color: '#FF3B30' }]}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={[styles.contactLabel, { color: '#FF3B30', fontFamily: 'LexendDeca_700Bold' }]}>{sosSending ? 'Envoi...' : 'SOS'}</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x2139) + String.fromCodePoint(0xFE0F)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
               </View>
             )}

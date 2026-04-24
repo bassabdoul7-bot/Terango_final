@@ -41,6 +41,13 @@ export var rideService = {
   addFavoriteDriver: function(driverId) { return api.put('/rides/favorite-driver/' + driverId); },
   removeFavoriteDriver: function(driverId) { return api.delete('/rides/favorite-driver/' + driverId); },
   requestDriver: function(driverId, rideData) { return api.post('/rides/request-driver', Object.assign({ driverId: driverId }, rideData)); },
+  triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
+  uploadEmergencyRecording: function(rideId, videoUri, duration) {
+    var formData = new FormData();
+    formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });
+    if (duration) formData.append('duration', String(Math.round(duration)));
+    return api.put('/rides/' + rideId + '/emergency-recording', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 });
+  },
 };
 
 export var driverService = {
