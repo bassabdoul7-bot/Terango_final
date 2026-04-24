@@ -1,0 +1,40 @@
+name: Print Android SHA1 + Meta hash
+
+on:
+  workflow_dispatch:
+
+jobs:
+  print:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Decode rider keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > rider.jks
+
+      - name: Decode driver keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64_DRIVER }}" | base64 -d > driver.jks
+
+      - name: Extract rider SHA1 + Meta hash
+        run: |
+          echo "=== TeranGO Client (com.terango.rider) ==="
+          KEYTOOL_OUT=$(keytool -list -v -keystore rider.jks -alias "${{ secrets.KEY_ALIAS }}" -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -keypass "${{ secrets.KEY_PASSWORD }}")
+          SHA1=$(echo "$KEYTOOL_OUT" | grep "SHA1:" | head -1 | awk '{print $2}')
+          echo "SHA1 (colon-hex): $SHA1"
+          # Meta wants the SHA1 as base64-encoded raw bytes (20 bytes -> 28 char base64)
+          META_HASH=$(echo "$SHA1" | tr -d ':' | xxd -r -p | base64)
+          echo "Meta key hash (base64): $META_HASH"
+          echo ""
+
+      - name: Extract driver SHA1 + Meta hash
+        run: |
+          echo "=== TeranGO Pro (com.terango.driver) ==="
+          KEYTOOL_OUT=$(keytool -list -v -keystore driver.jks -alias "${{ secrets.KEY_ALIAS_DRIVER }}" -storepass "${{ secrets.KEYSTORE_PASSWORD_DRIVER }}" -keypass "${{ secrets.KEY_PASSWORD_DRIVER }}")
+          SHA1=$(echo "$KEYTOOL_OUT" | grep "SHA1:" | head -1 | awk '{print $2}')
+          echo "SHA1 (colon-hex): $SHA1"
+          META_HASH=$(echo "$SHA1" | tr -d ':' | xxd -r -p | base64)
+          echo "Meta key hash (base64): $META_HASH"
+          echo ""
