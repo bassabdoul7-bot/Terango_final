@@ -4,8 +4,26 @@
 // auto-detects and routes accordingly.
 
 var messaging = require('@react-native-firebase/messaging').default;
+var notifee = require('@notifee/react-native').default;
+var AndroidImportance = require('@notifee/react-native').AndroidImportance;
 var Platform = require('react-native').Platform;
 var PermissionsAndroid = require('react-native').PermissionsAndroid;
+
+// Create the notification channel drivers will hear ride offers on. Must be
+// HIGH importance so Android shows heads-up banner + plays sound + vibrates.
+async function ensureChannel() {
+  if (Platform.OS !== 'android') return;
+  try {
+    await notifee.createChannel({
+      id: 'default',
+      name: 'Ride offers',
+      importance: AndroidImportance.HIGH,
+      sound: 'default',
+      vibration: true,
+      vibrationPattern: [300, 500]
+    });
+  } catch (e) { console.error('Failed to create notification channel:', e); }
+}
 
 async function requestNotificationPermission() {
   try {
@@ -34,6 +52,7 @@ async function registerForPushNotifications() {
       console.log('Push notification permission denied');
       return null;
     }
+    await ensureChannel();
     var token = await messaging().getToken();
     if (!token) return null;
     console.log('FCM token:', token.substring(0, 20) + '...');
@@ -65,5 +84,6 @@ function registerBackgroundHandler() {
 module.exports = {
   registerForPushNotifications: registerForPushNotifications,
   setupForegroundListener: setupForegroundListener,
-  registerBackgroundHandler: registerBackgroundHandler
+  registerBackgroundHandler: registerBackgroundHandler,
+  ensureChannel: ensureChannel
 };

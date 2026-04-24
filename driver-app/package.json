@@ -12,6 +12,7 @@
     "@expo-google-fonts/lexend-deca": "^0.4.1",
     "@mapbox/polyline": "^1.2.1",
     "@maplibre/maplibre-react-native": "^11.0.0-beta.19",
+    "@notifee/react-native": "^9.1.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-firebase/app": "^24.0.0",
     "@react-native-firebase/messaging": "^24.0.0",

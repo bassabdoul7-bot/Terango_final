@@ -11,8 +11,11 @@ import AppNavigator from './src/navigation/AppNavigator';
 import './src/services/backgroundOnline';
 // Register FCM background message handler at module scope (required by
 // @react-native-firebase/messaging to receive pushes while app is killed).
-import { registerBackgroundHandler } from './src/services/notifications';
+// Also pre-create the high-importance notification channel so ride offers
+// play sound + show heads-up banner on Android 8+.
+import { registerBackgroundHandler, ensureChannel } from './src/services/notifications';
 registerBackgroundHandler();
+ensureChannel();
 
 // Initialize error reporter (flush persisted logs, start periodic flush)
 reportError.init();
