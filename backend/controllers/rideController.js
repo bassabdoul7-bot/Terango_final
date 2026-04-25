@@ -165,6 +165,7 @@ exports.createRide = async (req, res) => {
 // @access  Private
 exports.estimateFares = async (req, res) => {
   try {
+    console.log('[estimate] called by user ' + (req.user && req.user._id) + ' distance=' + (req.body && req.body.distance));
     const { pickup, dropoff, distance, estimatedDuration } = req.body;
     if (!pickup || !pickup.coordinates || !dropoff || !dropoff.coordinates) {
       return res.status(400).json({ success: false, message: 'pickup and dropoff coordinates required' });
