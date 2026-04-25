@@ -159,6 +159,46 @@ exports.createRide = async (req, res) => {
   }
 };
 
+// @desc    Estimate fares for the three ride tiers (single source of truth
+//          so the rider-app never hardcodes coefficients).
+// @route   POST /api/rides/estimate
+// @access  Private
+exports.estimateFares = async (req, res) => {
+  try {
+    const { pickup, dropoff, distance, estimatedDuration } = req.body;
+    if (!pickup || !pickup.coordinates || !dropoff || !dropoff.coordinates) {
+      return res.status(400).json({ success: false, message: 'pickup and dropoff coordinates required' });
+    }
+    const km = distance != null ? Number(distance) : calculateDistance(
+      pickup.coordinates.latitude, pickup.coordinates.longitude,
+      dropoff.coordinates.latitude, dropoff.coordinates.longitude
+    );
+    const minutes = estimatedDuration != null ? Number(estimatedDuration) : estimateDuration(km);
+
+    const tiers = ['standard', 'comfort', 'xl'];
+    const out = {};
+    for (const tier of tiers) {
+      const fr = calculateFare(km, tier, minutes);
+      out[tier] = {
+        fare: fr.fare,
+        surgeMultiplier: fr.surgeMultiplier,
+        baseCost: fr.baseCost
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      distance: km,
+      estimatedDuration: minutes,
+      surgeMultiplier: out.standard.surgeMultiplier,
+      fares: out
+    });
+  } catch (error) {
+    console.error('Estimate Fares Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors du calcul du tarif' });
+  }
+};
+
 // @desc    Get ride by ID
 // @route   GET /api/rides/:id
 // @access  Private

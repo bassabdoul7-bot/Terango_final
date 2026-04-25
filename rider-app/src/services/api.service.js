@@ -41,6 +41,9 @@ export var rideService = {
   addFavoriteDriver: function(driverId) { return api.put('/rides/favorite-driver/' + driverId); },
   removeFavoriteDriver: function(driverId) { return api.delete('/rides/favorite-driver/' + driverId); },
   requestDriver: function(driverId, rideData) { return api.post('/rides/request-driver', Object.assign({ driverId: driverId }, rideData)); },
+  estimateFares: function(pickup, dropoff, distance, estimatedDuration) {
+    return api.post('/rides/estimate', { pickup: pickup, dropoff: dropoff, distance: distance, estimatedDuration: estimatedDuration });
+  },
   triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
   uploadEmergencyRecording: function(rideId, videoUri, duration) {
     var formData = new FormData();

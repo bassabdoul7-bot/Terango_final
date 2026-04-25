@@ -91,31 +91,30 @@ const RideSelectionScreen = ({ route, navigation }) => {
     }
   };
 
-  const calculateFares = (distance, duration) => {
-    var hour = new Date().getHours();
-    var surge = (hour >= 7 && hour < 9) ? 1.2 : (hour >= 17 && hour < 20) ? 1.3 : 1.0;
-    function calcFare(base, cityRate, subRate, intercityRate, longDistRate, minRate, minFare) {
-      var distFare;
-      if (distance > 70) {
-        distFare = (10 * cityRate) + (20 * subRate) + (40 * intercityRate) + ((distance - 70) * longDistRate);
-      } else if (distance > 30) {
-        distFare = (10 * cityRate) + (20 * subRate) + ((distance - 30) * intercityRate);
-      } else if (distance > 10) {
-        distFare = (10 * cityRate) + ((distance - 10) * subRate);
-      } else {
-        distFare = distance * cityRate;
-      }
-      var timeFare = duration * minRate;
-      var surged = Math.round((base + distFare + timeFare) * surge);
-      var total = Math.ceil(surged / 100) * 100;
-      return Math.max(total, minFare);
+  const calculateFares = async (distance, duration) => {
+    // Single source of truth: backend computes via /api/rides/estimate so
+    // this screen never drifts out of sync with what gets billed.
+    try {
+      const r = await rideService.estimateFares(
+        { coordinates: pickup.coordinates, address: pickup.address },
+        { coordinates: dropoff.coordinates, address: dropoff.address },
+        distance,
+        duration
+      );
+      if (!r || !r.success || !r.fares) throw new Error('estimate failed');
+      const surge = r.surgeMultiplier || 1.0;
+      const surgeLabel = surge > 1 ? 'Heure de pointe x' + surge : null;
+      setFareEstimates({
+        standard: { type: 'standard', name: 'TeranGO Eco', description: surgeLabel || 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: r.fares.standard.fare, estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+        comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surgeLabel || 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: r.fares.comfort.fare, estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
+        xl: { type: 'xl', name: 'TeranGO XL', description: surgeLabel || 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: r.fares.xl.fare, estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
+      });
+    } catch (e) {
+      console.error('Fare estimate error:', e);
+      Alert.alert('Erreur', 'Impossible de calculer le tarif. Verifiez votre connexion.');
+    } finally {
+      setCalculatingFare(false);
     }
-    setFareEstimates({
-      standard: { type: 'standard', name: 'TeranGO Eco', description: surge > 1 ? 'Heure de pointe x'+surge : 'Trajet economique', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberX_v1.png', fare: calcFare(515, 86, 171, 200, 260, 28, 500), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      comfort: { type: 'comfort', name: 'TeranGO Comfort', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule confortable', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/Black_v1.png', fare: calcFare(740, 115, 215, 250, 325, 37, 700), estimatedTime: duration, distance: distance.toFixed(1), capacity: '4' },
-      xl: { type: 'xl', name: 'TeranGO XL', description: surge > 1 ? 'Heure de pointe x'+surge : 'Vehicule spacieux', imageUri: 'https://d1a3f4spazzrp4.cloudfront.net/car-types/haloProductImages/v1.1/UberXL_v1.png', fare: calcFare(1150, 160, 265, 310, 400, 46, 1000), estimatedTime: duration, distance: distance.toFixed(1), capacity: '7' }
-    });
-    setCalculatingFare(false);
   };
 
 

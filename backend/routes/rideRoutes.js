@@ -27,7 +27,8 @@ const {
   requestDriver,
   addFavoriteDriver,
   removeFavoriteDriver,
-  getFavoriteDrivers
+  getFavoriteDrivers,
+  estimateFares
 } = require('../controllers/rideController');
 
 // Emergency recording multer config
@@ -68,6 +69,9 @@ router.post(
   validate,
   createRide
 );
+
+// Fare estimate for the rider-app — single source of truth
+router.post('/estimate', protect, restrictTo('rider'), estimateFares);
 
 // Favorite drivers (Rider only)
 router.get('/favorite-drivers', protect, restrictTo('rider'), getFavoriteDrivers);
