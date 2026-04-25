@@ -108,6 +108,8 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   
   toggleOnlineStatus: (isOnline, latitude, longitude) =>
     api.put('/drivers/toggle-online', { isOnline, latitude, longitude }),
+
+  getCurrentOffer: () => api.get('/drivers/current-offer'),
   
   acceptRide: (rideId) => api.put(`/rides/${rideId}/accept`),
   
