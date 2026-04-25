@@ -197,7 +197,16 @@ class DriverLocationService {
     }
 
     if (!this.isValidCoordinates(latitude, longitude)) {
-    console.log('Driver ' + driverId + ' going online but no valid location yet');
+      // No fresh location, but the heartbeat itself proves the driver is
+      // alive. Refresh the heartbeat TTL only, keeping their last-known
+      // position in the geo-index. Otherwise repeated no-location pings
+      // would let the heartbeat key expire (300s TTL) and the cleanup job
+      // would wipe the driver after 5 min, causing the "long online ->
+      // dropped" bug.
+      try {
+        await this.redis.setex(this.DRIVER_HEARTBEAT_PREFIX + driverId, this.DRIVER_TTL, Date.now().toString());
+      } catch (e) { /* noop */ }
+      console.log('Driver ' + driverId + ' heartbeat refreshed (no fresh location)');
       return { success: true, warning: 'No valid location' };
     }
 
