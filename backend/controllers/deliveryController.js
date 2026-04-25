@@ -583,52 +583,41 @@ exports.appendDeliveryTrailPoints = function(req, res) {
     });
 };
 
-exports.cancelDelivery = function(req, res) {
+exports.cancelDelivery = async function(req, res) {
   var io = req.app.get('io');
-  var userRole = req.user.role;
+  try {
+    var userRole = req.user.role;
+    var profileQuery = userRole === 'driver'
+      ? Driver.findOne({ userId: req.user._id })
+      : Rider.findOne({ userId: req.user._id });
+    var profile = await profileQuery;
+    if (!profile) {
+      return res.status(404).json({ success: false, message: 'Profil non trouvé' });
+    }
+    var deliveryQuery = userRole === 'driver'
+      ? Delivery.findOne({ _id: req.params.deliveryId, driver: profile._id, status: { $in: ['pending', 'accepted'] } })
+      : Delivery.findOne({ _id: req.params.deliveryId, riderId: profile._id, status: { $in: ['pending', 'accepted'] } });
+    var delivery = await deliveryQuery;
+    if (!delivery) {
+      return res.status(400).json({ success: false, message: "Impossible d'annuler cette livraison" });
+    }
 
-  var findProfile;
-  if (userRole === 'driver') {
-    findProfile = Driver.findOne({ userId: req.user._id }).then(function(driver) {
-      if (!driver) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
-      return Delivery.findOne({ _id: req.params.deliveryId, driver: driver._id, status: { $in: ['pending', 'accepted'] } });
-    });
-  } else {
-    findProfile = Rider.findOne({ userId: req.user._id }).then(function(rider) {
-      if (!rider) return res.status(404).json({ success: false, message: 'Profil non trouvé' });
-      return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id, status: { $in: ['pending', 'accepted'] } });
-    });
+    delivery.status = 'cancelled';
+    delivery.cancelledBy = req.user.role;
+    delivery.cancellationReason = req.body.reason || 'Annulé';
+    if (delivery.driver) {
+      Driver.findById(delivery.driver).then(function(d) {
+        if (d) { d.isAvailable = true; d.save(); }
+      }).catch(function() {});
+      io.to('driver-' + delivery.driver.toString()).emit('delivery-cancelled', { deliveryId: delivery._id });
+    }
+
+    await delivery.save();
+    res.status(200).json({ success: true, message: 'Livraison annulée' });
+  } catch (error) {
+    console.error('Cancel Delivery Error:', error);
+    if (!res.headersSent) res.status(500).json({ success: false, message: 'Erreur' });
   }
-  findProfile
-    .then(function(delivery) {
-      if (!delivery) {
-        return res.status(400).json({ success: false, message: "Impossible d'annuler cette livraison" });
-      }
-
-      delivery.status = 'cancelled';
-      delivery.cancelledBy = req.user.role;
-      delivery.cancellationReason = req.body.reason || 'Annulé';
-      if (delivery.driver) {
-        Driver.findById(delivery.driver).then(function(d) {
-          if (d) {
-            d.isAvailable = true;
-            d.save();
-          }
-        });
-        io.to('driver-' + delivery.driver.toString()).emit('delivery-cancelled', { deliveryId: delivery._id });
-      }
-
-      return delivery.save();
-    })
-    .then(function(delivery) {
-      if (delivery) {
-        res.status(200).json({ success: true, message: 'Livraison annulée' });
-      }
-    })
-    .catch(function(error) {
-      console.error('Cancel Delivery Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur' });
-    });
 };
 
 // @desc    Upload emergency video recording for a delivery
