@@ -160,6 +160,16 @@ const RideRequestsScreen = ({ navigation, route }) => {
         </View>
       )}
 
+      {!currentRequest && !activeServices.colis && !activeServices.commande && !activeServices.resto && (
+        <TouchableOpacity style={styles.deliveryHintBanner} onPress={() => setShowFilters(true)} activeOpacity={0.85}>
+          <Text style={styles.deliveryHintIcon}>{String.fromCodePoint(0x1F4E6)}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.deliveryHintTitle}>Activez les livraisons</Text>
+            <Text style={styles.deliveryHintSub}>Colis, commande, restaurant — touchez pour activer et recevoir plus de courses</Text>
+          </View>
+          <Text style={styles.deliveryHintArrow}>{'>'}</Text>
+        </TouchableOpacity>
+      )}
       {!currentRequest && (
         <View style={styles.scanningBar}>
           <Animated.View style={[styles.scanningLine, { transform: [{ translateX: scanAnim.interpolate({ inputRange: [0, 1], outputRange: [-width, width] }) }] }]} />
@@ -238,6 +248,11 @@ const styles = StyleSheet.create({
   filterChipLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   filterChipLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   scanningBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, backgroundColor: COLORS.darkCard, overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  deliveryHintBanner: { position: 'absolute', top: 170, left: 12, right: 12, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,149,0,0.15)', borderColor: '#FF9500', borderWidth: 1, borderRadius: 14, padding: 12, gap: 10, zIndex: 5 },
+  deliveryHintIcon: { fontSize: 26 },
+  deliveryHintTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#FF9500', marginBottom: 2 },
+  deliveryHintSub: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLight },
+  deliveryHintArrow: { fontSize: 18, color: '#FF9500', fontFamily: 'LexendDeca_700Bold' },
   scanningLine: { position: 'absolute', width: 80, height: 4, backgroundColor: COLORS.yellow, borderRadius: 2 },
   menuBarWhenRequest: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, backgroundColor: COLORS.darkCard, justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   menuButton: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 8 },
