@@ -54,6 +54,22 @@ var driverSchema = new mongoose.Schema({
     registrationPhoto: String,
     insurancePhoto: String
   },
+  // Document expiration tracking. Admin enters dates when verifying docs.
+  // Cron sends reminders at 30/14/7/1 day thresholds + on the expiry day.
+  documentExpiry: {
+    driverLicense: { type: Date, default: null },
+    vehicleInsurance: { type: Date, default: null },
+    vehicleRegistration: { type: Date, default: null },
+    vehicleInspection: { type: Date, default: null }
+  },
+  // Set of reminder buckets already sent so the cron doesn't spam.
+  // Keys look like 'driverLicense:30', 'vehicleInsurance:7', etc.
+  // Cleared for a given doc when its expiry date is updated.
+  documentRemindersSent: {
+    type: Map,
+    of: Boolean,
+    default: {}
+  },
   verificationStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],

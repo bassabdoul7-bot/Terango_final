@@ -453,6 +453,38 @@ exports.approvePhoto = async (req, res) => {
 // @desc    Reject driver photo
 // @route   PUT /api/admin/users/:id/reject-photo
 // @access  Private (Admin only)
+// @desc    Update a driver's document expiration dates
+// @route   PUT /api/admin/drivers/:id/document-expiry
+// @access  Private (Admin only)
+exports.updateDriverDocumentExpiry = async (req, res) => {
+  try {
+    const Driver = require('../models/Driver');
+    const valid = ['driverLicense', 'vehicleInsurance', 'vehicleRegistration', 'vehicleInspection'];
+    const update = {};
+    const clearReminders = {};
+    for (const k of valid) {
+      if (req.body[k] !== undefined) {
+        const d = req.body[k] ? new Date(req.body[k]) : null;
+        if (d && isNaN(d.getTime())) continue;
+        update['documentExpiry.' + k] = d;
+        // Clear all reminder buckets for this doc since the date changed
+        ['30', '14', '7', '1', '0'].forEach(b => { clearReminders['documentRemindersSent.' + k + ':' + b] = ''; });
+      }
+    }
+    if (Object.keys(update).length === 0) {
+      return res.status(400).json({ success: false, message: 'Aucune date fournie' });
+    }
+    const ops = { $set: update };
+    if (Object.keys(clearReminders).length > 0) ops.$unset = clearReminders;
+    const driver = await Driver.findByIdAndUpdate(req.params.id, ops, { new: true });
+    if (!driver) return res.status(404).json({ success: false, message: 'Chauffeur non trouvé' });
+    res.json({ success: true, documentExpiry: driver.documentExpiry });
+  } catch (error) {
+    console.error('Update Driver Document Expiry Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 exports.rejectPhoto = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, {

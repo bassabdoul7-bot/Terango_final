@@ -16,7 +16,8 @@ const {
   rejectPhoto,
   createPartner,
   getAllPartners,
-  verifyPartner
+  verifyPartner,
+  updateDriverDocumentExpiry
 } = require('../controllers/adminController');
 
 // All routes require admin or moderator role
@@ -35,6 +36,7 @@ router.put(
   validate,
   verifyDriver
 );
+router.put('/drivers/:id/document-expiry', updateDriverDocumentExpiry);
 
 // Ride management
 router.get('/rides', getAllRides);

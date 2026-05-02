@@ -983,6 +983,9 @@ var staleDriverCleanup = setInterval(async function() {
   } catch(e) {}
 }, 5 * 60 * 1000);
 
+// ========== Driver document expiration daily reminders (8 AM Dakar) ==========
+require('./services/docExpiryReminder').scheduleDailyCheck();
+
 // ========== Midnight commission blocking (Senegal time UTC+0) ==========
 function scheduleMidnightCommissionCheck() {
   var now = new Date();
