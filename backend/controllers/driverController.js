@@ -533,6 +533,7 @@ exports.uploadDocuments = function(req, res) {
       if (req.body.vehicleMake) veh.make = req.body.vehicleMake;
       if (req.body.licensePlate) veh.licensePlate = req.body.licensePlate;
       if (req.files && req.files.vehicleRegistration) veh.registrationPhoto = req.files.vehicleRegistration[0].path;
+      if (req.files && req.files.insurance) veh.insurancePhoto = req.files.insurance[0].path;
       driver.vehicle = veh;
       driver.markModified('vehicle');
       // Wave number

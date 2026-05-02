@@ -18,6 +18,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
   const [nationalIdPhoto, setNationalIdPhoto] = useState(null);
   const [driverLicensePhoto, setDriverLicensePhoto] = useState(null);
   const [vehicleRegPhoto, setVehicleRegPhoto] = useState(null);
+  const [insurancePhoto, setInsurancePhoto] = useState(null);
   const [vehicleMake, setVehicleMake] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [waveNumber, setWaveNumber] = useState('');
@@ -61,6 +62,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
     if (!driverLicensePhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre permis de conduire'); return; }
     if (!vehicleType) { Alert.alert('Champ requis', 'Selectionnez votre type de vehicule'); return; }
     if (vehicleType === 'car' && !vehicleRegPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre carte grise'); return; }
+    if (!insurancePhoto) { Alert.alert('Photo requise', "Prenez la photo de votre assurance véhicule"); return; }
     if (!vehicleMake.trim()) { Alert.alert('Champ requis', 'Entrez la marque de votre vehicule'); return; }
     if (vehicleType === 'car' && !licensePlate.trim()) { Alert.alert('Champ requis', 'Entrez votre plaque d\'immatriculation'); return; }
     if (!waveNumber.trim()) { Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers'); return; }
@@ -73,6 +75,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
       formData.append('nationalId', { uri: nationalIdPhoto.uri, type: 'image/jpeg', name: 'cni.jpg' });
       formData.append('driverLicense', { uri: driverLicensePhoto.uri, type: 'image/jpeg', name: 'permis.jpg' });
       if (vehicleRegPhoto) formData.append('vehicleRegistration', { uri: vehicleRegPhoto.uri, type: 'image/jpeg', name: 'carte_grise.jpg' });
+      if (insurancePhoto) formData.append('insurance', { uri: insurancePhoto.uri, type: 'image/jpeg', name: 'assurance.jpg' });
       formData.append('vehicleMake', vehicleMake.trim());
       formData.append('vehicleType', vehicleType);
       if (vehicleClass) formData.append('vehicleClass', vehicleClass);
@@ -184,6 +187,9 @@ const DocumentUploadScreen = ({ onComplete }) => {
           </>
         )}
 
+        <Text style={styles.sectionLabel}>Assurance véhicule</Text>
+        <PhotoBox label="Photo de votre assurance" photo={insurancePhoto} onPress={() => pickOrTakePhoto(setInsurancePhoto)} icon="🛡️" />
+
 
         <Text style={[styles.sectionLabel, {marginTop: 24, fontSize: 17, color: "#00853F", fontFamily: 'LexendDeca_400Regular' }]}>{"Photos du véhicule"}</Text>
         <Text style={{fontSize: 13, color: "#999", marginBottom: 12, fontFamily: 'LexendDeca_400Regular' }}>Ces photos seront visibles par les passagers</Text>
@@ -194,7 +200,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
         <PhotoBox label="Intérieur du véhicule" photo={vehicleInteriorPhoto} onPress={() => pickOrTakePhoto(setVehicleInteriorPhoto)} icon="💺" /></>)}
 
         <View style={{ height: 16 }} />
-        {selfiePhoto && nationalIdPhoto && driverLicensePhoto && vehicleFrontPhoto && vehicleBackPhoto && (vehicleType === 'moto' || (vehicleRegPhoto && vehicleInteriorPhoto)) ? (
+        {selfiePhoto && nationalIdPhoto && driverLicensePhoto && insurancePhoto && vehicleFrontPhoto && vehicleBackPhoto && (vehicleType === 'moto' || (vehicleRegPhoto && vehicleInteriorPhoto)) ? (
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(3)}>
             <Text style={styles.nextBtnText}>Continuer</Text>
           </TouchableOpacity>
