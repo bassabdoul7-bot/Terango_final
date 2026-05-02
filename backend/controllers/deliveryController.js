@@ -186,7 +186,11 @@ exports.createDelivery = function(req, res) {
             });
           }
 
-          // Emit to accepting drivers
+          // Emit to accepting drivers — socket for in-app card AND push so
+          // backgrounded drivers also get notified.
+          var serviceLabel = delivery.serviceType === 'colis' ? 'Colis' : delivery.serviceType === 'commande' ? 'Commande' : 'Restaurant';
+          var pushTitle = 'Nouvelle livraison: ' + serviceLabel + '!';
+          var pushBody = (delivery.fare || 0) + ' FCFA \u2022 ' + (delivery.distance ? delivery.distance.toFixed(1) + ' km' : 'proximité');
           acceptingDrivers.forEach(function(driver) {
             io.to('driver-' + driver._id.toString()).emit('new-delivery', {
               deliveryId: delivery._id,
@@ -199,6 +203,7 @@ exports.createDelivery = function(req, res) {
               packageDetails: delivery.packageDetails,
               commandeDetails: delivery.commandeDetails
             });
+            sendPushNotification(driver.userId, pushTitle, pushBody, { type: 'new-delivery', deliveryId: delivery._id.toString(), serviceType: delivery.serviceType }, 'driver');
           });
 
           // Auto-cancel after 60 seconds if no driver accepts
