@@ -33,6 +33,7 @@ export var adminService = {
   getDrivers: function(params) { return api.get('/admin/drivers', { params: params }); },
   markCommissionPaid: function(id) { return api.put('/admin/drivers/' + id + '/commission-paid'); },
   verifyDriver: function(id, status, reason) { return api.put('/admin/drivers/' + id + '/verify', { status: status, reason: reason }); },
+  updateDocumentExpiry: function(id, dates) { return api.put('/admin/drivers/' + id + '/document-expiry', dates); },
   getRides: function(params) { return api.get('/admin/rides', { params: params }); },
   getRideDetails: function(rideId) { return api.get('/admin/rides/' + rideId); },
   getRiders: function(params) { return api.get('/admin/riders', { params: params }); },

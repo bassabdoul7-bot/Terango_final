@@ -33,6 +33,8 @@ export default function DriversPage() {
   var [promptValue, setPromptValue] = useState("");
   var [commissionFilter, setCommissionFilter] = useState(false);
   var [showIncomplete, setShowIncomplete] = useState(false);
+  var [expiryDates, setExpiryDates] = useState({ driverLicense: '', vehicleInsurance: '', vehicleRegistration: '', vehicleInspection: '' });
+  var [savingExpiry, setSavingExpiry] = useState(false);
 
   function load() {
     setLoading(true);
@@ -47,6 +49,34 @@ export default function DriversPage() {
   }
 
   useEffect(function() { load(); }, [filter, page, showIncomplete]);
+
+  // Pre-fill the expiry-date inputs whenever a driver detail is opened
+  useEffect(function() {
+    if (!selected) return;
+    var ex = (selected.documentExpiry) || {};
+    function fmt(d) { if (!d) return ''; try { return new Date(d).toISOString().slice(0, 10); } catch (e) { return ''; } }
+    setExpiryDates({
+      driverLicense: fmt(ex.driverLicense),
+      vehicleInsurance: fmt(ex.vehicleInsurance),
+      vehicleRegistration: fmt(ex.vehicleRegistration),
+      vehicleInspection: fmt(ex.vehicleInspection)
+    });
+  }, [selected]);
+
+  function saveExpiryDates() {
+    if (!selected) return;
+    setSavingExpiry(true);
+    var payload = {};
+    Object.keys(expiryDates).forEach(function(k) { if (expiryDates[k]) payload[k] = expiryDates[k]; });
+    adminService.updateDocumentExpiry(selected._id, payload).then(function() {
+      setSavingExpiry(false);
+      alert("Dates d'expiration enregistrées");
+      load();
+    }).catch(function(e) {
+      setSavingExpiry(false);
+      alert("Erreur: " + ((e && e.response && e.response.data && e.response.data.message) || 'echec'));
+    });
+  }
 
   function verify(id, status) {
     if (status === 'rejected') {
@@ -279,6 +309,33 @@ export default function DriversPage() {
                   )}
                 </div>
               )}
+
+              {/* Document expiration dates */}
+              <div className="mt-6 pt-4 border-t border-gray-800">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase mb-3">Dates d'expiration</h3>
+                <p className="text-xs text-gray-500 mb-3">Lisez la date sur la photo de chaque document et entrez-la ici. Le système enverra des rappels automatiques 30/14/7/1 jour avant l'expiration.</p>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  {[
+                    { key: 'driverLicense', label: 'Permis de conduire' },
+                    { key: 'vehicleInsurance', label: 'Assurance véhicule' },
+                    { key: 'vehicleRegistration', label: 'Carte grise' },
+                    { key: 'vehicleInspection', label: 'Visite technique' }
+                  ].map(function(doc) {
+                    return (
+                      <div key={doc.key}>
+                        <label className="text-xs text-gray-400 block mb-1">{doc.label}</label>
+                        <input type="date" value={expiryDates[doc.key]}
+                          onChange={function(e) { var v = e.target.value; setExpiryDates(function(p) { return Object.assign({}, p, { [doc.key]: v }); }); }}
+                          className="w-full px-3 py-2 rounded-lg bg-gray-800 text-white text-sm border border-gray-700 focus:border-emerald-500 outline-none" />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button onClick={saveExpiryDates} disabled={savingExpiry}
+                  className="w-full py-2 rounded-lg bg-emerald-500/10 text-emerald-400 font-medium hover:bg-emerald-500/20 disabled:opacity-50">
+                  {savingExpiry ? 'Enregistrement...' : "Enregistrer les dates"}
+                </button>
+              </div>
 
               {/* Actions */}
               <div className="mt-6 pt-4 border-t border-gray-800">
