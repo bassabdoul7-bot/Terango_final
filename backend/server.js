@@ -967,14 +967,17 @@ process.on('SIGTERM', function() { gracefulShutdown('SIGTERM'); });
 process.on('SIGINT', function() { gracefulShutdown('SIGINT'); });
 
 const PORT = process.env.PORT || 5000;
-// Auto-offline stale drivers every 5 minutes
+// Auto-offline stale drivers every 5 minutes.
+// Threshold: 30 min (was 10 min) — gives OEM-paused foreground services
+// time to come back. Only flips isOnline=false; isAvailable stays as-is so
+// a recovering driver doesn't have to manually re-tap "ready for rides".
 var staleDriverCleanup = setInterval(async function() {
   try {
     var Driver = require('./models/Driver');
-    var tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+    var staleCutoff = new Date(Date.now() - 30 * 60 * 1000);
     var result = await Driver.updateMany(
-      { isOnline: true, lastLocationUpdate: { $lt: tenMinAgo } },
-      { isOnline: false, isAvailable: false }
+      { isOnline: true, lastLocationUpdate: { $lt: staleCutoff } },
+      { isOnline: false }
     );
     if (result.modifiedCount > 0) console.log('Auto-offlined ' + result.modifiedCount + ' stale drivers');
   } catch(e) {}
