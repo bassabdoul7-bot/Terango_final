@@ -14,6 +14,9 @@ import {
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
+import * as IntentLauncher from 'expo-intent-launcher';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { createAuthSocket } from '../services/socket';
 import COLORS from '../constants/colors';
 import { COMMISSION_WAVE_NUMBER } from '../constants/commission';
@@ -135,6 +138,27 @@ var HomeScreen = function(props) {
     });
   };
 
+  var maybePromptBatteryWhitelist = async function() {
+    if (Platform.OS !== 'android') return;
+    try {
+      var seen = await AsyncStorage.getItem('batteryWhitelistShown');
+      if (seen === '1') return;
+      Alert.alert(
+        'Rester en ligne en arrière-plan',
+        "Pour ne pas manquer de courses, autorisez TeranGO à fonctionner sans restriction de batterie. Sinon votre téléphone peut suspendre l'application après quelques minutes.",
+        [
+          { text: 'Plus tard', style: 'cancel', onPress: function() { AsyncStorage.setItem('batteryWhitelistShown', '1'); } },
+          { text: 'Ouvrir les paramètres', onPress: function() {
+            IntentLauncher.startActivityAsync('android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS').catch(function() {
+              IntentLauncher.startActivityAsync('android.settings.APPLICATION_DETAILS_SETTINGS', { data: 'package:com.terango.driver' }).catch(function() {});
+            });
+            AsyncStorage.setItem('batteryWhitelistShown', '1');
+          }}
+        ]
+      );
+    } catch (e) {}
+  };
+
   var goOnlineWithLocation = function() {
     if (!driver || !driver._id) { Alert.alert('Erreur', 'Profil chauffeur introuvable'); setLoading(false); return; }
     driverService.toggleOnlineStatus(true, location.latitude, location.longitude).then(function() {
@@ -143,6 +167,7 @@ var HomeScreen = function(props) {
       }
       // Start foreground service heartbeat so driver stays online across long backgrounding
       startBackgroundOnline().catch(function() {});
+      maybePromptBatteryWhitelist();
       navigation.replace('RideRequests', { driverId: driver._id, location: location });
     }).catch(function(error) {
       console.error('Toggle online error:', error);

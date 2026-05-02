@@ -47,8 +47,8 @@ export async function startBackgroundOnline() {
     if (alreadyStarted) return true;
     await Location.startLocationUpdatesAsync(LOCATION_TASK_NAME, {
       accuracy: Location.Accuracy.Balanced,
-      timeInterval: 30000,
-      distanceInterval: 50,
+      timeInterval: 60000,
+      distanceInterval: 0,
       showsBackgroundLocationIndicator: true,
       pausesUpdatesAutomatically: false,
       foregroundService: {
