@@ -17,7 +17,9 @@ const {
   createPartner,
   getAllPartners,
   verifyPartner,
-  updateDriverDocumentExpiry
+  updateDriverDocumentExpiry,
+  sendBroadcast,
+  getBroadcasts
 } = require('../controllers/adminController');
 
 // All routes require admin or moderator role
@@ -37,6 +39,10 @@ router.put(
   verifyDriver
 );
 router.put('/drivers/:id/document-expiry', updateDriverDocumentExpiry);
+
+// Broadcasts
+router.post('/broadcast', sendBroadcast);
+router.get('/broadcasts', getBroadcasts);
 
 // Ride management
 router.get('/rides', getAllRides);

@@ -17,6 +17,7 @@ import ServiceProvidersPage from './pages/ServiceProvidersPage';
 import ServiceRequestsPage from './pages/ServiceRequestsPage';
 import MonitoringPage from './pages/MonitoringPage';
 import OperationsPage from './pages/OperationsPage';
+import BroadcastsPage from './pages/BroadcastsPage';
 
 function ProtectedRoute({ children }) {
   var { isAuthenticated } = useAuth();
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="operations" element={<AdminOrModRoute><OperationsPage /></AdminOrModRoute>} />
         <Route path="monitoring" element={<AdminOrModRoute><MonitoringPage /></AdminOrModRoute>} />
         <Route path="riders" element={<AdminOrModRoute><RidersPage /></AdminOrModRoute>} />
+        <Route path="diffusion" element={<AdminOrModRoute><BroadcastsPage /></AdminOrModRoute>} />
         {/* Admin only routes */}
         <Route path="revenue" element={<AdminRoute><RevenuePage /></AdminRoute>} />
         <Route path="partners" element={<AdminRoute><PartnersPage /></AdminRoute>} />

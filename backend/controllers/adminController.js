@@ -4,6 +4,9 @@ const User = require('../models/User');
 const Driver = require('../models/Driver');
 const Rider = require('../models/Rider');
 const Ride = require('../models/Ride');
+const Broadcast = require('../models/Broadcast');
+const { sendPushNotification } = require('../services/pushService');
+const nodemailer = require('nodemailer');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/dashboard
@@ -453,6 +456,126 @@ exports.approvePhoto = async (req, res) => {
 // @desc    Reject driver photo
 // @route   PUT /api/admin/users/:id/reject-photo
 // @access  Private (Admin only)
+// @desc    Send a broadcast to riders / drivers / all via push and/or email
+// @route   POST /api/admin/broadcast
+// @access  Private (Admin/Moderator)
+exports.sendBroadcast = async (req, res) => {
+  try {
+    const { audience, channels, title, body } = req.body;
+    if (!audience || !['riders', 'drivers', 'all'].includes(audience)) {
+      return res.status(400).json({ success: false, message: 'audience invalide' });
+    }
+    if (!Array.isArray(channels) || channels.length === 0) {
+      return res.status(400).json({ success: false, message: 'channels requis' });
+    }
+    if (!title || !body) {
+      return res.status(400).json({ success: false, message: 'titre et message requis' });
+    }
+
+    // Build user query by role
+    let roleFilter;
+    if (audience === 'riders') roleFilter = { role: 'rider' };
+    else if (audience === 'drivers') roleFilter = { role: 'driver' };
+    else roleFilter = { role: { $in: ['rider', 'driver'] } };
+
+    const users = await User.find(roleFilter, 'name email role pushToken driverPushToken riderPushToken').lean();
+
+    let pushSent = 0, pushFailed = 0, emailSent = 0, emailFailed = 0;
+
+    // Push delivery — sequential but with small concurrency window
+    if (channels.includes('push')) {
+      for (const u of users) {
+        try {
+          // Pick role-specific token (driverPushToken for drivers, etc.) with legacy fallback
+          const role = u.role; // 'rider' or 'driver'
+          await sendPushNotification(u._id, title, body, { type: 'broadcast' }, role);
+          pushSent++;
+        } catch (e) {
+          pushFailed++;
+        }
+      }
+    }
+
+    // Email delivery — Gmail SMTP via nodemailer
+    if (channels.includes('email')) {
+      let transporter = null;
+      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+        transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+        });
+      }
+      if (transporter) {
+        const html = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">' +
+          '<h2 style="color:#00853F;margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>' +
+          '<div style="font-size:15px;line-height:1.5;color:#333;white-space:pre-wrap;">' + escapeHtml(body) + '</div>' +
+          '<hr style="margin:24px 0;border:none;border-top:1px solid #eee;">' +
+          '<p style="font-size:11px;color:#999;">TeranGO — Vous recevez cet email car vous avez créé un compte. Pour ne plus recevoir ces messages, répondez "STOP".</p>' +
+          '</div>';
+        for (const u of users) {
+          if (!u.email) continue;
+          try {
+            await transporter.sendMail({
+              from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
+              to: u.email,
+              subject: title,
+              text: body,
+              html: html
+            });
+            emailSent++;
+          } catch (e) {
+            emailFailed++;
+          }
+        }
+      }
+    }
+
+    const broadcast = await Broadcast.create({
+      audience: audience,
+      channels: channels,
+      title: title,
+      body: body,
+      sentBy: req.user._id,
+      sentByName: req.user.name || '',
+      pushSent: pushSent,
+      pushFailed: pushFailed,
+      emailSent: emailSent,
+      emailFailed: emailFailed
+    });
+
+    res.json({
+      success: true,
+      broadcast: broadcast,
+      summary: { pushSent, pushFailed, emailSent, emailFailed, totalUsers: users.length }
+    });
+  } catch (error) {
+    console.error('Send Broadcast Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @desc    Get past broadcasts
+// @route   GET /api/admin/broadcasts
+// @access  Private (Admin/Moderator)
+exports.getBroadcasts = async (req, res) => {
+  try {
+    const broadcasts = await Broadcast.find().sort({ createdAt: -1 }).limit(50).lean();
+    res.json({ success: true, broadcasts });
+  } catch (error) {
+    console.error('Get Broadcasts Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // @desc    Update a driver's document expiration dates
 // @route   PUT /api/admin/drivers/:id/document-expiry
 // @access  Private (Admin only)
