@@ -472,13 +472,22 @@ exports.sendBroadcast = async (req, res) => {
       return res.status(400).json({ success: false, message: 'titre et message requis' });
     }
 
-    // Build user query by role
-    let roleFilter;
-    if (audience === 'riders') roleFilter = { role: 'rider' };
-    else if (audience === 'drivers') roleFilter = { role: 'driver' };
-    else roleFilter = { role: { $in: ['rider', 'driver'] } };
-
-    const users = await User.find(roleFilter, 'name email role pushToken driverPushToken riderPushToken').lean();
+    // Build the audience. For drivers, only approved (real) drivers count —
+    // skip the long tail of registered-but-never-finished stubs.
+    let users = [];
+    if (audience === 'drivers' || audience === 'all') {
+      const approvedDrivers = await Driver.find({ verificationStatus: 'approved' }, 'userId').lean();
+      const driverUserIds = approvedDrivers.map(d => d.userId).filter(Boolean);
+      const drivers = await User.find({ _id: { $in: driverUserIds } }, 'name email role pushToken driverPushToken riderPushToken').lean();
+      users = users.concat(drivers);
+    }
+    if (audience === 'riders' || audience === 'all') {
+      const riders = await User.find({ role: 'rider' }, 'name email role pushToken driverPushToken riderPushToken').lean();
+      users = users.concat(riders);
+    }
+    // Dedupe by _id (in case a user is dual-registered)
+    const seen = new Set();
+    users = users.filter(u => { const k = String(u._id); if (seen.has(k)) return false; seen.add(k); return true; });
 
     // Create Broadcast doc immediately and respond to client; the actual
     // sending runs in background and updates this doc as it progresses.
