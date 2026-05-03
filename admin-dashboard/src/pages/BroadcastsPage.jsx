@@ -41,10 +41,17 @@ export default function BroadcastsPage() {
       .then(function(res) {
         setSending(false);
         var s = res.summary || {};
-        alert('Diffusion envoyée!\n\nPush: ' + (s.pushSent || 0) + ' OK / ' + (s.pushFailed || 0) + ' échecs\nEmail: ' + (s.emailSent || 0) + ' OK / ' + (s.emailFailed || 0) + ' échecs\nTotal utilisateurs ciblés: ' + (s.totalUsers || 0));
+        alert("Diffusion programmée!\n\n" + (s.totalUsers || 0) + " utilisateurs ciblés.\nL'envoi se fait en arrière-plan et peut prendre 1-3 minutes.\nRafraîchissez la page dans quelques minutes pour voir le compte exact.");
         setTitle('');
         setBody('');
         loadHistory();
+        // Auto-refresh history every 15s for the next 3 minutes to catch the counts updating
+        var refreshes = 0;
+        var iv = setInterval(function() {
+          refreshes++;
+          loadHistory();
+          if (refreshes >= 12) clearInterval(iv);
+        }, 15000);
       })
       .catch(function(e) {
         setSending(false);
