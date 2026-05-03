@@ -26,6 +26,13 @@ var screenHeight = Dimensions.get('window').height;
 var ARRIVAL_APPEAR_THRESHOLD = 50;
 var ARRIVAL_DISAPPEAR_THRESHOLD = 75;
 
+// Routing provider for turn-by-turn navigation.
+// 'google' = Google Directions (better Dakar data, billable)
+// 'osrm'   = self-hosted OSRM (free, OSM data — patchy in Senegal)
+// On Google error/timeout the code automatically falls back to OSRM.
+var ROUTING_PROVIDER = 'google';
+var GOOGLE_DIRECTIONS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+
 // LRU Cache for directions to avoid duplicate API calls
 var LRU_MAX = 20;
 var directionsCacheMap = {};
@@ -95,6 +102,7 @@ function ActiveRideScreen(props) {
   var lastDirectionsFetchTime = useRef(0);
   var isNearDestRef = useRef(false);
   var hapticFiredRef = useRef(false);
+  var lastDistToDestRef = useRef(null);
   var lastCameraUpdateTime = useRef(0);
   var lastCameraHeading = useRef(0);
   var lastProgressCalcTime = useRef(0);
@@ -382,31 +390,46 @@ function ActiveRideScreen(props) {
     if (now - lastDirectionsFetchTime.current < 5000) { return; }
     lastDirectionsFetchTime.current = now;
 
-    var url='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
+    var osrmUrl='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
+    var googleUrl='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&mode=driving&key='+GOOGLE_DIRECTIONS_KEY;
 
-    function applyDirectionsResult(data) {
-      if(data.code==='Ok'&&data.routes.length>0){
-        var rt=data.routes[0];
-        var leg=rt.legs[0];
-        var steps=leg.steps.map(function(step,index){
-          var loc=step.maneuver.location;
-          var nextLoc=leg.steps[index+1]?leg.steps[index+1].maneuver.location:loc;
-          return{id:index,instruction:step.maneuver.instruction||step.name||'Continuer',distance:step.distance<1000?Math.round(step.distance)+' m':(step.distance/1000).toFixed(1)+' km',distanceValue:step.distance,maneuver:step.maneuver.type,startLocation:{latitude:loc[1],longitude:loc[0]},endLocation:{latitude:nextLoc[1],longitude:nextLoc[0]}};
-        });
-        var coords=PolylineUtil.decode(rt.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
-        var distText=leg.distance<1000?Math.round(leg.distance)+' m':(leg.distance/1000).toFixed(1)+' km';
-        var durText=leg.duration<60?Math.round(leg.duration)+' sec':Math.round(leg.duration/60)+' min';
-        directionsCacheSet(cacheKey,{totalDistance:distText,totalDuration:durText,steps:steps,coords:coords});
-        setTotalDistance(distText);
-        setTotalDuration(durText);
-        setAllSteps(steps);
-        if(steps.length>0)setCurrentStep(steps[0]);
-        setRouteCoordinates(coords);
-        hasFetchedRoute.current=true;
-        setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=coords.map(function(c){return c.latitude;});var lons=coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
-        return true;
-      }
-      return false;
+    function applyParsed(parsed) {
+      directionsCacheSet(cacheKey,parsed);
+      setTotalDistance(parsed.totalDistance);
+      setTotalDuration(parsed.totalDuration);
+      setAllSteps(parsed.steps);
+      if(parsed.steps.length>0)setCurrentStep(parsed.steps[0]);
+      setRouteCoordinates(parsed.coords);
+      hasFetchedRoute.current=true;
+      setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=parsed.coords.map(function(c){return c.latitude;});var lons=parsed.coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
+    }
+
+    function parseOSRM(data) {
+      if(!(data && data.code==='Ok' && data.routes && data.routes.length>0)) return null;
+      var rt=data.routes[0]; var leg=rt.legs[0];
+      var steps=leg.steps.map(function(step,index){
+        var loc=step.maneuver.location;
+        var nextLoc=leg.steps[index+1]?leg.steps[index+1].maneuver.location:loc;
+        return{id:index,instruction:step.maneuver.instruction||step.name||'Continuer',distance:step.distance<1000?Math.round(step.distance)+' m':(step.distance/1000).toFixed(1)+' km',distanceValue:step.distance,maneuver:step.maneuver.type,startLocation:{latitude:loc[1],longitude:loc[0]},endLocation:{latitude:nextLoc[1],longitude:nextLoc[0]}};
+      });
+      var coords=PolylineUtil.decode(rt.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
+      var distText=leg.distance<1000?Math.round(leg.distance)+' m':(leg.distance/1000).toFixed(1)+' km';
+      var durText=leg.duration<60?Math.round(leg.duration)+' sec':Math.round(leg.duration/60)+' min';
+      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
+    }
+
+    function parseGoogle(data) {
+      if(!(data && data.status==='OK' && data.routes && data.routes.length>0)) return null;
+      var rt=data.routes[0]; var leg=rt.legs[0];
+      var steps=leg.steps.map(function(step,index){
+        // Google instructions come as HTML — strip tags for plain text.
+        var instr=(step.html_instructions||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()||'Continuer';
+        return{id:index,instruction:instr,distance:step.distance.value<1000?Math.round(step.distance.value)+' m':(step.distance.value/1000).toFixed(1)+' km',distanceValue:step.distance.value,maneuver:step.maneuver||'',startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};
+      });
+      var coords=PolylineUtil.decode(rt.overview_polyline.points).map(function(p){return{latitude:p[0],longitude:p[1]};});
+      var distText=leg.distance.value<1000?Math.round(leg.distance.value)+' m':(leg.distance.value/1000).toFixed(1)+' km';
+      var durText=leg.duration.value<60?Math.round(leg.duration.value)+' sec':Math.round(leg.duration.value/60)+' min';
+      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
     }
 
     function fetchWithTimeout(fetchUrl, timeoutMs) {
@@ -417,31 +440,62 @@ function ActiveRideScreen(props) {
         .catch(function(err) { clearTimeout(timer); throw err; });
     }
 
-    fetchWithTimeout(url, 10000)
-      .then(function(data) {
-        if (!applyDirectionsResult(data)) {
-          console.warn('Directions: OSRM returned non-Ok response', data.code);
-          hasFetchedRoute.current = false;
+    function tryGoogle() {
+      return fetchWithTimeout(googleUrl, 10000).then(function(data) {
+        var parsed = parseGoogle(data);
+        if (!parsed) {
+          console.warn('Directions: Google non-OK response', data && data.status, data && data.error_message);
+          return null;
         }
+        return parsed;
+      });
+    }
+
+    function tryOSRM() {
+      return fetchWithTimeout(osrmUrl, 10000).then(function(data) {
+        var parsed = parseOSRM(data);
+        if (!parsed) {
+          console.warn('Directions: OSRM non-OK response', data && data.code);
+          return null;
+        }
+        return parsed;
+      });
+    }
+
+    var primary = ROUTING_PROVIDER === 'google' ? tryGoogle : tryOSRM;
+    var fallback = ROUTING_PROVIDER === 'google' ? tryOSRM : tryGoogle;
+
+    primary()
+      .then(function(parsed) {
+        if (parsed) { applyParsed(parsed); return; }
+        // Primary returned non-OK — try fallback
+        return fallback().then(function(p2) {
+          if (p2) { applyParsed(p2); }
+          else {
+            hasFetchedRoute.current = false;
+            setToastMessage('Itin\u00e9raire indisponible');
+            setTimeout(function() { setToastMessage(null); }, 3000);
+          }
+        });
       })
       .catch(function(err) {
-        console.warn('Directions fetch failed (attempt 1):', err.message || err);
-        // Retry once after 2 seconds
-        setTimeout(function() {
-          fetchWithTimeout(url, 10000)
-            .then(function(data) {
-              if (!applyDirectionsResult(data)) {
-                console.warn('Directions: OSRM returned non-Ok on retry', data.code);
-                hasFetchedRoute.current = false;
-              }
-            })
-            .catch(function(retryErr) {
-              console.error('Directions fetch failed (attempt 2):', retryErr.message || retryErr);
+        console.warn('Directions primary fetch error:', err.message || err);
+        // Network/timeout error on primary — try fallback
+        fallback()
+          .then(function(parsed) {
+            if (parsed) { applyParsed(parsed); }
+            else {
               hasFetchedRoute.current = false;
               setToastMessage('Itin\u00e9raire indisponible');
               setTimeout(function() { setToastMessage(null); }, 3000);
-            });
-        }, 2000);
+            }
+          })
+          .catch(function(err2) {
+            console.error('Directions fallback also failed:', err2.message || err2);
+            hasFetchedRoute.current = false;
+            setToastMessage('Itin\u00e9raire indisponible');
+            setTimeout(function() { setToastMessage(null); }, 3000);
+          });
       });
   },[ride,driverLocation,stopReached]);
 
@@ -496,6 +550,7 @@ function ActiveRideScreen(props) {
 
     if(destination){
       var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);
+      lastDistToDestRef.current = distToDest;
       // Hysteresis: appear at 50m, disappear only beyond 75m
       if (isNearDestRef.current) {
         // Already near: only hide if moved beyond disappear threshold
@@ -539,9 +594,9 @@ function ActiveRideScreen(props) {
         var d = calcDistance(driverLocation.latitude, driverLocation.longitude, routeCoordinates[ri].latitude, routeCoordinates[ri].longitude);
         if (d < minDistToRoute) minDistToRoute = d;
       }
-      if (minDistToRoute > 100) {
+      if (minDistToRoute > 200) {
         offRouteCount.current++;
-        if (offRouteCount.current >= 2 && Date.now() - lastRerouteTime.current > 15000) {
+        if (offRouteCount.current >= 2 && Date.now() - lastRerouteTime.current > 60000) {
           lastRerouteTime.current = Date.now();
           offRouteCount.current = 0;
           hasFetchedRoute.current = false;
@@ -559,7 +614,7 @@ function ActiveRideScreen(props) {
         hasFetchedRoute.current = false;
         // Clear cache for current route to get fresh traffic data
         directionsCacheDeleteMatching(ride.status);
-      }, 120000); // every 2 minutes
+      }, 600000); // every 10 minutes (was 2 min — too aggressive for Dakar GPS)
     } else {
       if (trafficRerouteInterval.current) { clearInterval(trafficRerouteInterval.current); trafficRerouteInterval.current = null; }
     }
@@ -620,6 +675,27 @@ function ActiveRideScreen(props) {
     }).catch(function(err) { console.error('Delivery status update error:', err); Alert.alert('Erreur', 'Impossible de mettre a jour'); }).finally(function() { setLoading(false); });
   };
 
+  // Wraps an arrival action so that if the driver is far from the stored
+  // destination (because the rider's pickup pin is wrong), they can still
+  // proceed after confirming. Backend logs the override via the existing
+  // status update — exact distance is captured server-side from driver location.
+  function confirmThenProceed(actionLabel, proceedFn) {
+    var dist = lastDistToDestRef.current;
+    if (dist == null || dist <= ARRIVAL_DISAPPEAR_THRESHOLD) {
+      proceedFn();
+      return;
+    }
+    var distLabel = dist < 1000 ? Math.round(dist) + ' m' : (dist / 1000).toFixed(1) + ' km';
+    Alert.alert(
+      'Adresse imprécise ?',
+      'Vous semblez être à environ ' + distLabel + " du point. Confirmez seulement si l'adresse était imprécise et que vous êtes bien sur place (au besoin appelez le client).",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Confirmer ' + actionLabel, onPress: proceedFn }
+      ]
+    );
+  }
+
   var handleDeliveryAction = function(status) {
     if (status === 'picked_up' || status === 'delivered') {
       setPendingDeliveryStatus(status);
@@ -677,14 +753,14 @@ function ActiveRideScreen(props) {
         case 'accepted':
           return (<View>
             {!navigationStarted && <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F4E6)}</Text><Text style={styles.navText}>{'Naviguer vers le retrait'}</Text></TouchableOpacity>}
-            {isNearDestination ? <GlassButton title="Arrive au point de retrait" onPress={function(){handleDeliveryAction('at_pickup');}} loading={loading}/> : <View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du retrait"}</Text></View>}
+            <GlassButton title="Arrive au point de retrait" onPress={function(){confirmThenProceed('arrivée', function(){handleDeliveryAction('at_pickup');});}} loading={loading}/>
           </View>);
         case 'at_pickup':
           return <GlassButton title={String.fromCodePoint(0x1F4F7) + " Colis recupere - Prendre photo"} onPress={function(){handleDeliveryAction('picked_up');}} loading={loading}/>;
         case 'picked_up':
           return (<View>
             {!navigationStarted && <TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{String.fromCodePoint(0x1F9ED)}</Text><Text style={styles.navText}>{'Naviguer vers la livraison'}</Text></TouchableOpacity>}
-            {isNearDestination ? <GlassButton title="Arrive au point de livraison" onPress={function(){handleDeliveryAction('at_dropoff');}} loading={loading}/> : <View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m de la livraison"}</Text></View>}
+            <GlassButton title="Arrive au point de livraison" onPress={function(){confirmThenProceed('livraison', function(){handleDeliveryAction('at_dropoff');});}} loading={loading}/>
           </View>);
         case 'at_dropoff':
           return <GlassButton title={String.fromCodePoint(0x1F4F7) + " Confirmer livraison - Photo"} onPress={function(){handleDeliveryAction('delivered');}} loading={loading}/>;
@@ -694,7 +770,7 @@ function ActiveRideScreen(props) {
 
     // ===== RIDE MODE =====
     switch(ride.status){
-      case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}{isNearDestination?<GlassButton title="Je suis arrive" onPress={handleArrived} loading={loading}/>:<View style={styles.proximityHint}><Text style={styles.proximityText}>{"Le bouton apparaitra a 50m du client"}</Text></View>}</View>);
+      case 'accepted':return(<View>{!navigationStarted&&<TouchableOpacity style={styles.navButton} onPress={handleStartNavigation}><Text style={styles.navIcon}>{"\uD83E\uDDED"}</Text><Text style={styles.navText}>{"Demarrer navigation"}</Text></TouchableOpacity>}<GlassButton title="Je suis arrive" onPress={function(){confirmThenProceed('arrivée', handleArrived);}} loading={loading}/></View>);
       case 'arrived':
         return (<View>
           {ride.paymentMethod === 'wave' && <View style={styles.waveBanner}><Text style={styles.waveBannerIcon}>{'\uD83C\uDF0A'}</Text><Text style={styles.waveBannerText}>{'Wave: ' + (ride.fare ? ride.fare.toLocaleString() : '0') + ' FCFA'}</Text></View>}
