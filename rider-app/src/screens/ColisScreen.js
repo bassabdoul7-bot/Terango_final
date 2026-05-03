@@ -29,22 +29,79 @@ function ColisScreen(props) {
   var confirmingState = useState(false); var confirming = confirmingState[0]; var setConfirming = confirmingState[1];
   var pmState = useState('cash'); var paymentMethod = pmState[0]; var setPaymentMethod = pmState[1];
   var pickupAddrState = useState(''); var pickupAddress = pickupAddrState[0]; var setPickupAddress = pickupAddrState[1];
+  // 'gps' = pickup pinned to rider's actual GPS (precise);
+  // 'manual' = rider chose a different address via autocomplete (less precise).
+  var pickupSourceState = useState('gps'); var pickupSource = pickupSourceState[0]; var setPickupSource = pickupSourceState[1];
+  var gpsLoadingState = useState(true); var gpsLoading = gpsLoadingState[0]; var setGpsLoading = gpsLoadingState[1];
+  var gpsErrorState = useState(false); var gpsError = gpsErrorState[0]; var setGpsError = gpsErrorState[1];
+
+  function applyGpsPickup(latitude, longitude) {
+    Location.reverseGeocodeAsync({ latitude: latitude, longitude: longitude }).then(function(result) {
+      var addr = (result && result[0]) || {};
+      var label = ((addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || '')).trim() || 'Position actuelle';
+      setPickup({ address: label, coordinates: { latitude: latitude, longitude: longitude } });
+      setPickupAddress(label);
+      setGpsLoading(false);
+      setGpsError(false);
+    }).catch(function() {
+      setPickup({ address: 'Position actuelle', coordinates: { latitude: latitude, longitude: longitude } });
+      setPickupAddress('Position actuelle');
+      setGpsLoading(false);
+      setGpsError(false);
+    });
+  }
 
   useEffect(function() {
+    // 1. If the previous screen passed a fresh location, use it immediately.
     if (currentLocation) {
-      Location.reverseGeocodeAsync({ latitude: currentLocation.latitude, longitude: currentLocation.longitude }).then(function(result) {
-        if (result && result[0]) {
-          var addr = result[0];
-          var address = (addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || '');
-          setPickup({ address: address.trim() || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
-          setPickupAddress(address.trim() || 'Position actuelle');
-        }
-      }).catch(function() {
-        setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
-        setPickupAddress('Position actuelle');
-      });
+      applyGpsPickup(currentLocation.latitude, currentLocation.longitude);
+      return;
     }
+    // 2. Otherwise request permission and fetch a fresh fix here. This is the
+    //    case that previously left pickup empty and forced the rider into
+    //    the autocomplete (which led to imprecise commune-centroid pins).
+    Location.requestForegroundPermissionsAsync().then(function(perm) {
+      if (perm.status !== 'granted') {
+        setGpsLoading(false);
+        setGpsError(true);
+        setPickupSource('manual');
+        return;
+      }
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(loc) {
+        applyGpsPickup(loc.coords.latitude, loc.coords.longitude);
+      }).catch(function() {
+        setGpsLoading(false);
+        setGpsError(true);
+        setPickupSource('manual');
+      });
+    }).catch(function() {
+      setGpsLoading(false);
+      setGpsError(true);
+      setPickupSource('manual');
+    });
   }, []);
+
+  function switchToManualPickup() {
+    setPickup(null);
+    setPickupAddress('');
+    setPickupSource('manual');
+  }
+
+  function switchToGpsPickup() {
+    setGpsLoading(true);
+    setPickupSource('gps');
+    if (currentLocation) {
+      applyGpsPickup(currentLocation.latitude, currentLocation.longitude);
+      return;
+    }
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(loc) {
+      applyGpsPickup(loc.coords.latitude, loc.coords.longitude);
+    }).catch(function() {
+      setGpsLoading(false);
+      setGpsError(true);
+      setPickupSource('manual');
+    });
+  }
 
   function haversineDistance(lat1, lon1, lat2, lon2) {
     var R = 6371; var dLat = (lat2 - lat1) * Math.PI / 180; var dLon = (lon2 - lon1) * Math.PI / 180;
@@ -110,14 +167,46 @@ function ColisScreen(props) {
             <View style={styles.dotGreen} />
             <View style={styles.addressInputWrap}>
               <Text style={styles.addressLabel}>Point de retrait</Text>
-              {pickup ? (
-                <TouchableOpacity onPress={function() { setPickup(null); setPickupAddress(''); }}>
-                  <Text style={styles.addressSet} numberOfLines={1}>{pickup.address}</Text>
-                </TouchableOpacity>
+              {pickupSource === 'gps' ? (
+                <View>
+                  {gpsLoading ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}>
+                      <ActivityIndicator size="small" color={COLORS.green} />
+                      <Text style={{ marginLeft: 8, color: COLORS.textLightMuted, fontSize: 13 }}>Localisation en cours...</Text>
+                    </View>
+                  ) : pickup ? (
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,133,63,0.12)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 6 }}>
+                        <Text style={{ fontSize: 12 }}>{'\uD83D\uDCCD'}</Text>
+                        <Text style={{ marginLeft: 6, color: COLORS.green, fontSize: 11, fontFamily: 'LexendDeca_600SemiBold' }}>Ma position actuelle</Text>
+                      </View>
+                      <Text style={styles.addressSet} numberOfLines={2}>{pickup.address}</Text>
+                      <TouchableOpacity onPress={switchToManualPickup} style={{ marginTop: 6 }}>
+                        <Text style={{ color: COLORS.textLightMuted, fontSize: 12, textDecorationLine: 'underline' }}>{"J'envoie depuis ailleurs"}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : null}
+                </View>
               ) : (
-                <NominatimAutocomplete placeholder="Adresse de retrait"
-                  onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
-                  styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
+                <View>
+                  <View style={{ backgroundColor: 'rgba(255,193,7,0.12)', borderLeftWidth: 3, borderLeftColor: '#FFC107', padding: 8, marginBottom: 8, borderRadius: 6 }}>
+                    <Text style={{ color: '#FFC107', fontSize: 11, fontFamily: 'LexendDeca_500Medium' }}>{"\u26A0\uFE0F  Donnez le nom de rue ou un rep\u00e8re pour une livraison pr\u00e9cise"}</Text>
+                  </View>
+                  {pickup ? (
+                    <TouchableOpacity onPress={function() { setPickup(null); setPickupAddress(''); }}>
+                      <Text style={styles.addressSet} numberOfLines={2}>{pickup.address}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <NominatimAutocomplete placeholder="Ex: Cite Keur Gorgui, en face mosquee"
+                      onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
+                      styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
+                  )}
+                  {!gpsError && (
+                    <TouchableOpacity onPress={switchToGpsPickup} style={{ marginTop: 6 }}>
+                      <Text style={{ color: COLORS.green, fontSize: 12, textDecorationLine: 'underline' }}>{"\uD83D\uDCCD Utiliser ma position actuelle"}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </View>
           </View>
