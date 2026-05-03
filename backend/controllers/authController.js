@@ -1,7 +1,7 @@
 ﻿var Partner = require('../models/Partner');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../services/emailService');
 const Rider = require('../models/Rider');
 const Driver = require('../models/Driver');
 const OTP = require('../models/OTP');
@@ -514,16 +514,7 @@ exports.forgotPin = async (req, res) => {
     var otp = generateOTP();
     await OTP.create({ phone: phone, otp: otp, expiresAt: new Date(Date.now() + 10 * 60 * 1000) });
 
-    var transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    await transporter.sendMail({
-      from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
+    await sendEmail({
       to: user.email,
       subject: 'Réinitialisation de votre PIN TeranGO',
       html: '<div style="font-family:Arial,sans-serif;max-width:400px;margin:0 auto;padding:20px;"><h2 style="color:#4CD964;">TeranGO</h2><p>Votre code de réinitialisation:</p><h1 style="text-align:center;color:#4CD964;font-size:36px;letter-spacing:8px;">' + otp + '</h1><p>Ce code expire dans 10 minutes.</p></div>'

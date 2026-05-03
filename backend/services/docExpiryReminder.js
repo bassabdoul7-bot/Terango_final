@@ -6,7 +6,7 @@
 const Driver = require('../models/Driver');
 const User = require('../models/User');
 const { sendPushNotification } = require('./pushService');
-const nodemailer = require('nodemailer');
+const { sendEmail: sendEmailViaResend } = require('./emailService');
 
 // Buckets in days. 0 = day-of expiry. Order matters: cron applies the
 // LARGEST applicable bucket first, marks it sent, and skips any smaller
@@ -64,18 +64,8 @@ function buildMessage(label, days, isExpired) {
 }
 
 async function sendEmail(to, subject, body) {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return;
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
-    await transporter.sendMail({
-      from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
-      to: to,
-      subject: subject,
-      text: body
-    });
+    await sendEmailViaResend({ to: to, subject: subject, text: body });
   } catch (e) {
     console.error('[docExpiry] email send failed:', e.message);
   }

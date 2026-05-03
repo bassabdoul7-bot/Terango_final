@@ -6,7 +6,7 @@ const Rider = require('../models/Rider');
 const Ride = require('../models/Ride');
 const Broadcast = require('../models/Broadcast');
 const { sendPushNotification } = require('../services/pushService');
-const nodemailer = require('nodemailer');
+const { sendEmail } = require('../services/emailService');
 
 // @desc    Get dashboard statistics
 // @route   GET /api/admin/dashboard
@@ -537,13 +537,7 @@ async function processBroadcastInBackground(broadcastId, users, channels, title,
     await Broadcast.findByIdAndUpdate(broadcastId, { pushSent: pushSent, pushFailed: pushFailed });
   }
 
-  if (channels.includes('email') && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-      pool: true,
-      maxConnections: 5
-    });
+  if (channels.includes('email') && process.env.RESEND_API_KEY) {
     const html = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">' +
       '<h2 style="color:#00853F;margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>' +
       '<div style="font-size:15px;line-height:1.5;color:#333;white-space:pre-wrap;">' + escapeHtml(body) + '</div>' +
@@ -551,21 +545,22 @@ async function processBroadcastInBackground(broadcastId, users, channels, title,
       '<p style="font-size:11px;color:#999;">TeranGO — Vous recevez cet email car vous avez créé un compte. Pour ne plus recevoir ces messages, répondez "STOP".</p>' +
       '</div>';
     const queue = users.filter(u => u.email);
+    // Resend free tier: 2 req/sec rate limit. Keep concurrency low and pace.
     async function worker() {
       while (queue.length > 0) {
         const u = queue.shift();
         if (!u) break;
         try {
-          await transporter.sendMail({
-            from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
-            to: u.email, subject: title, text: body, html: html
-          });
+          await sendEmail({ to: u.email, subject: title, text: body, html: html });
           emailSent++;
-        } catch (e) { emailFailed++; }
+        } catch (e) {
+          emailFailed++;
+          if (emailFailed <= 3) console.error('[broadcast] email failed:', e.message);
+        }
+        await new Promise(function(r) { setTimeout(r, 600); }); // ~1.6 req/s per worker
       }
     }
-    await Promise.all([worker(), worker(), worker(), worker(), worker()]);
-    transporter.close();
+    await Promise.all([worker(), worker()]);
     await Broadcast.findByIdAndUpdate(broadcastId, { emailSent: emailSent, emailFailed: emailFailed });
   }
 
