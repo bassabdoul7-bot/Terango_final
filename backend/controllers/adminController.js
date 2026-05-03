@@ -480,56 +480,8 @@ exports.sendBroadcast = async (req, res) => {
 
     const users = await User.find(roleFilter, 'name email role pushToken driverPushToken riderPushToken').lean();
 
-    let pushSent = 0, pushFailed = 0, emailSent = 0, emailFailed = 0;
-
-    // Push delivery — sequential but with small concurrency window
-    if (channels.includes('push')) {
-      for (const u of users) {
-        try {
-          // Pick role-specific token (driverPushToken for drivers, etc.) with legacy fallback
-          const role = u.role; // 'rider' or 'driver'
-          await sendPushNotification(u._id, title, body, { type: 'broadcast' }, role);
-          pushSent++;
-        } catch (e) {
-          pushFailed++;
-        }
-      }
-    }
-
-    // Email delivery — Gmail SMTP via nodemailer
-    if (channels.includes('email')) {
-      let transporter = null;
-      if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-        });
-      }
-      if (transporter) {
-        const html = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">' +
-          '<h2 style="color:#00853F;margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>' +
-          '<div style="font-size:15px;line-height:1.5;color:#333;white-space:pre-wrap;">' + escapeHtml(body) + '</div>' +
-          '<hr style="margin:24px 0;border:none;border-top:1px solid #eee;">' +
-          '<p style="font-size:11px;color:#999;">TeranGO — Vous recevez cet email car vous avez créé un compte. Pour ne plus recevoir ces messages, répondez "STOP".</p>' +
-          '</div>';
-        for (const u of users) {
-          if (!u.email) continue;
-          try {
-            await transporter.sendMail({
-              from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
-              to: u.email,
-              subject: title,
-              text: body,
-              html: html
-            });
-            emailSent++;
-          } catch (e) {
-            emailFailed++;
-          }
-        }
-      }
-    }
-
+    // Create Broadcast doc immediately and respond to client; the actual
+    // sending runs in background and updates this doc as it progresses.
     const broadcast = await Broadcast.create({
       audience: audience,
       channels: channels,
@@ -537,22 +489,79 @@ exports.sendBroadcast = async (req, res) => {
       body: body,
       sentBy: req.user._id,
       sentByName: req.user.name || '',
-      pushSent: pushSent,
-      pushFailed: pushFailed,
-      emailSent: emailSent,
-      emailFailed: emailFailed
+      pushSent: 0, pushFailed: 0, emailSent: 0, emailFailed: 0
     });
 
     res.json({
       success: true,
       broadcast: broadcast,
-      summary: { pushSent, pushFailed, emailSent, emailFailed, totalUsers: users.length }
+      summary: { totalUsers: users.length, processing: true }
+    });
+
+    // Fire-and-forget background processor
+    processBroadcastInBackground(broadcast._id, users, channels, title, body).catch(function(e) {
+      console.error('processBroadcastInBackground error:', e.message);
     });
   } catch (error) {
     console.error('Send Broadcast Error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };
+
+async function processBroadcastInBackground(broadcastId, users, channels, title, body) {
+  let pushSent = 0, pushFailed = 0, emailSent = 0, emailFailed = 0;
+
+  if (channels.includes('push')) {
+    // Concurrency: 10 in flight at a time
+    const queue = users.slice();
+    async function worker() {
+      while (queue.length > 0) {
+        const u = queue.shift();
+        if (!u) break;
+        try {
+          await sendPushNotification(u._id, title, body, { type: 'broadcast' }, u.role);
+          pushSent++;
+        } catch (e) { pushFailed++; }
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker(), worker()]);
+    await Broadcast.findByIdAndUpdate(broadcastId, { pushSent: pushSent, pushFailed: pushFailed });
+  }
+
+  if (channels.includes('email') && process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      pool: true,
+      maxConnections: 5
+    });
+    const html = '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;">' +
+      '<h2 style="color:#00853F;margin:0 0 12px 0;">' + escapeHtml(title) + '</h2>' +
+      '<div style="font-size:15px;line-height:1.5;color:#333;white-space:pre-wrap;">' + escapeHtml(body) + '</div>' +
+      '<hr style="margin:24px 0;border:none;border-top:1px solid #eee;">' +
+      '<p style="font-size:11px;color:#999;">TeranGO — Vous recevez cet email car vous avez créé un compte. Pour ne plus recevoir ces messages, répondez "STOP".</p>' +
+      '</div>';
+    const queue = users.filter(u => u.email);
+    async function worker() {
+      while (queue.length > 0) {
+        const u = queue.shift();
+        if (!u) break;
+        try {
+          await transporter.sendMail({
+            from: '"TeranGO" <' + process.env.EMAIL_USER + '>',
+            to: u.email, subject: title, text: body, html: html
+          });
+          emailSent++;
+        } catch (e) { emailFailed++; }
+      }
+    }
+    await Promise.all([worker(), worker(), worker(), worker(), worker()]);
+    transporter.close();
+    await Broadcast.findByIdAndUpdate(broadcastId, { emailSent: emailSent, emailFailed: emailFailed });
+  }
+
+  console.log('[broadcast] ' + broadcastId + ' done: push ' + pushSent + '/' + pushFailed + ' email ' + emailSent + '/' + emailFailed);
+}
 
 // @desc    Get past broadcasts
 // @route   GET /api/admin/broadcasts
