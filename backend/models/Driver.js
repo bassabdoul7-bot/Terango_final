@@ -86,9 +86,9 @@ var driverSchema = new mongoose.Schema({
   },
   acceptedServices: {
     rides: { type: Boolean, default: true },
-    colis: { type: Boolean, default: false },
-    commande: { type: Boolean, default: false },
-    resto: { type: Boolean, default: false }
+    colis: { type: Boolean, default: true },
+    commande: { type: Boolean, default: true },
+    resto: { type: Boolean, default: true }
   },
   currentLocation: {
     type: { type: String, enum: ['Point'], default: 'Point' },

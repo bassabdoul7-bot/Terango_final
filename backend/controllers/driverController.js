@@ -456,10 +456,21 @@ exports.updateServicePreferences = function(req, res) {
         return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
       }
 
-      if (req.body.rides !== undefined) driver.acceptedServices.rides = req.body.rides;
+      // Moto drivers are delivery-only — passenger rides are not offered to motos.
+      var isMoto = driver.vehicleType === 'moto';
+
+      if (req.body.rides !== undefined) {
+        if (isMoto && req.body.rides === true) {
+          return res.status(400).json({ success: false, message: 'Les motos ne peuvent pas accepter de courses passager' });
+        }
+        driver.acceptedServices.rides = isMoto ? false : req.body.rides;
+      }
       if (req.body.colis !== undefined) driver.acceptedServices.colis = req.body.colis;
       if (req.body.commande !== undefined) driver.acceptedServices.commande = req.body.commande;
       if (req.body.resto !== undefined) driver.acceptedServices.resto = req.body.resto;
+
+      // Ensure motos always have rides off, regardless of stored state
+      if (isMoto) driver.acceptedServices.rides = false;
 
       return driver.save();
     })

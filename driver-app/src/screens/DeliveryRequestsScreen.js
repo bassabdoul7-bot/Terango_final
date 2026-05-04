@@ -104,7 +104,10 @@ const RideRequestsScreen = ({ navigation, route }) => {
 
       {showFilters && (
         <View style={styles.filterBar}>
-          {[{key:'rides',label:'Courses',icon:'\uD83D\uDE97'},{key:'colis',label:'Colis',icon:'\uD83D\uDCE6'},{key:'commande',label:'Commandes',icon:'\uD83D\uDED2'},{key:'resto',label:'Restaurant',icon:'\uD83C\uDF7D\uFE0F'}].map((svc) => (
+          {(driver && driver.vehicleType === 'moto'
+            ? [{key:'colis',label:'Colis',icon:'\uD83D\uDCE6'},{key:'commande',label:'Commandes',icon:'\uD83D\uDED2'},{key:'resto',label:'Restaurant',icon:'\uD83C\uDF7D\uFE0F'}]
+            : [{key:'rides',label:'Courses',icon:'\uD83D\uDE97'},{key:'colis',label:'Colis',icon:'\uD83D\uDCE6'},{key:'commande',label:'Commandes',icon:'\uD83D\uDED2'},{key:'resto',label:'Restaurant',icon:'\uD83C\uDF7D\uFE0F'}]
+          ).map((svc) => (
             <TouchableOpacity key={svc.key} style={[styles.filterChip, activeServices[svc.key] && styles.filterChipActive]} onPress={() => toggleService(svc.key)}>
               <Text style={styles.filterChipIcon}>{svc.icon}</Text><Text style={[styles.filterChipLabel, activeServices[svc.key] && styles.filterChipLabelActive]}>{svc.label}</Text>
             </TouchableOpacity>
