@@ -105,10 +105,10 @@ jobs:
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64_DRIVER }}" | base64 -d > android/app/upload-keystore.jks
 
-      - name: Build AAB
+      - name: Build AAB + APK
         working-directory: driver-app/android
         run: |
-          ./gradlew bundleRelease \
+          ./gradlew bundleRelease assembleRelease \
             -x lintVitalAnalyzeRelease -x lintVitalRelease -x lintVitalReportRelease \
             -Pandroid.injected.signing.store.file=${{ github.workspace }}/driver-app/android/app/upload-keystore.jks \
             -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD_DRIVER }} \
@@ -120,3 +120,9 @@ jobs:
         with:
           name: terango-driver.aab
           path: driver-app/android/app/build/outputs/bundle/release/*.aab
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: terango-driver.apk
+          path: driver-app/android/app/build/outputs/apk/release/*.apk
