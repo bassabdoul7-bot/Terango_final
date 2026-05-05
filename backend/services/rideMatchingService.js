@@ -592,9 +592,17 @@ class RideMatchingService {
   async handleDriverRejection(rideId, driverId) {
     try {
       const offerData = this.pendingOffers.get(rideId);
-      if (!offerData || offerData.currentDriverId !== driverId) return;
+      console.log('[handleReject] rideId=' + rideId + ' driverId=' + driverId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
+      if (!offerData) {
+        console.log('[handleReject] EARLY RETURN: no offerData (pendingOffers cleared already)');
+        return;
+      }
+      if (offerData.currentDriverId !== driverId) {
+        console.log('[handleReject] EARLY RETURN: currentDriverId=' + offerData.currentDriverId + ' (' + typeof offerData.currentDriverId + ') !== driverId=' + driverId + ' (' + typeof driverId + ')');
+        return;
+      }
 
-      console.log(`? Driver ${driverId} rejected ride ${rideId}`);
+      console.log(`[handleReject] Driver ${driverId} rejected ride ${rideId} — adding to rejectedDrivers`);
 
       if (!offerData.rejectedDrivers.includes(driverId)) {
         offerData.rejectedDrivers.push(driverId);
