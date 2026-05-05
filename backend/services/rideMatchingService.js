@@ -94,15 +94,21 @@ class RideMatchingService {
     for (var entry of this.pendingOffers.entries()) {
       var rideId = entry[0];
       var offerData = entry[1];
-      if (offerData && offerData.currentDriverId && offerData.currentDriverId.toString() === targetId) {
-        var driverEntry = (offerData.driversList || []).find(function(d) { return d.driverId === targetId; });
-        return Object.assign({}, offerData.rideData || {}, {
-          rideId: rideId,
-          distanceToPickup: driverEntry ? driverEntry.distance : null,
-          offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT,
-          willBeQueued: offerData.tier === 'queue'
-        });
-      }
+      if (!offerData || !offerData.currentDriverId) continue;
+      if (offerData.currentDriverId.toString() !== targetId) continue;
+      // Skip if this driver already rejected (or auto-timed-out) — otherwise
+      // the offer reappears for them while the retry timer waits to find a
+      // new batch of drivers, which causes the "rejected offer keeps coming
+      // back" bug.
+      var rejected = offerData.rejectedDrivers || [];
+      if (rejected.indexOf(targetId) !== -1) continue;
+      var driverEntry = (offerData.driversList || []).find(function(d) { return d.driverId === targetId; });
+      return Object.assign({}, offerData.rideData || {}, {
+        rideId: rideId,
+        distanceToPickup: driverEntry ? driverEntry.distance : null,
+        offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT,
+        willBeQueued: offerData.tier === 'queue'
+      });
     }
     return null;
   }
