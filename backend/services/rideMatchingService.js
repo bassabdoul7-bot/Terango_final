@@ -659,9 +659,12 @@ class RideMatchingService {
   async cancelRideOffers(rideId) {
     // Notify currently offered driver BEFORE cleanup
     var offerData = this.pendingOffers.get(rideId);
+    console.log('[cancelRideOffers] rideId=' + rideId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
     if (offerData && offerData.currentDriverId) {
-      console.log('Notifying driver ' + offerData.currentDriverId + ' of cancellation');
-      this.io.to('driver-' + offerData.currentDriverId).emit('ride-cancelled', { rideId: rideId, message: 'Le passager a annul\u00e9 la course' });
+      var room = 'driver-' + offerData.currentDriverId;
+      var socketsInRoom = this.io.sockets.adapter.rooms.get(room);
+      console.log('[cancelRideOffers] Emitting ride-cancelled to room ' + room + ' (sockets: ' + (socketsInRoom ? socketsInRoom.size : 0) + ')');
+      this.io.to(room).emit('ride-cancelled', { rideId: rideId, message: 'Le passager a annul\u00e9 la course' });
     }
     // Also notify all drivers that were offered this ride
     if (offerData && offerData.driversList) {
