@@ -338,9 +338,11 @@ exports.acceptRide = async (req, res) => {
 exports.rejectRide = async (req, res) => {
   try {
     const { reason } = req.body;
+    console.log('[rejectRide] HIT — userId=' + req.user._id + ', rideId=' + req.params.id + ', reason=' + (reason || 'none'));
     const driver = await Driver.findOne({ userId: req.user._id });
 
     if (!driver) {
+      console.log('[rejectRide] No driver profile for userId ' + req.user._id);
       return res.status(404).json({
         success: false,
         message: 'Profil chauffeur non trouv\u00e9'
@@ -350,6 +352,7 @@ exports.rejectRide = async (req, res) => {
     const matchingService = req.app.get('matchingService');
     await matchingService.handleDriverRejection(req.params.id, driver._id.toString());
 
+    console.log('[rejectRide] Done — driverId=' + driver._id);
     res.status(200).json({
       success: true,
       message: 'Course rejet\u00e9e'
