@@ -456,7 +456,8 @@ exports.updateServicePreferences = function(req, res) {
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
-        return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+        res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
+        return null;
       }
 
       // Moto drivers are delivery-only — passenger rides are not offered to motos.
@@ -464,7 +465,8 @@ exports.updateServicePreferences = function(req, res) {
 
       if (req.body.rides !== undefined) {
         if (isMoto && req.body.rides === true) {
-          return res.status(400).json({ success: false, message: 'Les motos ne peuvent pas accepter de courses passager' });
+          res.status(400).json({ success: false, message: 'Les motos ne peuvent pas accepter de courses passager' });
+          return null; // signal to skip the success branch
         }
         driver.acceptedServices.rides = isMoto ? false : req.body.rides;
       }
@@ -478,17 +480,16 @@ exports.updateServicePreferences = function(req, res) {
       return driver.save();
     })
     .then(function(driver) {
-      if (driver) {
-        res.status(200).json({
-          success: true,
-          acceptedServices: driver.acceptedServices,
-          message: 'Preferences mises a jour'
-        });
-      }
+      if (!driver) return; // 404 or 400 already responded
+      res.status(200).json({
+        success: true,
+        acceptedServices: driver.acceptedServices,
+        message: 'Preferences mises a jour'
+      });
     })
     .catch(function(error) {
       console.error('Update Preferences Error:', error);
-      res.status(500).json({ success: false, message: 'Erreur' });
+      if (!res.headersSent) res.status(500).json({ success: false, message: 'Erreur' });
     });
 };
 
