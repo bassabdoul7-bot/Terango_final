@@ -324,6 +324,19 @@ const HomeScreen = ({ navigation }) => {
     } catch (e) {}
   };
 
+  const playGoOnlineCue = async () => {
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const { sound } = await Audio.Sound.createAsync(
+        require('../../assets/sounds/go-online.mp3'),
+        { shouldPlay: true, volume: 0.9 }
+      );
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) { sound.unloadAsync().catch(() => {}); }
+      });
+    } catch (e) {}
+  };
+
   const goOnlineWithLocation = () => {
     if (!driverId) { Alert.alert('Erreur', 'Profil chauffeur introuvable'); setLoading(false); return; }
     driverService.toggleOnlineStatus(true, location.latitude, location.longitude).then(() => {
@@ -336,6 +349,7 @@ const HomeScreen = ({ navigation }) => {
       isOnlineRef.current = true;
       fetchEarnings();
       startLocationPolling();
+      playGoOnlineCue();
     }).catch((error) => {
       Alert.alert('Erreur', error.response && error.response.data ? error.response.data.message : 'Impossible de passer en ligne');
     }).finally(() => setLoading(false));
