@@ -603,17 +603,8 @@ class RideMatchingService {
     driverId = String(driverId);
     try {
       const offerData = this.pendingOffers.get(rideId);
-      console.log('[handleReject] rideId=' + rideId + ' driverId=' + driverId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
-      if (!offerData) {
-        console.log('[handleReject] EARLY RETURN: no offerData (pendingOffers cleared already)');
-        return;
-      }
-      if (offerData.currentDriverId !== driverId) {
-        console.log('[handleReject] EARLY RETURN: currentDriverId=' + offerData.currentDriverId + ' (' + typeof offerData.currentDriverId + ') !== driverId=' + driverId + ' (' + typeof driverId + ')');
-        return;
-      }
-
-      console.log(`[handleReject] Driver ${driverId} rejected ride ${rideId} — adding to rejectedDrivers`);
+      if (!offerData) return;
+      if (offerData.currentDriverId !== driverId) return;
 
       if (!offerData.rejectedDrivers.includes(driverId)) {
         offerData.rejectedDrivers.push(driverId);
@@ -671,13 +662,9 @@ class RideMatchingService {
 
   async cancelRideOffers(rideId) {
     rideId = String(rideId);
-    // Notify currently offered driver BEFORE cleanup
     var offerData = this.pendingOffers.get(rideId);
-    console.log('[cancelRideOffers] rideId=' + rideId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
     if (offerData && offerData.currentDriverId) {
       var room = 'driver-' + offerData.currentDriverId;
-      var socketsInRoom = this.io.sockets.adapter.rooms.get(room);
-      console.log('[cancelRideOffers] Emitting ride-cancelled to room ' + room + ' (sockets: ' + (socketsInRoom ? socketsInRoom.size : 0) + ')');
       this.io.to(room).emit('ride-cancelled', { rideId: rideId, message: 'Le passager a annul\u00e9 la course' });
     }
     // Also notify all drivers that were offered this ride
