@@ -160,10 +160,11 @@ class RideMatchingService {
    * Check if ride is still searchable (pending and not timed out)
    */
   isRideStillSearching(rideId) {
-    return this.searchTimeouts.has(rideId);
+    return this.searchTimeouts.has(String(rideId));
   }
 
   async offerRideToDrivers(rideId, pickupCoords, rideData) {
+    rideId = String(rideId);
     try {
       const startTime = Date.now();
 
@@ -180,6 +181,7 @@ class RideMatchingService {
   }
 
   async blastNotifyNearbyDrivers(rideId, pickupCoords, rideData) {
+    rideId = String(rideId);
     try {
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') return;
@@ -236,6 +238,7 @@ class RideMatchingService {
   }
 
   async searchAndOfferToDrivers(rideId, pickupCoords, rideData, attempt) {
+    rideId = String(rideId);
     var rideType = rideData.rideType || null;
     try {
       // CRITICAL: Check if search was cancelled (ride accepted/cancelled)
@@ -322,6 +325,7 @@ class RideMatchingService {
   }
 
   async offerToNextDriver(rideId, driversList, currentIndex, rideData, pickupCoords) {
+    rideId = String(rideId);
     try {
       // CRITICAL: Check if search was cancelled
       if (!this.isRideStillSearching(rideId)) {
@@ -368,7 +372,6 @@ class RideMatchingService {
       offerData.rideData = rideData;
       offerData.pickupCoords = pickupCoords;
       this.pendingOffers.set(rideId, offerData);
-      console.log('[offerToNextDriver] AFTER set: pendingOffers has=' + this.pendingOffers.has(rideId) + ' currentDriverId=' + (this.pendingOffers.get(rideId) || {}).currentDriverId);
 
       const willBeQueued = (this.pendingOffers.get(rideId) || {}).tier === 'queue';
       const offerPayload = {
@@ -407,6 +410,7 @@ class RideMatchingService {
   }
 
   async markNoDriversAvailable(rideId) {
+    rideId = String(rideId);
     try {
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') {
@@ -447,6 +451,8 @@ class RideMatchingService {
   }
 
   async handleDriverAcceptance(rideId, driverId) {
+    rideId = String(rideId);
+    driverId = String(driverId);
     try {
       // Use atomic update - only accept if still pending
             // Check if either rider or driver has PIN enabled
@@ -529,6 +535,8 @@ class RideMatchingService {
   }
 
   async handleQueuedAcceptance(rideId, driverId, pinRequired, securityPin) {
+    rideId = String(rideId);
+    driverId = String(driverId);
     try {
       const driverClaimed = await Driver.findOneAndUpdate(
         { _id: driverId, queueEnabled: true, 'queuedJob.refId': null },
@@ -591,6 +599,8 @@ class RideMatchingService {
   }
 
   async handleDriverRejection(rideId, driverId) {
+    rideId = String(rideId);
+    driverId = String(driverId);
     try {
       const offerData = this.pendingOffers.get(rideId);
       console.log('[handleReject] rideId=' + rideId + ' driverId=' + driverId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
@@ -628,7 +638,8 @@ class RideMatchingService {
    * CRITICAL: Cleanup ALL timeouts for a ride
    */
   cleanupSearch(rideId) {
-    console.log(`?? Cleaning up all timeouts for ride ${rideId} — caller stack: ${new Error().stack.split('\n').slice(1, 4).map(l => l.trim()).join(' | ')}`);
+    rideId = String(rideId);
+    console.log(`?? Cleaning up all timeouts for ride ${rideId}`);
 
     // Clear offer timeout
     this.clearOfferTimeout(rideId);
@@ -650,6 +661,7 @@ class RideMatchingService {
   }
 
   clearOfferTimeout(rideId) {
+    rideId = String(rideId);
     const timeout = this.offerTimeouts.get(rideId);
     if (timeout) {
       clearTimeout(timeout);
@@ -658,6 +670,7 @@ class RideMatchingService {
   }
 
   async cancelRideOffers(rideId) {
+    rideId = String(rideId);
     // Notify currently offered driver BEFORE cleanup
     var offerData = this.pendingOffers.get(rideId);
     console.log('[cancelRideOffers] rideId=' + rideId + ' offerExists=' + !!offerData + ' currentDriverId=' + (offerData && offerData.currentDriverId));
