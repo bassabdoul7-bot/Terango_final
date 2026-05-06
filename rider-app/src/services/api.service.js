@@ -57,6 +57,11 @@ export var driverService = {
   getNearbyDrivers: function(latitude, longitude, radius) { var r = radius || 10; return api.get('/drivers/nearby?latitude=' + latitude + '&longitude=' + longitude + '&radius=' + r); },
 };
 
+export var geocodeService = {
+  search: function(q, lat, lng) { return api.get('/geocode/search', { params: { q: q, lat: lat, lng: lng } }); },
+  reverse: function(lat, lng) { return api.get('/geocode/reverse', { params: { lat: lat, lng: lng } }); },
+};
+
 export var deliveryService = {
   getEstimate: function(serviceType, distance, size) { return api.post('/deliveries/estimate', { serviceType: serviceType, distance: distance, size: size }); },
   createDelivery: function(data) { return api.post('/deliveries/create', data); },

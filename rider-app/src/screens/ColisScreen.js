@@ -198,6 +198,7 @@ function ColisScreen(props) {
                     </TouchableOpacity>
                   ) : (
                     <NominatimAutocomplete placeholder="Ex: Cite Keur Gorgui, en face mosquee"
+                      userLocation={pickup && pickup.coordinates ? pickup.coordinates : null}
                       onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
                       styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
                   )}
@@ -221,6 +222,7 @@ function ColisScreen(props) {
                 </TouchableOpacity>
               ) : (
                 <NominatimAutocomplete placeholder="Adresse de livraison"
+                  userLocation={pickup && pickup.coordinates ? pickup.coordinates : null}
                   onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }}
                   styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
               )}

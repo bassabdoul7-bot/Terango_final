@@ -12,12 +12,14 @@ const ConfirmDropoffScreen = ({ route, navigation }) => {
   if (!dropoff || !dropoff.coordinates) {
     return (<View style={{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:'#d4f0c8'}}><Text style={{fontSize:16,color:'#1A1A1A'}}>Chargement...</Text></View>);
   }
+  const isFreeText = !!(dropoff && dropoff.freeText);
   const [pin, setPin] = useState({
     latitude: dropoff.coordinates.latitude,
     longitude: dropoff.coordinates.longitude,
   });
   const [address, setAddress] = useState(dropoff.address);
   const [loading, setLoading] = useState(false);
+  const [hasRefined, setHasRefined] = useState(!isFreeText);
   const cameraRef = useRef(null);
 
   
@@ -27,7 +29,8 @@ const ConfirmDropoffScreen = ({ route, navigation }) => {
       if (cameraRef.current) {
         var lat = dropoff.coordinates.latitude;
         var lon = dropoff.coordinates.longitude;
-        var delta = 0.005;
+        // Zoom out a bit when free-text — rider needs to find their dropoff manually
+        var delta = isFreeText ? 0.02 : 0.005;
         cameraRef.current.fitBounds(
           [lon - delta, lat - delta, lon + delta, lat + delta],
           {top: 120, right: 50, bottom: 200, left: 50},
@@ -72,6 +75,7 @@ const ConfirmDropoffScreen = ({ route, navigation }) => {
       var lon = lngLat[0];
       var lat = lngLat[1];
       setPin({ latitude: lat, longitude: lon });
+      setHasRefined(true);
       reverseGeocode(lat, lon);
     } catch (e) {
       console.log('Map press error:', e);
@@ -121,8 +125,8 @@ const ConfirmDropoffScreen = ({ route, navigation }) => {
       </View>
 
       {/* Instruction */}
-      <View style={styles.instructionBadge}>
-        <Text style={styles.instructionText}>Touchez la carte pour ajuster</Text>
+      <View style={[styles.instructionBadge, isFreeText && !hasRefined && styles.instructionBadgeUrgent]}>
+        <Text style={styles.instructionText}>{isFreeText && !hasRefined ? 'Touchez la carte pour indiquer le lieu exact' : 'Touchez la carte pour ajuster'}</Text>
       </View>
 
       {/* Bottom card */}
@@ -142,8 +146,8 @@ const ConfirmDropoffScreen = ({ route, navigation }) => {
             )}
           </View>
         </View>
-        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm} disabled={loading}>
-          <Text style={styles.confirmText}>Confirmer la destination</Text>
+        <TouchableOpacity style={[styles.confirmButton, (loading || !hasRefined) && styles.confirmButtonDisabled]} onPress={handleConfirm} disabled={loading || !hasRefined}>
+          <Text style={styles.confirmText}>{!hasRefined ? "Touchez la carte d'abord" : 'Confirmer la destination'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -201,6 +205,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+  },
+  instructionBadgeUrgent: {
+    backgroundColor: 'rgba(227,27,35,0.95)',
   },
   instructionText: {
     fontSize: 13,
@@ -280,6 +287,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     elevation: 4,
+  },
+  confirmButtonDisabled: {
+    backgroundColor: 'rgba(0,133,63,0.4)',
   },
   confirmText: {
     fontSize: 17,

@@ -1,8 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { View, TextInput, TouchableOpacity, Text, ActivityIndicator, Keyboard, StyleSheet, ScrollView } from 'react-native';
 import COLORS from '../constants/colors';
-
-const GEOCODE_URL = 'https://geocode.terango.sn';
+import { geocodeService } from '../services/api.service';
 
 const POPULAR_PLACES = [
   { primary: 'Aeroport Blaise Diagne (AIBD)', secondary: 'Diass, Thies', coordinates: { latitude: 14.6697, longitude: -17.0734 }, geometry: { location: { lat: 14.6697, lng: -17.0734 } }, type: 'aerodrome' },
@@ -115,7 +114,7 @@ const getIcon = (item) => {
   return '\uD83D\uDCCD';
 };
 
-const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange }) => {
+const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange, userLocation, allowFreeText }) => {
   const [query, setQuery] = useState(defaultValue || '');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -131,12 +130,30 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
     if (!query && results.length === 0) setShowPopular(true);
   };
 
+  const buildItem = (r) => {
+    var lat = typeof r.lat === 'number' ? r.lat : parseFloat(r.lat);
+    var lng = typeof r.lng === 'number' ? r.lng : parseFloat(r.lng != null ? r.lng : r.lon);
+    var fmt = formatAddress({ address: r.address, display_name: r.display_name, class: r.class, type: r.type });
+    var fullAddress = fmt.primary + (fmt.secondary ? ', ' + fmt.secondary : '');
+    return {
+      address: fullAddress,
+      coordinates: { latitude: lat, longitude: lng },
+      primary: fmt.primary,
+      secondary: fmt.secondary,
+      description: fullAddress,
+      geometry: { location: { lat: lat, lng: lng } },
+      class: r.class || '',
+      type: r.type || '',
+      confidence: r.confidence || 'exact',
+    };
+  };
+
   const search = useCallback((text) => {
     setQuery(text);
     setShowPopular(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.length < 2) {
-      var earlyMatches = POPULAR_PLACES.filter(function(p) { return p.primary.toLowerCase().includes(text.toLowerCase()); }).map(function(p) { return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary }); });
+      var earlyMatches = POPULAR_PLACES.filter(function(p) { return p.primary.toLowerCase().includes(text.toLowerCase()); }).map(function(p) { return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary, confidence: 'exact' }); });
       if (earlyMatches.length > 0) { updateResults(earlyMatches); } else { updateResults([]); }
       if (!text) setShowPopular(true);
       return;
@@ -146,71 +163,37 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
     var matchedPopular = POPULAR_PLACES.filter(function(p) {
       return p.primary.toLowerCase().includes(text.toLowerCase());
     }).map(function(p) {
-      return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary });
+      return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary, confidence: 'exact' });
     });
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       try {
         var fixedText = fixAccents(text);
-        var url = GEOCODE_URL + '/search?q=' + encodeURIComponent(fixedText) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1&viewbox=-17.6,14.85,-17.1,14.55&bounded=1';
-        var resp = await fetch(url);
-        var data = await resp.json();
+        var lat = userLocation && typeof userLocation.latitude === 'number' ? userLocation.latitude : null;
+        var lng = userLocation && typeof userLocation.longitude === 'number' ? userLocation.longitude : null;
+        var resp = await geocodeService.search(fixedText, lat, lng);
+        var items = (resp && resp.results ? resp.results : []).map(buildItem);
 
-        var items = data.map(function(r) {
-          var fmt = formatAddress(r);
-          var fullAddress = fmt.primary + (fmt.secondary ? ', ' + fmt.secondary : '');
-          return {
-            address: fullAddress, coordinates: { latitude: parseFloat(r.lat), longitude: parseFloat(r.lon) },
-            primary: fmt.primary, secondary: fmt.secondary, description: fullAddress,
-            geometry: { location: { lat: parseFloat(r.lat), lng: parseFloat(r.lon) } },
-            class: r.class || '', type: r.type || '',
-          };
-        });
-
-        // If we got a location result, also search for POIs near it
-        if (items.length > 0 && text.length >= 4) {
-          var topResult = items[0];
-          var lat = topResult.coordinates.latitude;
-          var lon = topResult.coordinates.longitude;
-          var delta = 0.01;
-          var poiUrl = GEOCODE_URL + '/search?q=' + encodeURIComponent(text) + '&format=json&limit=5&accept-language=fr&countrycodes=sn&addressdetails=1&viewbox=' + (lon - delta) + ',' + (lat + delta) + ',' + (lon + delta) + ',' + (lat - delta) + '&bounded=1';
-          try {
-            var poiResp = await fetch(poiUrl);
-            var poiData = await poiResp.json();
-            var poiItems = poiData.map(function(r) {
-              var fmt = formatAddress(r);
-              var fullAddress = fmt.primary + (fmt.secondary ? ', ' + fmt.secondary : '');
-              return {
-                address: fullAddress, coordinates: { latitude: parseFloat(r.lat), longitude: parseFloat(r.lon) },
-                primary: fmt.primary, secondary: fmt.secondary, description: fullAddress,
-                geometry: { location: { lat: parseFloat(r.lat), lng: parseFloat(r.lon) } },
-                class: r.class || '', type: r.type || '',
-              };
-            });
-            items = items.concat(poiItems);
-          } catch (e) {}
-        }
-
-        // Merge popular matches at the top
+        // Merge popular matches at the top, then de-dupe
         items = matchedPopular.concat(items);
         items = dedup(items);
 
-        if (items.length === 0 && fixedText !== text.toLowerCase()) {
-          var url2 = GEOCODE_URL + '/search?q=' + encodeURIComponent(text) + '&format=json&limit=8&accept-language=fr&countrycodes=sn&addressdetails=1&viewbox=-17.6,14.85,-17.1,14.55&bounded=1';
-          var resp2 = await fetch(url2);
-          var data2 = await resp2.json();
-          items = data2.map(function(r) {
-            var fmt = formatAddress(r);
-            var fullAddress = fmt.primary + (fmt.secondary ? ', ' + fmt.secondary : '');
-            return {
-              address: fullAddress, coordinates: { latitude: parseFloat(r.lat), longitude: parseFloat(r.lon) },
-              primary: fmt.primary, secondary: fmt.secondary, description: fullAddress,
-              geometry: { location: { lat: parseFloat(r.lat), lng: parseFloat(r.lon) } },
-              class: r.class || '', type: r.type || '',
-            };
+        // Free-text fallback — when allowed, append a synthetic option
+        // that the caller can detect by `freeText: true`. Used so the
+        // rider can proceed with informal addresses.
+        if (allowFreeText && items.length < 4) {
+          items.push({
+            address: text,
+            primary: text,
+            secondary: 'Utiliser ce texte',
+            description: text,
+            coordinates: lat != null && lng != null ? { latitude: lat, longitude: lng } : { latitude: 14.6928, longitude: -17.4467 },
+            geometry: { location: { lat: lat || 14.6928, lng: lng || -17.4467 } },
+            class: 'free', type: 'free',
+            confidence: 'approximate',
+            freeText: true,
           });
-          items = dedup(items);
         }
 
         updateResults(items.slice(0, 10));
@@ -221,7 +204,7 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
         setLoading(false);
       }
     }, 300);
-  }, []);
+  }, [userLocation, allowFreeText]);
 
   const handleSelect = (item) => {
     setQuery(item.address || item.primary);
@@ -229,20 +212,26 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
     setShowPopular(false);
     Keyboard.dismiss();
     var cb = onSelect || onPress;
-    if (cb) cb({ description: item.address || item.primary, geometry: item.geometry }, { geometry: item.geometry });
+    if (cb) cb(
+      { description: item.address || item.primary, geometry: item.geometry, confidence: item.confidence, freeText: !!item.freeText },
+      { geometry: item.geometry, confidence: item.confidence, freeText: !!item.freeText }
+    );
   };
 
-  const renderItem = (item, index, total) => (
-    <TouchableOpacity key={index} style={[styles.resultItem, index === total - 1 && { borderBottomWidth: 0 }]} onPress={() => handleSelect(item)}>
-      <View style={styles.iconWrap}>
-        <Text style={styles.iconText}>{getIcon(item)}</Text>
-      </View>
-      <View style={styles.resultTextWrap}>
-        <Text style={styles.resultPrimary} numberOfLines={1}>{item.primary}</Text>
-        {item.secondary ? <Text style={styles.resultSecondary} numberOfLines={1}>{item.secondary}</Text> : null}
-      </View>
-    </TouchableOpacity>
-  );
+  const renderItem = (item, index, total) => {
+    var icon = item.freeText ? '✏️' : getIcon(item);
+    return (
+      <TouchableOpacity key={index} style={[styles.resultItem, index === total - 1 && { borderBottomWidth: 0 }]} onPress={() => handleSelect(item)}>
+        <View style={[styles.iconWrap, item.freeText && styles.iconWrapFree]}>
+          <Text style={styles.iconText}>{icon}</Text>
+        </View>
+        <View style={styles.resultTextWrap}>
+          <Text style={styles.resultPrimary} numberOfLines={1}>{item.primary}</Text>
+          {item.secondary ? <Text style={[styles.resultSecondary, item.freeText && styles.resultSecondaryFree]} numberOfLines={1}>{item.secondary}</Text> : null}
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View>
@@ -294,10 +283,12 @@ var styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
+  iconWrapFree: { backgroundColor: 'rgba(212,175,55,0.18)' },
   iconText: { fontSize: 18 },
   resultTextWrap: { flex: 1 },
   resultPrimary: { fontSize: 15, color: '#FFFFFF', fontFamily: 'LexendDeca_500Medium' },
   resultSecondary: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: 'LexendDeca_400Regular', marginTop: 2 },
+  resultSecondaryFree: { color: COLORS.yellow },
 });
 
 export default NominatimAutocomplete;

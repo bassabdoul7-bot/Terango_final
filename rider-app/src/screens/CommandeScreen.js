@@ -98,7 +98,7 @@ function CommandeScreen(props) {
               {pickup ? (
                 <TouchableOpacity onPress={function() { setPickup(null); }}><View style={styles.addressSetRow}><View style={styles.dotOrange} /><Text style={styles.addressSetText} numberOfLines={1}>{pickup.address}</Text><Text style={styles.changeText}>Changer</Text></View></TouchableOpacity>
               ) : (
-                <NominatimAutocomplete placeholder="Adresse du magasin" onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
+                <NominatimAutocomplete placeholder="Adresse du magasin" userLocation={dropoff && dropoff.coordinates ? dropoff.coordinates : null} onPress={function(data, details) { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
               )}
             </View>
             <Text style={styles.fieldLabel}>{"Livrer \u00e0"}</Text>
@@ -106,7 +106,7 @@ function CommandeScreen(props) {
               {dropoff ? (
                 <TouchableOpacity onPress={function() { setDropoff(null); }}><View style={styles.addressSetRow}><View style={styles.dotGreen} /><Text style={styles.addressSetText} numberOfLines={1}>{dropoff.address}</Text><Text style={styles.changeText}>Changer</Text></View></TouchableOpacity>
               ) : (
-                <NominatimAutocomplete placeholder="Adresse de livraison" onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
+                <NominatimAutocomplete placeholder="Adresse de livraison" userLocation={pickup && pickup.coordinates ? pickup.coordinates : null} onPress={function(data, details) { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); }} styles={{ textInput: styles.gInput, listView: styles.gList, container: { flex: 0 } }} />
               )}
             </View>
             {pickup && dropoff && <TouchableOpacity style={styles.nextBtn} onPress={function() { setStep(2); }}><Text style={styles.nextBtnText}>Continuer</Text></TouchableOpacity>}

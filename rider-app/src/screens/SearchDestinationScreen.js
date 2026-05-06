@@ -4,6 +4,7 @@ import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
+import { geocodeService } from '../services/api.service';
 
 const RECENT_SEARCHES_KEY = '@recent_searches';
 const locationCache = {};
@@ -25,36 +26,18 @@ const SearchDestinationScreen = ({ route, navigation }) => {
     try {
       const cacheKey = currentLocation.latitude.toFixed(4) + ',' + currentLocation.longitude.toFixed(4);
       if (locationCache[cacheKey]) { setPickup(locationCache[cacheKey]); return; }
-      var url = 'https://geocode.terango.sn/reverse?lat=' + currentLocation.latitude + '&lon=' + currentLocation.longitude + '&format=json&addressdetails=1&accept-language=fr';
-      var resp = await fetch(url);
-      var data = await resp.json();
-      if (data && data.address) {
-        var addr = data.address;
-        var name = addr.tourism || addr.amenity || addr.shop || addr.building || addr.road || '';
-        var houseNumber = addr.house_number || '';
-        var road = addr.road || '';
-        var neighbourhood = addr.neighbourhood || addr.suburb || '';
-        var city = addr.city || addr.town || '';
-        var parts = [];
-        if (houseNumber && road) { parts.push(houseNumber + ' ' + road); }
-        else if (name) { parts.push(name); }
-        else if (road) { parts.push(road); }
-        if (neighbourhood && !parts.includes(neighbourhood)) parts.push(neighbourhood);
-        if (city && !parts.includes(city)) parts.push(city);
-        var address = parts.join(', ') || data.display_name.split(', ').slice(0, 3).join(', ');
-        var pickupData = { address: address || 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } };
-        locationCache[cacheKey] = pickupData;
-        setPickup(pickupData);
-      } else {
-        setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
-      }
+      var resp = await geocodeService.reverse(currentLocation.latitude, currentLocation.longitude);
+      var address = (resp && resp.result && resp.result.address) || 'Position actuelle';
+      var pickupData = { address: address, coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } };
+      locationCache[cacheKey] = pickupData;
+      setPickup(pickupData);
     } catch (e) {
       setPickup({ address: 'Position actuelle', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
     }
   };
 
   const handlePickupSelect = (data, details) => { setPickup({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); setEditingPickup(false); };
-  const handleDropoffSelect = (data, details) => { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng } }); };
+  const handleDropoffSelect = (data, details) => { setDropoff({ address: data.description, coordinates: { latitude: details.geometry.location.lat, longitude: details.geometry.location.lng }, freeText: !!(details && details.freeText) }); };
   const handleRecentPress = (recent) => { setDropoff({ address: recent.address, coordinates: recent.coordinates }); };
 
   return (
@@ -87,6 +70,8 @@ const SearchDestinationScreen = ({ route, navigation }) => {
                 onPress={handlePickupSelect}
                 autoFocus={true}
                 defaultValue={pickup?.address}
+                userLocation={currentLocation}
+                allowFreeText={true}
               />
             )}
           </View>
@@ -102,6 +87,8 @@ const SearchDestinationScreen = ({ route, navigation }) => {
               placeholder={"O\u00f9 allez-vous?"}
               onPress={handleDropoffSelect}
               autoFocus={!editingPickup}
+              userLocation={currentLocation}
+              allowFreeText={true}
             />
           </View>
         </View>
