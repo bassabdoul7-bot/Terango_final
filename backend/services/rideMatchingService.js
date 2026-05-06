@@ -480,7 +480,7 @@ class RideMatchingService {
         console.log(`?? Ride ${rideId} already accepted by another driver`);
         return {
           success: false,
-          message: 'Cette course a dï¿½jï¿½ ï¿½tï¿½ acceptï¿½e par un autre chauffeur'
+          message: 'Cette course a déjà été acceptée par un autre chauffeur'
         };
       }
 
