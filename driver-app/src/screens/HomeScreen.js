@@ -448,8 +448,6 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
-  const userName = user.name || 'Chauffeur';
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -488,40 +486,17 @@ const HomeScreen = ({ navigation }) => {
         </View>
       )}
 
-      {!isOnline && (
-        <View style={styles.topBarOffline}>
-          <View style={styles.topLeft}>
-            <View style={styles.logoWrap}>
-              <Image source={require('../../assets/images/logo.png')} style={styles.logoImg} resizeMode="contain" />
-            </View>
-            <View style={styles.greetingCard}>
-              <Text style={styles.greetSub}>Bonjour,</Text>
-              <Text style={styles.greetName}>{userName}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.menuBtn} onPress={() => navigation.navigate('Menu')}>
-            <Text style={styles.menuIcon}>{'☰'}</Text>
-          </TouchableOpacity>
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.topMenuBtn} onPress={() => navigation.navigate('Menu')}>
+          <Text style={styles.topMenuIcon}>{'☰'}</Text>
+        </TouchableOpacity>
+        <View style={styles.earningsPill}>
+          <Text style={styles.earningsPillText}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
         </View>
-      )}
+        <View style={styles.topRightSpacer} />
+      </View>
 
-      {isOnline && (
-        <View style={styles.topBarOnline}>
-          <View style={styles.earningsCard}>
-            <Text style={styles.earningsValue}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
-            <Text style={styles.earningsLabel}>{"Aujourd'hui • " + earnings.ridesCompleted + ' courses'}</Text>
-          </View>
-          <TouchableOpacity style={styles.onlinePill} onPress={() => setShowOfflineModal(true)}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlinePillText}>En ligne</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.filterBtn} onPress={() => setShowFilters(!showFilters)}>
-            <Text style={styles.filterBtnText}>{showFilters ? '✕' : '⚙'}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {isOnline && showFilters && (
+      {showFilters && (
         <View style={styles.filterBar}>
           {(driver && driver.vehicleType === 'moto'
             ? [{ key: 'colis', label: 'Colis', icon: '📦' }, { key: 'commande', label: 'Commandes', icon: '🛒' }, { key: 'resto', label: 'Resto', icon: '🍽️' }]
@@ -535,7 +510,7 @@ const HomeScreen = ({ navigation }) => {
         </View>
       )}
 
-      {isBlockedForPayment && !isOnline && (
+      {isBlockedForPayment && (
         <View style={styles.commissionBanner}>
           <View style={styles.commissionBannerInner}>
             <Text style={styles.commissionBannerTitle}>{'Commission due : ' + commissionAmount.toLocaleString() + ' FCFA'}</Text>
@@ -544,63 +519,64 @@ const HomeScreen = ({ navigation }) => {
         </View>
       )}
 
-      {isOnline && !currentRequest && (
-        <View style={styles.scanningBar}>
-          <Animated.View style={[styles.scanningLine, { transform: [{ translateX: scanAnim.interpolate({ inputRange: [0, 1], outputRange: [-width, width] }) }] }]} />
-          <TouchableOpacity style={styles.menuButtonOnline} onPress={() => navigation.navigate('Menu')}>
-            <Text style={styles.menuIconOnline}>{'☰'}</Text>
+      <View style={styles.bottomCard}>
+        <View style={styles.offlineHandle} />
+
+        {!isOnline && (
+          <>
+            <Text style={styles.offlineTitle}>Vous etes hors ligne</Text>
+            <Text style={styles.offlineSub}>Vous ne recevrez aucune demande</Text>
+          </>
+        )}
+
+        {isOnline && !currentRequest && (
+          <View style={styles.scanningRow}>
+            <Animated.View style={[styles.scanningLine, { transform: [{ translateX: scanAnim.interpolate({ inputRange: [0, 1], outputRange: [-width / 2, width / 2] }) }] }]} />
+            <Text style={styles.scanningText}>En attente de courses...</Text>
+          </View>
+        )}
+
+        <View style={styles.statusRow}>
+          <View style={styles.statusItem}>
+            <View style={[styles.statusDot, location ? styles.dotGreen : styles.dotOrange]} />
+            <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche...' : 'GPS inactif'}</Text>
+          </View>
+        </View>
+
+        <View style={styles.pillRow}>
+          <TouchableOpacity
+            style={[isOnline ? styles.goOfflinePill : styles.goOnlinePill, (loading || gettingLocation) && styles.pillDisabled]}
+            onPress={isOnline ? () => setShowOfflineModal(true) : handleGoOnline}
+            disabled={loading || gettingLocation}
+            activeOpacity={0.85}
+          >
+            <View style={styles.pillLogoWrap}>
+              <Image source={require('../../assets/images/logo.png')} style={styles.pillLogoImg} resizeMode="cover" />
+            </View>
+            {(loading || gettingLocation) ? (
+              <ActivityIndicator size="small" color={isOnline ? COLORS.textLight : COLORS.darkBg} style={{ marginLeft: 8 }} />
+            ) : (
+              <Text style={isOnline ? styles.goOfflinePillText : styles.goOnlinePillText}>{isOnline ? 'Hors ligne' : 'Passer en ligne'}</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.pillSettingsBtn, showFilters && styles.pillSettingsBtnActive]} onPress={() => setShowFilters(!showFilters)}>
+            <Text style={styles.pillSettingsIcon}>{showFilters ? '✕' : '⚙'}</Text>
           </TouchableOpacity>
         </View>
-      )}
 
-      {!isOnline && (
-        <View style={styles.offlineCard}>
-          <View style={styles.offlineHandle} />
-          <Text style={styles.offlineTitle}>Vous etes hors ligne</Text>
-          <Text style={styles.offlineSub}>Vous ne recevrez aucune demande de course</Text>
-
-          <View style={styles.statusRow}>
-            <View style={styles.statusItem}>
-              <View style={[styles.statusDot, location ? styles.dotGreen : styles.dotOrange]} />
-              <Text style={styles.statusText}>{location ? 'GPS actif' : gettingLocation ? 'Recherche...' : 'GPS inactif'}</Text>
-            </View>
-          </View>
-
-          <View style={styles.pillRow}>
-            <TouchableOpacity
-              style={[styles.goOnlinePill, (loading || gettingLocation) && styles.goOnlinePillDisabled]}
-              onPress={handleGoOnline}
-              disabled={loading || gettingLocation}
-              activeOpacity={0.85}
-            >
-              <View style={styles.pillLogoWrap}>
-                <Image source={require('../../assets/images/logo.png')} style={styles.pillLogoImg} resizeMode="cover" />
-              </View>
-              {(loading || gettingLocation) ? (
-                <ActivityIndicator size="small" color={COLORS.darkBg} style={{ marginLeft: 8 }} />
-              ) : (
-                <Text style={styles.goOnlinePillText}>Passer en ligne</Text>
-              )}
+        {!isOnline && !location && !gettingLocation && (
+          <View style={styles.retryRow}>
+            <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
+              <Text style={styles.retryText}>Reessayer GPS</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.pillSettingsBtn} onPress={() => navigation.navigate('Menu')}>
-              <Text style={styles.pillSettingsIcon}>{'⚙'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {!location && !gettingLocation && (
-            <View style={styles.retryRow}>
-              <TouchableOpacity style={styles.retryBtn} onPress={initializeLocation}>
-                <Text style={styles.retryText}>Reessayer GPS</Text>
+            {permissionDenied && (
+              <TouchableOpacity style={styles.settingsBtn} onPress={() => Linking.openSettings()}>
+                <Text style={styles.settingsBtnText}>Ouvrir Parametres</Text>
               </TouchableOpacity>
-              {permissionDenied && (
-                <TouchableOpacity style={styles.settingsBtn} onPress={() => Linking.openSettings()}>
-                  <Text style={styles.settingsBtnText}>Ouvrir Parametres</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-        </View>
-      )}
+            )}
+          </View>
+        )}
+      </View>
 
       <Animated.View style={[styles.requestCard, { transform: [{ translateY: slideAnim }, { scale: pulseAnim }] }]} pointerEvents={currentRequest ? 'auto' : 'none'}>
         {currentRequest && (
@@ -689,42 +665,27 @@ const styles = StyleSheet.create({
   dropoffMarker: { width: 24, height: 24, borderRadius: 4, backgroundColor: 'rgba(227,27,35,0.25)', alignItems: 'center', justifyContent: 'center' },
   dropoffDot: { width: 12, height: 12, backgroundColor: COLORS.red },
 
-  topBarOffline: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  topLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoWrap: { width: 46, height: 46, borderRadius: 23, overflow: 'hidden', borderWidth: 2, borderColor: COLORS.yellow, backgroundColor: 'rgba(0,36,24,0.85)' },
-  logoImg: { width: 42, height: 42, borderRadius: 21 },
-  greetingCard: { backgroundColor: 'rgba(212,175,55,0.7)', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 8 },
-  greetSub: { fontSize: 11, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
-  greetName: { fontSize: 15, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
-  menuBtn: { width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,36,24,0.85)', borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
-  menuIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_400Regular' },
+  topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  topMenuBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  topMenuIcon: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
+  earningsPill: { backgroundColor: COLORS.darkCard, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 4 },
+  earningsPillText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  topRightSpacer: { width: 44, height: 44 },
 
-  topBarOnline: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  earningsCard: { backgroundColor: 'rgba(212,175,55,0.7)', paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
-  earningsValue: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  earningsLabel: { fontSize: 11, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
-  onlinePill: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.green, marginRight: 8 },
-  onlinePillText: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
-  filterBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center' },
-  filterBtnText: { fontSize: 18, color: COLORS.textLight },
-
-  filterBar: { position: 'absolute', top: 110, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: COLORS.darkCard, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  filterBar: { position: 'absolute', bottom: 230, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: COLORS.darkCard, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 8 },
   filterChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.06)', gap: 4 },
   filterChipActive: { backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
   filterChipIcon: { fontSize: 14 },
   filterChipLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
   filterChipLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
 
-  scanningBar: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, backgroundColor: COLORS.darkCard, overflow: 'hidden', justifyContent: 'center', borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
-  scanningLine: { position: 'absolute', width: 80, height: 4, backgroundColor: COLORS.yellow, borderRadius: 2 },
-  menuButtonOnline: { position: 'absolute', right: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', elevation: 8 },
-  menuIconOnline: { fontSize: 28, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
-
-  offlineCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.96)', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 36, borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
-  offlineHandle: { alignSelf: 'center', width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 18 },
+  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,36,24,0.96)', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 36, borderTopWidth: 1, borderTopColor: 'rgba(0,133,63,0.35)', elevation: 12 },
+  offlineHandle: { alignSelf: 'center', width: 44, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.2)', marginBottom: 16 },
   offlineTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  offlineSub: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular', marginBottom: 18 },
+  offlineSub: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular', marginBottom: 16 },
+  scanningRow: { height: 36, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginBottom: 14, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.04)' },
+  scanningLine: { position: 'absolute', width: 80, height: 3, backgroundColor: COLORS.yellow, borderRadius: 2 },
+  scanningText: { fontSize: 13, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
 
   statusRow: { flexDirection: 'row', gap: 24, marginBottom: 18 },
   statusItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
@@ -736,11 +697,14 @@ const styles = StyleSheet.create({
 
   pillRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   goOnlinePill: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.yellow, borderRadius: 32, paddingLeft: 6, paddingRight: 22, paddingVertical: 6, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
-  goOnlinePillDisabled: { opacity: 0.6 },
+  goOfflinePill: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.red, borderRadius: 32, paddingLeft: 6, paddingRight: 22, paddingVertical: 6, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
+  pillDisabled: { opacity: 0.6 },
   pillLogoWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   pillLogoImg: { width: 44, height: 44 },
   goOnlinePillText: { flex: 1, textAlign: 'center', fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginLeft: -44 },
+  goOfflinePillText: { flex: 1, textAlign: 'center', fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginLeft: -44 },
   pillSettingsBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
+  pillSettingsBtnActive: { backgroundColor: 'rgba(212,175,55,0.2)', borderColor: COLORS.yellow },
   pillSettingsIcon: { fontSize: 22, color: COLORS.textLight },
 
   retryRow: { flexDirection: 'row', gap: 12, marginTop: 14, alignItems: 'center', justifyContent: 'center' },
