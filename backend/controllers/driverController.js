@@ -435,11 +435,14 @@ exports.uploadProfilePhoto = function(req, res) {
 
   var photoUrl = req.file.path;
 
-  User.findByIdAndUpdate(req.user._id, {
-    profilePhoto: photoUrl,
-    photoStatus: 'pending',
-    photoVerified: false
-  })
+  Promise.all([
+    User.findByIdAndUpdate(req.user._id, {
+      profilePhoto: photoUrl,
+      photoStatus: 'pending',
+      photoVerified: false
+    }),
+    Driver.findOneAndUpdate({ userId: req.user._id }, { selfiePhoto: photoUrl })
+  ])
     .then(function() {
       res.json({ success: true, message: 'Photo mise a jour', profilePhoto: photoUrl });
     })
@@ -529,6 +532,7 @@ exports.uploadDocuments = function(req, res) {
     return res.status(400).json({ success: false, message: 'Champs requis manquants: ' + missingFields.join(', ') });
   }
 
+  var newSelfiePath = null;
   Driver.findOne({ userId: req.user._id })
     .then(function(driver) {
       if (!driver) {
@@ -536,7 +540,7 @@ exports.uploadDocuments = function(req, res) {
       }
       if (req.body.vehicleType) driver.vehicleType = req.body.vehicleType;
       if (req.files) {
-        if (req.files.selfie) driver.selfiePhoto = req.files.selfie[0].path;
+        if (req.files.selfie) { driver.selfiePhoto = req.files.selfie[0].path; newSelfiePath = driver.selfiePhoto; }
         if (req.files.nationalId) driver.nationalIdPhoto = req.files.nationalId[0].path;
         if (req.files.driverLicense) driver.driverLicensePhoto = req.files.driverLicense[0].path;
       }
@@ -557,6 +561,17 @@ exports.uploadDocuments = function(req, res) {
       if (req.files && req.files.vehicleInterior) driver.vehicleInteriorPhoto = req.files.vehicleInterior[0].path;
       driver.verificationStatus = 'pending';
       return driver.save();
+    })
+    .then(function(driver) {
+      if (!driver) return null;
+      if (newSelfiePath) {
+        return User.findByIdAndUpdate(req.user._id, {
+          profilePhoto: newSelfiePath,
+          photoStatus: 'pending',
+          photoVerified: false
+        }).then(function() { return driver; });
+      }
+      return driver;
     })
     .then(function(driver) {
       if (!driver) return;

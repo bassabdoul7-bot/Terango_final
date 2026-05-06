@@ -305,8 +305,9 @@ exports.uploadDriverDocuments = async function(req, res) {
     if (req.body.vehicleType) driver.vehicleType = req.body.vehicleType;
 
     // Update photos from uploaded files
+    var newSelfiePath = null;
     if (req.files) {
-      if (req.files.selfie) driver.selfiePhoto = req.files.selfie[0].path;
+      if (req.files.selfie) { driver.selfiePhoto = req.files.selfie[0].path; newSelfiePath = driver.selfiePhoto; }
       if (req.files.nationalId) driver.nationalIdPhoto = req.files.nationalId[0].path;
       if (req.files.driverLicense) driver.driverLicensePhoto = req.files.driverLicense[0].path;
       if (req.files.vehicleRegistration) {
@@ -327,6 +328,15 @@ exports.uploadDriverDocuments = async function(req, res) {
 
     driver.verificationStatus = 'pending';
     await driver.save();
+
+    if (newSelfiePath && driver.userId) {
+      var User = require('../models/User');
+      await User.findByIdAndUpdate(driver.userId, {
+        profilePhoto: newSelfiePath,
+        photoStatus: 'pending',
+        photoVerified: false
+      });
+    }
 
     res.status(200).json({
       success: true,
