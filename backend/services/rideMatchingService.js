@@ -368,6 +368,7 @@ class RideMatchingService {
       offerData.rideData = rideData;
       offerData.pickupCoords = pickupCoords;
       this.pendingOffers.set(rideId, offerData);
+      console.log('[offerToNextDriver] AFTER set: pendingOffers has=' + this.pendingOffers.has(rideId) + ' currentDriverId=' + (this.pendingOffers.get(rideId) || {}).currentDriverId);
 
       const willBeQueued = (this.pendingOffers.get(rideId) || {}).tier === 'queue';
       const offerPayload = {
@@ -627,7 +628,7 @@ class RideMatchingService {
    * CRITICAL: Cleanup ALL timeouts for a ride
    */
   cleanupSearch(rideId) {
-    console.log(`?? Cleaning up all timeouts for ride ${rideId}`);
+    console.log(`?? Cleaning up all timeouts for ride ${rideId} — caller stack: ${new Error().stack.split('\n').slice(1, 4).map(l => l.trim()).join(' | ')}`);
 
     // Clear offer timeout
     this.clearOfferTimeout(rideId);
