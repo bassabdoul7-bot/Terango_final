@@ -205,7 +205,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
       <View style={{ flex: 1, backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center' }}>
         <ConfettiCelebration visible={showConfetti} />
         <Text style={{ fontSize: 60, marginBottom: 8 }}>{String.fromCodePoint(0x1F389)}</Text>
-        <Text style={{ fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 }}>Course termin\u00e9e!</Text>
+        <Text style={{ fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 }}>{'Course terminée!'}</Text>
         <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub }}>Merci d'avoir choisi TeranGO</Text>
         <AnimatedFareCounter targetFare={completedFare} />
         <Text style={{ fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted }}>Redirection vers la notation...</Text>

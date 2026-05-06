@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, StatusBar, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, StatusBar, Image, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from 'react-native';
 import COLORS from '../constants/colors';
 import { rideService, deliveryService } from '../services/api.service';
 
@@ -51,26 +51,32 @@ function RatingScreen(props) {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.successBanner}><Text style={styles.successIcon}>✔</Text><Text style={styles.successTitle}>{isDelivery ? 'Livraison terminée!' : 'Course terminée!'}</Text><Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text></View>
-      <View style={styles.driverCard}>
-        {renderDriverAvatar()}
-        <Text style={styles.driverName}>{driverName}</Text>
-        <Text style={styles.driverMeta}>{'⭐ ' + driverRating}</Text>
-        {vehicleInfo ? <Text style={styles.vehicleText}>{vehicleInfo}</Text> : null}
-      </View>
-      <Text style={styles.ratingPrompt}>{getRatingLabel()}</Text>
-      <View style={styles.starsRow}>{[1, 2, 3, 4, 5].map(function(i) { return renderStar(i); })}</View>
-      <TextInput style={styles.reviewInput} placeholder="Commentaire (optionnel)" placeholderTextColor={COLORS.textDarkMuted} value={review} onChangeText={setReview} multiline={true} maxLength={200} />
-      <TouchableOpacity style={[styles.submitBtn, rating === 0 && styles.submitBtnDisabled]} onPress={submitRating} disabled={loading}><Text style={styles.submitBtnText}>{loading ? 'Envoi...' : 'Soumettre'}</Text></TouchableOpacity>
-      <TouchableOpacity style={styles.skipBtn} onPress={function() { navigation.replace('Home'); }}><Text style={styles.skipBtnText}>Passer</Text></TouchableOpacity>
-    </View>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <View style={styles.successBanner}>
+          <Text style={styles.successIcon}>{'✔'}</Text>
+          <Text style={styles.successTitle}>{isDelivery ? 'Livraison terminée!' : 'Course terminée!'}</Text>
+          <Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text>
+        </View>
+        <View style={styles.driverCard}>
+          {renderDriverAvatar()}
+          <Text style={styles.driverName}>{driverName}</Text>
+          <Text style={styles.driverMeta}>{'⭐ ' + driverRating}</Text>
+          {vehicleInfo ? <Text style={styles.vehicleText}>{vehicleInfo}</Text> : null}
+        </View>
+        <Text style={styles.ratingPrompt}>{getRatingLabel()}</Text>
+        <View style={styles.starsRow}>{[1, 2, 3, 4, 5].map(function(i) { return renderStar(i); })}</View>
+        <TextInput style={styles.reviewInput} placeholder="Commentaire (optionnel)" placeholderTextColor={COLORS.textDarkMuted} value={review} onChangeText={setReview} multiline={true} maxLength={200} blurOnSubmit={true} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+        <TouchableOpacity style={[styles.submitBtn, rating === 0 && styles.submitBtnDisabled]} onPress={submitRating} disabled={loading}><Text style={styles.submitBtnText}>{loading ? 'Envoi...' : 'Soumettre'}</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.skipBtn} onPress={function() { navigation.replace('Home'); }}><Text style={styles.skipBtnText}>Passer</Text></TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 24, paddingTop: 80, alignItems: 'center' },
+  container: { flexGrow: 1, backgroundColor: COLORS.background, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, alignItems: 'center' },
   successBanner: { alignItems: 'center', marginBottom: 32 },
   successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.green, textAlign: 'center', lineHeight: 64, fontSize: 32, color: '#fff', overflow: 'hidden', marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
   successTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8 },

@@ -461,7 +461,7 @@ function HomeScreen(props) {
         <View style={[styles.tabScreen, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }]}>
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83D\uDD12"}</Text>
           <Text style={{ fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8, textAlign: 'center' }}>Connectez-vous</Text>
-          <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textDarkSub, textAlign: 'center', marginBottom: 24 }}>Cr\u00e9ez un compte ou connectez-vous pour acc\u00e9der \u00e0 votre profil.</Text>
+          <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textDarkSub, textAlign: 'center', marginBottom: 24 }}>{'Créez un compte ou connectez-vous pour accéder à votre profil.'}</Text>
           <TouchableOpacity style={{ backgroundColor: COLORS.darkCard, paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16 }} onPress={function() { exitGuestMode(); }}>
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'LexendDeca_700Bold' }}>Se connecter</Text>
           </TouchableOpacity>

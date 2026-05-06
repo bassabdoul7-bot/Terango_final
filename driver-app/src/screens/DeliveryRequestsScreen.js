@@ -140,7 +140,7 @@ const RideRequestsScreen = ({ navigation, route }) => {
             {rideRequests.length > 1 && <Text style={styles.queueText}>{'+' + (rideRequests.length - 1) + ' autre' + (rideRequests.length > 2 ? 's' : '') + ' en attente'}</Text>}
           </View>
         ) : (
-          <View style={styles.emptyState}><Text style={styles.emptyIcon}>{"\uD83D\uDE97"}</Text><Text style={styles.emptyTitle}>En attente de courses</Text><Text style={styles.emptySubtitle}>Vous recevrez des offres bas\u00e9es sur votre position</Text></View>
+          <View style={styles.emptyState}><Text style={styles.emptyIcon}>{"\uD83D\uDE97"}</Text><Text style={styles.emptyTitle}>En attente de courses</Text><Text style={styles.emptySubtitle}>{'Vous recevrez des offres basées sur votre position'}</Text></View>
         )}
       </Animated.View>
 
