@@ -15,7 +15,6 @@ import HomeScreen from '../screens/HomeScreen';
 import GainsScreen from '../screens/GainsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import MenuScreen from '../screens/MenuScreen';
-import RideRequestsScreen from '../screens/RideRequestsScreen';
 import DeliveryRequestsScreen from '../screens/DeliveryRequestsScreen';
 import ActiveRideScreen from '../screens/ActiveRideScreen';
 import DocumentUploadScreen from '../screens/DocumentUploadScreen';
@@ -151,7 +150,6 @@ var AppNavigator = function() {
         ) : (
           <>
             <Stack.Screen name="Home" component={MainTabs} />
-            <Stack.Screen name="RideRequests" component={RideRequestsScreen} />
             <Stack.Screen name="DeliveryRequests" component={DeliveryRequestsScreen} />
             <Stack.Screen name="ActiveRide" component={ActiveRideScreen} />
             <Stack.Screen name="Menu" component={MenuScreen} />
