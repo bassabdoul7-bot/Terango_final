@@ -101,6 +101,13 @@ const HomeScreen = ({ navigation }) => {
           setActiveServices(svc);
           activeServicesRef.current = svc;
         }
+        if (d.isOnline) {
+          setIsOnline(true);
+          isOnlineRef.current = true;
+          fetchEarnings();
+          startLocationPolling();
+          startBackgroundOnline().catch(() => {});
+        }
       }
     }).catch((err) => console.error('getProfile error:', err));
 
@@ -158,6 +165,13 @@ const HomeScreen = ({ navigation }) => {
       goOnlineWithLocation();
     }
   }, [location]);
+
+  useEffect(() => {
+    if (isOnline && location && socket && socket.connected && driverId) {
+      socket.emit('driver-online', { driverId, latitude: location.latitude, longitude: location.longitude, vehicle: driver && driver.vehicle, rating: user.rating || 5.0 });
+      driverService.toggleOnlineStatus(true, location.latitude, location.longitude).catch(() => {});
+    }
+  }, [isOnline, location, socket, driverId]);
 
   useEffect(() => {
     if (currentRequest) { showRequestCard(); playRideAlert(); } else { hideRequestCard(); stopRideAlert(); }
