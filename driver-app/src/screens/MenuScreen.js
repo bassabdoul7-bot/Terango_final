@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert, Animated, Linking, Image, TextInput } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
 import * as ImagePicker from 'expo-image-picker';
@@ -27,6 +28,7 @@ var MenuScreen = function(props) {
   var waveSavingState = useState(false); var waveSaving = waveSavingState[0]; var setWaveSaving = waveSavingState[1];
 
   useEffect(function() { fetchEarnings(); fetchHistory(); fetchDriverProfile(); }, []);
+  useFocusEffect(useCallback(function() { if (fetchDriverProfile) fetchDriverProfile(); }, [fetchDriverProfile]));
   useEffect(function() { if (driver && driver.waveNumber !== undefined) setWaveNumber(driver.waveNumber || ''); }, [driver]);
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0], weeklyRides: e.weeklyRides||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   function fetchHistory() { driverService.getRideHistory().then(function(r) { setRideHistory(r.rides||[]); }).catch(function(){}); }

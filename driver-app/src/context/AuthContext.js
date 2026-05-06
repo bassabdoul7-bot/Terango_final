@@ -54,6 +54,15 @@ export const AuthProvider = ({ children }) => {
       if (response.success) {
         setDriver(response.driver);
         await AsyncStorage.setItem('driver', JSON.stringify(response.driver));
+        if (response.driver && response.driver.userId && typeof response.driver.userId === 'object') {
+          const fresh = response.driver.userId;
+          setUser((prev) => ({ ...(prev || {}), ...fresh }));
+          try {
+            const stored = await AsyncStorage.getItem('user');
+            const merged = { ...(stored ? JSON.parse(stored) : {}), ...fresh };
+            await AsyncStorage.setItem('user', JSON.stringify(merged));
+          } catch (e) {}
+        }
       }
     } catch (error) {
       console.error('Fetch driver profile error:', error);

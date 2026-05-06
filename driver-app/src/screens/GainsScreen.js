@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, StyleSheet, ScrollView, StatusBar } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import COLORS from "../constants/colors";
 import { COMMISSION_WAVE_NUMBER, COMMISSION_CAP } from "../constants/commission";
 import { driverService } from "../services/api.service";
 import { useAuth } from "../context/AuthContext";
 
 var GainsScreen = function() {
-  var auth = useAuth(); var user = auth.user;
+  var auth = useAuth(); var user = auth.user; var fetchDriverProfile = auth.fetchDriverProfile;
   var es = useState({ today: 0, todayRides: 0, total: 0, totalRides: 0, weekTotal: 0, weekRides: 0, weeklyBreakdown: [0,0,0,0,0,0,0] });
   var earnings = es[0]; var setEarnings = es[1];
   var cs = useState(0);
   var commissionBalance = cs[0]; var setCommissionBalance = cs[1];
   useEffect(function() { fetchEarnings(); fetchCommission(); }, []);
+  useFocusEffect(useCallback(function() { fetchEarnings(); if (fetchDriverProfile) fetchDriverProfile(); }, [fetchDriverProfile]));
   function fetchCommission() { driverService.getProfile().then(function(r) { if (r && r.driver) { setCommissionBalance(r.driver.commissionBalance || 0); } }).catch(function(){}); }
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   var days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
