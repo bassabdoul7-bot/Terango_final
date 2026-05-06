@@ -333,12 +333,16 @@ class RideMatchingService {
         return;
       }
 
-      const ride = await Ride.findById(rideId);
+      const ride = await Ride.findById(rideId).populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } });
       if (!ride || ride.status !== 'pending') {
         console.log(`?? Ride ${rideId} is ${ride?.status}, stopping offers`);
         this.cleanupSearch(rideId);
         return;
       }
+
+      var riderUser = ride.riderId && ride.riderId.userId ? ride.riderId.userId : null;
+      var riderPhone = riderUser && riderUser.phone ? riderUser.phone : null;
+      var riderName = riderUser && riderUser.name ? riderUser.name : null;
 
       if (currentIndex >= driversList.length) {
         console.log(`?? All drivers in batch rejected ride ${rideId}, searching again...`);
@@ -379,7 +383,9 @@ class RideMatchingService {
         ...rideData,
         distanceToPickup: distance,
         offerExpiresIn: this.DRIVER_RESPONSE_TIMEOUT,
-        willBeQueued
+        willBeQueued,
+        riderPhone: riderPhone,
+        riderName: riderName
       };
 
       // FIXED: Use rooms instead of dynamic event names

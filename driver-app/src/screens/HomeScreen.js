@@ -609,9 +609,18 @@ const HomeScreen = ({ navigation }) => {
       <Animated.View style={[styles.requestCard, { transform: [{ translateY: slideAnim }, { scale: pulseAnim }] }]} pointerEvents={currentRequest ? 'auto' : 'none'}>
         {currentRequest && (
           <View style={styles.requestContent}>
+            {currentRequest.riderPhone && (
+              <TouchableOpacity onPress={() => Linking.openURL('tel:' + currentRequest.riderPhone)} activeOpacity={0.7}>
+                <Text style={styles.offerTypeBadge}>{currentRequest._isDelivery ? (currentRequest.serviceType === 'colis' ? '📦 Nouveau colis' : currentRequest.serviceType === 'commande' ? '🛒 Nouvelle commande' : '🍽️ Commande resto') : 'Nouvelle course 📍'}</Text>
+                <Text style={styles.riderPhoneText}>{currentRequest.riderPhone}</Text>
+                {currentRequest.riderName ? <Text style={styles.riderNameText}>{currentRequest.riderName}  •  Toucher pour appeler</Text> : <Text style={styles.riderNameText}>Toucher pour appeler</Text>}
+              </TouchableOpacity>
+            )}
             <View style={styles.requestHeader}>
-              <View>
-                <Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === 'colis' ? '📦 Nouveau colis' : currentRequest.serviceType === 'commande' ? '🛒 Nouvelle commande' : '🍽️ Commande resto') : 'Nouvelle course 📍'}</Text>
+              <View style={{ flex: 1 }}>
+                {!currentRequest.riderPhone && (
+                  <Text style={styles.requestTitle}>{currentRequest._isDelivery ? (currentRequest.serviceType === 'colis' ? '📦 Nouveau colis' : currentRequest.serviceType === 'commande' ? '🛒 Nouvelle commande' : '🍽️ Commande resto') : 'Nouvelle course 📍'}</Text>
+                )}
                 <Text style={styles.requestSubtitle}>{(currentRequest.distance || 0).toFixed(1) + ' km • ' + Math.round((currentRequest.distance || 0) * 2) + ' min' + (currentRequest.distanceToPickup ? ' • ' + currentRequest.distanceToPickup.toFixed(1) + 'km de vous' : '')}</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
@@ -748,6 +757,9 @@ const styles = StyleSheet.create({
 
   requestCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   requestContent: { padding: 24 },
+  offerTypeBadge: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
+  riderPhoneText: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, letterSpacing: 1, marginBottom: 4 },
+  riderNameText: { fontSize: 13, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, marginBottom: 16 },
   requestHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   requestTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   requestSubtitle: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },

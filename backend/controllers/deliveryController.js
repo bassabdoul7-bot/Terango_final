@@ -191,19 +191,28 @@ exports.createDelivery = function(req, res) {
           var serviceLabel = delivery.serviceType === 'colis' ? 'Colis' : delivery.serviceType === 'commande' ? 'Commande' : 'Restaurant';
           var pushTitle = 'Nouvelle livraison: ' + serviceLabel + '!';
           var pushBody = (delivery.fare || 0) + ' FCFA \u2022 ' + (delivery.distance ? delivery.distance.toFixed(1) + ' km' : 'proximité');
-          acceptingDrivers.forEach(function(driver) {
-            io.to('driver-' + driver._id.toString()).emit('new-delivery', {
-              deliveryId: delivery._id,
-              serviceType: delivery.serviceType,
-              pickup: delivery.pickup,
-              dropoff: delivery.dropoff,
-              fare: delivery.fare,
-              driverEarnings: delivery.driverEarnings,
-              distance: delivery.distance,
-              packageDetails: delivery.packageDetails,
-              commandeDetails: delivery.commandeDetails
+          // Look up rider phone/name once so each driver gets the same payload.
+          Delivery.findById(delivery._id).populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } }).then(function(d) {
+            var ru = d && d.riderId && d.riderId.userId ? d.riderId.userId : null;
+            var riderPhone = ru && ru.phone ? ru.phone : null;
+            var riderName = ru && ru.name ? ru.name : null;
+
+            acceptingDrivers.forEach(function(driver) {
+              io.to('driver-' + driver._id.toString()).emit('new-delivery', {
+                deliveryId: delivery._id,
+                serviceType: delivery.serviceType,
+                pickup: delivery.pickup,
+                dropoff: delivery.dropoff,
+                fare: delivery.fare,
+                driverEarnings: delivery.driverEarnings,
+                distance: delivery.distance,
+                packageDetails: delivery.packageDetails,
+                commandeDetails: delivery.commandeDetails,
+                riderPhone: riderPhone,
+                riderName: riderName
+              });
+              sendPushNotification(driver.userId, pushTitle, pushBody, { type: 'new-delivery', deliveryId: delivery._id.toString(), serviceType: delivery.serviceType }, 'driver');
             });
-            sendPushNotification(driver.userId, pushTitle, pushBody, { type: 'new-delivery', deliveryId: delivery._id.toString(), serviceType: delivery.serviceType }, 'driver');
           });
 
           // Auto-cancel after 60 seconds if no driver accepts
