@@ -684,3 +684,63 @@ exports.uploadEmergencyRecording = async function(req, res) {
     res.status(500).json({ success: false, message: 'Erreur lors de l\'upload de l\'enregistrement' });
   }
 };
+
+exports.rateDelivery = async function(req, res) {
+  try {
+    var rating = req.body.rating;
+    var review = req.body.review;
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ success: false, message: 'Note invalide (1 a 5)' });
+    }
+
+    var delivery = await Delivery.findById(req.params.deliveryId);
+    if (!delivery) {
+      return res.status(404).json({ success: false, message: 'Livraison non trouvee' });
+    }
+    if (delivery.status !== 'delivered') {
+      return res.status(400).json({ success: false, message: 'La livraison doit etre terminee pour etre notee' });
+    }
+
+    var rider = await Rider.findOne({ userId: req.user._id });
+    if (!rider || String(delivery.riderId) !== String(rider._id)) {
+      return res.status(403).json({ success: false, message: 'Non autorise' });
+    }
+    if (delivery.rating && delivery.rating.rating) {
+      return res.status(400).json({ success: false, message: 'Cette livraison a deja ete notee' });
+    }
+
+    delivery.rating = { rating: Number(rating), review: review || '' };
+    await delivery.save();
+
+    if (delivery.driverId) {
+      var driverDoc = await Driver.findById(delivery.driverId).populate('userId');
+      if (driverDoc && driverDoc.userId) {
+        var Ride = require('../models/Ride');
+        var ratedRides = await Ride.find({
+          driver: delivery.driverId,
+          'driverRating.rating': { $exists: true }
+        }, 'driverRating.rating');
+        var ratedDeliveries = await Delivery.find({
+          driverId: delivery.driverId,
+          'rating.rating': { $exists: true }
+        }, 'rating.rating');
+
+        var total = 0;
+        var count = 0;
+        ratedRides.forEach(function(r) { if (r.driverRating && r.driverRating.rating) { total += r.driverRating.rating; count += 1; } });
+        ratedDeliveries.forEach(function(d) { if (d.rating && d.rating.rating) { total += d.rating.rating; count += 1; } });
+
+        if (count > 0) {
+          driverDoc.userId.rating = total / count;
+          driverDoc.userId.totalRatings = count;
+          await driverDoc.userId.save();
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, message: 'Note enregistree' });
+  } catch (error) {
+    console.error('Rate Delivery Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors de la notation' });
+  }
+};

@@ -64,6 +64,7 @@ export var deliveryService = {
   getActiveDelivery: function() { return api.get('/deliveries/active'); },
   getDeliveryById: function(deliveryId) { return api.get('/deliveries/' + deliveryId); },
   cancelDelivery: function(deliveryId, reason) { return api.put('/deliveries/' + deliveryId + '/cancel', { reason: reason }); },
+  rateDelivery: function(deliveryId, rating, review) { return api.put('/deliveries/' + deliveryId + '/rate', { rating: rating, review: review }); },
 };
 
 export var orderService = {

@@ -49,7 +49,7 @@ var ActiveDeliveryScreen = function(props) {
   var searchTimeState = useState(0); var searchTime = searchTimeState[0]; var setSearchTime = searchTimeState[1];
   var noDriversState = useState(false); var showNoDrivers = noDriversState[0]; var setShowNoDrivers = noDriversState[1];
   var chatState = useState(false); var showChat = chatState[0]; var setShowChat = chatState[1];
-  var mapRef = useRef(null); var socketRef = useRef(null); var pollRef = useRef(null); var searchTimerRef = useRef(null);
+  var mapRef = useRef(null); var socketRef = useRef(null); var pollRef = useRef(null); var searchTimerRef = useRef(null); var deliveredHandledRef = useRef(false);
 
   useEffect(function() { fetchDelivery(); connectSocket(); startPolling(); return function() { if (socketRef.current) socketRef.current.disconnect(); if (pollRef.current) clearInterval(pollRef.current); if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, []);
   useEffect(function() { if (delivery && delivery.status === 'pending') { searchTimerRef.current = setInterval(function() { setSearchTime(function(p) { return p + 1; }); }, 1000); } else { if (searchTimerRef.current) clearInterval(searchTimerRef.current); } return function() { if (searchTimerRef.current) clearInterval(searchTimerRef.current); }; }, [delivery ? delivery.status : null]);
@@ -58,7 +58,7 @@ var ActiveDeliveryScreen = function(props) {
 
   function fetchDelivery() {
     deliveryService.getDeliveryById(deliveryId).then(function(res) {
-      if (res.delivery) { setDelivery(res.delivery); if (res.delivery.driver) setDriverInfo(res.delivery.driver); if (res.delivery.status === 'no_drivers_available') setShowNoDrivers(true); if (res.delivery.status === 'delivered') navigation.replace('Home'); if (res.delivery.status === 'cancelled') { clearInterval(pollRef.current); Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]); return; } } setLoading(false);
+      if (res.delivery) { setDelivery(res.delivery); if (res.delivery.driver) setDriverInfo(res.delivery.driver); if (res.delivery.status === 'no_drivers_available') setShowNoDrivers(true); if (res.delivery.status === 'delivered') { if (res.delivery.rating && res.delivery.rating.rating) { navigation.replace('Home'); } else if (!deliveredHandledRef.current) { deliveredHandledRef.current = true; clearInterval(pollRef.current); setTimeout(function() { navigation.replace('Rating', { delivery: res.delivery }); }, 2500); } } if (res.delivery.status === 'cancelled') { clearInterval(pollRef.current); Alert.alert('Livraison annul\u00e9e', 'La livraison a \u00e9t\u00e9 annul\u00e9e.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]); return; } } setLoading(false);
     }).catch(function() { setLoading(false); });
   }
 
@@ -66,7 +66,7 @@ var ActiveDeliveryScreen = function(props) {
     createAuthSocket().then(function(socket) { socketRef.current = socket;
       socket.on('connect', function() { socket.emit('join-delivery-room', deliveryId); });
       socket.on('delivery-accepted', function(data) { setDelivery(function(p) { return p ? Object.assign({}, p, { status: 'accepted', driver: data.driver }) : p; }); setDriverInfo(data.driver); });
-      socket.on('delivery-status', function(data) { setDelivery(function(p) { return p ? Object.assign({}, p, { status: data.status }) : p; }); if (data.status === 'delivered') setTimeout(function() { navigation.replace('Home'); }, 3000); });
+      socket.on('delivery-status', function(data) { setDelivery(function(p) { var updated = p ? Object.assign({}, p, { status: data.status }) : p; if (data.status === 'delivered' && !deliveredHandledRef.current) { deliveredHandledRef.current = true; if (pollRef.current) clearInterval(pollRef.current); setTimeout(function() { navigation.replace('Rating', { delivery: updated }); }, 2500); } return updated; }); });
       socket.on('delivery-expired', function() { setShowNoDrivers(true); setDelivery(function(p) { return p ? Object.assign({}, p, { status: 'no_drivers_available' }) : p; }); });
       socket.on('delivery-cancelled', function() { Alert.alert('Livraison annulee', 'La livraison a ete annulee.'); navigation.replace('Home'); });
     });

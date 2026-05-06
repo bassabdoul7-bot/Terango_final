@@ -1,30 +1,35 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, StatusBar, Image } from 'react-native';
 import COLORS from '../constants/colors';
-import { rideService } from '../services/api.service';
+import { rideService, deliveryService } from '../services/api.service';
 
 function RatingScreen(props) {
   var navigation = props.navigation;
   var route = props.route;
-  var ride = route.params ? route.params.ride : null;
+  var trip = route.params ? (route.params.delivery || route.params.ride) : null;
+  var isDelivery = !!(route.params && route.params.delivery);
 
   var ratingState = useState(0); var rating = ratingState[0]; var setRating = ratingState[1];
   var reviewState = useState(''); var review = reviewState[0]; var setReview = reviewState[1];
   var loadingState = useState(false); var loading = loadingState[0]; var setLoading = loadingState[1];
 
-  var driverName = 'Chauffeur'; var driverPhoto = null; var driverRating = '5.0'; var vehicleInfo = ''; var fare = 0;
-  if (ride) {
-    if (ride.driver && ride.driver.userId) { driverName = ride.driver.userId.name || 'Chauffeur'; driverPhoto = ride.driver.userId.profilePhoto || null; driverRating = ride.driver.userId.rating ? ride.driver.userId.rating.toFixed(1) : '5.0'; }
-    if (ride.driver && ride.driver.vehicle) { vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '') + ' • ' + (ride.driver.vehicle.color || ''); }
-    fare = ride.fare || 0;
+  var driverName = isDelivery ? 'Livreur' : 'Chauffeur'; var driverPhoto = null; var driverRating = '5.0'; var vehicleInfo = ''; var fare = 0;
+  if (trip) {
+    var driverObj = trip.driver || (trip.driverId && typeof trip.driverId === 'object' ? trip.driverId : null);
+    if (driverObj && driverObj.userId) { driverName = driverObj.userId.name || driverName; driverPhoto = driverObj.userId.profilePhoto || null; driverRating = driverObj.userId.rating ? driverObj.userId.rating.toFixed(1) : '5.0'; }
+    if (driverObj && driverObj.vehicle) { vehicleInfo = (driverObj.vehicle.make || '') + ' ' + (driverObj.vehicle.model || '') + ' • ' + (driverObj.vehicle.color || ''); }
+    fare = trip.fare || 0;
   }
 
   function submitRating() {
-    if (rating === 0) { Alert.alert('Note requise', 'Veuillez donner une note à votre chauffeur.'); return; }
+    if (rating === 0) { Alert.alert('Note requise', 'Veuillez donner une note.'); return; }
     setLoading(true);
-    var rideId = ride ? ride._id : null;
-    if (!rideId) { navigation.replace('Home'); return; }
-    rideService.rateRide(rideId, rating, review).then(function(response) {
+    var tripId = trip ? trip._id : null;
+    if (!tripId) { navigation.replace('Home'); return; }
+    var promise = isDelivery
+      ? deliveryService.rateDelivery(tripId, rating, review)
+      : rideService.rateRide(tripId, rating, review);
+    promise.then(function(response) {
       setLoading(false);
       if (response.success) { Alert.alert('Merci!', 'Votre note a été enregistrée.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]); }
       else { Alert.alert('Erreur', response.message || 'Impossible de soumettre la note.'); }
@@ -42,13 +47,13 @@ function RatingScreen(props) {
   }
 
   function getRatingLabel() {
-    switch (rating) { case 1: return 'Très mauvais'; case 2: return 'Mauvais'; case 3: return 'Correct'; case 4: return 'Bien'; case 5: return 'Excellent!'; default: return 'Notez votre chauffeur'; }
+    switch (rating) { case 1: return 'Très mauvais'; case 2: return 'Mauvais'; case 3: return 'Correct'; case 4: return 'Bien'; case 5: return 'Excellent!'; default: return isDelivery ? 'Notez votre livreur' : 'Notez votre chauffeur'; }
   }
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.successBanner}><Text style={styles.successIcon}>✔</Text><Text style={styles.successTitle}>Course terminée!</Text><Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text></View>
+      <View style={styles.successBanner}><Text style={styles.successIcon}>✔</Text><Text style={styles.successTitle}>{isDelivery ? 'Livraison terminée!' : 'Course terminée!'}</Text><Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text></View>
       <View style={styles.driverCard}>
         {renderDriverAvatar()}
         <Text style={styles.driverName}>{driverName}</Text>

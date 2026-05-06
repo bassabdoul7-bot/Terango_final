@@ -36,6 +36,7 @@ router.get('/driver-active', protect, deliveryController.getDriverActiveDelivery
 router.get('/:deliveryId', protect, deliveryController.getDeliveryById);
 router.put('/:deliveryId/trail', protect, deliveryController.appendDeliveryTrailPoints);
 router.put('/:deliveryId/cancel', protect, deliveryController.cancelDelivery);
+router.put('/:deliveryId/rate', protect, deliveryController.rateDelivery);
 
 // Emergency video/audio recording (Rider or Driver)
 router.put('/:deliveryId/emergency-recording', protect, recordingUpload.single('media'), deliveryController.uploadEmergencyRecording);
