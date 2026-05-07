@@ -15,6 +15,7 @@ import {
   Vibration,
 } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+import Svg, { Circle, Line } from 'react-native-svg';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
 import * as IntentLauncher from 'expo-intent-launcher';
@@ -32,6 +33,16 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmModal from '../components/ConfirmModal';
 
 const { width, height } = Dimensions.get('window');
+
+const SteeringWheel = ({ size = 24, color = '#FFFFFF' }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24">
+    <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth="2" fill="none" />
+    <Circle cx="12" cy="12" r="2.6" fill={color} />
+    <Line x1="12" y1="4.5" x2="12" y2="9.4" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Line x1="4.5" y1="13" x2="9.4" y2="13" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    <Line x1="14.6" y1="13" x2="19.5" y2="13" stroke={color} strokeWidth="2" strokeLinecap="round" />
+  </Svg>
+);
 
 const HomeScreen = ({ navigation }) => {
   const { driver } = useAuth();
@@ -579,7 +590,7 @@ const HomeScreen = ({ navigation }) => {
             activeOpacity={0.85}
           >
             <View style={styles.pillLogoWrap}>
-              <Image source={require('../../assets/images/logo.png')} style={styles.pillLogoImg} resizeMode="cover" />
+              <SteeringWheel size={22} color={COLORS.white} />
             </View>
             {(loading || gettingLocation) ? (
               <ActivityIndicator size="small" color={isOnline ? COLORS.textLight : COLORS.darkBg} style={{ marginLeft: 8 }} />
@@ -737,7 +748,6 @@ const styles = StyleSheet.create({
   goOfflinePill: { flex: 1, height: 61, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.red, borderRadius: 31, paddingHorizontal: 18, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
   pillDisabled: { opacity: 0.6 },
   pillLogoWrap: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.darkBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  pillLogoImg: { width: 38, height: 38 },
   goOnlinePillText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginLeft: 10 },
   goOfflinePillText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginLeft: 10 },
   pillSettingsBtn: { width: 61, height: 61, borderRadius: 31, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' },
