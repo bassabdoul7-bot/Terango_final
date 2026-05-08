@@ -177,11 +177,17 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [location]);
 
+  // Re-register the driver in their socket room exactly once per online
+  // session (not on every GPS poll). Fires when isOnline transitions to
+  // true with socket + location + driverId all ready, so a freshly-mounted
+  // Home (e.g. after returning from ActiveRide) re-joins driver-<id>.
+  const registeredOnlineRef = useRef(false);
   useEffect(() => {
-    if (isOnline && location && socket && socket.connected && driverId) {
-      socket.emit('driver-online', { driverId, latitude: location.latitude, longitude: location.longitude, vehicle: driver && driver.vehicle, rating: user.rating || 5.0 });
-      driverService.toggleOnlineStatus(true, location.latitude, location.longitude).catch(() => {});
-    }
+    if (!isOnline) { registeredOnlineRef.current = false; return; }
+    if (registeredOnlineRef.current) return;
+    if (!(location && socket && socket.connected && driverId)) return;
+    registeredOnlineRef.current = true;
+    socket.emit('driver-online', { driverId, latitude: location.latitude, longitude: location.longitude, vehicle: driver && driver.vehicle, rating: user.rating || 5.0 });
   }, [isOnline, location, socket, driverId]);
 
   useEffect(() => {
