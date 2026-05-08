@@ -365,7 +365,7 @@ var styles = StyleSheet.create({
   addressInputWrap: { flex: 1 },
   addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
   addressSet: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight, backgroundColor: 'rgba(255,255,255,0.08)', padding: 12, borderRadius: 12, overflow: 'hidden' },
-  gInput: { fontSize: 15, color: '#000', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', fontFamily: 'LexendDeca_400Regular' },
+  gInput: { fontSize: 16, color: '#1A1A1A', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', fontFamily: 'LexendDeca_500Medium', minHeight: 48 },
   gList: { backgroundColor: '#fff', borderRadius: 12, marginTop: 4 },
   fieldLabel: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub, marginBottom: 10, marginTop: 20 },
   sizeRow: { flexDirection: 'row', gap: 10 },

@@ -114,7 +114,8 @@ const getIcon = (item) => {
   return '\uD83D\uDCCD';
 };
 
-const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange, userLocation, allowFreeText }) => {
+const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange, userLocation, allowFreeText, styles: stylesOverride, inputStyle, placeholderTextColor }) => {
+  const inputOverride = (stylesOverride && stylesOverride.textInput) || inputStyle;
   const [query, setQuery] = useState(defaultValue || '');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -237,9 +238,9 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
     <View>
       <View style={styles.inputContainer}>
         <TextInput
-          style={styles.input}
+          style={[styles.input, inputOverride]}
           placeholder={placeholder}
-          placeholderTextColor={'rgba(255,255,255,0.35)'}
+          placeholderTextColor={placeholderTextColor || (inputOverride && inputOverride.color ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)')}
           value={query}
           onChangeText={search}
           autoFocus={autoFocus}

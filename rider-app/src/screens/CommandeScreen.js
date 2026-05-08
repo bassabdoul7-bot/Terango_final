@@ -215,7 +215,7 @@ var styles = StyleSheet.create({
   dotGreen: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.green },
   dotOrange: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FF9500' },
   dotRed: { width: 12, height: 12, backgroundColor: COLORS.red },
-  gInput: { fontSize: 15, color: '#000', backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', fontFamily: 'LexendDeca_400Regular' },
+  gInput: { fontSize: 16, color: '#1A1A1A', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', fontFamily: 'LexendDeca_500Medium', minHeight: 48 },
   gList: { backgroundColor: '#fff', borderRadius: 12, marginTop: 4 },
   storeInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   storeInfoIcon: { fontSize: 36, marginRight: 14, fontFamily: 'LexendDeca_400Regular' },
