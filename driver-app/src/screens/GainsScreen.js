@@ -13,7 +13,10 @@ var GainsScreen = function() {
   var cs = useState(0);
   var commissionBalance = cs[0]; var setCommissionBalance = cs[1];
   useEffect(function() { fetchEarnings(); fetchCommission(); }, []);
-  useFocusEffect(useCallback(function() { fetchEarnings(); if (fetchDriverProfile) fetchDriverProfile(); }, [fetchDriverProfile]));
+  // Empty dep: fetchDriverProfile is recreated on every AuthProvider render.
+  // Including it caused an infinite focus-loop that hammered /drivers/profile
+  // and tripped the 500-per-15min rate limiter (HTTP 429 on the dashboard).
+  useFocusEffect(useCallback(function() { fetchEarnings(); if (auth.fetchDriverProfile) auth.fetchDriverProfile(); }, []));
   function fetchCommission() { driverService.getProfile().then(function(r) { if (r && r.driver) { setCommissionBalance(r.driver.commissionBalance || 0); } }).catch(function(){}); }
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   var days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];

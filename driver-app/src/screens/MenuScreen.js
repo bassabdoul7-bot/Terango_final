@@ -28,7 +28,9 @@ var MenuScreen = function(props) {
   var waveSavingState = useState(false); var waveSaving = waveSavingState[0]; var setWaveSaving = waveSavingState[1];
 
   useEffect(function() { fetchEarnings(); fetchHistory(); fetchDriverProfile(); }, []);
-  useFocusEffect(useCallback(function() { if (fetchDriverProfile) fetchDriverProfile(); }, [fetchDriverProfile]));
+  // Empty dep: fetchDriverProfile is recreated on every AuthProvider render.
+  // Including it caused an infinite focus-loop that spammed the API.
+  useFocusEffect(useCallback(function() { if (auth.fetchDriverProfile) auth.fetchDriverProfile(); }, []));
   useEffect(function() { if (driver && driver.waveNumber !== undefined) setWaveNumber(driver.waveNumber || ''); }, [driver]);
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0], weeklyRides: e.weeklyRides||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
   function fetchHistory() { driverService.getRideHistory().then(function(r) { setRideHistory(r.rides||[]); }).catch(function(){}); }
