@@ -535,8 +535,13 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.topMenuBtn} onPress={() => navigation.navigate('Menu')}>
           <Text style={styles.topMenuIcon}>{'☰'}</Text>
         </TouchableOpacity>
-        <View style={styles.earningsPill}>
-          <Text style={styles.earningsPillText}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
+        <View style={styles.earningsBadge}>
+          {/* Stroke layer — 4 offset copies fake a 1px outline since RN Text has no real stroke */}
+          <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { top: -1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
+          <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { top: 1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
+          <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { left: -1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
+          <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { left: 1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
+          <Text style={styles.earningsBadgeText} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
         </View>
         <View style={styles.topRightSpacer} />
       </View>
@@ -722,8 +727,18 @@ const styles = StyleSheet.create({
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topMenuBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder, alignItems: 'center', justifyContent: 'center', elevation: 4 },
   topMenuIcon: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  earningsPill: { backgroundColor: COLORS.darkCard, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 4 },
-  earningsPillText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  earningsBadge: { paddingHorizontal: 6, justifyContent: 'center', alignItems: 'center' },
+  earningsBadgeText: {
+    fontFamily: 'Anton_400Regular',
+    fontSize: 30,
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+    fontStyle: 'italic',
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 3 },
+    textShadowRadius: 4,
+  },
+  earningsBadgeStroke: { position: 'absolute', color: '#000000', textShadowRadius: 0 },
   topRightSpacer: { width: 44, height: 44 },
 
   filterBar: { position: 'absolute', bottom: 230, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: COLORS.darkCard, borderRadius: 16, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 8 },

@@ -3,6 +3,7 @@ import reportError from './src/utils/errorReporter';
 import { StatusBar } from 'expo-status-bar';
 import { Text, TextInput, ActivityIndicator, View } from 'react-native';
 import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Medium, LexendDeca_600SemiBold, LexendDeca_700Bold, LexendDeca_800ExtraBold } from '@expo-google-fonts/lexend-deca';
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 // Register the background heartbeat task at module load so TaskManager
@@ -39,6 +40,7 @@ export default function App() {
     LexendDeca_600SemiBold,
     LexendDeca_700Bold,
     LexendDeca_800ExtraBold,
+    Anton_400Regular,
   });
 
   if (!fontsLoaded) {

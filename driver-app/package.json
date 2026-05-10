@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo-google-fonts/anton": "^0.4.2",
     "@expo-google-fonts/lexend-deca": "^0.4.1",
     "@mapbox/polyline": "^1.2.1",
     "@maplibre/maplibre-react-native": "^11.0.0-beta.19",
