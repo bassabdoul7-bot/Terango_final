@@ -30,7 +30,7 @@ import COLORS from '../constants/colors';
 import FeedbackButton from '../components/FeedbackButton';
 import { useAuth } from '../context/AuthContext';
 import { WAZE_DARK_STYLE } from '../constants/mapStyles';
-import { driverService, rideService } from '../services/api.service';
+import { driverService, rideService, deliveryService } from '../services/api.service';
 import CAR_IMAGES from '../constants/carImages';
 
 
@@ -97,6 +97,15 @@ function HomeScreen(props) {
       loadRideHistory();
       loadFavoriteDrivers();
       rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
+      // Resume in-flight deliveries too — without this, a colis/commande lasting
+      // longer than the OS keeps the JS bundle alive (~30 min on most Android
+      // phones) drops the rider on Home with no way back to tracking even though
+      // the delivery is still progressing on the backend.
+      deliveryService.getActiveDelivery().then(function(res) {
+        if (res && res.success && res.delivery && ['pending', 'accepted', 'at_pickup', 'picked_up', 'at_dropoff'].indexOf(res.delivery.status) !== -1) {
+          navigation.replace('ActiveDelivery', { deliveryId: res.delivery._id });
+        }
+      }).catch(function() {});
     }
   }, []);
 
