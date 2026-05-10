@@ -199,10 +199,11 @@ function HomeScreen(props) {
         });
         return;
       }
-      Location.getCurrentPositionAsync({}).then(function(currentLocation) {
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(currentLocation) {
         setLocation({
           latitude: currentLocation.coords.latitude,
           longitude: currentLocation.coords.longitude,
+          accuracy: currentLocation.coords.accuracy,
           latitudeDelta: 0.02,
           longitudeDelta: 0.02,
         });

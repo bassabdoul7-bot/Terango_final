@@ -34,8 +34,10 @@ function ColisScreen(props) {
   var pickupSourceState = useState('gps'); var pickupSource = pickupSourceState[0]; var setPickupSource = pickupSourceState[1];
   var gpsLoadingState = useState(true); var gpsLoading = gpsLoadingState[0]; var setGpsLoading = gpsLoadingState[1];
   var gpsErrorState = useState(false); var gpsError = gpsErrorState[0]; var setGpsError = gpsErrorState[1];
+  var gpsAccuracyState = useState(null); var gpsAccuracy = gpsAccuracyState[0]; var setGpsAccuracy = gpsAccuracyState[1];
 
-  function applyGpsPickup(latitude, longitude) {
+  function applyGpsPickup(latitude, longitude, accuracyMeters) {
+    if (typeof accuracyMeters === 'number') setGpsAccuracy(accuracyMeters);
     Location.reverseGeocodeAsync({ latitude: latitude, longitude: longitude }).then(function(result) {
       var addr = (result && result[0]) || {};
       var label = ((addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || '')).trim() || 'Position actuelle';
@@ -52,32 +54,37 @@ function ColisScreen(props) {
   }
 
   useEffect(function() {
-    // 1. If the previous screen passed a fresh location, use it immediately.
+    // Show parent's location instantly so the screen isn't blank, but always
+    // fire a fresh Highest-accuracy fix anyway — parent's coords can come
+    // from a stale low-accuracy fix that lands the user in a neighbouring
+    // commune (e.g. Keur Massar shown as Guediawaye).
     if (currentLocation) {
-      applyGpsPickup(currentLocation.latitude, currentLocation.longitude);
-      return;
+      applyGpsPickup(currentLocation.latitude, currentLocation.longitude, currentLocation.accuracy);
     }
-    // 2. Otherwise request permission and fetch a fresh fix here. This is the
-    //    case that previously left pickup empty and forced the rider into
-    //    the autocomplete (which led to imprecise commune-centroid pins).
     Location.requestForegroundPermissionsAsync().then(function(perm) {
       if (perm.status !== 'granted') {
-        setGpsLoading(false);
-        setGpsError(true);
-        setPickupSource('manual');
+        if (!currentLocation) {
+          setGpsLoading(false);
+          setGpsError(true);
+          setPickupSource('manual');
+        }
         return;
       }
-      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(loc) {
-        applyGpsPickup(loc.coords.latitude, loc.coords.longitude);
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest }).then(function(loc) {
+        applyGpsPickup(loc.coords.latitude, loc.coords.longitude, loc.coords.accuracy);
       }).catch(function() {
+        if (!currentLocation) {
+          setGpsLoading(false);
+          setGpsError(true);
+          setPickupSource('manual');
+        }
+      });
+    }).catch(function() {
+      if (!currentLocation) {
         setGpsLoading(false);
         setGpsError(true);
         setPickupSource('manual');
-      });
-    }).catch(function() {
-      setGpsLoading(false);
-      setGpsError(true);
-      setPickupSource('manual');
+      }
     });
   }, []);
 
@@ -94,8 +101,8 @@ function ColisScreen(props) {
       applyGpsPickup(currentLocation.latitude, currentLocation.longitude);
       return;
     }
-    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }).then(function(loc) {
-      applyGpsPickup(loc.coords.latitude, loc.coords.longitude);
+    Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Highest }).then(function(loc) {
+      applyGpsPickup(loc.coords.latitude, loc.coords.longitude, loc.coords.accuracy);
     }).catch(function() {
       setGpsLoading(false);
       setGpsError(true);
@@ -181,6 +188,11 @@ function ColisScreen(props) {
                         <Text style={{ marginLeft: 6, color: COLORS.green, fontSize: 11, fontFamily: 'LexendDeca_600SemiBold' }}>Ma position actuelle</Text>
                       </View>
                       <Text style={styles.addressSet} numberOfLines={2}>{pickup.address}</Text>
+                      {typeof gpsAccuracy === 'number' && gpsAccuracy > 200 ? (
+                        <View style={{ backgroundColor: 'rgba(255,193,7,0.12)', borderLeftWidth: 3, borderLeftColor: '#FFC107', padding: 8, marginTop: 6, borderRadius: 6 }}>
+                          <Text style={{ color: '#FFC107', fontSize: 11, fontFamily: 'LexendDeca_500Medium' }}>{"⚠️  Position imprécise (~" + Math.round(gpsAccuracy) + "m). Vérifiez l'adresse ou tapez-la manuellement."}</Text>
+                        </View>
+                      ) : null}
                       <TouchableOpacity onPress={switchToManualPickup} style={{ marginTop: 6 }}>
                         <Text style={{ color: COLORS.textLightMuted, fontSize: 12, textDecorationLine: 'underline' }}>{"J'envoie depuis ailleurs"}</Text>
                       </TouchableOpacity>
