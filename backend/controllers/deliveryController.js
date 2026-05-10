@@ -198,7 +198,15 @@ exports.createDelivery = function(req, res) {
             var riderName = ru && ru.name ? ru.name : null;
 
             acceptingDrivers.forEach(function(driver) {
-              io.to('driver-' + driver._id.toString()).emit('new-delivery', {
+              var room = 'driver-' + driver._id.toString();
+              // Diagnostic: how many live sockets are actually in this driver's
+              // room at dispatch time? 0 = phantom-online (push delivers but
+              // socket card never lands). Helps distinguish "socket dropped"
+              // from "real bug in emit path" when drivers report missing cards.
+              io.in(room).fetchSockets().then(function(sockets) {
+                console.log('[delivery dispatch] driver=' + driver._id.toString() + ' room=' + room + ' sockets=' + sockets.length + ' deliveryId=' + delivery._id.toString());
+              }).catch(function() {});
+              io.to(room).emit('new-delivery', {
                 deliveryId: delivery._id,
                 serviceType: delivery.serviceType,
                 pickup: delivery.pickup,

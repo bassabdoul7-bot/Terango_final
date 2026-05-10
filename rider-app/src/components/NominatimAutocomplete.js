@@ -12,7 +12,7 @@ const POPULAR_PLACES = [
   { primary: 'Marche HLM', secondary: 'HLM, Dakar', coordinates: { latitude: 14.6908, longitude: -17.4458 }, geometry: { location: { lat: 14.6908, lng: -17.4458 } }, type: 'marketplace' },
   { primary: 'Marche Colobane', secondary: 'Colobane, Dakar', coordinates: { latitude: 14.6850, longitude: -17.4483 }, geometry: { location: { lat: 14.6850, lng: -17.4483 } }, type: 'marketplace' },
   { primary: 'Marche Tilene', secondary: 'Medina, Dakar', coordinates: { latitude: 14.6750, longitude: -17.4417 }, geometry: { location: { lat: 14.6750, lng: -17.4417 } }, type: 'marketplace' },
-  { primary: 'Universite Cheikh Anta Diop', secondary: 'Fann, Dakar', coordinates: { latitude: 14.6937, longitude: -17.4616 }, geometry: { location: { lat: 14.6937, lng: -17.4616 } }, type: 'university' },
+  { primary: 'Universite Cheikh Anta Diop', aliases: ['ucad', 'cheikh anta diop', 'fac', 'faculte', 'universite dakar'], secondary: 'Fann, Dakar', coordinates: { latitude: 14.6937, longitude: -17.4616 }, geometry: { location: { lat: 14.6937, lng: -17.4616 } }, type: 'university' },
   { primary: 'Hopital Principal', secondary: 'Plateau, Dakar', coordinates: { latitude: 14.6645, longitude: -17.4350 }, geometry: { location: { lat: 14.6645, lng: -17.4350 } }, type: 'hospital' },
   { primary: 'Hopital de Fann', secondary: 'Point E, Dakar', coordinates: { latitude: 14.6934, longitude: -17.4479 }, geometry: { location: { lat: 14.6934, lng: -17.4479 } }, type: 'hospital' },
   { primary: 'Hopital Aristide Le Dantec', secondary: 'Plateau, Dakar', coordinates: { latitude: 14.6700, longitude: -17.4410 }, geometry: { location: { lat: 14.6700, lng: -17.4410 } }, type: 'hospital' },
@@ -59,6 +59,29 @@ const fixAccents = (text) => {
     if (lower.includes(key)) lower = lower.replace(key, COMMON_TYPOS[key]);
   });
   return lower;
+};
+
+// Strip diacritics so "université" matches "universite" entries — Senegalese
+// French keyboards often auto-insert accents the user doesn't realise.
+var DIACRITICS_RE = new RegExp('[\\u0300-\\u036f]', 'g');
+const stripAccents = (text) => {
+  return (text || '').toLowerCase().normalize('NFD').replace(DIACRITICS_RE, '');
+};
+
+// Match user text against a popular place's primary OR any of its aliases.
+// Bidirectional substring so partial typing ("ucad" -> alias, "uc" -> ucad)
+// both work. Accent-insensitive on both sides.
+const matchesPopular = (place, text) => {
+  var t = stripAccents(text);
+  if (!t) return false;
+  if (stripAccents(place.primary).includes(t)) return true;
+  if (place.aliases) {
+    for (var i = 0; i < place.aliases.length; i++) {
+      var a = stripAccents(place.aliases[i]);
+      if (a.includes(t) || t.includes(a)) return true;
+    }
+  }
+  return false;
 };
 
 const formatAddress = (item) => {
@@ -154,18 +177,24 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
     setShowPopular(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (text.length < 2) {
-      var earlyMatches = POPULAR_PLACES.filter(function(p) { return p.primary.toLowerCase().includes(text.toLowerCase()); }).map(function(p) { return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary, confidence: 'exact' }); });
+      var earlyMatches = POPULAR_PLACES.filter(function(p) { return matchesPopular(p, text); }).map(function(p) { return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary, confidence: 'exact' }); });
       if (earlyMatches.length > 0) { updateResults(earlyMatches); } else { updateResults([]); }
       if (!text) setShowPopular(true);
       return;
     }
 
-    // Filter popular places that match
+    // Filter popular places that match (handles aliases + accent-insensitive)
     var matchedPopular = POPULAR_PLACES.filter(function(p) {
-      return p.primary.toLowerCase().includes(text.toLowerCase());
+      return matchesPopular(p, text);
     }).map(function(p) {
       return Object.assign({}, p, { address: p.primary + ', ' + p.secondary, description: p.primary + ', ' + p.secondary, confidence: 'exact' });
     });
+
+    // Render popular matches IMMEDIATELY so the user sees something while
+    // the upstream geocoder request is in flight (300ms debounce + network
+    // round-trip can be 1-3s on Senegal mobile data, otherwise the dropdown
+    // stays empty long enough that users give up and clear the input).
+    if (matchedPopular.length > 0) updateResults(matchedPopular);
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
