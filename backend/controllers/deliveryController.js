@@ -147,7 +147,7 @@ exports.createDelivery = function(req, res) {
       driverLocationService.getNearbyDrivers(
         delivery.pickup.coordinates.latitude,
         delivery.pickup.coordinates.longitude,
-        10
+        20
       ).then(function(nearbyDrivers) {
         if (nearbyDrivers.length === 0) {
           delivery.status = 'no_drivers_available';
