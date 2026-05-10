@@ -31,6 +31,12 @@ connectDB();
 const matchingService = new RideMatchingService(io);
 matchingService.setDriverLocationService(driverLocationService);
 
+// Trust the Hetzner reverse proxy (Caddy/nginx) so req.ip reflects the real
+// client IP from X-Forwarded-For instead of the proxy's loopback. Without
+// this every request appears to come from a single IP and the rate limiter
+// nukes everyone at once.
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: process.env.NODE_ENV !== 'production'
     ? true
@@ -48,18 +54,41 @@ app.use(cors({
 // Security headers
 app.use(helmet());
 
-// General API rate limit: 100 requests per 15 minutes (skip /api/logs — has its own limiter)
+// Per-user rate limit when a JWT is present, IP-bucket otherwise. Senegal
+// carrier NAT (Orange/Free/Expresso) puts many drivers behind one public IP,
+// so an IP-only bucket means active drivers collectively trip the limit and
+// can't go online. We only DECODE the JWT here (not verify) — real auth is
+// later via `protect`. A forged token just lands in its own bucket; the
+// fallback to IP keeps unauthenticated traffic accounted for.
+function rateLimitKey(req) {
+  var auth = req.headers && req.headers.authorization;
+  if (auth && auth.indexOf('Bearer ') === 0) {
+    try {
+      var decoded = jwt.decode(auth.slice(7));
+      if (decoded && decoded.id) return 'u:' + decoded.id;
+    } catch (e) {}
+  }
+  return 'ip:' + req.ip;
+}
+
+// General API rate limit (skip /api/logs — has its own limiter)
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 500,
+  max: 1500,
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: rateLimitKey,
   skip: function(req) { return req.path.startsWith('/logs'); },
   message: { success: false, message: 'Trop de requetes, veuillez reessayer plus tard.' }
 });
 app.use('/api', generalLimiter);
 
-// Auth endpoints rate limit
+// Auth endpoints rate limit — keep IP-only here on purpose. The whole point
+// is to slow brute-force login from a single attacker; per-user keying would
+// defeat that since the attacker controls the credentials being tried. The
+// trade-off is that legitimate users behind shared carrier NAT may hit it
+// during a wave of failed logins from someone else on the same carrier IP;
+// 30 in 15min is generous enough that real users rarely notice.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
