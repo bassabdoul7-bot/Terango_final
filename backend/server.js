@@ -4,7 +4,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 const { protect } = require('./middleware/auth');
@@ -68,7 +68,9 @@ function rateLimitKey(req) {
       if (decoded && decoded.id) return 'u:' + decoded.id;
     } catch (e) {}
   }
-  return 'ip:' + req.ip;
+  // ipKeyGenerator normalises IPv6 addresses to a /56 prefix so rotating
+  // addresses can't bypass the limit (raw req.ip would let them).
+  return 'ip:' + ipKeyGenerator(req.ip);
 }
 
 // General API rate limit (skip /api/logs — has its own limiter)
