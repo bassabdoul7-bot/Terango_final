@@ -6,7 +6,7 @@ import {
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
-import { deliveryService } from '../services/api.service';
+import { deliveryService, geocodeService } from '../services/api.service';
 import { calculateDistance } from '../utils/distance';
 
 
@@ -38,9 +38,12 @@ function ColisScreen(props) {
 
   function applyGpsPickup(latitude, longitude, accuracyMeters) {
     if (typeof accuracyMeters === 'number') setGpsAccuracy(accuracyMeters);
-    Location.reverseGeocodeAsync({ latitude: latitude, longitude: longitude }).then(function(result) {
-      var addr = (result && result[0]) || {};
-      var label = ((addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || '')).trim() || 'Position actuelle';
+    // Use our own Nominatim instead of expo's Location.reverseGeocodeAsync —
+    // the OS geocoder (Google Play Services on Android) returns "Guédiawaye"
+    // for Keur Massar coordinates because of stale admin boundary data, which
+    // mislabels riders' pickups even when their GPS is correct.
+    geocodeService.reverse(latitude, longitude).then(function(res) {
+      var label = (res && res.success && res.result && (res.result.address || res.result.primary)) || 'Position actuelle';
       setPickup({ address: label, coordinates: { latitude: latitude, longitude: longitude } });
       setPickupAddress(label);
       setGpsLoading(false);

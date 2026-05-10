@@ -6,7 +6,7 @@ import {
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
-import { deliveryService } from '../services/api.service';
+import { deliveryService, geocodeService } from '../services/api.service';
 
 
 var STORE_TYPES = [
@@ -37,8 +37,11 @@ function CommandeScreen(props) {
 
   useEffect(function() {
     if (currentLocation) {
-      Location.reverseGeocodeAsync({ latitude: currentLocation.latitude, longitude: currentLocation.longitude }).then(function(result) {
-        if (result && result[0]) { var addr = result[0]; var address = (addr.street || '') + ' ' + (addr.city || '') + ', ' + (addr.region || ''); setDropoff({ address: address.trim() || 'Ma position', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } }); }
+      // Use our own Nominatim — see ColisScreen for the reasoning. Same bug:
+      // Google's reverse geocoder mislabels Keur Massar coords as Guédiawaye.
+      geocodeService.reverse(currentLocation.latitude, currentLocation.longitude).then(function(res) {
+        var label = (res && res.success && res.result && (res.result.address || res.result.primary)) || 'Ma position';
+        setDropoff({ address: label, coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } });
       }).catch(function() { setDropoff({ address: 'Ma position', coordinates: { latitude: currentLocation.latitude, longitude: currentLocation.longitude } }); });
     }
   }, []);
