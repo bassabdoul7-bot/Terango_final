@@ -535,14 +535,14 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity style={styles.topMenuBtn} onPress={() => navigation.navigate('Menu')}>
           <Text style={styles.topMenuIcon}>{'☰'}</Text>
         </TouchableOpacity>
-        <View style={styles.earningsBadge}>
+        <TouchableOpacity style={styles.earningsBadge} onPress={() => navigation.navigate('Gains')} activeOpacity={0.7}>
           {/* Stroke layer — 4 offset copies fake a 1px outline since RN Text has no real stroke */}
           <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { top: -1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
           <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { top: 1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
           <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { left: -1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
           <Text style={[styles.earningsBadgeText, styles.earningsBadgeStroke, { left: 1 }]} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
           <Text style={styles.earningsBadgeText} numberOfLines={1}>{earnings.today.toLocaleString() + ' FCFA'}</Text>
-        </View>
+        </TouchableOpacity>
         <View style={styles.topRightSpacer} />
       </View>
 

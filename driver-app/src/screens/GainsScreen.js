@@ -12,13 +12,19 @@ var GainsScreen = function() {
   var earnings = es[0]; var setEarnings = es[1];
   var cs = useState(0);
   var commissionBalance = cs[0]; var setCommissionBalance = cs[1];
-  useEffect(function() { fetchEarnings(); fetchCommission(); }, []);
+  var hs = useState([]);
+  var history = hs[0]; var setHistory = hs[1];
+  useEffect(function() { fetchEarnings(); fetchCommission(); fetchHistory(); }, []);
   // Empty dep: fetchDriverProfile is recreated on every AuthProvider render.
   // Including it caused an infinite focus-loop that hammered /drivers/profile
   // and tripped the 500-per-15min rate limiter (HTTP 429 on the dashboard).
-  useFocusEffect(useCallback(function() { fetchEarnings(); if (auth.fetchDriverProfile) auth.fetchDriverProfile(); }, []));
+  useFocusEffect(useCallback(function() { fetchEarnings(); fetchHistory(); if (auth.fetchDriverProfile) auth.fetchDriverProfile(); }, []));
   function fetchCommission() { driverService.getProfile().then(function(r) { if (r && r.driver) { setCommissionBalance(r.driver.commissionBalance || 0); } }).catch(function(){}); }
   function fetchEarnings() { driverService.getEarnings().then(function(r) { var e = r.earnings || {}; setEarnings({ today: e.today||0, todayRides: e.todayRides||0, total: e.total||0, totalRides: e.totalRides||0, weekTotal: e.weekTotal||0, weekRides: e.weekRides||0, weeklyBreakdown: e.weeklyBreakdown||[0,0,0,0,0,0,0] }); }).catch(function(){}); }
+  function fetchHistory() { driverService.getRideHistory().then(function(r) { var list = (r && (r.history || r.rides)) || []; setHistory(list); }).catch(function(){}); }
+  function typeLabel(t) { if (t === 'ride') return 'Course'; if (t === 'colis') return 'Colis'; if (t === 'commande') return 'Commande'; if (t === 'resto' || t === 'restaurant') return 'Resto'; return 'Trajet'; }
+  function typeIcon(t) { if (t === 'ride') return '🚗'; if (t === 'colis') return '📦'; if (t === 'commande') return '🛒'; if (t === 'resto' || t === 'restaurant') return '🍴'; return '📍'; }
+  function formatDate(iso) { if (!iso) return ''; var d = new Date(iso); var today = new Date(); var sameDay = d.toDateString() === today.toDateString(); var yest = new Date(today); yest.setDate(today.getDate() - 1); if (sameDay) return "Aujourd'hui " + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); if (d.toDateString() === yest.toDateString()) return 'Hier ' + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' ' + d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0'); }
   var days = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
   var todayIndex = (new Date().getDay()+6)%7;
   var progress = Math.min((earnings.today/25000)*100,100);
@@ -41,6 +47,37 @@ var GainsScreen = function() {
         <View style={styles.weeklyCard}>
           <View style={styles.weeklyHeader}><Text style={styles.weeklyTitle}>Cette semaine</Text><Text style={styles.weeklyTotal}>{earnings.weekTotal.toLocaleString()+" FCFA"}</Text></View>
           <View style={styles.weeklyBars}>{days.map(function(day,i){var isToday=i===todayIndex;var de=earnings.weeklyBreakdown[i]||0;var maxE=Math.max.apply(null,earnings.weeklyBreakdown)||1;var dh=Math.max(de>0?(de/maxE)*60+10:8,8);return(<View key={day} style={styles.barCol}>{de>0&&<Text style={styles.barAmt}>{(de/1000).toFixed(0)+"k"}</Text>}<View style={[styles.bar,{height:dh},(isToday||de>0)&&styles.barActive]} /><Text style={[styles.barDay,(isToday||de>0)&&styles.barDayActive]}>{day}</Text>{isToday&&<View style={styles.todayDot}/>}</View>);})}</View>
+        </View>
+        <View style={styles.historyCard}>
+          <Text style={styles.historyTitle}>Historique des trajets</Text>
+          {history.length === 0 ? (
+            <Text style={styles.historyEmpty}>Aucun trajet pour l'instant</Text>
+          ) : history.map(function(item) {
+            return (
+              <View key={String(item._id)} style={styles.historyRow}>
+                <View style={styles.historyHead}>
+                  <Text style={styles.historyType}>{typeIcon(item.type) + '  ' + typeLabel(item.type)}</Text>
+                  <Text style={styles.historyDate}>{formatDate(item.completedAt)}</Text>
+                </View>
+                {item.dropoffAddress ? <Text style={styles.historyAddr} numberOfLines={1}>{item.dropoffAddress}</Text> : null}
+                <View style={styles.historyBreakdown}>
+                  <View style={styles.historyCol}>
+                    <Text style={styles.historyColLbl}>Client a payé</Text>
+                    <Text style={styles.historyColVal}>{(item.fare || 0).toLocaleString() + ' F'}</Text>
+                  </View>
+                  <View style={styles.historyCol}>
+                    <Text style={styles.historyColLbl}>Commission</Text>
+                    <Text style={[styles.historyColVal, { color: COLORS.orange }]}>{'-' + (item.platformCommission || 0).toLocaleString() + ' F'}</Text>
+                  </View>
+                  <View style={styles.historyCol}>
+                    <Text style={styles.historyColLbl}>Vos gains</Text>
+                    <Text style={[styles.historyColVal, { color: COLORS.green }]}>{(item.driverEarnings || 0).toLocaleString() + ' F'}</Text>
+                  </View>
+                </View>
+                <Text style={styles.historyPay}>{item.paymentMethod === 'wave' ? '🌊 Wave' : '💵 Espèces'}</Text>
+              </View>
+            );
+          })}
         </View>
         <View style={styles.commissionCard}>
           <View style={styles.commissionHeader}>
@@ -91,6 +128,19 @@ var styles = StyleSheet.create({
   barDay: { fontSize: 10, color: COLORS.textLightMuted, marginTop: 6, fontFamily: "LexendDeca_400Regular" },
   barDayActive: { color: COLORS.textLight, fontFamily: "LexendDeca_600SemiBold" },
   todayDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: COLORS.yellow, marginTop: 4 },
+  historyCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginTop: 24, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  historyTitle: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 14 },
+  historyEmpty: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', textAlign: 'center', paddingVertical: 14 },
+  historyRow: { paddingVertical: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
+  historyHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  historyType: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  historyDate: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  historyAddr: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular', marginBottom: 8 },
+  historyBreakdown: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 },
+  historyCol: { flex: 1, alignItems: 'flex-start' },
+  historyColLbl: { fontSize: 10, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginBottom: 2 },
+  historyColVal: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  historyPay: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 6 },
   commissionCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginTop: 24, borderWidth: 1, borderColor: COLORS.darkCardBorder },
   commissionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
   commissionTitle: { fontSize: 16, fontFamily: "LexendDeca_700Bold", color: COLORS.textLight },

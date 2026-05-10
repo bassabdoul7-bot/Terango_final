@@ -405,10 +405,57 @@ exports.getRideHistory = async function(req, res) {
     if (!driver) {
       return res.status(404).json({ success: false, message: 'Profil chauffeur non trouve' });
     }
-    var rides = await Ride.find({ driver: driver._id, status: 'completed' })
+    // Merge completed rides + delivered colis/commande/resto so the GainsScreen
+    // can show a unified per-trip history with the fare/commission/earnings
+    // breakdown drivers asked for. Both schemas already carry the same money
+    // fields; we just normalise the shape here.
+    var ridePromise = Ride.find({ driver: driver._id, status: 'completed' })
       .sort({ completedAt: -1 })
-      .limit(50);
-    res.status(200).json({ success: true, rides: rides });
+      .limit(50)
+      .lean();
+    var deliveryPromise = Delivery.find({ driver: driver._id, status: 'delivered' })
+      .sort({ deliveredAt: -1 })
+      .limit(50)
+      .lean();
+    var results = await Promise.all([ridePromise, deliveryPromise]);
+    var rides = results[0] || [];
+    var deliveries = results[1] || [];
+
+    var rideItems = rides.map(function(r) {
+      return {
+        _id: r._id,
+        type: 'ride',
+        fare: r.fare || 0,
+        platformCommission: r.platformCommission || 0,
+        driverEarnings: r.driverEarnings || 0,
+        paymentMethod: r.paymentMethod || 'cash',
+        pickupAddress: r.pickup && r.pickup.address ? r.pickup.address : '',
+        dropoffAddress: r.dropoff && r.dropoff.address ? r.dropoff.address : '',
+        completedAt: r.completedAt || r.updatedAt
+      };
+    });
+    var deliveryItems = deliveries.map(function(d) {
+      return {
+        _id: d._id,
+        type: d.serviceType || 'colis',
+        fare: d.fare || 0,
+        platformCommission: d.platformCommission || 0,
+        driverEarnings: d.driverEarnings || 0,
+        paymentMethod: d.paymentMethod || 'cash',
+        pickupAddress: d.pickup && d.pickup.address ? d.pickup.address : '',
+        dropoffAddress: d.dropoff && d.dropoff.address ? d.dropoff.address : '',
+        completedAt: d.deliveredAt || d.updatedAt
+      };
+    });
+
+    var merged = rideItems.concat(deliveryItems).sort(function(a, b) {
+      var ta = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      var tb = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return tb - ta;
+    }).slice(0, 100);
+
+    // Keep `rides` key for backward compat with the old client field name.
+    res.status(200).json({ success: true, rides: merged, history: merged });
   } catch (error) {
     console.error('Get Ride History Error:', error);
     res.status(500).json({ success: false, message: 'Erreur lors de la recuperation de historique' });
