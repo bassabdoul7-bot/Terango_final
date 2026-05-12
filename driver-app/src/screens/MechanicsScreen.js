@@ -360,7 +360,7 @@ var styles = StyleSheet.create({
 
   mapContainer: { height: 240, position: 'relative' },
   map: { flex: 1 },
-  mapPlaceholder: { flex: 1, backgroundColor: '#F2F4F7'2, alignItems: 'center', justifyContent: 'center' },
+  mapPlaceholder: { flex: 1, backgroundColor: '#E8EAEE', alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: '#5a5a5a', fontSize: 14, marginTop: 12, fontFamily: 'LexendDeca_400Regular' },
   loadingOverlay: {
     position: 'absolute', top: 10, alignSelf: 'center',
