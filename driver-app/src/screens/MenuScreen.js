@@ -1,8 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert, Animated, Linking, Image, TextInput } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import COLORS from '../constants/colors';
+
+// Yango-style bold italic outlined display amount, same as Gains screen.
+function StrokedAmount(props) {
+  var fontSize = props.fontSize || 38;
+  var color = props.color || '#FFFFFF';
+  var strokeColor = props.strokeColor || '#000000';
+  var text = (props.amount || 0).toLocaleString() + ' FCFA';
+  var base = { fontFamily: 'Anton_400Regular', fontSize: fontSize, color: color, fontStyle: 'italic', letterSpacing: 1 };
+  var stroke = Object.assign({}, base, { color: strokeColor, position: 'absolute' });
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={[stroke, { top: -1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { top: 1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { left: -1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { left: 1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[base, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 4 }]} numberOfLines={1}>{text}</Text>
+    </View>
+  );
+}
 import * as ImagePicker from 'expo-image-picker';
 import { driverService } from '../services/api.service';
 import { useAuth } from '../context/AuthContext';
@@ -118,9 +138,17 @@ var MenuScreen = function(props) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <View style={styles.header}><TouchableOpacity style={styles.backBtn} onPress={function(){if(activeTab!=='menu'){switchTab('menu');}else{navigation.goBack();}}}><Text style={styles.backArrow}>{'\u2190'}</Text></TouchableOpacity><Text style={styles.headerTxt}>{getTitle()}</Text><View style={{width:44}}/></View>
-      <Animated.View style={{flex:1,opacity:fadeAnim}}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <LinearGradient
+        colors={['#000000', '#003322', '#00853F']}
+        locations={[0, 0.55, 1]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        style={styles.heroGradient}
+      >
+      <View style={styles.headerRow}><TouchableOpacity style={styles.backBtn} onPress={function(){if(activeTab!=='menu'){switchTab('menu');}else{navigation.goBack();}}}><Text style={styles.backArrow}>{'\u2190'}</Text></TouchableOpacity><Text style={styles.headerTxt}>{getTitle().toUpperCase()}</Text><View style={{width:44}}/></View>
+      </LinearGradient>
+      <Animated.View style={{flex:1,opacity:fadeAnim,marginTop:-18,backgroundColor:'#F2F4F7',borderTopLeftRadius:28,borderTopRightRadius:28,paddingTop:12}}>
         {activeTab==='menu'&&renderMainMenu()}{activeTab==='earnings'&&renderEarningsTab()}{activeTab==='history'&&renderHistoryTab()}{activeTab==='support'&&renderSupportTab()}{activeTab==='vehicle'&&renderVehicleTab()}{activeTab==='settings'&&renderSettingsTab()}
       </Animated.View>
     </View>
@@ -128,41 +156,43 @@ var MenuScreen = function(props) {
 };
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  tabContent: { flex: 1, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  heroGradient: { paddingTop: 70, paddingBottom: 36, paddingHorizontal: 16, alignItems: 'stretch' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  tabContent: { flex: 1, paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backArrow: { fontSize: 24, color: COLORS.green , fontFamily: 'LexendDeca_400Regular' },
-  headerTxt: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, letterSpacing: 0.3 },
-  profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginTop: 20, marginBottom: 16, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backArrow: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
+  headerTxt: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
+  profileCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, marginTop: 8, marginBottom: 14, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2 },
   avatarWrap: { position: 'relative', marginRight: 16 },
   avatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center' },
   avatarLetter: { fontSize: 26, fontFamily: 'LexendDeca_700Bold', color: '#fff' },
   avatarImg: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#ccc' },
-  editBadge: { position: 'absolute', bottom: -2, left: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.darkCard },
+  editBadge: { position: 'absolute', bottom: -2, left: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFFFFF' },
   editBadgeVerified: { backgroundColor: COLORS.green },
   editBadgePending: { backgroundColor: '#FF9500' },
   editBadgeText: { fontSize: 12 , fontFamily: 'LexendDeca_400Regular' },
-  onlineDot: { position: 'absolute', bottom: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.green, borderWidth: 3, borderColor: COLORS.darkCard },
+  onlineDot: { position: 'absolute', bottom: 2, right: 2, width: 16, height: 16, borderRadius: 8, backgroundColor: COLORS.green, borderWidth: 3, borderColor: '#FFFFFF' },
   profileInfo: { flex: 1 },
-  profileName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
+  profileName: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
   ratingRow: { flexDirection: 'row', alignItems: 'center' },
   starIcon: { fontSize: 14, marginRight: 4 , fontFamily: 'LexendDeca_400Regular' },
-  ratingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginRight: 6 },
-  ratingMeta: { fontSize: 13, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
-  earningsSummary: { flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.08)', borderRadius: 16, marginBottom: 24, overflow: 'hidden', borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.2)' },
-  earnBox: { flex: 1, padding: 20, alignItems: 'center' },
-  earnDivider: { width: 1, backgroundColor: 'rgba(212,175,55,0.15)' },
-  earnVal: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 4 },
-  earnLbl: { fontSize: 12, color: COLORS.textDarkSub , fontFamily: 'LexendDeca_400Regular' },
-  menuGroup: { backgroundColor: COLORS.backgroundWhite, borderRadius: 20, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: COLORS.grayLight },
-  menuRow: { flexDirection: 'row', alignItems: 'center', padding: 18, borderBottomWidth: 1, borderBottomColor: COLORS.grayLight },
+  ratingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginRight: 6 },
+  ratingMeta: { fontSize: 13, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
+  earningsSummary: { flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 18, marginBottom: 16, overflow: 'hidden', elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2 },
+  earnBox: { flex: 1, padding: 18, alignItems: 'center' },
+  earnDivider: { width: 1, backgroundColor: '#EEF0F3' },
+  earnVal: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
+  earnLbl: { fontSize: 11, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
+  menuGroup: { backgroundColor: '#FFFFFF', borderRadius: 18, overflow: 'hidden', marginBottom: 16, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#EEF0F3' },
   mIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   mEmoji: { fontSize: 22 , fontFamily: 'LexendDeca_400Regular' },
   mInfo: { flex: 1 },
-  mTitle: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDark, marginBottom: 2 },
-  mSub: { fontSize: 12, color: COLORS.textDarkMuted , fontFamily: 'LexendDeca_400Regular' },
-  mChevron: { fontSize: 22, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
+  mTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 2 },
+  mSub: { fontSize: 12, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
+  mChevron: { fontSize: 22, color: '#9AA0A6', fontFamily: 'LexendDeca_600SemiBold' },
   logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 18, borderRadius: 16, backgroundColor: 'rgba(255,59,48,0.08)', borderWidth: 1, borderColor: 'rgba(255,59,48,0.2)', marginBottom: 16 },
   logoutIcon: { fontSize: 20, marginRight: 10 , fontFamily: 'LexendDeca_400Regular' },
   logoutTxt: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#FF3B30' },
