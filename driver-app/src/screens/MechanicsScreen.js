@@ -10,6 +10,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
@@ -179,7 +180,7 @@ var MechanicsScreen = function (props) {
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function () { navigation.goBack(); }}>
           <Text style={styles.backArrow}>{'\u2190'}</Text>
         </TouchableOpacity>
@@ -187,7 +188,7 @@ var MechanicsScreen = function (props) {
         <TouchableOpacity style={styles.radiusBtn} onPress={toggleRadius}>
           <Text style={styles.radiusTxt}>{radius === 5000 ? '5km' : '10km'}</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {/* Filter tabs */}
       <View style={styles.filterRow}>
@@ -324,20 +325,19 @@ var MechanicsScreen = function (props) {
 };
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.darkBg },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingTop: 60, paddingHorizontal: 20, paddingBottom: 14,
-    backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder,
+    paddingTop: 60, paddingHorizontal: 16, paddingBottom: 28,
   },
   backBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
   },
-  backArrow: { fontSize: 24, color: COLORS.green, fontFamily: 'LexendDeca_400Regular' },
-  headerTxt: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, letterSpacing: 0.3, flex: 1, textAlign: 'center' },
+  backArrow: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
+  headerTxt: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2, flex: 1, textAlign: 'center' },
   radiusBtn: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 14,
     backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)',
@@ -346,7 +346,7 @@ var styles = StyleSheet.create({
 
   filterRow: {
     flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 10, gap: 8,
-    backgroundColor: COLORS.darkBg,
+    backgroundColor: '#F2F4F7',
   },
   filterTab: {
     flex: 1, paddingVertical: 10, borderRadius: 12, alignItems: 'center',
@@ -355,20 +355,20 @@ var styles = StyleSheet.create({
   filterTabActive: {
     backgroundColor: 'rgba(212,175,55,0.2)', borderColor: 'rgba(212,175,55,0.5)',
   },
-  filterText: { fontSize: 13, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightMuted },
+  filterText: { fontSize: 13, fontFamily: 'LexendDeca_500Medium', color: '#757575' },
   filterTextActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
 
   mapContainer: { height: 240, position: 'relative' },
   map: { flex: 1 },
-  mapPlaceholder: { flex: 1, backgroundColor: COLORS.darkBg2, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: COLORS.textLightSub, fontSize: 14, marginTop: 12, fontFamily: 'LexendDeca_400Regular' },
+  mapPlaceholder: { flex: 1, backgroundColor: '#F2F4F7'2, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: '#5a5a5a', fontSize: 14, marginTop: 12, fontFamily: 'LexendDeca_400Regular' },
   loadingOverlay: {
     position: 'absolute', top: 10, alignSelf: 'center',
     flexDirection: 'row', alignItems: 'center', gap: 8,
     backgroundColor: 'rgba(0,36,24,0.9)', paddingHorizontal: 16, paddingVertical: 8,
-    borderRadius: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    borderRadius: 20, borderWidth: 1, borderColor: '#EEF0F3',
   },
-  loadingOverlayText: { color: COLORS.textLightSub, fontSize: 12, fontFamily: 'LexendDeca_500Medium' },
+  loadingOverlayText: { color: '#5a5a5a', fontSize: 12, fontFamily: 'LexendDeca_500Medium' },
 
   userMarker: {
     width: 24, height: 24, borderRadius: 12,
@@ -388,13 +388,13 @@ var styles = StyleSheet.create({
   poiMarkerParts: { backgroundColor: 'rgba(33,150,243,0.9)', borderColor: '#2196F3' },
   poiMarkerEmoji: { fontSize: 16 },
 
-  listContainer: { flex: 1, backgroundColor: COLORS.darkBg },
+  listContainer: { flex: 1, backgroundColor: '#F2F4F7' },
   resultsList: { flex: 1, paddingHorizontal: 16 },
-  resultsCount: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular', marginTop: 12, marginBottom: 8, paddingHorizontal: 4 },
+  resultsCount: { fontSize: 12, color: '#757575', fontFamily: 'LexendDeca_400Regular', marginTop: 12, marginBottom: 8, paddingHorizontal: 4 },
 
   resultCard: {
-    backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 16, marginBottom: 10,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 4,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10,
+    borderWidth: 1, borderColor: '#EEF0F3', elevation: 4,
   },
   resultCardSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(0,51,34,0.95)' },
 
@@ -406,12 +406,12 @@ var styles = StyleSheet.create({
   badgeMechanic: { backgroundColor: 'rgba(0,133,63,0.15)' },
   badgeParts: { backgroundColor: 'rgba(33,150,243,0.15)' },
   categoryEmoji: { fontSize: 12 },
-  categoryText: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  categoryText: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
   distanceText: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
 
-  cardName: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, marginBottom: 4 },
-  cardAddress: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub, marginBottom: 4 },
-  cardHours: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginBottom: 8 },
+  cardName: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A', marginBottom: 4 },
+  cardAddress: { fontSize: 12, fontFamily: 'LexendDeca_400Regular', color: '#5a5a5a', marginBottom: 4 },
+  cardHours: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: '#757575', marginBottom: 8 },
 
   cardActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   actionBtn: {
@@ -421,13 +421,13 @@ var styles = StyleSheet.create({
   },
   actionBtnPrimary: { backgroundColor: 'rgba(212,175,55,0.15)', borderColor: 'rgba(212,175,55,0.3)' },
   actionEmoji: { fontSize: 14 },
-  actionText: { fontSize: 12, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
+  actionText: { fontSize: 12, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a' },
   actionTextPrimary: { color: COLORS.yellow },
 
   emptyState: { alignItems: 'center', justifyContent: 'center', paddingTop: 40 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 6 },
-  emptySub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, textAlign: 'center', paddingHorizontal: 30 },
+  emptyTitle: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 6 },
+  emptySub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: '#757575', textAlign: 'center', paddingHorizontal: 30 },
   expandBtn: {
     marginTop: 16, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12,
     backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)',

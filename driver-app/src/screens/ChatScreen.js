@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   FlatList, KeyboardAvoidingView, Platform, SafeAreaView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import COLORS from '../constants/colors';
 
 var ChatScreen = function(props) {
@@ -61,10 +62,10 @@ var ChatScreen = function(props) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={onClose}><Text style={styles.backArrow}>{String.fromCodePoint(0x2190)}</Text></TouchableOpacity>
         <View style={styles.headerInfo}><Text style={styles.headerName}>{otherName}</Text><Text style={styles.headerSub}>En ligne</Text></View>
-      </View>
+      </LinearGradient>
       <FlatList ref={flatListRef} data={messages} keyExtractor={function(item, index) { return item._id || index.toString(); }} renderItem={renderMessage} style={styles.messageList} contentContainerStyle={messages.length === 0 ? styles.emptyContainer : styles.listContent} ListEmptyComponent={renderEmpty} onContentSizeChange={function() { if (flatListRef.current && messages.length > 0) { flatListRef.current.scrollToEnd({ animated: false }); } }} />
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
         <View style={styles.inputRow}>
@@ -79,13 +80,13 @@ var ChatScreen = function(props) {
 };
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 50, paddingBottom: 14, paddingHorizontal: 16, backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backArrow: { fontSize: 22, color: COLORS.green , fontFamily: 'LexendDeca_400Regular' },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 50, paddingBottom: 16, paddingHorizontal: 16 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backArrow: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
   headerInfo: { flex: 1 },
-  headerName: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  headerSub: { fontSize: 12, color: COLORS.green, marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
+  headerName: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
   messageList: { flex: 1 },
   listContent: { paddingHorizontal: 12, paddingVertical: 8 },
   emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -97,15 +98,15 @@ var styles = StyleSheet.create({
   msgRowOther: { alignItems: 'flex-start' },
   bubble: { maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
   bubbleMe: { backgroundColor: COLORS.green, borderBottomRightRadius: 4 },
-  bubbleOther: { backgroundColor: COLORS.darkCard, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  bubbleOther: { backgroundColor: '#FFFFFF', borderBottomLeftRadius: 4, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 2 },
   msgText: { fontSize: 15, lineHeight: 20 , fontFamily: 'LexendDeca_400Regular' },
   msgTextMe: { color: '#fff' },
-  msgTextOther: { color: COLORS.textLight },
+  msgTextOther: { color: '#1A1A1A' },
   msgTime: { fontSize: 10, marginTop: 4 , fontFamily: 'LexendDeca_400Regular' },
-  msgTimeMe: { color: 'rgba(255,255,255,0.5)', textAlign: 'right' },
-  msgTimeOther: { color: COLORS.textLightMuted },
-  inputRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: COLORS.backgroundWhite, borderTopWidth: 1, borderTopColor: COLORS.grayLight },
-  input: { flex: 1, backgroundColor: COLORS.background, borderRadius: 24, paddingHorizontal: 18, paddingVertical: 12, fontSize: 15, color: COLORS.textDark, marginRight: 10, borderWidth: 1, borderColor: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  msgTimeMe: { color: 'rgba(255,255,255,0.6)', textAlign: 'right' },
+  msgTimeOther: { color: '#9AA0A6' },
+  inputRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#EEF0F3' },
+  input: { flex: 1, backgroundColor: '#F2F4F7', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 12, fontSize: 15, color: '#1A1A1A', marginRight: 10, borderWidth: 1, borderColor: '#EEF0F3', fontFamily: 'LexendDeca_400Regular' },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
   sendIcon: { fontSize: 20, color: '#fff' , fontFamily: 'LexendDeca_400Regular' },

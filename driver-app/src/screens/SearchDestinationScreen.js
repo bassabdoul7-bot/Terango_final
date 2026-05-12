@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platfor
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import COLORS from '../constants/colors';
 
 const RECENT_SEARCHES_KEY = '@recent_searches';
@@ -45,10 +46,10 @@ const SearchDestinationScreen = ({ route, navigation }) => {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}><Text style={styles.backIcon}>{'\u2190'}</Text></TouchableOpacity>
-        <Text style={styles.headerTitle}>Planifiez votre course</Text>
-      </View>
+        <Text style={styles.headerTitle}>PLANIFIEZ VOTRE COURSE</Text>
+      </LinearGradient>
       <View style={styles.inputsCard}>
         <View style={styles.inputRow}>
           <View style={styles.iconContainer}><View style={styles.circleIcon} /></View>
@@ -99,24 +100,24 @@ const SearchDestinationScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backIcon: { fontSize: 24, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
-  headerTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  inputsCard: { margin: 20, backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, elevation: 12, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 32 },
+  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backIcon: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
+  headerTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
+  inputsCard: { marginHorizontal: 16, marginTop: -10, backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
   inputRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
   iconContainer: { width: 40, alignItems: 'center', marginRight: 12 },
   circleIcon: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green },
   squareIcon: { width: 14, height: 14, backgroundColor: COLORS.red },
-  dashedLine: { height: 30, marginLeft: 20, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.15)', borderStyle: 'dashed', marginVertical: 4 },
+  dashedLine: { height: 30, marginLeft: 20, borderLeftWidth: 2, borderLeftColor: '#D7DBE0', borderStyle: 'dashed', marginVertical: 4 },
   autocompleteWrapper: { flex: 1 },
-  addressTouchable: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  addressText: { fontSize: 16, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
-  currentLocationButton: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginTop: 16, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  addressTouchable: { paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#F8F9FB', borderRadius: 12, borderWidth: 1, borderColor: '#EEF0F3' },
+  addressText: { fontSize: 16, color: '#1A1A1A', fontFamily: 'LexendDeca_500Medium' },
+  currentLocationButton: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F8F9FB', borderRadius: 12, marginTop: 16, borderWidth: 1, borderColor: '#EEF0F3' },
   currentLocationIconContainer: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   currentLocationIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
-  currentLocationText: { fontSize: 16, color: COLORS.textLight, fontFamily: 'LexendDeca_600SemiBold' },
+  currentLocationText: { fontSize: 16, color: '#1A1A1A', fontFamily: 'LexendDeca_600SemiBold' },
   recentSection: { marginHorizontal: 20 },
   recentTitle: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 12 },
   recentItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: COLORS.backgroundWhite, borderRadius: 16, marginBottom: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.grayLight },
