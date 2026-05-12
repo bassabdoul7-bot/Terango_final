@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, StatusBar, Image, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import COLORS from '../constants/colors';
 import { rideService, deliveryService } from '../services/api.service';
+
+function StrokedAmount(props) {
+  var fontSize = props.fontSize || 52;
+  var text = (props.amount || 0).toLocaleString() + ' FCFA';
+  var base = { fontFamily: 'Anton_400Regular', fontSize: fontSize, color: '#FFFFFF', fontStyle: 'italic', letterSpacing: 1 };
+  var stroke = Object.assign({}, base, { color: '#000000', position: 'absolute' });
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={[stroke, { top: -1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { top: 1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { left: -1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[stroke, { left: 1 }]} numberOfLines={1}>{text}</Text>
+      <Text style={[base, { textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 4 }, textShadowRadius: 6 }]} numberOfLines={1}>{text}</Text>
+    </View>
+  );
+}
 
 function RatingScreen(props) {
   var navigation = props.navigation;
@@ -51,14 +68,13 @@ function RatingScreen(props) {
   }
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: COLORS.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
-      <StatusBar barStyle="dark-content" />
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: '#F2F4F7' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={0}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.heroGradient}>
+        <Text style={styles.heroEyebrow}>{(isDelivery ? 'LIVRAISON TERMINÉE' : 'COURSE TERMINÉE').toUpperCase()}</Text>
+        <View style={{ marginTop: 8 }}><StrokedAmount amount={fare} fontSize={48} /></View>
+      </LinearGradient>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.successBanner}>
-          <Text style={styles.successIcon}>{'✔'}</Text>
-          <Text style={styles.successTitle}>{isDelivery ? 'Livraison terminée!' : 'Course terminée!'}</Text>
-          <Text style={styles.successFare}>{fare.toLocaleString() + ' FCFA'}</Text>
-        </View>
         <View style={styles.driverCard}>
           {renderDriverAvatar()}
           <Text style={styles.driverName}>{driverName}</Text>
@@ -76,29 +92,31 @@ function RatingScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: COLORS.background, paddingHorizontal: 24, paddingTop: 80, paddingBottom: 40, alignItems: 'center' },
+  heroGradient: { paddingTop: 70, paddingBottom: 36, paddingHorizontal: 24, alignItems: 'center' },
+  heroEyebrow: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.85)', letterSpacing: 2 },
+  container: { flexGrow: 1, backgroundColor: '#F2F4F7', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, alignItems: 'center' },
   successBanner: { alignItems: 'center', marginBottom: 32 },
   successIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: COLORS.green, textAlign: 'center', lineHeight: 64, fontSize: 32, color: '#fff', overflow: 'hidden', marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
-  successTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8 },
-  successFare: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  driverCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', width: '100%', marginBottom: 32, borderWidth: 1, borderColor: COLORS.darkCardBorder, elevation: 8 },
-  driverPhoto: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, backgroundColor: COLORS.darkCardLight },
+  successTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 8 },
+  successFare: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
+  driverCard: { backgroundColor: '#FFFFFF', borderRadius: 18, padding: 22, alignItems: 'center', width: '100%', marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
+  driverPhoto: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, backgroundColor: '#EEF0F3' },
   driverAvatarFallback: { width: 72, height: 72, borderRadius: 36, marginBottom: 12, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center' },
-  driverAvatarLetter: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  driverName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  driverMeta: { fontSize: 14, color: COLORS.textLightSub, marginBottom: 4 , fontFamily: 'LexendDeca_400Regular' },
-  vehicleText: { fontSize: 13, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
-  ratingPrompt: { fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDark, marginBottom: 16, textAlign: 'center' },
-  starsRow: { flexDirection: 'row', marginBottom: 24 },
+  driverAvatarLetter: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
+  driverName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
+  driverMeta: { fontSize: 14, color: '#5a5a5a', marginBottom: 4 , fontFamily: 'LexendDeca_400Regular' },
+  vehicleText: { fontSize: 13, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
+  ratingPrompt: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 16, textAlign: 'center' },
+  starsRow: { flexDirection: 'row', marginBottom: 20 },
   starTouch: { padding: 8 },
-  star: { fontSize: 44, color: COLORS.grayLight , fontFamily: 'LexendDeca_400Regular' },
+  star: { fontSize: 44, color: '#D7DBE0', fontFamily: 'LexendDeca_400Regular' },
   starFilled: { color: COLORS.yellow },
-  reviewInput: { width: '100%', minHeight: 80, backgroundColor: COLORS.backgroundWhite, borderRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight, padding: 16, color: COLORS.textDark, fontSize: 15, textAlignVertical: 'top', marginBottom: 24 , fontFamily: 'LexendDeca_400Regular' },
+  reviewInput: { width: '100%', minHeight: 80, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#EEF0F3', padding: 16, color: '#1A1A1A', fontSize: 15, textAlignVertical: 'top', marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   submitBtn: { width: '100%', padding: 18, borderRadius: 16, backgroundColor: COLORS.green, alignItems: 'center', marginBottom: 12 },
   submitBtnDisabled: { backgroundColor: 'rgba(0, 133, 63, 0.3)' },
-  submitBtnText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  submitBtnText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
   skipBtn: { padding: 16 },
-  skipBtnText: { fontSize: 15, color: COLORS.textDarkMuted , fontFamily: 'LexendDeca_400Regular' },
+  skipBtnText: { fontSize: 15, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default RatingScreen;
