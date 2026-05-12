@@ -269,7 +269,7 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
         <TextInput
           style={[styles.input, inputOverride]}
           placeholder={placeholder}
-          placeholderTextColor={placeholderTextColor || (inputOverride && inputOverride.color ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)')}
+          placeholderTextColor={placeholderTextColor || '#9AA0A6'}
           value={query}
           onChangeText={search}
           autoFocus={autoFocus}
@@ -296,29 +296,29 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
 var styles = StyleSheet.create({
   inputContainer: { position: 'relative' },
   input: {
-    fontSize: 16, color: '#FFFFFF', paddingVertical: 14, paddingHorizontal: 16, paddingRight: 40,
-    backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 12, borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)', fontFamily: 'LexendDeca_400Regular', minHeight: 50,
+    fontSize: 16, color: '#1A1A1A', paddingVertical: 14, paddingHorizontal: 16, paddingRight: 40,
+    backgroundColor: '#F8F9FB', borderRadius: 12, borderWidth: 1,
+    borderColor: '#EEF0F3', fontFamily: 'LexendDeca_400Regular', minHeight: 50,
   },
   loader: { position: 'absolute', right: 14, top: 16 },
   sectionLabel: {
-    fontSize: 12, color: 'rgba(255,255,255,0.4)', fontFamily: 'LexendDeca_500Medium',
+    fontSize: 12, color: '#757575', fontFamily: 'LexendDeca_500Medium',
     textTransform: 'uppercase', letterSpacing: 0.5, paddingHorizontal: 6, paddingTop: 12, paddingBottom: 6,
   },
   resultItem: {
     flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)',
+    borderBottomWidth: 1, borderBottomColor: '#EEF0F3',
   },
   iconWrap: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 38, height: 38, borderRadius: 19, backgroundColor: '#F2F4F7',
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   iconWrapFree: { backgroundColor: 'rgba(212,175,55,0.18)' },
   iconText: { fontSize: 18 },
   resultTextWrap: { flex: 1 },
-  resultPrimary: { fontSize: 15, color: '#FFFFFF', fontFamily: 'LexendDeca_500Medium' },
-  resultSecondary: { fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: 'LexendDeca_400Regular', marginTop: 2 },
-  resultSecondaryFree: { color: COLORS.yellow },
+  resultPrimary: { fontSize: 15, color: '#1A1A1A', fontFamily: 'LexendDeca_600SemiBold' },
+  resultSecondary: { fontSize: 13, color: '#757575', fontFamily: 'LexendDeca_400Regular', marginTop: 2 },
+  resultSecondaryFree: { color: COLORS.green },
 });
 
 export default NominatimAutocomplete;
