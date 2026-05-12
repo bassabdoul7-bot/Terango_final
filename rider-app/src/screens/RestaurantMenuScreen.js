@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, StatusBar, Image, Alert, Modal, TextInput } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
 import { restaurantService, orderService } from '../services/api.service';
@@ -139,7 +140,7 @@ function RestaurantMenuScreen(props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function() { navigation.goBack(); }}>
           <Text style={styles.backIcon}>{'\u2190'}</Text>
         </TouchableOpacity>
@@ -158,7 +159,7 @@ function RestaurantMenuScreen(props) {
         ) : (
           <View style={styles.closedBadge}><Text style={styles.closedBadgeText}>{"Ferm\u00e9"}</Text></View>
         )}
-      </View>
+      </LinearGradient>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.catScroll} contentContainerStyle={styles.catContainer}>
         {categories.map(function(cat) {
@@ -259,9 +260,9 @@ function RestaurantMenuScreen(props) {
             </View>
             <ScrollView style={styles.checkoutScroll} nestedScrollEnabled={true}>
               <Text style={styles.checkoutSection}>Adresse de livraison</Text>
-              <TextInput style={styles.checkoutInput} value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder="Votre adresse..." placeholderTextColor={COLORS.textLightMuted} />
+              <TextInput style={styles.checkoutInput} value={deliveryAddress} onChangeText={setDeliveryAddress} placeholder="Votre adresse..." placeholderTextColor={'#757575'} />
               <Text style={styles.checkoutSection}>{"Instructions sp\u00e9ciales"}</Text>
-              <TextInput style={[styles.checkoutInput, { height: 80, textAlignVertical: 'top' }]} value={instructions} onChangeText={setInstructions} placeholder="Ex: Sans oignon, extra piment..." placeholderTextColor={COLORS.textLightMuted} multiline />
+              <TextInput style={[styles.checkoutInput, { height: 80, textAlignVertical: 'top' }]} value={instructions} onChangeText={setInstructions} placeholder="Ex: Sans oignon, extra piment..." placeholderTextColor={'#757575'} multiline />
               <Text style={styles.checkoutSection}>Moyen de paiement</Text>
               <View style={styles.paymentGrid}>
                 {PAYMENT_OPTIONS.map(function(opt) {
@@ -292,19 +293,19 @@ function RestaurantMenuScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
   loadingContainer: { flex: 1, backgroundColor: COLORS.background, alignItems: 'center', justifyContent: 'center' },
   loadingText: { color: COLORS.textDarkSub, marginTop: 12, fontSize: 14, fontFamily: 'LexendDeca_400Regular' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 28 },
   backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
   headerInfo: { flex: 1 },
   headerName: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
   headerMeta: { flexDirection: 'row', alignItems: 'center' },
   headerStars: { fontSize: 13, color: COLORS.yellow, fontFamily: 'LexendDeca_400Regular' },
-  headerDot: { color: COLORS.textLightMuted, marginHorizontal: 6 },
-  headerTime: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
-  headerMin: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  headerDot: { color: '#757575', marginHorizontal: 6 },
+  headerTime: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontFamily: 'LexendDeca_400Regular' },
+  headerMin: { fontSize: 13, color: 'rgba(255,255,255,0.75)', fontFamily: 'LexendDeca_400Regular' },
   openBadge: { backgroundColor: 'rgba(76, 217, 100, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   openText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.green },
   closedBadge: { backgroundColor: 'rgba(255, 59, 48, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
@@ -312,7 +313,7 @@ var styles = StyleSheet.create({
   catScroll: { maxHeight: 50, borderBottomWidth: 1, borderBottomColor: COLORS.grayLight },
   catContainer: { paddingHorizontal: 20, paddingVertical: 10, gap: 8 },
   catChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.backgroundWhite, borderWidth: 1, borderColor: COLORS.grayLight, marginRight: 8 },
-  catChipActive: { backgroundColor: COLORS.darkCard, borderColor: COLORS.darkCardBorder },
+  catChipActive: { backgroundColor: '#FFFFFF', borderColor: '#EEF0F3' },
   catText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub },
   catTextActive: { color: COLORS.yellow },
   menuScroll: { flex: 1, paddingHorizontal: 20, paddingTop: 16 },
@@ -341,10 +342,10 @@ var styles = StyleSheet.create({
   cartBarText: { flex: 1, fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   cartBarPrice: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  cartModal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: 34 },
+  cartModal: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: 34 },
   cartHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   cartTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  cartClose: { fontSize: 20, color: COLORS.textLightMuted, padding: 4, fontFamily: 'LexendDeca_400Regular' },
+  cartClose: { fontSize: 20, color: '#757575', padding: 4, fontFamily: 'LexendDeca_400Regular' },
   cartList: { paddingHorizontal: 20, paddingVertical: 12 },
   cartItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   cartItemInfo: { flex: 1 },
@@ -356,22 +357,22 @@ var styles = StyleSheet.create({
   cartQtyText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, minWidth: 20, textAlign: 'center' },
   cartSummary: { paddingHorizontal: 20, paddingTop: 12 },
   cartSumRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  cartSumLabel: { fontSize: 14, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
-  cartSumValue: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  cartSumLabel: { fontSize: 14, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
+  cartSumValue: { fontSize: 14, color: 'rgba(255,255,255,0.75)', fontFamily: 'LexendDeca_400Regular' },
   cartTotalRow: { borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12, marginTop: 4 },
   cartTotalLabel: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   cartTotalValue: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   checkoutBtn: { marginHorizontal: 20, marginTop: 16, backgroundColor: COLORS.yellow, paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
   checkoutBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  checkoutModal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 34 },
+  checkoutModal: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '90%', paddingBottom: 34 },
   checkoutScroll: { paddingHorizontal: 20, paddingTop: 8 },
-  checkoutSection: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, textTransform: 'uppercase', marginTop: 16, marginBottom: 10 },
+  checkoutSection: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#757575', textTransform: 'uppercase', marginTop: 16, marginBottom: 10 },
   checkoutInput: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 14, fontSize: 15, color: COLORS.textLight, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)', fontFamily: 'LexendDeca_400Regular' },
   paymentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   paymentOption: { flex: 1, minWidth: '45%', flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
   paymentOptionActive: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55, 0.1)' },
   paymentOptIcon: { fontSize: 20, marginRight: 10, fontFamily: 'LexendDeca_400Regular' },
-  paymentOptLabel: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
+  paymentOptLabel: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: 'rgba(255,255,255,0.75)' },
   paymentOptLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
   placeOrderBtn: { marginHorizontal: 20, marginTop: 16, backgroundColor: COLORS.yellow, paddingVertical: 18, borderRadius: 14, alignItems: 'center' },
   placeOrderBtnDisabled: { opacity: 0.6 },

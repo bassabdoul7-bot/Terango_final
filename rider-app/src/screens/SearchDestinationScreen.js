@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,12 +44,12 @@ const SearchDestinationScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Text style={styles.backIcon}>{'\u2190'}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Planifiez votre course</Text>
-      </View>
+        <Text style={styles.headerTitle}>PLANIFIEZ VOTRE COURSE</Text>
+      </LinearGradient>
 
       {/* Inputs Card */}
       <View style={styles.inputsCard}>
@@ -122,41 +123,42 @@ const SearchDestinationScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
 
-  // Header - dark green
+  // Header — gradient applied via LinearGradient component
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 18,
-    backgroundColor: COLORS.darkBg,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#EEF0F3',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 14,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
   },
-  backIcon: { fontSize: 22, color: COLORS.white },
-  headerTitle: { fontSize: 19, fontFamily: 'LexendDeca_700Bold', color: COLORS.white },
+  backIcon: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
+  headerTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
 
-  // Inputs card - dark card
+  // Inputs card — white now
   inputsCard: {
     marginHorizontal: 16,
-    marginTop: 16,
-    backgroundColor: COLORS.darkBg2,
+    marginTop: -10,
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 18,
-    elevation: 8,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   inputRow: {
     flexDirection: 'row',
@@ -201,14 +203,14 @@ const styles = StyleSheet.create({
   addressTouchable: {
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: '#F8F9FB',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: '#EEF0F3',
   },
   addressLabel: {
     fontSize: 11,
-    color: COLORS.textLightSub,
+    color: '#5a5a5a',
     fontFamily: 'LexendDeca_500Medium',
     marginBottom: 2,
     textTransform: 'uppercase',
@@ -216,7 +218,7 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 15,
-    color: COLORS.textLight,
+    color: '#1A1A1A',
     fontFamily: 'LexendDeca_500Medium',
   },
 
@@ -225,12 +227,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#F8F9FB',
     borderRadius: 12,
     marginTop: 12,
     marginLeft: 40,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: '#EEF0F3',
   },
   currentLocIcon: {
     width: 32,
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
   },
   currentLocText: {
     fontSize: 14,
-    color: COLORS.textLight,
+    color: '#1A1A1A',
     fontFamily: 'LexendDeca_500Medium',
   },
 

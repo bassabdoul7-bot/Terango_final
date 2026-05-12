@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Animated } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import COLORS from '../constants/colors';
 
@@ -39,10 +40,10 @@ function ThiakThiakScreen(props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function() { navigation.goBack(); }}><Text style={styles.backIcon}>←</Text></TouchableOpacity>
-        <View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>Thiak Thiak</Text><Text style={styles.headerSub}>Livraison et Commandes</Text></View>
-      </View>
+        <View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>THIAK THIAK</Text><Text style={styles.headerSub}>Livraison et Commandes</Text></View>
+      </LinearGradient>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Animated.View style={{ opacity: fadeAnim }}>
           <View style={styles.welcomeCard}>
@@ -78,18 +79,18 @@ function ThiakThiakScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20, backgroundColor: COLORS.darkCard, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backIcon: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 32 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backIcon: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
   headerTitleWrap: { flex: 1 },
-  headerTitle: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  headerSub: { fontSize: 13, color: COLORS.textLightSub, marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
+  headerTitle: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
   content: { flex: 1, paddingHorizontal: 20, paddingTop: 20 },
-  welcomeCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  welcomeCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: '#EEF0F3' },
   welcomeEmoji: { fontSize: 48, marginBottom: 12 , fontFamily: 'LexendDeca_400Regular' },
-  welcomeTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 6 },
-  welcomeSub: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center' , fontFamily: 'LexendDeca_400Regular' },
+  welcomeTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 6 },
+  welcomeSub: { fontSize: 14, color: '#5a5a5a', textAlign: 'center' , fontFamily: 'LexendDeca_400Regular' },
   serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.backgroundWhite, borderRadius: 20, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: COLORS.grayLight, elevation: 2 },
   serviceIconWrap: { marginRight: 16 },
   serviceIconBg: { width: 60, height: 60, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
@@ -100,14 +101,14 @@ var styles = StyleSheet.create({
   priceRow: { flexDirection: 'row' },
   priceBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   priceText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold' },
-  serviceArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
-  arrowText: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  infoCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginTop: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  serviceArrow: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
+  arrowText: { fontSize: 22, color: '#1A1A1A', fontFamily: 'LexendDeca_700Bold' },
+  infoCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginTop: 10, borderWidth: 1, borderColor: '#EEF0F3' },
   infoTitle: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, marginBottom: 16 },
   infoStep: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   stepNumber: { width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   stepNumberText: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  stepText: { fontSize: 14, color: COLORS.textLightSub, flex: 1 , fontFamily: 'LexendDeca_400Regular' },
+  stepText: { fontSize: 14, color: '#5a5a5a', flex: 1 , fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default ThiakThiakScreen;

@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Alert, ActivityIndicator, StatusBar, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
@@ -159,11 +160,11 @@ function CommandeScreen(props) {
         <View style={{flexDirection:'row',gap:8,marginBottom:10}}>
           <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='cash'?'rgba(212,175,55,0.15)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='cash'?COLORS.yellow:'transparent',gap:6}} onPress={function(){setPaymentMethod('cash');}}>
             <Text style={{fontSize:16}}>{'\uD83D\uDCB5'}</Text>
-            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:COLORS.textLightMuted}}>Especes</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:'#757575'}}>Especes</Text>
           </TouchableOpacity>
           <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='wave'?'rgba(29,195,225,0.12)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='wave'?'#1DC3E1':'transparent',gap:6}} onPress={function(){setPaymentMethod('wave');}}>
             <Text style={{fontSize:16}}>{'\uD83C\uDF0A'}</Text>
-            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':COLORS.textLightMuted}}>Wave</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':'#757575'}}>Wave</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>{confirming ? <ActivityIndicator color={COLORS.darkBg} /> : <Text style={styles.confirmBtnText}>Confirmer la commande</Text>}</TouchableOpacity>
@@ -175,7 +176,7 @@ function CommandeScreen(props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}><TouchableOpacity style={styles.backBtn} onPress={function() { if (step > 1) { setStep(step - 1); } else { navigation.goBack(); } }}><Text style={styles.backIcon}>{'\u2190'}</Text></TouchableOpacity><View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>{'\uD83D\uDED2 Faire une Commande'}</Text></View></View>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}><TouchableOpacity style={styles.backBtn} onPress={function() { if (step > 1) { setStep(step - 1); } else { navigation.goBack(); } }}><Text style={styles.backIcon}>{'\u2190'}</Text></TouchableOpacity><View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>{'\uD83D\uDED2 Faire une Commande'}</Text></View></LinearGradient>
       <View style={styles.stepIndicator}>{[1,2,3].map(function(s) { return (<View key={s} style={styles.stepDotRow}><View style={[styles.stepDot, s <= step && styles.stepDotActive]} />{s < 3 && <View style={[styles.stepLine, s < step && styles.stepLineActive]} />}</View>); })}</View>
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
@@ -185,12 +186,12 @@ function CommandeScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backIcon: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 28 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backIcon: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
   headerTitleWrap: { flex: 1 },
-  headerTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  headerTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
   stepIndicator: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 40 },
   stepDotRow: { flexDirection: 'row', alignItems: 'center' },
   stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.grayLight },
@@ -211,31 +212,31 @@ var styles = StyleSheet.create({
   textInput: { backgroundColor: COLORS.backgroundWhite, borderRadius: 14, padding: 16, color: COLORS.textDark, fontSize: 15, minHeight: 80, textAlignVertical: 'top', borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   textInputLarge: { backgroundColor: COLORS.backgroundWhite, borderRadius: 14, padding: 16, color: COLORS.textDark, fontSize: 15, minHeight: 140, textAlignVertical: 'top', borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
   helperText: { fontSize: 12, color: COLORS.textDarkMuted, marginTop: 4, marginBottom: 6, fontStyle: 'italic', fontFamily: 'LexendDeca_400Regular' },
-  addressCard: { backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  addressCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   addressSetRow: { flexDirection: 'row', alignItems: 'center' },
-  addressSetText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight, marginLeft: 10 },
+  addressSetText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A', marginLeft: 10 },
   changeText: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
   dotGreen: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.green },
   dotOrange: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#FF9500' },
   dotRed: { width: 12, height: 12, backgroundColor: COLORS.red },
   gInput: { fontSize: 16, color: '#1A1A1A', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', fontFamily: 'LexendDeca_500Medium', minHeight: 48 },
   gList: { backgroundColor: '#fff', borderRadius: 12, marginTop: 4 },
-  storeInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  storeInfoCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 10, borderWidth: 1, borderColor: '#EEF0F3' },
   storeInfoIcon: { fontSize: 36, marginRight: 14, fontFamily: 'LexendDeca_400Regular' },
   storeInfoText: { flex: 1 },
-  storeInfoName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
-  storeInfoAddr: { fontSize: 13, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  storeInfoName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 2 },
+  storeInfoAddr: { fontSize: 13, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
   nextBtn: { backgroundColor: COLORS.yellow, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 24 },
   nextBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  summaryCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginBottom: 14, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   summaryRow: { flexDirection: 'row', alignItems: 'flex-start' },
   summaryTextWrap: { flex: 1, marginLeft: 12 },
-  summaryLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
-  summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
+  summaryLabel: { fontSize: 12, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
+  summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
   summaryDivider: { height: 24, marginLeft: 6, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', marginVertical: 6 },
-  itemsCard: { backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  itemsTitle: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, marginBottom: 8 },
-  itemsText: { fontSize: 14, color: COLORS.textLight, lineHeight: 22, fontFamily: 'LexendDeca_400Regular' },
+  itemsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
+  itemsTitle: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#757575', marginBottom: 8 },
+  itemsText: { fontSize: 14, color: '#1A1A1A', lineHeight: 22, fontFamily: 'LexendDeca_400Regular' },
   priceCard: { backgroundColor: 'rgba(212,175,55, 0.08)', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(212,175,55, 0.2)' },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   priceLabel: { fontSize: 14, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
@@ -246,9 +247,9 @@ var styles = StyleSheet.create({
   noteCard: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: 'rgba(255, 149, 0, 0.08)', borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(255, 149, 0, 0.2)' },
   noteIcon: { fontSize: 18, marginRight: 10, marginTop: 2, fontFamily: 'LexendDeca_400Regular' },
   noteText: { flex: 1, fontSize: 13, color: COLORS.textDarkSub, lineHeight: 19, fontFamily: 'LexendDeca_400Regular' },
-  paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#EEF0F3' },
   paymentIcon: { fontSize: 22, marginRight: 12, fontFamily: 'LexendDeca_400Regular' },
-  paymentText: { fontSize: 15, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  paymentText: { fontSize: 15, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   confirmBtn: { backgroundColor: COLORS.yellow, borderRadius: 16, padding: 18, alignItems: 'center' },
   confirmBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
 });

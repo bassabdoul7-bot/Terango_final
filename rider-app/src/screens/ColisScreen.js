@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
   Alert, ActivityIndicator, StatusBar, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import NominatimAutocomplete from '../components/NominatimAutocomplete';
 import * as Location from 'expo-location';
 import COLORS from '../constants/colors';
@@ -182,7 +183,7 @@ function ColisScreen(props) {
                   {gpsLoading ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 12 }}>
                       <ActivityIndicator size="small" color={COLORS.green} />
-                      <Text style={{ marginLeft: 8, color: COLORS.textLightMuted, fontSize: 13 }}>Localisation en cours...</Text>
+                      <Text style={{ marginLeft: 8, color: '#757575', fontSize: 13 }}>Localisation en cours...</Text>
                     </View>
                   ) : pickup ? (
                     <View>
@@ -197,7 +198,7 @@ function ColisScreen(props) {
                         </View>
                       ) : null}
                       <TouchableOpacity onPress={switchToManualPickup} style={{ marginTop: 6 }}>
-                        <Text style={{ color: COLORS.textLightMuted, fontSize: 12, textDecorationLine: 'underline' }}>{"J'envoie depuis ailleurs"}</Text>
+                        <Text style={{ color: '#757575', fontSize: 12, textDecorationLine: 'underline' }}>{"J'envoie depuis ailleurs"}</Text>
                       </TouchableOpacity>
                     </View>
                   ) : null}
@@ -317,11 +318,11 @@ function ColisScreen(props) {
         <View style={{flexDirection:'row',gap:8,marginBottom:10}}>
           <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='cash'?'rgba(212,175,55,0.15)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='cash'?COLORS.yellow:'transparent',gap:6}} onPress={function(){setPaymentMethod('cash');}}>
             <Text style={{fontSize:16}}>{'\uD83D\uDCB5'}</Text>
-            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:COLORS.textLightMuted}}>Especes</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='cash'?COLORS.yellow:'#757575'}}>Especes</Text>
           </TouchableOpacity>
           <TouchableOpacity style={{flex:1,flexDirection:'row',alignItems:'center',justifyContent:'center',paddingVertical:10,borderRadius:12,backgroundColor:paymentMethod==='wave'?'rgba(29,195,225,0.12)':'rgba(255,255,255,0.06)',borderWidth:2,borderColor:paymentMethod==='wave'?'#1DC3E1':'transparent',gap:6}} onPress={function(){setPaymentMethod('wave');}}>
             <Text style={{fontSize:16}}>{'\uD83C\uDF0A'}</Text>
-            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':COLORS.textLightMuted}}>Wave</Text>
+            <Text style={{fontSize:12,fontFamily:'LexendDeca_600SemiBold',color:paymentMethod==='wave'?'#1DC3E1':'#757575'}}>Wave</Text>
           </TouchableOpacity>
         </View>
         <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm} disabled={confirming}>
@@ -335,12 +336,12 @@ function ColisScreen(props) {
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function() { if (step > 1) { setStep(step - 1); } else { navigation.goBack(); } }}>
           <Text style={styles.backIcon}>{'\u2190'}</Text>
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>{'\uD83D\uDCE6 Envoyer un Colis'}</Text></View>
-      </View>
+      </LinearGradient>
       <View style={styles.stepIndicator}>
         {[1,2,3].map(function(s) { return (
           <View key={s} style={styles.stepDotRow}>
@@ -357,12 +358,12 @@ function ColisScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
-  backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backIcon: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 28 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' },
+  backIcon: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
   headerTitleWrap: { flex: 1 },
-  headerTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  headerTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
   stepIndicator: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, paddingHorizontal: 40 },
   stepDotRow: { flexDirection: 'row', alignItems: 'center' },
   stepDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.grayLight },
@@ -372,14 +373,14 @@ var styles = StyleSheet.create({
   stepContent: { flex: 1, paddingHorizontal: 20 },
   stepTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
   stepSub: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
-  addressCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  addressCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#EEF0F3' },
   addressRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8 },
   dotGreen: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12, marginTop: 4 },
   dotRed: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12, marginTop: 4 },
   dashedLine: { height: 30, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.15)', borderStyle: 'dashed', marginVertical: 4 },
   addressInputWrap: { flex: 1 },
-  addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
-  addressSet: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight, backgroundColor: 'rgba(255,255,255,0.08)', padding: 12, borderRadius: 12, overflow: 'hidden' },
+  addressLabel: { fontSize: 12, color: '#757575', marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
+  addressSet: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A', backgroundColor: 'rgba(255,255,255,0.08)', padding: 12, borderRadius: 12, overflow: 'hidden' },
   gInput: { fontSize: 16, color: '#1A1A1A', backgroundColor: '#FFFFFF', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, borderWidth: 1, borderColor: 'rgba(0,0,0,0.12)', fontFamily: 'LexendDeca_500Medium', minHeight: 48 },
   gList: { backgroundColor: '#fff', borderRadius: 12, marginTop: 4 },
   fieldLabel: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub, marginBottom: 10, marginTop: 20 },
@@ -401,16 +402,16 @@ var styles = StyleSheet.create({
   fragileTextActive: { color: '#FF9500', fontFamily: 'LexendDeca_600SemiBold' },
   nextBtn: { backgroundColor: COLORS.yellow, borderRadius: 16, padding: 18, alignItems: 'center', marginTop: 24 },
   nextBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  summaryCard: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, marginBottom: 14, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   summaryRow: { flexDirection: 'row', alignItems: 'flex-start' },
   summaryTextWrap: { flex: 1, marginLeft: 0 },
-  summaryLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
-  summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
+  summaryLabel: { fontSize: 12, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
+  summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
   summaryDivider: { height: 24, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', marginVertical: 6 },
-  detailsCard: { backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  detailsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
-  detailLabel: { fontSize: 14, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
-  detailValue: { fontSize: 14, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium', maxWidth: '55%', textAlign: 'right' },
+  detailLabel: { fontSize: 14, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
+  detailValue: { fontSize: 14, color: '#1A1A1A', fontFamily: 'LexendDeca_500Medium', maxWidth: '55%', textAlign: 'right' },
   priceCard: { backgroundColor: 'rgba(212,175,55, 0.08)', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(212,175,55, 0.2)' },
   priceRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
   priceLabel: { fontSize: 14, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
@@ -418,9 +419,9 @@ var styles = StyleSheet.create({
   priceDivider: { height: 1, backgroundColor: 'rgba(212,175,55, 0.2)', marginVertical: 8 },
   priceTotalLabel: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark },
   priceTotalValue: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  paymentRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#EEF0F3' },
   paymentIcon: { fontSize: 22, marginRight: 12, fontFamily: 'LexendDeca_400Regular' },
-  paymentText: { fontSize: 15, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  paymentText: { fontSize: 15, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   confirmBtn: { backgroundColor: COLORS.yellow, borderRadius: 16, padding: 18, alignItems: 'center' },
   confirmBtnText: { fontSize: 17, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
 });

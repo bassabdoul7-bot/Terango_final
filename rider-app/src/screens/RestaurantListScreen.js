@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, StatusBar, TextInput, Image } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import COLORS from '../constants/colors';
 import { restaurantService } from '../services/api.service';
 
@@ -45,10 +46,10 @@ function RestaurantListScreen(props) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <View style={styles.header}>
+      <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={function() { navigation.goBack(); }}><Text style={styles.backIcon}>←</Text></TouchableOpacity>
-        <View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>🍽️ Restaurants</Text><Text style={styles.headerSub}>{restaurants.length + ' restaurants disponibles'}</Text></View>
-      </View>
+        <View style={styles.headerTitleWrap}><Text style={styles.headerTitle}>RESTAURANTS</Text><Text style={styles.headerSub}>{restaurants.length + ' disponibles'}</Text></View>
+      </LinearGradient>
       <View style={styles.searchWrap}>
         <View style={styles.searchBar}>
           <Text style={styles.searchIcon}>🔍</Text>
@@ -99,13 +100,13 @@ function RestaurantListScreen(props) {
 }
 
 var styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: COLORS.darkCard, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, borderBottomWidth: 1, borderBottomColor: COLORS.darkCardBorder },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 16, paddingBottom: 28 },
   backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center', marginRight: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   backIcon: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
   headerTitleWrap: { flex: 1 },
-  headerTitle: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  headerSub: { fontSize: 12, color: COLORS.textLightSub, marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
+  headerTitle: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', letterSpacing: 2 },
+  headerSub: { fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
   searchWrap: { paddingHorizontal: 20, paddingTop: 16 },
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.backgroundWhite, borderRadius: 14, paddingHorizontal: 14, borderWidth: 1, borderColor: COLORS.grayLight },
   searchIcon: { fontSize: 18, marginRight: 10 , fontFamily: 'LexendDeca_400Regular' },
@@ -114,7 +115,7 @@ var styles = StyleSheet.create({
   filtersWrap: { paddingTop: 14 },
   filtersScroll: { paddingHorizontal: 20, gap: 8 },
   filterChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.backgroundWhite, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1, borderColor: COLORS.grayLight, marginRight: 8 },
-  filterChipActive: { backgroundColor: COLORS.darkCard, borderColor: COLORS.darkCardBorder },
+  filterChipActive: { backgroundColor: '#1A1A1A', borderColor: '#1A1A1A' },
   filterIcon: { fontSize: 16, marginRight: 6 , fontFamily: 'LexendDeca_400Regular' },
   filterLabel: { fontSize: 13, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_600SemiBold' },
   filterLabelActive: { color: COLORS.yellow },
