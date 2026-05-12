@@ -78,9 +78,9 @@ const AnimatedFareCounter = ({ targetFare }) => {
   }, [targetFare]);
   return (
     <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim, alignItems: 'center', marginVertical: 16 }}>
-      <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, marginBottom: 4 }}>Montant de la course</Text>
+      <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a', marginBottom: 4 }}>Montant de la course</Text>
       <Text style={{ fontSize: 42, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow }}>{displayFare.toLocaleString()}</Text>
-      <Text style={{ fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub }}>FCFA</Text>
+      <Text style={{ fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' }}>FCFA</Text>
     </Animated.View>
   );
 };
@@ -202,13 +202,13 @@ const ActiveRideScreen = ({ route, navigation }) => {
   // ========== FARE ANIMATION + CONFETTI SCREEN ==========
   if (showFareAnimation) {
     return (
-      <View style={{ flex: 1, backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }}>
         <ConfettiCelebration visible={showConfetti} />
         <Text style={{ fontSize: 60, marginBottom: 8 }}>{String.fromCodePoint(0x1F389)}</Text>
-        <Text style={{ fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 }}>{'Course terminée!'}</Text>
-        <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightSub }}>Merci d'avoir choisi TeranGO</Text>
+        <Text style={{ fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 }}>{'Course terminée!'}</Text>
+        <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: '#5a5a5a' }}>Merci d'avoir choisi TeranGO</Text>
         <AnimatedFareCounter targetFare={completedFare} />
-        <Text style={{ fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted }}>Redirection vers la notation...</Text>
+        <Text style={{ fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: '#757575' }}>Redirection vers la notation...</Text>
       </View>
     );
   }
@@ -246,7 +246,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
           <GlassButton title="Annuler la course" onPress={() => setShowCancelModal(true)} variant="secondary" />
         </>)}
         {ride.status !== 'pending' && !(ride.driver && ride.driver.userId) && (
-          <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:COLORS.textLightSub,marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
+          <View style={{alignItems:'center',padding:20}}><ActivityIndicator size='large' color={COLORS.green} /><Text style={{color:'#5a5a5a',marginTop:10,fontFamily:'LexendDeca_400Regular'}}>Chargement du chauffeur...</Text></View>
         )}
         {ride.status !== 'pending' && ride.driver && ride.driver.userId && (
           <ScrollView style={styles.bottomScroll} showsVerticalScrollIndicator={false} nestedScrollEnabled={true} bounces={false}>
@@ -293,37 +293,37 @@ const ActiveRideScreen = ({ route, navigation }) => {
   );
 };
 const noDriversStyles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.darkCard, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  container: { flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', padding: 24 },
   content: { alignItems: 'center', width: '100%' },
   icon: { fontSize: 60, marginBottom: 16, fontFamily: 'LexendDeca_400Regular' },
-  title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8, textAlign: 'center' },
-  subtitle: { fontSize: 14, color: COLORS.textLightSub, textAlign: 'center', marginBottom: 24, lineHeight: 20, fontFamily: 'LexendDeca_400Regular' },
+  title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 8, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: '#5a5a5a', textAlign: 'center', marginBottom: 24, lineHeight: 20, fontFamily: 'LexendDeca_400Regular' },
   rideInfo: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 16, width: '100%', marginBottom: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   addressRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   greenDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 12, height: 12, backgroundColor: COLORS.red, marginRight: 12 },
-  addressText: { flex: 1, fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  addressText: { flex: 1, fontSize: 14, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   fareText: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, textAlign: 'center', marginTop: 8 },
   retryButton: { backgroundColor: COLORS.green, paddingVertical: 16, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', marginBottom: 12 },
   retryButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
   homeButton: { paddingVertical: 14, paddingHorizontal: 40, borderRadius: 14, width: '100%', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  homeButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  homeButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
 });
 const cancelStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modal: { backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: height * 0.7, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  modal: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: height * 0.7, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   handle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
-  title: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, textAlign: 'center', marginBottom: 4 },
-  subtitle: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
+  title: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', textAlign: 'center', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: '#757575', textAlign: 'center', marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 280 },
   reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 8, borderWidth: 2, borderColor: 'transparent' },
   reasonItemSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: COLORS.textLightMuted, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#757575', alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.yellow },
-  reasonText: { fontSize: 14, color: COLORS.textLight, flex: 1, fontFamily: 'LexendDeca_400Regular' },
+  reasonText: { fontSize: 14, color: '#1A1A1A', flex: 1, fontFamily: 'LexendDeca_400Regular' },
   actions: { flexDirection: 'row', gap: 12, marginTop: 16 },
   backButton: { flex: 1, padding: 14, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  backButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
   confirmButton: { flex: 1, padding: 14, backgroundColor: COLORS.red, borderRadius: 12, alignItems: 'center' },
   confirmButtonDisabled: { opacity: 0.5 },
   confirmButtonText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: '#FFF' },
@@ -339,17 +339,17 @@ const searchStyles = StyleSheet.create({
   carImage: { width: 52, height: 38 },
   timerContainer: { marginTop: 85, backgroundColor: 'rgba(0,133,63,0.12)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20 },
   timerText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.green },
-  statusText: { marginTop: 10, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub, textAlign: 'center' },
-  tipText: { marginTop: 6, fontSize: 12, color: COLORS.textLightMuted, textAlign: 'center', paddingHorizontal: 20, fontFamily: 'LexendDeca_400Regular' },
+  statusText: { marginTop: 10, fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a', textAlign: 'center' },
+  tipText: { marginTop: 6, fontSize: 12, color: '#757575', textAlign: 'center', paddingHorizontal: 20, fontFamily: 'LexendDeca_400Regular' },
 });
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   map: { ...StyleSheet.absoluteFillObject },
-  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
+  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
-  dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
+  dropoffMarker: { width: 26, height: 26, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
   driverMarkerOuter: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
   driverCarImage: { width: 70, height: 50 },
@@ -357,12 +357,12 @@ const styles = StyleSheet.create({
   driverArrowBottom: { width: 0, height: 0, borderLeftWidth: 10, borderRightWidth: 10, borderTopWidth: 12, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: '#D4A900', marginTop: -4 },
   driverMarkerDot: { position: 'absolute', top: 16, width: 10, height: 10, borderRadius: 5, backgroundColor: '#FFFFFF', borderWidth: 2, borderColor: '#D4AF37' },
   topBar: { position: 'absolute', top: 60, left: 20, right: 20, flexDirection: 'row', alignItems: 'center' },
-  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
+  backButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, elevation: 4, borderWidth: 1, borderColor: '#EEF0F3' },
+  backIcon: { fontSize: 22, color: '#1A1A1A', fontFamily: 'LexendDeca_700Bold' },
   statusCard: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(212,175,55,0.7)', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, elevation: 4, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.5)' },
   statusIcon: { fontSize: 18, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   statusText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
-  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '65%' },
+  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 32, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder, maxHeight: '65%' },
   bottomScroll: { flexGrow: 0 },
   driverCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   driverRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
@@ -370,22 +370,22 @@ const styles = StyleSheet.create({
   driverAvatarImg: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.yellow },
   avatarText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
   driverDetails: { flex: 1 },
-  driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
+  driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 2 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
-  ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
-  vehicleText: { fontSize: 12, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
+  vehicleText: { fontSize: 12, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
   driverPhotos: { alignItems: 'center', marginRight: 12, gap: 6 },
-  vehiclePhotoWrap: { width: 72, height: 48, borderRadius: 10, overflow: 'hidden', backgroundColor: COLORS.darkCard, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  vehiclePhotoWrap: { width: 72, height: 48, borderRadius: 10, overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EEF0F3' },
   vehiclePhoto: { width: 72, height: 48, borderRadius: 10 },
   plateBadge: { backgroundColor: COLORS.yellowGlow10, borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
   plateText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   contactRow: { flexDirection: 'row', justifyContent: 'space-around', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 10 },
   contactButton: { alignItems: 'center', flex: 1 },
   contactBtnIcon: { fontSize: 22, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
-  contactLabel: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
+  contactLabel: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a' },
   fareTag: { alignItems: 'flex-end' },
   fareTagAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
-  fareTagCurrency: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  fareTagCurrency: { fontSize: 11, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
   addressCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   addressIconWrap: { width: 28, alignItems: 'center', marginRight: 10 },
@@ -393,16 +393,16 @@ const styles = StyleSheet.create({
   redSquare: { width: 12, height: 12, backgroundColor: COLORS.red },
   addressDivider: { height: 20, marginLeft: 14, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', marginVertical: 6 },
   addressContent: { flex: 1 },
-  addressLabel: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 1, fontFamily: 'LexendDeca_400Regular' },
-  addressText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
+  addressLabel: { fontSize: 11, color: '#757575', marginBottom: 1, fontFamily: 'LexendDeca_400Regular' },
+  addressText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
   pinCard: { backgroundColor: 'rgba(212,175,55,0.1)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)' },
   pinRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   pinIcon: { fontSize: 16, marginRight: 6, fontFamily: 'LexendDeca_400Regular' },
-  pinLabel: { fontSize: 13, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  pinLabel: { fontSize: 13, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   pinCode: { fontSize: 28, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, letterSpacing: 8, textAlign: 'center' },
-  pinHint: { fontSize: 11, color: COLORS.textLightMuted, textAlign: 'center', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
+  pinHint: { fontSize: 11, color: '#757575', textAlign: 'center', marginTop: 4, fontFamily: 'LexendDeca_400Regular' },
   fareCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  fareLabel: { fontSize: 14, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  fareLabel: { fontSize: 14, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   fareAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
 });
 class ActiveRideErrorBoundary extends React.Component {

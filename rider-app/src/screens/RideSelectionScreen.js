@@ -248,9 +248,9 @@ const RideSelectionScreen = ({ route, navigation }) => {
           ) : (
             <View style={{flexDirection:'row',alignItems:'center',backgroundColor:'rgba(255,149,0,0.08)',borderRadius:12,padding:10,marginBottom:6,borderWidth:1,borderColor:'rgba(255,149,0,0.2)'}}>
               <View style={{width:8,height:8,backgroundColor:'#FF9500',transform:[{rotate:'45deg'}],marginRight:8}} />
-              <Text style={{flex:1,fontSize:12,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight}} numberOfLines={1}>{stop.address}</Text>
+              <Text style={{flex:1,fontSize:12,fontFamily:'LexendDeca_500Medium',color:'#1A1A1A'}} numberOfLines={1}>{stop.address}</Text>
               <TouchableOpacity onPress={function(){setStop(null);getDirections(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-                <Text style={{fontSize:14,color:COLORS.textLightMuted}}>{'\u2715'}</Text>
+                <Text style={{fontSize:14,color:'#757575'}}>{'\u2715'}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -266,7 +266,7 @@ const RideSelectionScreen = ({ route, navigation }) => {
             <TouchableOpacity style={[styles.paymentOption, scheduledTime && {borderColor:COLORS.yellow,backgroundColor:'rgba(212,175,55,0.08)'}]} onPress={function(){setShowDatePicker(true);}} activeOpacity={0.7}>
               <Text style={{fontSize:16}}>{'\uD83D\uDD52'}</Text>
               <Text style={[styles.paymentOptionText, scheduledTime && {color:COLORS.yellow}]}>{scheduledTime ? formatScheduledTime(scheduledTime) : 'Programmer'}</Text>
-              {scheduledTime && <TouchableOpacity onPress={function(){setScheduledTime(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}><Text style={{fontSize:12,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>}
+              {scheduledTime && <TouchableOpacity onPress={function(){setScheduledTime(null);}} hitSlop={{top:10,bottom:10,left:10,right:10}}><Text style={{fontSize:12,color:'#757575'}}>{'\u2715'}</Text></TouchableOpacity>}
             </TouchableOpacity>
           </View>
           <View style={{ height: 8 }} />
@@ -283,8 +283,8 @@ const RideSelectionScreen = ({ route, navigation }) => {
         <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.7)',justifyContent:'center',paddingHorizontal:20}}>
           <View style={{backgroundColor:COLORS.darkCard,borderRadius:20,padding:20,maxHeight:'60%',borderWidth:1,borderColor:COLORS.darkCardBorder}}>
             <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-              <Text style={{fontSize:18,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight}}>Ajouter un arret</Text>
-              <TouchableOpacity onPress={function(){setShowStopModal(false);}}><Text style={{fontSize:22,color:COLORS.textLightMuted}}>{'\u2715'}</Text></TouchableOpacity>
+              <Text style={{fontSize:18,fontFamily:'LexendDeca_700Bold',color:'#1A1A1A'}}>Ajouter un arret</Text>
+              <TouchableOpacity onPress={function(){setShowStopModal(false);}}><Text style={{fontSize:22,color:'#757575'}}>{'\u2715'}</Text></TouchableOpacity>
             </View>
             <NominatimAutocomplete placeholder="Rechercher une adresse..." onSelect={function(place) { var lat = place.geometry && place.geometry.location ? place.geometry.location.lat : (place.lat ? parseFloat(place.lat) : 0); var lng = place.geometry && place.geometry.location ? place.geometry.location.lng : (place.lon ? parseFloat(place.lon) : 0); setStop({ address: place.description || place.address || 'Arret', coordinates: { latitude: lat, longitude: lng } }); setShowStopModal(false); }} />
           </View>
@@ -299,21 +299,21 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background },
   loadingText: { marginTop: 16, fontSize: 16, color: COLORS.textDarkSub, fontFamily: 'LexendDeca_400Regular' },
   map: { width, height: height * 0.35 },
-  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
+  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
-  dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
+  dropoffMarker: { width: 26, height: 26, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
   driverMarker: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.green, elevation: 4 },
   driverIcon: { fontSize: 16, fontFamily: 'LexendDeca_400Regular' },
-  backButton: { position: 'absolute', top: 60, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', elevation: 4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  backIcon: { fontSize: 22, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
-  tripInfoCard: { position: 'absolute', top: 60, right: 20, backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 12, elevation: 4, maxWidth: width * 0.4, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  tripTime: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
-  tripAddress: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
+  backButton: { position: 'absolute', top: 60, left: 20, width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', elevation: 4, borderWidth: 1, borderColor: '#EEF0F3' },
+  backIcon: { fontSize: 22, color: '#1A1A1A', fontFamily: 'LexendDeca_700Bold' },
+  tripInfoCard: { position: 'absolute', top: 60, right: 20, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 12, elevation: 4, maxWidth: width * 0.4, borderWidth: 1, borderColor: '#EEF0F3' },
+  tripTime: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 2 },
+  tripAddress: { fontSize: 12, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   tripDistance: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
   driversBadge: { marginTop: 6, backgroundColor: 'rgba(0,133,63,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, alignSelf: 'flex-start' },
   driversBadgeText: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.green },
-  bottomSheet: { flex: 1, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  bottomSheet: { flex: 1, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: -24, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   sheetHandle: { width: 40, height: 4, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 6 },
   scrollView: { flex: 1, paddingHorizontal: 16 },
   rideCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 10, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 6, borderWidth: 2, borderColor: 'transparent' },
@@ -321,22 +321,22 @@ const styles = StyleSheet.create({
   rideLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 },
   rideImage: { width: 110, height: 75, marginRight: 12 },
   rideInfo: { flex: 1 },
-  rideName: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 2 },
-  rideCapacity: { fontSize: 11, color: COLORS.textLightMuted, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
-  rideTime: { fontSize: 11, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  rideName: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 2 },
+  rideCapacity: { fontSize: 11, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
+  rideTime: { fontSize: 11, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
   rideFare: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   paymentCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 14, padding: 14, marginTop: 4, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  paymentLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted, marginBottom: 10 },
+  paymentLabel: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#757575', marginBottom: 10 },
   paymentRow: { flexDirection: 'row', alignItems: 'center' },
   paymentIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   paymentIcon: { fontSize: 18, fontFamily: 'LexendDeca_400Regular' },
-  paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLight },
-  paymentArrow: { fontSize: 22, color: COLORS.textLightMuted, fontFamily: 'LexendDeca_400Regular' },
+  paymentText: { flex: 1, fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
+  paymentArrow: { fontSize: 22, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
   paymentOption: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 2, borderColor: 'transparent', gap: 4 },
   paymentOptionSelected: { borderColor: COLORS.yellow, backgroundColor: 'rgba(212,175,55,0.08)' },
-  paymentOptionText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightMuted },
-  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: COLORS.textLightMuted, marginTop: 10, textAlign: 'center' },
-  confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: COLORS.darkCard },
+  paymentOptionText: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#757575' },
+  paymentHint: { fontSize: 11, fontFamily: 'LexendDeca_400Regular', color: '#757575', marginTop: 10, textAlign: 'center' },
+  confirmSection: { padding: 16, paddingBottom: 28, backgroundColor: '#FFFFFF' },
 });
 
 export default RideSelectionScreen;
