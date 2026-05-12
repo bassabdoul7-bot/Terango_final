@@ -837,6 +837,19 @@ function ActiveRideScreen(props) {
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
+        {ride && ride.rider && ride.rider.phone && (
+          <TouchableOpacity style={styles.riderPhoneCard} onPress={function(){Linking.openURL('tel:' + ride.rider.phone);}} activeOpacity={0.7}>
+            <Text style={styles.riderPhoneLabel}>{deliveryMode ? 'CLIENT' : 'PASSAGER'}</Text>
+            <View style={styles.riderPhoneBadgeWrap}>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+              <Text style={styles.riderPhoneText} numberOfLines={1}>{ride.rider.phone}</Text>
+            </View>
+            <Text style={styles.riderPhoneHint}>{(ride.rider.name ? ride.rider.name + '  •  ' : '') + 'Toucher pour appeler'}</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? styles.orangeDiamond : (ride.status==='in_progress'?styles.redSquare:styles.greenDot))}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? 'Arret' : (ride.status==='in_progress'?'Destination':'Point de depart'))}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? ride.stops[0].address : (ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')))}</Text></View></View></View>
         <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{ride&&ride.rider&&ride.rider.phone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+ride.rider.phone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
         <View style={styles.actionContainer}>{getActionButton()}</View>
@@ -988,6 +1001,12 @@ var styles = StyleSheet.create({
   etaLabel: { fontSize: 12, color: COLORS.textLightMuted, textTransform: 'uppercase', fontFamily: 'LexendDeca_400Regular' },
   etaDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
   addressCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  riderPhoneCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  riderPhoneLabel: { fontSize: 11, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.65)', letterSpacing: 2, marginBottom: 6 },
+  riderPhoneBadgeWrap: { alignItems: 'center', justifyContent: 'center' },
+  riderPhoneText: { fontFamily: 'Anton_400Regular', fontSize: 30, color: '#FFFFFF', fontStyle: 'italic', letterSpacing: 1.5, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 4 },
+  riderPhoneStroke: { color: '#000000', position: 'absolute', textShadowRadius: 0 },
+  riderPhoneHint: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: 'rgba(255,255,255,0.55)', marginTop: 6 },
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
