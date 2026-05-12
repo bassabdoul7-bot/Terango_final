@@ -22,6 +22,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
   const [vehicleMake, setVehicleMake] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
   const [waveNumber, setWaveNumber] = useState('');
+  const [legalAttested, setLegalAttested] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const takePhoto = async (setter) => {
@@ -69,6 +70,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
     if (vehicleType === 'car' && !licensePlate.trim()) { Alert.alert('Champ requis', 'Entrez votre plaque d\'immatriculation'); return; }
     if (!waveNumber.trim()) { Alert.alert('Numero Wave requis', 'Veuillez entrer votre numero Wave pour recevoir les paiements des passagers'); return; }
     if (!vehicleFrontPhoto) { Alert.alert('Photo requise', 'Prenez la photo de votre vehicule'); return; }
+    if (!legalAttested) { Alert.alert('Engagement requis', "Vous devez confirmer que vous êtes en règle pour conduire au Sénégal avant de soumettre."); return; }
 
     setLoading(true);
     try {
@@ -86,6 +88,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
       if (vehicleInteriorPhoto) formData.append('vehicleInterior', { uri: vehicleInteriorPhoto.uri, type: 'image/jpeg', name: 'vehicle_interior.jpg' });
       if (licensePlate.trim()) formData.append('licensePlate', licensePlate.trim());
       formData.append('waveNumber', waveNumber.trim());
+      formData.append('legalAttested', 'true');
 
       await driverService.uploadDocuments(formData);
       Alert.alert(
@@ -283,14 +286,24 @@ const DocumentUploadScreen = ({ onComplete }) => {
           />
         </View>
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 16 }} />
+        <TouchableOpacity style={styles.attestRow} onPress={() => setLegalAttested(!legalAttested)} activeOpacity={0.7}>
+          <View style={[styles.attestBox, legalAttested && styles.attestBoxChecked]}>
+            {legalAttested ? <Text style={styles.attestCheck}>{'✓'}</Text> : null}
+          </View>
+          <Text style={styles.attestText}>
+            {"Je certifie être en règle pour conduire au Sénégal. Je suis seul(e) responsable de mon permis, de mon assurance et de tout document légal lié à mon véhicule. TeranGO n'est pas responsable des infractions ou incidents liés à mon statut légal."}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 16 }} />
         {loading ? (
           <ActivityIndicator size="large" color={COLORS.green} />
         ) : (
           <TouchableOpacity
-            style={[styles.nextBtn, (!vehicleMake.trim() || (isCar && !licensePlate.trim())) && styles.nextBtnDisabled]}
+            style={[styles.nextBtn, (!vehicleMake.trim() || (isCar && !licensePlate.trim()) || !legalAttested) && styles.nextBtnDisabled]}
             onPress={handleSubmit}
-            disabled={!vehicleMake.trim() || (isCar && !licensePlate.trim())}
+            disabled={!vehicleMake.trim() || (isCar && !licensePlate.trim()) || !legalAttested}
           >
             <Text style={styles.nextBtnText}>Soumettre</Text>
           </TouchableOpacity>
@@ -359,6 +372,11 @@ const styles = StyleSheet.create({
     fontSize: 13, color: '#999', textAlign: 'center', marginTop: 8,
   fontFamily: 'LexendDeca_400Regular' },
   optionalHint: { fontSize: 12, color: '#00853F', fontStyle: 'italic', marginTop: 6, marginBottom: 4, fontFamily: 'LexendDeca_500Medium' },
+  attestRow: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: '#FFF8E1', borderWidth: 1, borderColor: '#FFD54F', borderRadius: 12, padding: 14 },
+  attestBox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#999', alignItems: 'center', justifyContent: 'center', marginRight: 12, marginTop: 1, backgroundColor: '#FFFFFF' },
+  attestBoxChecked: { backgroundColor: '#00853F', borderColor: '#00853F' },
+  attestCheck: { color: '#FFFFFF', fontSize: 14, fontFamily: 'LexendDeca_700Bold', lineHeight: 18 },
+  attestText: { flex: 1, fontSize: 12, color: '#5a5a5a', lineHeight: 17, fontFamily: 'LexendDeca_400Regular' },
 });
 
 export default DocumentUploadScreen;

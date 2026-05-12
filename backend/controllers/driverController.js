@@ -605,6 +605,10 @@ exports.uploadDocuments = function(req, res) {
       driver.markModified('vehicle');
       // Wave number
       if (req.body.waveNumber !== undefined) driver.waveNumber = req.body.waveNumber;
+      // Legal attestation timestamp — checkbox the driver ticked on submit
+      if (req.body.legalAttested === 'true' || req.body.legalAttested === true) {
+        driver.legalAttestedAt = new Date();
+      }
       // Vehicle class
       if (req.body.vehicleClass) driver.vehicleClass = req.body.vehicleClass;
       // Vehicle photos

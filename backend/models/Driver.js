@@ -125,6 +125,10 @@ var driverSchema = new mongoose.Schema({
     accountNumber: String
   },
   waveNumber: { type: String, default: '' },
+  // Driver's legal attestation timestamp — they confirm being road-legal and
+  // accept liability for their own permis/insurance. Stored on document
+  // submission; used as evidence of consent in case of dispute.
+  legalAttestedAt: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 module.exports = mongoose.model('Driver', driverSchema);
