@@ -569,7 +569,11 @@ exports.uploadDocuments = function(req, res) {
   var missingFields = [];
   if (!req.files || !req.files.selfie) missingFields.push('Selfie');
   if (!req.files || !req.files.nationalId) missingFields.push('Carte d\'identite');
-  if (!req.files || !req.files.driverLicense) missingFields.push('Permis de conduire');
+  // Permis + carte grise are car-only — most thiak-thiak / Jakarta drivers in
+  // Senegal don't carry either. Identity verification (CNI) + vehicle photo
+  // is enough for moto onboarding; legal driving status is the driver's own
+  // responsibility per partner agreement.
+  if (isCar && (!req.files || !req.files.driverLicense)) missingFields.push('Permis de conduire');
   if (isCar && (!req.files || !req.files.vehicleRegistration)) missingFields.push('Carte grise');
   if (!req.files || !req.files.vehicleFront) missingFields.push('Photo vehicule (avant)');
   if (!req.body.vehicleType) missingFields.push('Type de vehicule');
