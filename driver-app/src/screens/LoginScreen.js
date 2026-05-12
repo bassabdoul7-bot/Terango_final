@@ -121,7 +121,7 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
+  container: { flex: 1, backgroundColor: '#F2F4F7' },
   headerImage: { width: width, height: HEADER_HEIGHT },
   headerGradient: { position: 'absolute', left: 0, right: 0, bottom: 0, height: HEADER_HEIGHT },
   headerContent: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 30 },
@@ -131,15 +131,15 @@ const styles = StyleSheet.create({
   appSubtitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', fontFamily: 'LexendDeca_400Regular' },
   formArea: { flex: 1, marginTop: -20 },
   scrollContent: { paddingHorizontal: 24, paddingBottom: 40 },
-  card: { backgroundColor: '#e8f8e0', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, padding: 28, elevation: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, borderWidth: 1, borderColor: COLORS.grayLight },
+  card: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 32, borderTopRightRadius: 32, borderBottomLeftRadius: 24, borderBottomRightRadius: 24, padding: 28, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8 },
   cardTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 4 },
   cardSubtitle: { fontSize: 14, color: COLORS.textDarkSub, marginBottom: 24, fontFamily: 'LexendDeca_400Regular' },
   label: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
+  input: { backgroundColor: '#F8F9FB', borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, marginBottom: 20, borderWidth: 1, borderColor: '#EEF0F3', fontFamily: 'LexendDeca_400Regular' },
   phoneRow: { flexDirection: 'row', marginBottom: 20, gap: 10 },
-  prefixBox: { backgroundColor: COLORS.darkCard, borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
+  prefixBox: { backgroundColor: '#1A1A1A', borderRadius: 14, paddingHorizontal: 16, justifyContent: 'center', alignItems: 'center' },
   prefixText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
-  phoneInput: { flex: 1, backgroundColor: COLORS.background, borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: COLORS.grayLight, fontFamily: 'LexendDeca_400Regular' },
+  phoneInput: { flex: 1, backgroundColor: '#F8F9FB', borderRadius: 14, padding: 16, fontSize: 16, color: COLORS.textDark, borderWidth: 1, borderColor: '#EEF0F3', fontFamily: 'LexendDeca_400Regular' },
   forgotText: { color: COLORS.green, fontSize: 14, fontFamily: 'LexendDeca_500Medium' },
   secondaryBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 14, backgroundColor: COLORS.background, alignItems: 'center', borderWidth: 1, borderColor: '#E5E5E5' },
   secondaryBtnText: { fontSize: 15, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.gray },
