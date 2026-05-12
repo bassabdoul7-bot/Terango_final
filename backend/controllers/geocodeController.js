@@ -42,17 +42,12 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 
 function isAdminOnly(item) {
   if (!item) return true;
-  var cls = (item.class || '').toLowerCase();
-  var typ = (item.type || '').toLowerCase();
-  if (cls === 'boundary') return true;
-  if (typ === 'administrative') return true;
-  // Place results without a road or specific subtype are commune/city centroids
-  var addr = item.address || {};
-  var hasStreetSignal = !!(addr.road || addr.house_number || addr.tourism || addr.amenity || addr.shop || addr.building || addr.aeroway || addr.leisure || addr.railway);
-  if (cls === 'place' && (typ === 'city' || typ === 'town' || typ === 'village' || typ === 'suburb' || typ === 'quarter' || typ === 'neighbourhood') && !hasStreetSignal) {
-    // keep neighbourhood-level only as a low-confidence approximate; mark and continue
-    return false;
-  }
+  // Previously dropped class=boundary and type=administrative outright. That
+  // killed legitimate neighbourhood searches in Senegal where "Sangalkam",
+  // "Hann Bel-Air", "Yeumbeul" etc. only exist as admin boundaries in OSM —
+  // riders typing those got an empty dropdown. Keep them in; classifyConfidence
+  // already returns 'approximate' and the score function penalises them so they
+  // sort below any actual road/POI match. Only filter out null items.
   return false;
 }
 
