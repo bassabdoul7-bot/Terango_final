@@ -859,10 +859,10 @@ function ActiveRideScreen(props) {
       <Modal visible={showPhotoModal} transparent animationType='slide'>
         <View style={{flex:1,backgroundColor:'rgba(0,0,0,0.85)',justifyContent:'flex-end'}}>
           <View style={{backgroundColor:COLORS.darkCard,borderTopLeftRadius:24,borderTopRightRadius:24,padding:24}}>
-            <Text style={{fontSize:22,fontFamily:'LexendDeca_700Bold',color:COLORS.textLight,textAlign:'center',marginBottom:8}}>
+            <Text style={{fontSize:22,fontFamily:'LexendDeca_700Bold',color:'#1A1A1A',textAlign:'center',marginBottom:8}}>
               {pendingDeliveryStatus==='picked_up' ? String.fromCodePoint(0x1F4E6)+' Photo du colis' : String.fromCodePoint(0x2705)+' Preuve de livraison'}
             </Text>
-            <Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:COLORS.textLightSub,textAlign:'center',marginBottom:20}}>
+            <Text style={{fontSize:14,fontFamily:'LexendDeca_400Regular',color:'#5a5a5a',textAlign:'center',marginBottom:20}}>
               {pendingDeliveryStatus==='picked_up' ? 'Prenez une photo du colis avant de partir' : 'Prenez une photo comme preuve de livraison'}
             </Text>
             {deliveryPhoto ? (
@@ -875,12 +875,12 @@ function ActiveRideScreen(props) {
             ) : (
               <TouchableOpacity onPress={takeDeliveryPhoto} style={{width:'100%',height:200,borderRadius:16,borderWidth:2,borderStyle:'dashed',borderColor:'rgba(255,255,255,0.2)',alignItems:'center',justifyContent:'center',marginBottom:16}}>
                 <Text style={{fontSize:48}}>{String.fromCodePoint(0x1F4F7)}</Text>
-                <Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_400Regular',marginTop:8}}>Appuyez pour prendre une photo</Text>
+                <Text style={{color:'#5a5a5a',fontFamily:'LexendDeca_400Regular',marginTop:8}}>Appuyez pour prendre une photo</Text>
               </TouchableOpacity>
             )}
             <View style={{flexDirection:'row',gap:12}}>
               <TouchableOpacity onPress={function(){setShowPhotoModal(false);setDeliveryPhoto(null);setPendingDeliveryStatus(null);}} style={{flex:1,padding:16,backgroundColor:'rgba(255,255,255,0.08)',borderRadius:14,alignItems:'center'}}>
-                <Text style={{color:COLORS.textLightSub,fontFamily:'LexendDeca_600SemiBold',fontSize:16}}>Annuler</Text>
+                <Text style={{color:'#5a5a5a',fontFamily:'LexendDeca_600SemiBold',fontSize:16}}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={confirmDeliveryStatus} style={{flex:1,padding:16,backgroundColor:COLORS.green,borderRadius:14,alignItems:'center',opacity:deliveryPhoto?1:0.4}} disabled={!deliveryPhoto}>
                 {loading ? <ActivityIndicator color='#FFF'/> : <Text style={{color:'#FFF',fontFamily:'LexendDeca_700Bold',fontSize:16}}>Confirmer</Text>}
@@ -923,22 +923,22 @@ var queueStyles = StyleSheet.create({
 
 var cancelStyles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modal: { backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%', maxHeight: '80%', borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
-  subtitle: { fontSize: 14, color: COLORS.textLightMuted, marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
+  modal: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, width: '100%', maxHeight: '80%', borderWidth: 1, borderColor: '#EEF0F3' },
+  title: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#757575', marginBottom: 20, fontFamily: 'LexendDeca_400Regular' },
   reasonsList: { maxHeight: 300, marginBottom: 20 },
-  reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, marginBottom: 12, borderWidth: 2, borderColor: 'rgba(255,255,255,0.1)' },
+  reasonItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#F8F9FB', borderRadius: 12, marginBottom: 12, borderWidth: 2, borderColor: '#EEF0F3' },
   reasonItemSelected: { backgroundColor: 'rgba(212,175,55,0.1)', borderColor: COLORS.yellow, borderWidth: 2 },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: COLORS.textLightMuted, marginRight: 12, alignItems: 'center', justifyContent: 'center' },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#757575', marginRight: 12, alignItems: 'center', justifyContent: 'center' },
   radioInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.yellow },
-  reasonText: { flex: 1, fontSize: 16, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
+  reasonText: { flex: 1, fontSize: 16, color: '#1A1A1A', fontFamily: 'LexendDeca_500Medium' },
   actions: { gap: 12 },
-  supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  supportButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, backgroundColor: '#F8F9FB', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
   supportIcon: { fontSize: 20, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
-  supportText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  supportText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A' },
   mainActions: { flexDirection: 'row', gap: 12 },
-  backButton: { flex: 1, padding: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  backButtonText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  backButton: { flex: 1, padding: 16, backgroundColor: '#F8F9FB', borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
+  backButtonText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
   confirmButton: { flex: 2, padding: 16, backgroundColor: '#FF3B30', borderRadius: 12, alignItems: 'center' },
   confirmButtonDisabled: { opacity: 0.4 },
   confirmButtonText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF' },
@@ -968,60 +968,60 @@ var styles = StyleSheet.create({
   toastContainer: { position: 'absolute', top: 120, left: 40, right: 40, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', zIndex: 999 },
   toastText: { fontSize: 14, fontFamily: 'LexendDeca_500Medium', color: '#FFFFFF' },
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
-  statusBadge: { backgroundColor: COLORS.darkCard, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: COLORS.darkCardBorder },
-  statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  statusBadge: { backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: '#EEF0F3' },
+  statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
   turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.7)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10, borderBottomWidth: 1.5, borderBottomColor: 'rgba(212,175,55,0.5)' },
   turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: 'rgba(212,175,55,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
   turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginBottom: 4 },
   turnText: { fontSize: 15, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
-  wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: COLORS.darkCard, paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
   etaContainer: { flex: 1 },
-  etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  etaDistance: { fontSize: 16, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
+  etaDistance: { fontSize: 16, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   stopNavButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  stopNavText: { fontSize: 20, color: COLORS.textLightSub, fontFamily: 'LexendDeca_400Regular' },
+  stopNavText: { fontSize: 20, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
   speedText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2, fontFamily: 'LexendDeca_400Regular' },
-  progressBarFloat: { position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 10, backgroundColor: COLORS.darkCard, borderRadius: 14, padding: 12, paddingTop: 14, elevation: 6, borderWidth: 1, borderColor: COLORS.darkCardBorder },
+  progressBarFloat: { position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 10, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 12, paddingTop: 14, elevation: 6, borderWidth: 1, borderColor: '#EEF0F3' },
   progressBarTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 4, overflow: 'visible', marginBottom: 8 },
   progressBarLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressBarEta: { fontSize: 12, fontFamily: 'LexendDeca_500Medium', color: COLORS.textLightSub },
+  progressBarEta: { fontSize: 12, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a' },
   progressBarArrival: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   progressBarContainer: { left: 16, right: 16, height: 10, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 5, overflow: 'visible', marginBottom: 16 },
   progressBarFill: { position: 'absolute', top: 0, left: 0, height: 8, borderRadius: 4, backgroundColor: COLORS.yellow },
   progressBarDot: { position: 'absolute', top: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: '#FFFFFF', borderWidth: 3, borderColor: COLORS.yellow, marginLeft: -8, elevation: 4 },
-  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.darkCard, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
-  etaCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  bottomSheet: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 16, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  etaCard: { backgroundColor: '#F8F9FB', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#EEF0F3' },
   etaRow: { flexDirection: 'row', alignItems: 'center' },
   etaItem: { flex: 1, alignItems: 'center' },
-  etaValue: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
-  etaLabel: { fontSize: 12, color: COLORS.textLightMuted, textTransform: 'uppercase', fontFamily: 'LexendDeca_400Regular' },
+  etaValue: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
+  etaLabel: { fontSize: 12, color: '#757575', textTransform: 'uppercase', fontFamily: 'LexendDeca_400Regular' },
   etaDivider: { width: 1, height: 40, backgroundColor: 'rgba(255,255,255,0.1)' },
-  addressCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  riderPhoneCard: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  riderPhoneLabel: { fontSize: 11, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.65)', letterSpacing: 2, marginBottom: 6 },
+  addressCard: { backgroundColor: '#F8F9FB', borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: '#EEF0F3' },
+  riderPhoneCard: { backgroundColor: '#001A12', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16, marginBottom: 12, alignItems: 'center' },
+  riderPhoneLabel: { fontSize: 11, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.7)', letterSpacing: 2, marginBottom: 8 },
   riderPhoneBadgeWrap: { alignItems: 'center', justifyContent: 'center' },
   riderPhoneText: { fontFamily: 'Anton_400Regular', fontSize: 30, color: '#FFFFFF', fontStyle: 'italic', letterSpacing: 1.5, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 4 },
   riderPhoneStroke: { color: '#000000', position: 'absolute', textShadowRadius: 0 },
-  riderPhoneHint: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: 'rgba(255,255,255,0.55)', marginTop: 6 },
+  riderPhoneHint: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: 'rgba(255,255,255,0.6)', marginTop: 8 },
   addressRow: { flexDirection: 'row', alignItems: 'center' },
   greenDot: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12 },
   redSquare: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12 },
   orangeDiamond: { width: 14, height: 14, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }], marginRight: 12 },
-  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
+  pickupMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.green },
   pickupDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
-  dropoffMarker: { width: 26, height: 26, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
+  dropoffMarker: { width: 26, height: 26, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: COLORS.red },
   dropoffDot: { width: 10, height: 10, backgroundColor: COLORS.red },
-  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
+  stopMarker: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#FF9500' },
   stopDiamond: { width: 10, height: 10, backgroundColor: '#FF9500', transform: [{ rotate: '45deg' }] },
-  stopMarkerDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: COLORS.darkCard, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,149,0,0.4)' },
+  stopMarkerDone: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,149,0,0.4)' },
   stopDiamondDone: { width: 8, height: 8, backgroundColor: 'rgba(255,149,0,0.4)', transform: [{ rotate: '45deg' }] },
   addressTextContainer: { flex: 1 },
-  addressLabel: { fontSize: 12, color: COLORS.textLightMuted, marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
-  addressText: { fontSize: 15, color: COLORS.textLight, fontFamily: 'LexendDeca_500Medium' },
+  addressLabel: { fontSize: 12, color: '#757575', marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
+  addressText: { fontSize: 15, color: '#1A1A1A', fontFamily: 'LexendDeca_500Medium' },
   waveBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(29,195,225,0.12)', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(29,195,225,0.3)' },
   waveBannerIcon: { fontSize: 24, marginRight: 10 },
   waveBannerText: { flex: 1, fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#1DC3E1', lineHeight: 20 },
@@ -1029,13 +1029,13 @@ var styles = StyleSheet.create({
   navButton: { backgroundColor: COLORS.yellow, borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, elevation: 6 },
   navIcon: { fontSize: 20, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
   navText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  proximityHint: { backgroundColor: 'rgba(255,255,255,0.06)', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
-  proximityText: { fontSize: 14, color: COLORS.textLightMuted, textAlign: 'center', fontFamily: 'LexendDeca_400Regular' },
+  proximityHint: { backgroundColor: '#F8F9FB', padding: 16, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#EEF0F3' },
+  proximityText: { fontSize: 14, color: '#757575', textAlign: 'center', fontFamily: 'LexendDeca_400Regular' },
   chatButtonRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   chatBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(66,133,244,0.15)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(66,133,244,0.3)' },
   callBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(76,217,100,0.15)', borderRadius: 14, paddingVertical: 14, borderWidth: 1, borderColor: 'rgba(76,217,100,0.3)' },
   chatBtnIcon: { fontSize: 24, marginRight: 8, fontFamily: 'LexendDeca_400Regular' },
-  chatBtnText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  chatBtnText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
   pinOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
   pinModal: { backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '85%', alignItems: 'center' },
   pinModalIcon: { fontSize: 48, marginBottom: 12, fontFamily: 'LexendDeca_400Regular' },
