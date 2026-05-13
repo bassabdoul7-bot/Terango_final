@@ -896,30 +896,30 @@ var styles = StyleSheet.create({
   serviceCarImg: { width: 44, height: 32 },
   serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A', textAlign: 'center' },
 
-  // Bottom nav - DARK
+  // Bottom nav — light theme, matches the rest
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row',
-    backgroundColor: 'rgba(212,175,55,0.85)', paddingVertical: 10, paddingBottom: 30,
-    borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 16,
-    borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.4)',
-    shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12,
+    backgroundColor: '#FFFFFF', paddingVertical: 10, paddingBottom: 30,
+    borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 12,
+    borderTopWidth: 1, borderTopColor: '#EEF0F3',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 8,
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: 'rgba(0,26,18,0.12)',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F2F4F7',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
-    borderWidth: 1, borderColor: 'rgba(0,26,18,0.08)',
   },
   navIconContainerActive: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.green,
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
+    shadowColor: COLORS.green, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6,
   },
-  navIconText: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
-  navLabel: { fontSize: 11, color: COLORS.darkBg2, fontFamily: 'LexendDeca_600SemiBold' },
-  navLabelActive: { fontSize: 11, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold' },
+  navIconText: { fontSize: 22, fontFamily: 'LexendDeca_400Regular' },
+  navLabel: { fontSize: 11, color: '#757575', fontFamily: 'LexendDeca_600SemiBold' },
+  navLabelActive: { fontSize: 11, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
 
-  // Tab screens - WHITE BACKGROUND
-  tabScreen: { flex: 1, backgroundColor: COLORS.background, paddingHorizontal: 20, paddingTop: 70 },
+  // Tab screens — light grey background to match the rest of the Yango pass
+  tabScreen: { flex: 1, backgroundColor: '#F2F4F7', paddingHorizontal: 20, paddingTop: 70 },
   tabHeader: { fontSize: 24, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 20, marginTop: 10 },
 
   // Empty state
