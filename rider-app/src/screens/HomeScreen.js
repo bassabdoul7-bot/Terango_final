@@ -472,7 +472,7 @@ function HomeScreen(props) {
           <Text style={{ fontSize: 48, marginBottom: 16 }}>{"\uD83D\uDD12"}</Text>
           <Text style={{ fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.textDark, marginBottom: 8, textAlign: 'center' }}>Connectez-vous</Text>
           <Text style={{ fontSize: 14, fontFamily: 'LexendDeca_400Regular', color: COLORS.textDarkSub, textAlign: 'center', marginBottom: 24 }}>{'Créez un compte ou connectez-vous pour accéder à votre profil.'}</Text>
-          <TouchableOpacity style={{ backgroundColor: COLORS.darkCard, paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16 }} onPress={function() { exitGuestMode(); }}>
+          <TouchableOpacity style={{ backgroundColor: '#FFFFFF', paddingVertical: 16, paddingHorizontal: 48, borderRadius: 16 }} onPress={function() { exitGuestMode(); }}>
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontFamily: 'LexendDeca_700Bold' }}>Se connecter</Text>
           </TouchableOpacity>
         </View>
@@ -599,7 +599,7 @@ function HomeScreen(props) {
             <TextInput
               style={styles.modalInput}
               placeholder="Ex: Almadies, Dakar"
-              placeholderTextColor={COLORS.textLightMuted}
+              placeholderTextColor={'#757575'}
               value={saveAddress}
               onChangeText={setSaveAddress}
             />
@@ -642,8 +642,8 @@ function HomeScreen(props) {
           </LinearGradient>
         </ImageBackground>
 
-        <Animated.View style={[{backgroundColor: COLORS.darkCard, borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, paddingTop: 14, minHeight: screenHeight * 0.65, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)'}, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
-          <View style={{width:40, height:4, backgroundColor:'rgba(255,255,255,0.15)', borderRadius:2, alignSelf:'center', marginBottom:16}} />
+        <Animated.View style={[{backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, marginTop: -24, paddingTop: 14, minHeight: screenHeight * 0.65, borderTopWidth: 1, borderTopColor: '#EEF0F3'}, { opacity: searchCardOpacity, transform: [{ translateY: searchCardSlide }] }]}>
+          <View style={{width:40, height:4, backgroundColor:'#D7DBE0', borderRadius:2, alignSelf:'center', marginBottom:16}} />
           <View style={{paddingHorizontal: 20}}>
           <TouchableOpacity style={styles.searchButton} onPress={handleWhereToPress} activeOpacity={0.8}>
             <View style={styles.searchIconContainer}>
@@ -735,11 +735,11 @@ function HomeScreen(props) {
                         { text: 'Oui', onPress: function() { navigation.navigate('SearchDestination', { currentLocation: location, requestDriverId: d._id, requestDriverName: name }); } }
                       ]);
                     }}>
-                      <View style={{width:56,height:56,borderRadius:28,backgroundColor:COLORS.darkCard,alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:isOnline ? COLORS.green : 'rgba(255,255,255,0.1)'}}>
-                        {photo ? <Image source={{uri:photo}} style={{width:52,height:52,borderRadius:26}} /> : <Text style={{fontSize:22,color:COLORS.textLight}}>{name.charAt(0)}</Text>}
+                      <View style={{width:56,height:56,borderRadius:28,backgroundColor:'#FFFFFF',alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:isOnline ? COLORS.green : '#EEF0F3'}}>
+                        {photo ? <Image source={{uri:photo}} style={{width:52,height:52,borderRadius:26}} /> : <Text style={{fontSize:22,color:'#1A1A1A'}}>{name.charAt(0)}</Text>}
                       </View>
                       <View style={{position:'absolute',top:0,right:12,width:12,height:12,borderRadius:6,backgroundColor:isOnline ? COLORS.green : '#666',borderWidth:2,borderColor:COLORS.background}} />
-                      <Text style={{fontSize:11,fontFamily:'LexendDeca_500Medium',color:COLORS.textLight,marginTop:4}} numberOfLines={1}>{name.split(' ')[0]}</Text>
+                      <Text style={{fontSize:11,fontFamily:'LexendDeca_500Medium',color:'#1A1A1A',marginTop:4}} numberOfLines={1}>{name.split(' ')[0]}</Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -828,34 +828,34 @@ var styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
   logoContainer: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     borderWidth: 2, borderColor: COLORS.yellow, elevation: 4,
   },
   logo: { width: 45, height: 45, borderRadius: 22.5 },
   greetingCard: {
-    flex: 1, backgroundColor: COLORS.darkCard,
+    flex: 1, backgroundColor: '#FFFFFF',
     paddingHorizontal: 16, paddingVertical: 12, borderRadius: 16, elevation: 4,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
-  greeting: { fontSize: 12, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
-  userName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  greeting: { fontSize: 12, color: '#5a5a5a' , fontFamily: 'LexendDeca_400Regular' },
+  userName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
   profileButton: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center', elevation: 4,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   profileBtnIcon: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
 
   // Search card (bottom panel on home)
   searchCard: {
     position: 'absolute', bottom: 100, left: 20, right: 20,
-    backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 20, elevation: 12,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, elevation: 12,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   searchButton: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 18, paddingHorizontal: 18,
+    backgroundColor: '#F2F4F7', paddingVertical: 18, paddingHorizontal: 18,
     borderRadius: 18, marginBottom: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.3)',
   },
   searchIconContainer: {
@@ -863,38 +863,38 @@ var styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', marginRight: 12,
   },
   searchIcon: { fontSize: 20 , fontFamily: 'LexendDeca_400Regular' },
-  searchTitle: { flex: 1, fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight },
+  searchTitle: { flex: 1, fontSize: 18, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A' },
   arrowContainer: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 32, height: 32, borderRadius: 16, backgroundColor: '#F2F4F7',
     alignItems: 'center', justifyContent: 'center',
   },
-  arrow: { fontSize: 20, color: COLORS.textLight, fontFamily: 'LexendDeca_700Bold' },
+  arrow: { fontSize: 20, color: '#1A1A1A', fontFamily: 'LexendDeca_700Bold' },
 
   // Quick actions
   quickActions: { flexDirection: 'row', justifyContent: 'space-around' },
   quickActionButton: { alignItems: 'center' },
   quickActionIcon: {
-    width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 50, height: 50, borderRadius: 25, backgroundColor: '#F2F4F7',
     alignItems: 'center', justifyContent: 'center', marginBottom: 8,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   quickActionIconSaved: { borderColor: COLORS.green, borderWidth: 2, backgroundColor: 'rgba(0, 133, 63, 0.2)' },
   quickActionEmoji: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
-  quickActionText: { fontSize: 12, color: COLORS.textLightSub, fontFamily: 'LexendDeca_500Medium' },
+  quickActionText: { fontSize: 12, color: '#5a5a5a', fontFamily: 'LexendDeca_500Medium' },
   quickActionSet: { fontSize: 10, color: COLORS.green, fontFamily: 'LexendDeca_700Bold', marginTop: 2 },
 
   // Services section
-  servicesSection: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)' },
-  servicesTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLightSub, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
+  servicesSection: { marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#EEF0F3' },
+  servicesTitle: { fontSize: 13, fontFamily: 'LexendDeca_700Bold', color: '#5a5a5a', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 },
   servicesGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   serviceCard: { alignItems: 'center', flex: 1 },
   serviceIconWrap: {
     width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-    marginBottom: 6, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)', elevation: 3,
+    marginBottom: 6, borderWidth: 1.5, borderColor: '#EEF0F3', elevation: 3,
   },
   serviceEmoji: { fontSize: 28, fontFamily: 'LexendDeca_400Regular' },
   serviceCarImg: { width: 44, height: 32 },
-  serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, textAlign: 'center' },
+  serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A', textAlign: 'center' },
 
   // Bottom nav - DARK
   bottomNav: {
@@ -911,7 +911,7 @@ var styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(0,26,18,0.08)',
   },
   navIconContainerActive: {
-    width: 46, height: 46, borderRadius: 23, backgroundColor: COLORS.darkCard,
+    width: 46, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
   },
   navIconText: { fontSize: 24 , fontFamily: 'LexendDeca_400Regular' },
@@ -930,68 +930,68 @@ var styles = StyleSheet.create({
 
   // History cards - DARK on white
   historyCard: {
-    backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 18, marginBottom: 12,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 12,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   historyHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
-  historyDate: { fontSize: 13, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
+  historyDate: { fontSize: 13, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
   historyFare: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   historyRoute: { flexDirection: 'row', marginBottom: 14 },
   dotLine: { alignItems: 'center', marginRight: 12, paddingTop: 4 },
   gDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: COLORS.green },
-  dLine: { width: 2, height: 24, backgroundColor: COLORS.darkCardBorder, marginVertical: 4 },
+  dLine: { width: 2, height: 24, backgroundColor: '#D7DBE0', marginVertical: 4 },
   rSquare: { width: 10, height: 10, backgroundColor: COLORS.red },
   addresses: { flex: 1, justifyContent: 'space-between' },
-  addr: { fontSize: 14, color: COLORS.textLightSub, paddingVertical: 2 , fontFamily: 'LexendDeca_400Regular' },
+  addr: { fontSize: 14, color: '#5a5a5a', paddingVertical: 2 , fontFamily: 'LexendDeca_400Regular' },
   historyFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  historyMeta: { fontSize: 12, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
+  historyMeta: { fontSize: 12, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
   typeBadge: { backgroundColor: 'rgba(212,175,55, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   typeText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_600SemiBold' },
 
   // Payment cards - DARK on white
   paymentCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.darkCard, borderRadius: 16, padding: 18, marginBottom: 12,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 12,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   paymentIcon: { fontSize: 28, marginRight: 14 , fontFamily: 'LexendDeca_400Regular' },
   paymentInfo: { flex: 1 },
-  paymentTitle: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLight, marginBottom: 2 },
-  paymentSub: { fontSize: 12, color: COLORS.textLightMuted , fontFamily: 'LexendDeca_400Regular' },
+  paymentTitle: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A', marginBottom: 2 },
+  paymentSub: { fontSize: 12, color: '#757575' , fontFamily: 'LexendDeca_400Regular' },
   paymentActive: { backgroundColor: COLORS.green, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 },
-  paymentActiveText: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  paymentSoon: { fontSize: 12, color: COLORS.textLightMuted, fontStyle: 'italic' , fontFamily: 'LexendDeca_400Regular' },
+  paymentActiveText: { fontSize: 12, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
+  paymentSoon: { fontSize: 12, color: '#757575', fontStyle: 'italic' , fontFamily: 'LexendDeca_400Regular' },
 
   // Profile - dark hero card on white bg
   profileHero: {
-    backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24,
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 24,
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   profileAvatar: {
     width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.green,
     alignItems: 'center', justifyContent: 'center', marginBottom: 12,
   },
-  profileAvatarText: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
-  profileName: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 4 },
+  profileAvatarText: { fontSize: 30, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
+  profileName: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
   profileRatingRow: { flexDirection: 'row', alignItems: 'center' },
-  profileRatingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginLeft: 4, marginRight: 6 },
-  profileRatingMeta: { fontSize: 13, color: COLORS.textLightSub , fontFamily: 'LexendDeca_400Regular' },
+  profileRatingVal: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginLeft: 4, marginRight: 6 },
+  profileRatingMeta: { fontSize: 13, color: '#5a5a5a' , fontFamily: 'LexendDeca_400Regular' },
   profileSection: { marginBottom: 20 },
   profileSectionTitle: {
     fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textDarkSub,
     textTransform: 'uppercase', marginBottom: 10, marginLeft: 4,
   },
   profileGroup: {
-    backgroundColor: COLORS.darkCard, borderRadius: 16, overflow: 'hidden',
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
   profileRow: {
     flexDirection: 'row', alignItems: 'center', padding: 16,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
+    borderBottomWidth: 1, borderBottomColor: '#EEF0F3',
   },
   profileEmoji: { fontSize: 20, marginRight: 14 , fontFamily: 'LexendDeca_400Regular' },
-  profileLabel: { flex: 1, fontSize: 15, color: COLORS.textLight , fontFamily: 'LexendDeca_400Regular' },
-  profileValue: { fontSize: 14, color: COLORS.textLightMuted, marginRight: 8, maxWidth: 180 , fontFamily: 'LexendDeca_400Regular' },
+  profileLabel: { flex: 1, fontSize: 15, color: '#1A1A1A' , fontFamily: 'LexendDeca_400Regular' },
+  profileValue: { fontSize: 14, color: '#757575', marginRight: 8, maxWidth: 180 , fontFamily: 'LexendDeca_400Regular' },
   profileChevron: { fontSize: 22, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
   pinToggle: { width: 48, height: 28, borderRadius: 14, backgroundColor: COLORS.grayLight, justifyContent: 'center', paddingHorizontal: 3 },
   pinToggleOn: { backgroundColor: COLORS.green },
@@ -1012,26 +1012,26 @@ var styles = StyleSheet.create({
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20,
   },
   modalCard: {
-    backgroundColor: COLORS.darkCard, borderRadius: 20, padding: 24, width: '100%',
-    borderWidth: 1, borderColor: COLORS.darkCardBorder,
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, width: '100%',
+    borderWidth: 1, borderColor: '#EEF0F3',
   },
-  modalTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight, marginBottom: 8 },
-  modalSub: { fontSize: 14, color: COLORS.textLightSub, marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
+  modalTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 8 },
+  modalSub: { fontSize: 14, color: '#5a5a5a', marginBottom: 16 , fontFamily: 'LexendDeca_400Regular' },
   modalInput: {
-    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: 16,
-    fontSize: 16, color: COLORS.textLight, marginBottom: 20,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: '#F2F4F7', borderRadius: 12, padding: 16,
+    fontSize: 16, color: '#1A1A1A', marginBottom: 20,
+    borderWidth: 1, borderColor: '#EEF0F3',
   fontFamily: 'LexendDeca_400Regular' },
   modalActions: { flexDirection: 'row', gap: 12 },
   modalCancel: {
-    flex: 1, padding: 16, backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    flex: 1, padding: 16, backgroundColor: '#F2F4F7',
+    borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#EEF0F3',
   },
-  modalCancelText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.textLightSub },
+  modalCancelText: { fontSize: 16, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
   modalSave: {
     flex: 2, padding: 16, backgroundColor: COLORS.green, borderRadius: 12, alignItems: 'center',
   },
-  modalSaveText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.textLight },
+  modalSaveText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
 });
 
 export default HomeScreen;
