@@ -744,14 +744,14 @@ const styles = StyleSheet.create({
   earningsBadgeStroke: { position: 'absolute', color: '#000000', textShadowRadius: 0 },
   topRightSpacer: { width: 44, height: 44 },
 
-  filterBar: { position: 'absolute', bottom: 230, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#EEF0F3', elevation: 8 },
+  filterBar: { position: 'absolute', bottom: 290, left: 12, right: 12, flexDirection: 'row', gap: 8, zIndex: 10, paddingVertical: 10, paddingHorizontal: 8, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#EEF0F3', elevation: 8 },
   filterChip: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 8, borderRadius: 10, backgroundColor: '#F2F4F7', gap: 4 },
   filterChipActive: { backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: COLORS.yellow },
   filterChipIcon: { fontSize: 14 },
   filterChipLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: '#757575' },
   filterChipLabelActive: { color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
 
-  bottomCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 36, borderTopWidth: 1, borderTopColor: '#EEF0F3', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+  bottomCard: { position: 'absolute', bottom: 80, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingTop: 14, paddingBottom: 18, borderTopWidth: 1, borderTopColor: '#EEF0F3', elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.1, shadowRadius: 8 },
   offlineHandle: { alignSelf: 'center', width: 44, height: 4, borderRadius: 2, backgroundColor: '#D7DBE0', marginBottom: 16 },
   offlineTitle: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
   offlineSub: { fontSize: 13, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular', marginBottom: 16 },
@@ -789,7 +789,7 @@ const styles = StyleSheet.create({
   commissionBannerTitle: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.white, marginBottom: 6, textAlign: 'center' },
   commissionBannerSub: { fontSize: 13, fontFamily: 'LexendDeca_400Regular', color: 'rgba(255, 255, 255, 0.85)', textAlign: 'center' },
 
-  requestCard: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, elevation: 12, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  requestCard: { position: 'absolute', bottom: 80, left: 0, right: 0, backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 8, elevation: 12, borderTopWidth: 1, borderTopColor: '#EEF0F3' },
   requestContent: { padding: 24 },
   offerTypeBadge: { fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 },
   riderPhoneText: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow, letterSpacing: 1, marginBottom: 4 },
