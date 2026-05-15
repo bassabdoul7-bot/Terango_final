@@ -274,14 +274,30 @@ function ActiveRideScreen(props) {
     // only emits ride-cancelled/delivery-cancelled after `await ride.save()`
     // with status='cancelled', so a redundant getRide round-trip just adds
     // failure surface (timeouts, 401s during token rotation).
+    function returnToOnlineHome() {
+      // Re-assert online state on the way out. Backend keeps isOnline=true
+      // through a cancel (only isAvailable flips back to true), but the
+      // matching service treats stale heartbeats as offline; pushing a fresh
+      // location+online ping now means the next offer can land within
+      // seconds of arriving on Home instead of after getProfile resolves.
+      try {
+        if (driverLocation) {
+          driverService.toggleOnlineStatus(true, driverLocation.latitude, driverLocation.longitude).catch(function() {});
+        }
+        if (socketRef.current && socketRef.current.connected && driver && driver._id) {
+          socketRef.current.emit('driver-online', { driverId: driver._id, latitude: driverLocation ? driverLocation.latitude : 0, longitude: driverLocation ? driverLocation.longitude : 0 });
+        }
+      } catch (e) {}
+      navigation.replace('Home');
+    }
     function handleRemoteCancel(isDelivery) {
       if (cancelledRef.current) return;
       cancelledRef.current = true;
       var title = isDelivery ? 'Livraison annulee' : 'Course annulee';
       var msg = isDelivery ? 'Le client a annule la livraison.' : 'Le passager a annule la course.';
       speakAnnouncement(msg);
-      Alert.alert(title, msg, [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
-      setTimeout(function() { navigation.replace('Home'); }, 10000);
+      Alert.alert(title, msg, [{ text: 'OK', onPress: returnToOnlineHome }]);
+      setTimeout(returnToOnlineHome, 10000);
     }
     createAuthSocket().then(function(sock) {
       socketRef.current = sock;
