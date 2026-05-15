@@ -251,7 +251,7 @@ exports.adminLogin = async (req, res) => {
         return res.status(403).json({ success: false, message: 'Votre compte partenaire est en attente de validation' });
       }
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '60d' });
     res.json({
       success: true,
       token: token,
