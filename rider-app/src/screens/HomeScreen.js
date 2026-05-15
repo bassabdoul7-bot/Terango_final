@@ -103,7 +103,7 @@ function HomeScreen(props) {
       // the delivery is still progressing on the backend.
       deliveryService.getActiveDelivery().then(function(res) {
         if (res && res.success && res.delivery && ['pending', 'accepted', 'at_pickup', 'picked_up', 'at_dropoff'].indexOf(res.delivery.status) !== -1) {
-          navigation.replace('ActiveDelivery', { deliveryId: res.delivery._id });
+          navigation.replace('ActiveDeliveryScreen', { deliveryId: res.delivery._id });
         }
       }).catch(function() {});
     }
