@@ -191,6 +191,10 @@ exports.createDelivery = function(req, res) {
           var serviceLabel = delivery.serviceType === 'colis' ? 'Colis' : delivery.serviceType === 'commande' ? 'Commande' : 'Restaurant';
           var pushTitle = 'Nouvelle livraison: ' + serviceLabel + '!';
           var pushBody = (delivery.fare || 0) + ' FCFA \u2022 ' + (delivery.distance ? delivery.distance.toFixed(1) + ' km' : 'proximité');
+          // Per-driver km-to-pickup, so the offer card can show "X km de vous"
+          // like ride offers do.
+          var distMap = {};
+          nearbyDrivers.forEach(function(n) { distMap[n.driverId.toString()] = n.distance; });
           // Look up rider phone/name once so each driver gets the same payload.
           Delivery.findById(delivery._id).populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } }).then(function(d) {
             var ru = d && d.riderId && d.riderId.userId ? d.riderId.userId : null;
@@ -214,6 +218,7 @@ exports.createDelivery = function(req, res) {
                 fare: delivery.fare,
                 driverEarnings: delivery.driverEarnings,
                 distance: delivery.distance,
+                distanceToPickup: distMap[driver._id.toString()],
                 packageDetails: delivery.packageDetails,
                 commandeDetails: delivery.commandeDetails,
                 riderPhone: riderPhone,
@@ -279,23 +284,23 @@ exports.acceptDelivery = function(req, res) {
           driver.isAvailable = false;
           driver.save();
 
-          // Notify rider
-          io.to(delivery._id.toString()).emit('delivery-accepted', {
-            deliveryId: delivery._id,
-            driver: {
-              id: driver._id,
-              name: null
-            }
-          });
-
-          // Get driver user info
+          // Notify rider. Shape mirrors a populated Driver document so the
+          // rider app can use the same accessors (`driver.userId.name`, etc.)
+          // it already uses on the ride side.
           User.findById(driver.userId).then(function(driverUser) {
             io.to(delivery._id.toString()).emit('delivery-accepted', {
               deliveryId: delivery._id,
               driver: {
-                id: driver._id,
-                name: driverUser ? driverUser.name : 'Livreur',
-                phone: driverUser ? driverUser.phone : '',
+                _id: driver._id,
+                userId: driverUser ? {
+                  _id: driverUser._id,
+                  name: driverUser.name,
+                  phone: driverUser.phone,
+                  profilePhoto: driverUser.profilePhoto,
+                  rating: driverUser.rating
+                } : null,
+                vehicleType: driver.vehicleType,
+                vehicleFrontPhoto: driver.vehicleFrontPhoto,
                 vehicle: driver.vehicle
               }
             });
@@ -525,7 +530,7 @@ exports.getDeliveryById = function(req, res) {
         return res.status(404).json({ success: false, message: 'Profil non trouvé' });
       }
       return Delivery.findOne({ _id: req.params.deliveryId, riderId: rider._id })
-        .populate('driver');
+        .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone profilePhoto rating' } });
     })
     .then(function(delivery) {
       if (!delivery) {

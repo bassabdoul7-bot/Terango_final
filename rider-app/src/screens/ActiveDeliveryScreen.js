@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, BackHandler, Alert, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Linking, Animated, BackHandler, Alert, Easing, Image } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
@@ -88,7 +88,9 @@ var ActiveDeliveryScreen = function(props) {
     deliveryService.cancelDelivery(deliveryId, reason || 'Annulee par le client').then(function() { setShowCancelModal(false); navigation.replace('Home'); }).catch(function() { Alert.alert('Erreur', "Impossible d'annuler"); }).finally(function() { setCancelling(false); });
   }
 
-  function callDriver() { if (driverInfo && driverInfo.phone) Linking.openURL('tel:' + driverInfo.phone); }
+  function callDriver() { var phone = driverInfo && (driverInfo.userId && driverInfo.userId.phone || driverInfo.phone); if (phone) Linking.openURL('tel:' + phone); }
+
+  var renderStars = function(rating) { return [0,1,2,3,4].map(function(i) { return (<Text key={i} style={{ color: i < Math.floor(rating || 5) ? '#FFD700' : '#555', fontSize: 12, fontFamily: 'LexendDeca_400Regular' }}>{'★'}</Text>); }); };
 
   if (loading) return (<View style={styles.loadingScreen}><ActivityIndicator size="large" color={COLORS.green} /><Text style={styles.loadingText}>Chargement...</Text></View>);
 
@@ -133,9 +135,29 @@ var ActiveDeliveryScreen = function(props) {
       )}
 
       {driverInfo && delivery && delivery.status !== 'pending' && delivery.status !== 'no_drivers_available' && (
-        <View style={styles.driverCard}><View style={styles.driverAvatar}><Text style={{ fontSize: 24, color: '#fff' , fontFamily: 'LexendDeca_400Regular' }}>{(driverInfo.firstName || 'L')[0]}</Text></View>
-          <View style={styles.driverDetails}><Text style={styles.driverName}>{(driverInfo.firstName || '') + ' ' + (driverInfo.lastName || '')}</Text><Text style={styles.driverVehicle}>{driverInfo.vehicleType || 'Moto'}</Text></View>
-          <View style={{ flexDirection: 'row', gap: 8 }}><TouchableOpacity style={styles.chatBtnSmall} onPress={function() { setShowChat(true); }}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity><TouchableOpacity style={styles.callBtn} onPress={callDriver}><Text style={{ fontSize: 20 , fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4DE)}</Text></TouchableOpacity></View>
+        <View style={styles.driverCard}>
+          <View style={styles.driverPhotos}>
+            {driverInfo.userId && driverInfo.userId.profilePhoto
+              ? <Image source={{ uri: driverInfo.userId.profilePhoto }} style={styles.driverAvatarImg} />
+              : <View style={styles.driverAvatar}><Text style={styles.avatarText}>{((driverInfo.userId && driverInfo.userId.name) || 'L').charAt(0)}</Text></View>}
+            {driverInfo.vehicleFrontPhoto
+              ? <View style={styles.vehiclePhotoWrap}><Image source={{ uri: driverInfo.vehicleFrontPhoto }} style={styles.vehiclePhoto} resizeMode="cover" /></View>
+              : null}
+          </View>
+          <View style={styles.driverDetails}>
+            <Text style={styles.driverName} numberOfLines={1}>{(driverInfo.userId && driverInfo.userId.name) || 'Livreur'}</Text>
+            <View style={styles.ratingRow}>{renderStars(driverInfo.userId && driverInfo.userId.rating)}<Text style={styles.ratingText}>{driverInfo.userId && driverInfo.userId.rating != null ? Number(driverInfo.userId.rating).toFixed(1) : '5.0'}</Text></View>
+            {driverInfo.vehicle
+              ? <Text style={styles.driverVehicle} numberOfLines={1}>{(driverInfo.vehicle.make || '') + ' ' + (driverInfo.vehicle.model || '') + (driverInfo.vehicle.color ? ' • ' + driverInfo.vehicle.color : '')}</Text>
+              : <Text style={styles.driverVehicle}>{driverInfo.vehicleType === 'moto' ? 'Moto' : 'Voiture'}</Text>}
+            {driverInfo.vehicle && driverInfo.vehicle.licensePlate
+              ? <View style={styles.plateBadge}><Text style={styles.plateText}>{driverInfo.vehicle.licensePlate}</Text></View>
+              : null}
+          </View>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity style={styles.chatBtnSmall} onPress={function() { setShowChat(true); }}><Text style={{ fontSize: 20, fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.callBtn} onPress={callDriver}><Text style={{ fontSize: 20, fontFamily: 'LexendDeca_400Regular' }}>{String.fromCodePoint(0x1F4DE)}</Text></TouchableOpacity>
+          </View>
         </View>
       )}
 
@@ -181,11 +203,20 @@ var styles = StyleSheet.create({
   noDriverSub: { fontSize: 14, color: '#757575', textAlign: 'center', marginBottom: 20 , fontFamily: 'LexendDeca_400Regular' },
   retryBtn: { backgroundColor: COLORS.yellow, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 40 },
   retryBtnText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
-  driverCard: { position: 'absolute', bottom: 290, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#EEF0F3' },
-  driverAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  driverCard: { position: 'absolute', bottom: 290, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 14, borderWidth: 1, borderColor: '#EEF0F3' },
+  driverPhotos: { alignItems: 'center', marginRight: 12, gap: 6 },
+  driverAvatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: COLORS.green, alignItems: 'center', justifyContent: 'center' },
+  driverAvatarImg: { width: 54, height: 54, borderRadius: 27, borderWidth: 2, borderColor: COLORS.yellow },
+  avatarText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: '#FFF' },
+  vehiclePhotoWrap: { width: 72, height: 48, borderRadius: 10, overflow: 'hidden', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#EEF0F3' },
+  vehiclePhoto: { width: 72, height: 48, borderRadius: 10 },
   driverDetails: { flex: 1 },
   driverName: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
-  driverVehicle: { fontSize: 13, color: '#757575', marginTop: 2 , fontFamily: 'LexendDeca_400Regular' },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, marginBottom: 2 },
+  ratingText: { marginLeft: 4, fontSize: 12, fontFamily: 'LexendDeca_600SemiBold', color: '#5a5a5a' },
+  driverVehicle: { fontSize: 12, color: '#757575', fontFamily: 'LexendDeca_400Regular' },
+  plateBadge: { alignSelf: 'flex-start', backgroundColor: 'rgba(212,175,55,0.12)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 },
+  plateText: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
   chatBtnSmall: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(66,133,244,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(66,133,244,0.3)' },
   callBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center' },
   driverMarker: { width: 40, height: 40, borderRadius: 20, backgroundColor: COLORS.yellow, alignItems: 'center', justifyContent: 'center' },
