@@ -155,14 +155,19 @@ const HomeScreen = ({ navigation }) => {
           socketRef.current.emit('driver-online', { driverId, latitude: location && location.latitude, longitude: location && location.longitude });
           if (location) driverService.toggleOnlineStatus(true, location.latitude, location.longitude).catch(() => {});
           driverService.getCurrentOffer().then((r) => {
-            if (r && r.success && r.offer && !currentRequestRef.current && activeServicesRef.current.rides) {
-              const rd = r.offer; rd._offerType = 'ride';
+            if (!(r && r.success && r.offer && activeServicesRef.current.rides)) return;
+            const rd = r.offer; rd._offerType = 'ride';
+            // Functional setter so the "no current offer" check + the set
+            // happen atomically — guards against a socket new-ride-offer
+            // event landing between the .then callback's check and the set.
+            setCurrentRequest((prev) => {
+              if (prev) return prev; // socket beat us to it; keep existing
               if (offerTimeoutRef.current) clearTimeout(offerTimeoutRef.current);
-              setCurrentRequest(rd);
               setRideRequests((p) => [...p, rd]);
               const t = setTimeout(() => handleReject(), rd.offerExpiresIn || 15000);
               offerTimeoutRef.current = t;
-            }
+              return rd;
+            });
           }).catch(() => {});
         }
       }
@@ -233,7 +238,15 @@ const HomeScreen = ({ navigation }) => {
       if (req) {
         setRideRequests((prev) => {
           const remaining = prev.filter((r) => r.rideId !== req.rideId);
-          setCurrentRequest(remaining.length > 0 ? remaining[0] : null);
+          const next = remaining.length > 0 ? remaining[0] : null;
+          setCurrentRequest(next);
+          // Re-arm the auto-reject timer for the promoted offer — without this
+          // a queued offer would sit forever after the current one was taken.
+          if (next) {
+            const ttl = next.offerExpiresIn || (next._isDelivery ? 60000 : 15000);
+            const t = setTimeout(() => handleReject(), ttl);
+            offerTimeoutRef.current = t;
+          }
           return remaining;
         });
       }
@@ -264,7 +277,23 @@ const HomeScreen = ({ navigation }) => {
       }
     });
     s.on('delivery-taken', () => {
-      if (currentRequestRef.current && currentRequestRef.current._isDelivery) setCurrentRequest(null);
+      if (!isOnlineRef.current) return;
+      const req = currentRequestRef.current;
+      if (!(req && req._isDelivery)) return;
+      Alert.alert('Livraison prise', 'Un autre chauffeur a pris cette livraison');
+      stopRideAlert();
+      if (offerTimeoutRef.current) { clearTimeout(offerTimeoutRef.current); offerTimeoutRef.current = null; }
+      setRideRequests((prev) => {
+        const remaining = prev.filter((r) => r.rideId !== req.rideId);
+        const next = remaining.length > 0 ? remaining[0] : null;
+        setCurrentRequest(next);
+        if (next) {
+          const ttl = next.offerExpiresIn || (next._isDelivery ? 60000 : 15000);
+          const t = setTimeout(() => handleReject(), ttl);
+          offerTimeoutRef.current = t;
+        }
+        return remaining;
+      });
     });
     s.on('blocked-for-payment', (data) => { setBlockedForPayment(data); });
     s.on('ride-completed-earnings', () => { fetchEarnings(); });
@@ -469,6 +498,13 @@ const HomeScreen = ({ navigation }) => {
       setCurrentRequest(null);
     } catch (e) {
       Alert.alert('Erreur', e.response && e.response.data ? e.response.data.message : "Impossible d'accepter");
+      // Accept failed — the auto-reject timer was cleared at the top of this
+      // handler, so re-arm it. Without this the offer would sit forever and
+      // the driver could only dismiss it manually.
+      if (currentRequestRef.current && !offerTimeoutRef.current) {
+        const ttl = currentRequestRef.current._isDelivery ? 60000 : 15000;
+        offerTimeoutRef.current = setTimeout(() => handleReject(), ttl);
+      }
     } finally {
       setLoading(false);
     }
