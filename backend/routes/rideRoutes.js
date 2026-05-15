@@ -20,6 +20,7 @@ const {
   completeRide,
   verifyPin,
   appendTrailPoints,
+  saveRideComputedRoute,
   uploadEmergencyRecording,
   shareRide,
   getScheduledRides,
@@ -121,6 +122,7 @@ router.put('/:id/complete', protect, restrictTo('driver'), completeRide);
 
 // Append GPS trail points (Driver only)
 router.put('/:id/trail', protect, restrictTo('driver'), appendTrailPoints);
+router.put('/:id/computed-route', protect, restrictTo('driver'), saveRideComputedRoute);
 
 // Share ride (Rider only)
 router.put('/:id/share', protect, restrictTo('rider'), shareRide);

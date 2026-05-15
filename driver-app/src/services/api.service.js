@@ -144,6 +144,7 @@ uploadDocuments: (formData) => api.put('/drivers/upload-documents', formData, { 
   updateServicePreferences: (prefs) => api.put('/drivers/service-preferences', prefs),
   updateWaveNumber: (waveNumber) => api.put('/drivers/wave-number', { waveNumber }),
   appendRideTrail: (rideId, points) => api.put('/rides/' + rideId + '/trail', { points }),
+  saveRideComputedRoute: (rideId, polyline, source) => api.put('/rides/' + rideId + '/computed-route', { polyline: polyline, source: source }),
   triggerSOS: function(rideId) { return api.post('/rides/' + rideId + '/sos'); },
   uploadEmergencyRecording: function(rideId, videoUri, duration) {
     var formData = new FormData();
@@ -158,6 +159,7 @@ export const deliveryService = {
   acceptDelivery: function(deliveryId) { return api.put('/deliveries/' + deliveryId + '/accept'); },
   updateDeliveryStatus: function(deliveryId, status, photo) { return api.put('/deliveries/' + deliveryId + '/status', { status: status, photo: photo || null }); },
   appendDeliveryTrail: function(deliveryId, points) { return api.put('/deliveries/' + deliveryId + '/trail', { points: points }); },
+  saveDeliveryComputedRoute: function(deliveryId, polyline, source) { return api.put('/deliveries/' + deliveryId + '/computed-route', { polyline: polyline, source: source }); },
   uploadEmergencyRecording: function(deliveryId, videoUri, duration) {
     var formData = new FormData();
     formData.append('media', { uri: videoUri, name: 'emergency-' + Date.now() + '.mp4', type: 'video/mp4' });

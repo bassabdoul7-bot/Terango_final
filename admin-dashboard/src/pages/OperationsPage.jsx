@@ -1,8 +1,78 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import polyline from '@mapbox/polyline';
 import { adminService } from '../services/api';
-import { Phone, RefreshCw, Car, Package, Users, Clock, ChevronRight } from 'lucide-react';
+import { Phone, RefreshCw, Car, Package, Users, Clock, ChevronRight, X } from 'lucide-react';
+
+function fmtTime(d) {
+  if (!d) return '-';
+  var dt = new Date(d);
+  return dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+function decodePoly(s) {
+  if (!s || typeof s !== 'string') return [];
+  try { return polyline.decode(s); } catch (e) { return []; }
+}
+
+// Renders the planned-vs-actual paths + a milestone timeline panel.
+function DetailPanel({ item, onClose }) {
+  if (!item) return null;
+  var milestones = item.serviceType ? [
+    { label: 'Créée', at: item.createdAt },
+    { label: 'Acceptée', at: item.acceptedAt },
+    { label: 'Au pickup', at: item.atPickupAt },
+    { label: 'Récupérée', at: item.pickedUpAt },
+    { label: 'Au dropoff', at: item.atDropoffAt },
+    { label: 'Livrée', at: item.deliveredAt },
+  ] : [
+    { label: 'Créée', at: item.createdAt },
+    { label: 'Acceptée', at: item.acceptedAt },
+    { label: 'Arrivée', at: item.arrivedAt },
+    { label: 'En cours', at: item.startedAt },
+    { label: 'Terminée', at: item.completedAt },
+  ];
+  var trailCount = (item.routeTrail || []).length;
+  return (
+    <div className="absolute top-4 right-4 z-[1000] w-[320px] max-h-[80vh] overflow-y-auto rounded-xl backdrop-blur-md p-4 text-xs" style={{ background: 'rgba(0,20,14,0.92)', border: '1px solid rgba(255,255,255,0.12)' }}>
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="text-xs font-bold text-emerald-400">{(item.serviceType || 'COURSE').toUpperCase()}</div>
+          <div className="text-[10px] text-gray-400 mt-1 font-mono">{(item._id || '').substring(0, 12)}…</div>
+        </div>
+        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white"><X size={14} /></button>
+      </div>
+      <div className="mb-3 pb-3 border-b border-white/10">
+        <div className="text-gray-400 text-[10px] uppercase tracking-wider mb-2">Étapes</div>
+        {milestones.map(function(m, i) {
+          var done = !!m.at;
+          return (
+            <div key={i} className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <span className={'w-2 h-2 rounded-full ' + (done ? 'bg-emerald-500' : 'bg-gray-600')}></span>
+                <span className={done ? 'text-white' : 'text-gray-500'}>{m.label}</span>
+              </div>
+              <span className={'text-[10px] font-mono ' + (done ? 'text-emerald-300' : 'text-gray-600')}>{fmtTime(m.at)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mb-2">
+        <div className="text-gray-400 text-[10px] uppercase tracking-wider mb-1">Itinéraire</div>
+        <div className="flex items-center gap-2 text-[10px]">
+          <span className="inline-block w-3 h-1 rounded" style={{ background: '#3b82f6' }}></span>
+          <span className="text-gray-300">Prévu</span>
+          <span className="text-gray-600 ml-2">{item.computedRoutePolyline ? 'oui' : 'non'}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] mt-1">
+          <span className="inline-block w-3 h-1 rounded" style={{ background: '#22c55e' }}></span>
+          <span className="text-gray-300">Réel (GPS)</span>
+          <span className="text-gray-600 ml-2">{trailCount} pts</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 var DAKAR_CENTER = [14.7167, -17.4677];
 var POLL_INTERVAL = 10000;
@@ -217,6 +287,7 @@ export default function OperationsPage() {
   var [secondsAgo, setSecondsAgo] = useState(0);
   var [flyTo, setFlyTo] = useState(null);
   var [loading, setLoading] = useState(true);
+  var [selectedDetail, setSelectedDetail] = useState(null); // full detail with trail+polyline
   var mapRef = useRef(null);
 
   var fetchData = useCallback(function() {
@@ -250,6 +321,14 @@ export default function OperationsPage() {
     if (ride.pickup && ride.pickup.coordinates) {
       setFlyTo([ride.pickup.coordinates.latitude, ride.pickup.coordinates.longitude]);
     }
+    // Fetch full detail (incl. trail + computed polyline) for the side panel
+    var isDelivery = !!ride.serviceType;
+    var p = isDelivery
+      ? adminService.getDeliveryDetails(ride._id)
+      : adminService.getRideDetails(ride._id);
+    p.then(function(res) {
+      setSelectedDetail(isDelivery ? res.delivery : res.ride);
+    }).catch(function() {});
   }
 
   function handleDriverSelect(loc) {
@@ -345,7 +424,22 @@ export default function OperationsPage() {
               </CircleMarker>
             );
           })}
+          {/* Planned route (blue dashed) for the selected trip */}
+          {selectedDetail && selectedDetail.computedRoutePolyline && (
+            <Polyline
+              positions={decodePoly(selectedDetail.computedRoutePolyline)}
+              pathOptions={{ color: '#3b82f6', weight: 5, opacity: 0.8, dashArray: '10, 6' }}
+            />
+          )}
+          {/* Actual GPS trail (green solid) */}
+          {selectedDetail && selectedDetail.routeTrail && selectedDetail.routeTrail.length > 1 && (
+            <Polyline
+              positions={selectedDetail.routeTrail.map(function(p) { return [p.latitude, p.longitude]; })}
+              pathOptions={{ color: '#22c55e', weight: 4, opacity: 0.9 }}
+            />
+          )}
         </MapContainer>
+        <DetailPanel item={selectedDetail} onClose={function() { setSelectedDetail(null); }} />
 
         {/* Map overlay stats */}
         <div className="absolute top-4 left-4 z-[1000] flex gap-2">

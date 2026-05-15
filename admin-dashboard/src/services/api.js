@@ -38,6 +38,7 @@ export var adminService = {
   getBroadcasts: function() { return api.get('/admin/broadcasts'); },
   getRides: function(params) { return api.get('/admin/rides', { params: params }); },
   getRideDetails: function(rideId) { return api.get('/admin/rides/' + rideId); },
+  getDeliveryDetails: function(deliveryId) { return api.get('/admin/deliveries/' + deliveryId); },
   getRiders: function(params) { return api.get('/admin/riders', { params: params }); },
   getRevenue: function(params) { return api.get('/admin/revenue', { params: params }); },
   toggleUserStatus: function(id) { return api.put('/admin/users/' + id + '/status'); },

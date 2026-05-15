@@ -1069,6 +1069,30 @@ exports.getScheduledRides = async (req, res) => {
 // @desc    Append GPS trail points to ride
 // @route   PUT /api/rides/:id/trail
 // @access  Private (Driver only)
+// Mirror of saveDeliveryComputedRoute — store the encoded planned route so
+// the dashboard can compare planned vs. actual.
+exports.saveRideComputedRoute = async (req, res) => {
+  try {
+    const polyline = req.body.polyline;
+    const source = req.body.source || 'google';
+    if (!polyline || typeof polyline !== 'string') {
+      return res.status(400).json({ success: false, message: 'Polyline requise' });
+    }
+    const driver = await Driver.findOne({ userId: req.user._id });
+    if (!driver) return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+    const ride = await Ride.findOneAndUpdate(
+      { _id: req.params.id, driver: driver._id },
+      { computedRoutePolyline: polyline, computedRouteSource: source, computedRouteAt: new Date() },
+      { new: true }
+    );
+    if (!ride) return res.status(404).json({ success: false, message: 'Course non trouvée' });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Save Ride Computed Route Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
 exports.appendTrailPoints = async (req, res) => {
   try {
     const { points } = req.body;

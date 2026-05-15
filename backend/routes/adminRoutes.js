@@ -47,6 +47,7 @@ router.get('/broadcasts', getBroadcasts);
 // Ride management
 router.get('/rides', getAllRides);
 router.get('/rides/:id', require('../controllers/adminController').getRideDetails);
+router.get('/deliveries/:id', require('../controllers/adminController').getDeliveryDetails);
 
 // Rider management
 router.get('/riders', getAllRiders);

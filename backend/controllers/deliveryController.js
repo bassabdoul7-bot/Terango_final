@@ -605,6 +605,30 @@ exports.appendDeliveryTrailPoints = function(req, res) {
     });
 };
 
+// Driver app calls this once per leg (after first directions fetch) so we can
+// keep the planned route alongside the actual GPS trail for post-trip review.
+exports.saveDeliveryComputedRoute = function(req, res) {
+  var polyline = req.body.polyline;
+  var source = req.body.source || 'google';
+  if (!polyline || typeof polyline !== 'string') {
+    return res.status(400).json({ success: false, message: 'Polyline requise' });
+  }
+  Driver.findOne({ userId: req.user._id }).then(function(driver) {
+    if (!driver) return res.status(404).json({ success: false, message: 'Profil chauffeur non trouvé' });
+    return Delivery.findOneAndUpdate(
+      { _id: req.params.deliveryId, driver: driver._id },
+      { computedRoutePolyline: polyline, computedRouteSource: source, computedRouteAt: new Date() },
+      { new: true }
+    );
+  }).then(function(delivery) {
+    if (!delivery) return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
+    res.status(200).json({ success: true });
+  }).catch(function(err) {
+    console.error('Save Delivery Computed Route Error:', err);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  });
+};
+
 exports.cancelDelivery = async function(req, res) {
   var io = req.app.get('io');
   try {

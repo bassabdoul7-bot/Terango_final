@@ -116,7 +116,14 @@ var deliverySchema = new mongoose.Schema({
     latitude: Number,
     longitude: Number,
     timestamp: { type: Date, default: Date.now }
-  }]
+  }],
+  // Google/OSRM encoded polyline of the route the driver was *supposed* to
+  // take. Stored once when the driver first fetches directions; lets the
+  // dashboard render the planned route alongside the actual GPS trail and
+  // score deviation post-trip.
+  computedRoutePolyline: { type: String, default: null },
+  computedRouteSource: { type: String, default: null }, // 'google' | 'osrm'
+  computedRouteAt: { type: Date, default: null }
 }, { timestamps: true });
 
 deliverySchema.pre('save', function() {

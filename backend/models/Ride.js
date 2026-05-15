@@ -169,6 +169,11 @@ const rideSchema = new mongoose.Schema({
     longitude: Number,
     timestamp: { type: Date, default: Date.now }
   }],
+  // Encoded polyline of the route the driver was supposed to take. Mirrors
+  // the same field on Delivery — see comment there.
+  computedRoutePolyline: { type: String, default: null },
+  computedRouteSource: { type: String, default: null },
+  computedRouteAt: { type: Date, default: null },
 
   // Emergency audio recordings
   emergencyRecordings: [{

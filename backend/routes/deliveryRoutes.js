@@ -35,6 +35,7 @@ router.get('/active', protect, deliveryController.getActiveDelivery);
 router.get('/driver-active', protect, deliveryController.getDriverActiveDelivery);
 router.get('/:deliveryId', protect, deliveryController.getDeliveryById);
 router.put('/:deliveryId/trail', protect, deliveryController.appendDeliveryTrailPoints);
+router.put('/:deliveryId/computed-route', protect, deliveryController.saveDeliveryComputedRoute);
 router.put('/:deliveryId/cancel', protect, deliveryController.cancelDelivery);
 router.put('/:deliveryId/rate', protect, deliveryController.rateDelivery);
 

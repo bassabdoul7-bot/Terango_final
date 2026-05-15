@@ -285,6 +285,22 @@ exports.getRideDetails = async (req, res) => {
   }
 };
 
+// Full delivery detail for the admin dashboard, including the GPS trail and
+// the computed route polyline so the map view can overlay planned vs actual.
+exports.getDeliveryDetails = async (req, res) => {
+  try {
+    var Delivery = require('../models/Delivery');
+    const delivery = await Delivery.findById(req.params.id)
+      .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
+      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone' } });
+    if (!delivery) return res.status(404).json({ success: false, message: 'Livraison non trouvée' });
+    res.status(200).json({ success: true, delivery });
+  } catch (error) {
+    console.error('Get Delivery Details Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur' });
+  }
+};
+
 // @desc    Get all riders
 // @route   GET /api/admin/riders
 // @access  Private (Admin only)

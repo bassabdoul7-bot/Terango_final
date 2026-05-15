@@ -401,6 +401,17 @@ function ActiveRideScreen(props) {
       if(parsed.steps.length>0)setCurrentStep(parsed.steps[0]);
       setRouteCoordinates(parsed.coords);
       hasFetchedRoute.current=true;
+      // Persist the planned route to backend (fire-and-forget) so the admin
+      // dashboard can overlay planned vs. actual after the trip. Only do it
+      // once per active leg — repeats during recalculation overwrite with a
+      // fresher polyline, which is the desired behaviour.
+      if (parsed.encodedPolyline) {
+        if (deliveryMode && deliveryId) {
+          deliveryService.saveDeliveryComputedRoute(deliveryId, parsed.encodedPolyline, parsed.source).catch(function(){});
+        } else if (!deliveryMode && rideId) {
+          driverService.saveRideComputedRoute(rideId, parsed.encodedPolyline, parsed.source).catch(function(){});
+        }
+      }
       setTimeout(function(){if(mapRef.current&&!navigationStarted){if(cameraRef.current){var lats=parsed.coords.map(function(c){return c.latitude;});var lons=parsed.coords.map(function(c){return c.longitude;});cameraRef.current.fitBounds([Math.min.apply(null,lons),Math.min.apply(null,lats),Math.max.apply(null,lons),Math.max.apply(null,lats)],{top:200,right:50,bottom:400,left:50},500);};}},1000);
     }
 
@@ -415,7 +426,7 @@ function ActiveRideScreen(props) {
       var coords=PolylineUtil.decode(rt.geometry).map(function(p){return{latitude:p[0],longitude:p[1]};});
       var distText=leg.distance<1000?Math.round(leg.distance)+' m':(leg.distance/1000).toFixed(1)+' km';
       var durText=leg.duration<60?Math.round(leg.duration)+' sec':Math.round(leg.duration/60)+' min';
-      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
+      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords,encodedPolyline:rt.geometry,source:'osrm'};
     }
 
     function parseGoogle(data) {
@@ -429,7 +440,7 @@ function ActiveRideScreen(props) {
       var coords=PolylineUtil.decode(rt.overview_polyline.points).map(function(p){return{latitude:p[0],longitude:p[1]};});
       var distText=leg.distance.value<1000?Math.round(leg.distance.value)+' m':(leg.distance.value/1000).toFixed(1)+' km';
       var durText=leg.duration.value<60?Math.round(leg.duration.value)+' sec':Math.round(leg.duration.value/60)+' min';
-      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords};
+      return {totalDistance:distText,totalDuration:durText,steps:steps,coords:coords,encodedPolyline:rt.overview_polyline.points,source:'google'};
     }
 
     function fetchWithTimeout(fetchUrl, timeoutMs) {
