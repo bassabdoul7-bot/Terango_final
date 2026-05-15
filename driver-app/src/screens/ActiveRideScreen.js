@@ -16,6 +16,7 @@ import COLORS from '../constants/colors';
 import { driverService, deliveryService } from '../services/api.service';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { speak, speakNavigation, speakAnnouncement, stopSpeaking } from '../utils/voice';
 import { simplifyPolyline } from '../utils/polylineSimplifier';
 import { useAuth } from '../context/AuthContext';
@@ -105,6 +106,16 @@ function ActiveRideScreen(props) {
   var lastDistToDestRef = useRef(null);
   var lastCameraUpdateTime = useRef(0);
   var lastCameraHeading = useRef(0);
+  // Pause auto-follow for a few seconds after the driver pans the map, so we
+  // don't snap right back and fight their gesture. The Recenter pill shown in
+  // the JSX below clears this immediately on tap.
+  var [userPanned, setUserPanned] = useState(false);
+  var userPanTimeoutRef = useRef(null);
+  // Auto-start navigation on each leg's first entry (mirrors Uber Driver), but
+  // never repeat after a manual "Stop navigation" within the same leg.
+  var autoStartedForStatusRef = useRef({});
+  // "Vous approchez..." voice cue — once per leg.
+  var approachAnnouncedForStatusRef = useRef({});
   var lastProgressCalcTime = useRef(0);
   var toastMessageState = useState(null); var toastMessage = toastMessageState[0]; var setToastMessage = toastMessageState[1];
 
@@ -290,10 +301,13 @@ function ActiveRideScreen(props) {
 
   // Safety-net poll: if the socket missed the 'ride-cancelled' event or the
   // AppState handler never fired, this gets the driver off the stale trip
-  // screen. Polls every 8s; navigates immediately on detected cancel or
-  // missing ride, regardless of cancelledRef state.
+  // screen. Polls every 8s and gates the navigate on the alert's OK so the
+  // driver always reads "Le passager a annule la course." (Previously the
+  // unconditional navigation.replace fired before the Alert painted, so the
+  // driver only saw a silent return to Home.) If another handler already
+  // claimed the cancellation, this poll just stops — it doesn't second-guess.
   useEffect(function() {
-    if (!rideId) return undefined;
+    if (!rideId || deliveryMode) return undefined;
     var poll = setInterval(function() {
       driverService.getRide(rideId).then(function(res) {
         var gone = !res || !res.success || !res.ride;
@@ -302,19 +316,18 @@ function ActiveRideScreen(props) {
           clearInterval(poll);
           if (!cancelledRef.current) {
             cancelledRef.current = true;
-            Alert.alert('Course annulee', 'Le passager a annule la course.', [{ text: 'OK' }]);
+            Alert.alert('Course annulee', 'Le passager a annule la course.', [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
           }
-          navigation.replace('Home');
         }
       }).catch(function() {});
     }, 8000);
     return function() { clearInterval(poll); };
-  }, [rideId]);
+  }, [rideId, deliveryMode]);
 
   function acceptQueuedRide(rd){driverService.acceptRide(rd.rideId).then(function(){setQueuedRide(Object.assign({},rd,{accepted:true}));speak('Course en attente acceptee');}).catch(function(err){console.error('Failed to accept queued ride:',err);setQueuedRide(null);});}
   function rejectQueuedRide(rd){driverService.rejectRide(rd.rideId,'Occupe').then(function(){setQueuedRide(null);}).catch(function(err){console.error('Failed to reject queued ride:',err);});}
 
-  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted'});});}}).catch(function(e){console.log('getRide error:',e);});},[]);
+  useEffect(function(){if(passedRide){setRide({_id:rideId,status:'accepted',pickup:passedRide.pickup,dropoff:passedRide.dropoff,fare:passedRide.fare,distance:passedRide.distance,pinRequired:passedRide.pinRequired||false,riderPhone:passedRide.riderPhone,riderName:passedRide.riderName});}driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride){setRide(function(prev){hasFetchedRoute.current=false;return Object.assign({},prev||{},res.ride,{status:prev?prev.status:'accepted',riderPhone:(prev&&prev.riderPhone)||res.ride.riderPhone,riderName:(prev&&prev.riderName)||res.ride.riderName});});}}).catch(function(e){console.log('getRide error:',e);});},[]);
 
   var lastLocationRef = useRef(null);
   var lastLocationTimeRef = useRef(null);
@@ -562,6 +575,21 @@ function ActiveRideScreen(props) {
     if(destination){
       var distToDest=calcDistance(driverLocation.latitude,driverLocation.longitude,destination.latitude,destination.longitude);
       lastDistToDestRef.current = distToDest;
+      // "Vous approchez..." cue at ~250m — once per leg, only while navigating.
+      if (navigationStarted && distToDest <= 250 && distToDest > 200 && !approachAnnouncedForStatusRef.current[ride.status]) {
+        approachAnnouncedForStatusRef.current[ride.status] = true;
+        var approachLabel;
+        if (deliveryMode) {
+          approachLabel = (ride.status === 'accepted' || ride.status === 'at_pickup') ? 'du point de collecte' : 'de la livraison';
+        } else if (ride.status === 'in_progress' && !stopReached && ride.stops && ride.stops.length > 0) {
+          approachLabel = 'de l\'arret';
+        } else if (ride.status === 'accepted' || ride.status === 'arrived') {
+          approachLabel = 'du point de retrait';
+        } else {
+          approachLabel = 'de la destination';
+        }
+        speakAnnouncement('Vous approchez ' + approachLabel);
+      }
       // Hysteresis: appear at 50m, disappear only beyond 75m
       if (isNearDestRef.current) {
         // Already near: only hide if moved beyond disappear threshold
@@ -632,11 +660,68 @@ function ActiveRideScreen(props) {
     return function(){ if (trafficRerouteInterval.current) clearInterval(trafficRerouteInterval.current); };
   },[navigationStarted]);
 
+  // Keep the screen on while turn-by-turn nav is active. Otherwise a Dakar
+  // driver who locks the phone (or just lets it idle) loses voice cues and
+  // the next-maneuver hint mid-trip.
+  useEffect(function() {
+    if (!navigationStarted) return undefined;
+    activateKeepAwakeAsync('terango-driver-nav').catch(function() {});
+    return function() { deactivateKeepAwake('terango-driver-nav'); };
+  }, [navigationStarted]);
+
+  // Auto-start nav on each leg's first entry (Uber Driver behaviour). Driver
+  // still keeps the manual button — once they tap "Stop nav" within a leg,
+  // we don't re-trigger until the leg changes (the ref is keyed by status).
+  useEffect(function() {
+    if (!ride || !ride.status) return;
+    if (navigationStarted) return;
+    if (!driverLocation || !routeCoordinates || routeCoordinates.length === 0) return;
+    if (autoStartedForStatusRef.current[ride.status]) return;
+    // Auto-start only on "moving" legs. Skip statuses where the driver is
+    // parked at a waypoint (arrived/at_pickup/at_dropoff) — those need a
+    // manual tap on the action button (collect colis, start trip, etc.).
+    var movingLegs = ['accepted', 'in_progress', 'picked_up'];
+    if (movingLegs.indexOf(ride.status) === -1) return;
+    autoStartedForStatusRef.current[ride.status] = true;
+    handleStartNavigation();
+  }, [ride ? ride.status : null, driverLocation, routeCoordinates, navigationStarted]);
+
   function calcDistance(lat1,lon1,lat2,lon2){var R=6371e3;var p1=lat1*Math.PI/180;var p2=lat2*Math.PI/180;var dp=(lat2-lat1)*Math.PI/180;var dl=(lon2-lon1)*Math.PI/180;var a=Math.sin(dp/2)*Math.sin(dp/2)+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)*Math.sin(dl/2);return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
   function formatDistance(m){if(m<1000)return Math.round(m)+' m';return(m/1000).toFixed(1)+' km';}
-  function getManeuverIcon(m){if(!m)return '^';if(m.indexOf('left')!==-1)return '<';if(m.indexOf('right')!==-1)return '>';if(m.indexOf('uturn')!==-1)return 'U';return '^';}
+  function getManeuverIcon(m){
+    if(!m) return '↑';
+    m = String(m).toLowerCase();
+    if (m.indexOf('uturn') !== -1) return '⤺';
+    if (m.indexOf('roundabout') !== -1 || m.indexOf('rotary') !== -1) return '⟳';
+    if (m.indexOf('arrive') !== -1) return '◉';
+    if (m.indexOf('merge') !== -1) return '⇶';
+    if (m.indexOf('fork-left') !== -1) return '⇙';
+    if (m.indexOf('fork-right') !== -1) return '⇘';
+    if (m.indexOf('sharp-left') !== -1) return '⬋';
+    if (m.indexOf('sharp-right') !== -1) return '⬊';
+    if (m.indexOf('slight-left') !== -1) return '⬉';
+    if (m.indexOf('slight-right') !== -1) return '⬈';
+    if (m.indexOf('left') !== -1) return '↰';
+    if (m.indexOf('right') !== -1) return '↱';
+    return '↑';
+  }
 
-  useEffect(function(){if(!navigationStarted||!mapRef.current||!driverLocation)return;var now=Date.now();if(now-lastCameraUpdateTime.current<2000)return;var headingDiff=Math.abs(heading-lastCameraHeading.current);if(headingDiff>180)headingDiff=360-headingDiff;if(headingDiff<10&&now-lastCameraUpdateTime.current<2000)return;lastCameraUpdateTime.current=now;lastCameraHeading.current=heading;cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:500});},[driverLocation,navigationStarted,heading]);
+  useEffect(function() {
+    if (!navigationStarted || !mapRef.current || !driverLocation) return;
+    if (userPanned) return; // honour user gesture until they tap Recentrer
+    var now = Date.now();
+    var timeSince = now - lastCameraUpdateTime.current;
+    if (timeSince < 2000) return; // min 2s gap between camera moves
+    var headingDiff = Math.abs(heading - lastCameraHeading.current);
+    if (headingDiff > 180) headingDiff = 360 - headingDiff;
+    // When heading is stable (driving straight), fire every 5s. When turning,
+    // fire every 2s. This was a noop before — the original condition was
+    // unreachable after the earlier early-return.
+    if (headingDiff < 10 && timeSince < 5000) return;
+    lastCameraUpdateTime.current = now;
+    lastCameraHeading.current = heading;
+    cameraRef.current.flyTo({ center: [driverLocation.longitude, driverLocation.latitude], zoom: 18, pitch: 30, heading: heading, duration: 500 });
+  }, [driverLocation, navigationStarted, heading, userPanned]);
   var handleStartNavigation = useCallback(function(){setNavigationStarted(true);if(mapRef.current&&driverLocation){cameraRef.current.flyTo({center:[driverLocation.longitude,driverLocation.latitude],zoom:18,pitch:30,heading:heading,duration:1000});}},[driverLocation,heading]);
   function handleCancelRide(){setShowCancelModal(true);}
   function handleConfirmCancel(reason){setShowCancelModal(false);setLoading(true);var p=deliveryMode?driverService.cancelDelivery(deliveryId,reason):driverService.cancelRide(rideId,reason);p.then(function(){navigation.replace('Home');}).catch(function(err){console.error('Cancel ride/delivery error:',err);var status=err && err.response && err.response.status; if (status===400||status===404){ navigation.replace('Home'); } else { Alert.alert('Erreur',"Impossible d'annuler"); }}).finally(function(){setLoading(false);});}
@@ -744,6 +829,21 @@ function ActiveRideScreen(props) {
     }
   }
 
+  // Resolve rider phone/name across the three shapes we may have at runtime:
+  //   - offer payload (flat: riderPhone, riderName)
+  //   - getRide() response (populated chain: riderId.userId.{phone,name})
+  //   - legacy flattened `rider` object some older code paths set
+  function getRiderPhone(r) {
+    if (!r) return null;
+    return r.riderPhone || (r.rider && r.rider.phone) || (r.riderId && r.riderId.userId && r.riderId.userId.phone) || null;
+  }
+  function getRiderName(r) {
+    if (!r) return null;
+    return r.riderName || (r.rider && r.rider.name) || (r.riderId && r.riderId.userId && r.riderId.userId.name) || null;
+  }
+  var riderPhone = getRiderPhone(ride);
+  var riderName = getRiderName(ride);
+
   function getStatusText(){
     if (deliveryMode) {
       switch(ride.status){
@@ -799,7 +899,7 @@ function ActiveRideScreen(props) {
 
   return (
     <View style={styles.container}>
-      <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted}>
+      <Map ref={mapRef} style={styles.map} mapStyle={TERANGO_STYLE} logo={false} attribution={false} rotateEnabled={navigationStarted} pitchEnabled={navigationStarted} onRegionWillChange={function(e) { var p = (e && e.nativeEvent) ? e.nativeEvent : e; if (p && p.userInteraction) { if (userPanTimeoutRef.current) clearTimeout(userPanTimeoutRef.current); setUserPanned(true); userPanTimeoutRef.current = setTimeout(function() { setUserPanned(false); userPanTimeoutRef.current = null; }, 8000); } }}>
         <Camera ref={cameraRef} center={[driverLocation.longitude, driverLocation.latitude]} zoom={16} />
         <Marker id="driverPos" lngLat={[driverLocation.longitude, driverLocation.latitude]}>
           <View style={styles.driverMarkerOuter}>
@@ -830,7 +930,12 @@ function ActiveRideScreen(props) {
           </GeoJSONSource>
         )}
       </Map>
-      <TouchableOpacity style={styles.recenterButton} onPress={handleRecenter}><Text style={styles.recenterIcon}>{"O"}</Text></TouchableOpacity>
+      {(!navigationStarted || userPanned) && (
+        <TouchableOpacity style={[styles.recenterButton, userPanned && styles.recenterButtonExpanded]} activeOpacity={0.85} onPress={function() { if (userPanTimeoutRef.current) { clearTimeout(userPanTimeoutRef.current); userPanTimeoutRef.current = null; } setUserPanned(false); handleRecenter(); }}>
+          <Text style={styles.recenterIcon}>{'◎'}</Text>
+          {userPanned && <Text style={styles.recenterText}>Recentrer</Text>}
+        </TouchableOpacity>
+      )}
       {(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff') && (
         <View style={sosDriverStyles.container}>
           <TouchableOpacity style={sosDriverStyles.sosBtn} onPress={startEmergencyRecording} disabled={emUploading}>
@@ -843,38 +948,55 @@ function ActiveRideScreen(props) {
       {navigationStarted&&(ride.status==='accepted'||ride.status==='arrived'||ride.status==='in_progress'||ride.status==='at_pickup'||ride.status==='picked_up'||ride.status==='at_dropoff')&&<TouchableOpacity style={styles.floatingChatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.floatingChatIcon}>{String.fromCodePoint(0x1F4AC)}</Text></TouchableOpacity>}
       {toastMessage&&<View style={styles.toastContainer}><Text style={styles.toastText}>{toastMessage}</Text></View>}
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
-      {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
+      {navigationStarted && currentStep && (
+        <View style={styles.turnInstruction}>
+          <View style={styles.turnPrimary}>
+            <View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View>
+            <View style={styles.turnTextContainer}>
+              <Text style={styles.turnDistance}>{distanceToStep}</Text>
+              <Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text>
+            </View>
+          </View>
+          {allSteps && currentStep.id + 1 < allSteps.length && (
+            <View style={styles.turnNextRow}>
+              <Text style={styles.turnNextLabel}>Puis</Text>
+              <Text style={styles.turnNextIcon}>{getManeuverIcon(allSteps[currentStep.id + 1].maneuver)}</Text>
+              <Text style={styles.turnNextText} numberOfLines={1}>{allSteps[currentStep.id + 1].instruction}</Text>
+            </View>
+          )}
+        </View>
+      )}
       <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<TouchableOpacity activeOpacity={1} onPress={handleSilentPanic}><View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View></TouchableOpacity>}</View>
-      {navigationStarted && ride && ride.rider && ride.rider.phone && (
-        <TouchableOpacity style={styles.navPhoneStrip} onPress={function(){Linking.openURL('tel:' + ride.rider.phone);}} activeOpacity={0.7}>
+      {navigationStarted && riderPhone && (
+        <TouchableOpacity style={styles.navPhoneStrip} onPress={function(){Linking.openURL('tel:' + riderPhone);}} activeOpacity={0.7}>
           <Text style={styles.navPhoneLabel}>{deliveryMode ? 'CLIENT' : 'PASSAGER'}</Text>
           <View style={styles.navPhoneBadgeWrap}>
-            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-            <Text style={styles.navPhoneText} numberOfLines={1}>{ride.rider.phone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: -1 }]} numberOfLines={1}>{riderPhone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: 1 }]} numberOfLines={1}>{riderPhone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: -1 }]} numberOfLines={1}>{riderPhone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: 1 }]} numberOfLines={1}>{riderPhone}</Text>
+            <Text style={styles.navPhoneText} numberOfLines={1}>{riderPhone}</Text>
           </View>
         </TouchableOpacity>
       )}
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
-        {ride && ride.rider && ride.rider.phone && (
-          <TouchableOpacity style={styles.riderPhoneCard} onPress={function(){Linking.openURL('tel:' + ride.rider.phone);}} activeOpacity={0.7}>
+        {riderPhone && (
+          <TouchableOpacity style={styles.riderPhoneCard} onPress={function(){Linking.openURL('tel:' + riderPhone);}} activeOpacity={0.7}>
             <Text style={styles.riderPhoneLabel}>{deliveryMode ? 'CLIENT' : 'PASSAGER'}</Text>
             <View style={styles.riderPhoneBadgeWrap}>
-              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
-              <Text style={styles.riderPhoneText} numberOfLines={1}>{ride.rider.phone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: -1 }]} numberOfLines={1}>{riderPhone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { top: 1 }]} numberOfLines={1}>{riderPhone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: -1 }]} numberOfLines={1}>{riderPhone}</Text>
+              <Text style={[styles.riderPhoneText, styles.riderPhoneStroke, { left: 1 }]} numberOfLines={1}>{riderPhone}</Text>
+              <Text style={styles.riderPhoneText} numberOfLines={1}>{riderPhone}</Text>
             </View>
-            <Text style={styles.riderPhoneHint}>{(ride.rider.name ? ride.rider.name + '  •  ' : '') + 'Toucher pour appeler'}</Text>
+            <Text style={styles.riderPhoneHint}>{(riderName ? riderName + '  •  ' : '') + 'Toucher pour appeler'}</Text>
           </TouchableOpacity>
         )}
         <View style={styles.addressCard}><View style={styles.addressRow}><View style={deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?styles.redSquare:styles.greenDot):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? styles.orangeDiamond : (ride.status==='in_progress'?styles.redSquare:styles.greenDot))}/><View style={styles.addressTextContainer}><Text style={styles.addressLabel}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?'Livraison':'Point de retrait'):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? 'Arret' : (ride.status==='in_progress'?'Destination':'Point de depart'))}</Text><Text style={styles.addressText} numberOfLines={2}>{deliveryMode?(ride.status==='picked_up'||ride.status==='at_dropoff'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')):(ride.status==='in_progress' && !stopReached && ride.stops && ride.stops.length > 0 ? ride.stops[0].address : (ride.status==='in_progress'?(ride.dropoff?ride.dropoff.address:''):(ride.pickup?ride.pickup.address:'')))}</Text></View></View></View>
-        <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{ride&&ride.rider&&ride.rider.phone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+ride.rider.phone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
+        <View style={styles.chatButtonRow}><TouchableOpacity style={styles.chatBtn} onPress={function(){setShowChat(true);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.chatBtnText}>Message</Text></TouchableOpacity>{riderPhone&&<TouchableOpacity style={styles.callBtn} onPress={function(){Linking.openURL('tel:'+riderPhone);}}><Text style={styles.chatBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.chatBtnText}>Appeler</Text></TouchableOpacity>}</View>
         <View style={styles.actionContainer}>{getActionButton()}</View>
       </View>)}
 
@@ -913,7 +1035,7 @@ function ActiveRideScreen(props) {
         </View>
       </Modal>
 
-      <Modal visible={showChat} animationType="slide" onRequestClose={function(){setShowChat(false);}}><ChatScreen socket={socketRef.current} rideId={deliveryMode?null:rideId} deliveryId={deliveryMode?deliveryId:null} myRole="driver" myUserId={auth.user?auth.user._id:null} otherName={ride&&ride.rider?ride.rider.name:'Passager'} onClose={function(){setShowChat(false);}}/></Modal>
+      <Modal visible={showChat} animationType="slide" onRequestClose={function(){setShowChat(false);}}><ChatScreen socket={socketRef.current} rideId={deliveryMode?null:rideId} deliveryId={deliveryMode?deliveryId:null} myRole="driver" myUserId={auth.user?auth.user._id:null} otherName={riderName || 'Passager'} onClose={function(){setShowChat(false);}}/></Modal>
       <CancelReasonModal visible={showCancelModal} onClose={function(){setShowCancelModal(false);}} onConfirm={handleConfirmCancel} onSupport={handleContactSupport}/>
       {showPinModal && <Modal transparent animationType='fade' visible={showPinModal} onRequestClose={function(){setShowPinModal(false);}}>
         <View style={styles.pinOverlay}>
@@ -986,6 +1108,8 @@ var styles = StyleSheet.create({
   floatingChatBtn: { position: 'absolute', bottom: 300, right: 76, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(30,30,40,0.85)', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: 'rgba(66,133,244,0.4)' },
   floatingChatIcon: { fontSize: 22 },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
+  recenterButtonExpanded: { width: 'auto', paddingHorizontal: 16, flexDirection: 'row', gap: 8 },
+  recenterText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
   recalculateButton: { position: 'absolute', bottom: 300, left: 20, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recalculateText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
   toastContainer: { position: 'absolute', top: 120, left: 40, right: 40, backgroundColor: 'rgba(0,0,0,0.75)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center', zIndex: 999 },
@@ -993,12 +1117,17 @@ var styles = StyleSheet.create({
   recenterIcon: { fontSize: 28, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   statusBadge: { backgroundColor: '#FFFFFF', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 24, elevation: 8, borderWidth: 1, borderColor: '#EEF0F3' },
   statusText: { fontSize: 15, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
-  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, flexDirection: 'row', backgroundColor: 'rgba(212,175,55,0.7)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, alignItems: 'center', elevation: 10, borderBottomWidth: 1.5, borderBottomColor: 'rgba(212,175,55,0.5)' },
+  turnInstruction: { position: 'absolute', top: 50, left: 0, right: 0, backgroundColor: 'rgba(212,175,55,0.7)', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, padding: 14, paddingTop: 16, elevation: 10, borderBottomWidth: 1.5, borderBottomColor: 'rgba(212,175,55,0.5)' },
+  turnPrimary: { flexDirection: 'row', alignItems: 'center' },
   turnIconContainer: { width: 50, height: 50, borderRadius: 10, backgroundColor: 'rgba(212,175,55,0.5)', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   turnIcon: { fontSize: 32, color: '#fff', fontFamily: 'LexendDeca_700Bold' },
   turnTextContainer: { flex: 1 },
   turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginBottom: 4 },
   turnText: { fontSize: 15, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
+  turnNextRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.12)' },
+  turnNextLabel: { fontSize: 11, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, opacity: 0.7, marginRight: 8, letterSpacing: 1 },
+  turnNextIcon: { fontSize: 18, color: COLORS.darkBg, fontFamily: 'LexendDeca_700Bold', marginRight: 8 },
+  turnNextText: { flex: 1, fontSize: 13, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
   wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: '#EEF0F3' },
   navPhoneStrip: { position: 'absolute', bottom: 170, left: 16, right: 16, zIndex: 11, backgroundColor: '#001A12', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
   navPhoneLabel: { fontSize: 10, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.65)', letterSpacing: 2, marginBottom: 4 },
