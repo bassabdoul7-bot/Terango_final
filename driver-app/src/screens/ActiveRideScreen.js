@@ -266,7 +266,54 @@ function ActiveRideScreen(props) {
     };
   }, [ride ? ride.status : null, deliveryMode, deliveryId, rideId]);
 
-  useEffect(function(){if(!driver||!driver._id)return;createAuthSocket().then(function(sock){socketRef.current=sock;sock.on('connect',function(){sock.emit('driver-online',{driverId:driver._id,latitude:driverLocation?driverLocation.latitude:0,longitude:driverLocation?driverLocation.longitude:0});if(rideId){sock.emit('join-ride-room',rideId);}if(deliveryId){sock.emit('join-delivery-room',deliveryId);}});sock.on('new-ride-offer',function(rideData){if(ride&&ride.status==='in_progress'){setQueuedRide(rideData);Alert.alert('Nouvelle course en attente',(rideData.driverEarnings?rideData.driverEarnings.toLocaleString():'0')+' FCFA',[{text:'Refuser',style:'cancel',onPress:function(){rejectQueuedRide(rideData);}},{text:'Accepter',onPress:function(){acceptQueuedRide(rideData);}}]);}});sock.on('ride-cancelled',function(data){if(cancelledRef.current)return;driverService.getRide(rideId).then(function(res){if(res&&res.success&&res.ride&&res.ride.status==='cancelled'){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','La course a ete annulee.',[{text:'OK',onPress:function(){navigation.replace('Home');}}]);}else{console.log('Ride-cancelled event ignored, ride status:',res?.ride?.status);}}).catch(function(err){console.error('Failed to check ride status after cancellation event:',err);});});if(deliveryMode){sock.on('delivery-cancelled',function(data){if(cancelledRef.current)return;cancelledRef.current=true;speakAnnouncement('Le client a annule la livraison');Alert.alert('Livraison annulee','Le client a annule la livraison.',[{text:'OK',onPress:function(){navigation.replace('Home');}}]);});}sock.on('ride-status',function(data){if(data.status==='cancelled'&&!cancelledRef.current){cancelledRef.current=true;speakAnnouncement('Le passager a annule la course');Alert.alert('Course annulee','Le passager a annule la course.',[{text:'OK',onPress:function(){navigation.replace('Home');}}]);}});}).catch(function(err){console.log("Socket error:",err);});return function(){if(socketRef.current)socketRef.current.disconnect();};},[driver?driver._id:null,ride?ride.status:null]);
+  useEffect(function() {
+    if (!driver || !driver._id) return;
+    // Reused by all cancel paths: alert + force-navigate-home if the driver
+    // doesn't tap OK within 10s (phone in pocket while driving, alert hidden
+    // behind a system overlay, etc.). Trusting the socket emit — the server
+    // only emits ride-cancelled/delivery-cancelled after `await ride.save()`
+    // with status='cancelled', so a redundant getRide round-trip just adds
+    // failure surface (timeouts, 401s during token rotation).
+    function handleRemoteCancel(isDelivery) {
+      if (cancelledRef.current) return;
+      cancelledRef.current = true;
+      var title = isDelivery ? 'Livraison annulee' : 'Course annulee';
+      var msg = isDelivery ? 'Le client a annule la livraison.' : 'Le passager a annule la course.';
+      speakAnnouncement(msg);
+      Alert.alert(title, msg, [{ text: 'OK', onPress: function() { navigation.replace('Home'); } }]);
+      setTimeout(function() { navigation.replace('Home'); }, 10000);
+    }
+    createAuthSocket().then(function(sock) {
+      socketRef.current = sock;
+      function joinRooms() {
+        sock.emit('driver-online', { driverId: driver._id, latitude: driverLocation ? driverLocation.latitude : 0, longitude: driverLocation ? driverLocation.longitude : 0 });
+        if (rideId) sock.emit('join-ride-room', rideId);
+        if (deliveryId) sock.emit('join-delivery-room', deliveryId);
+      }
+      sock.on('connect', joinRooms);
+      // If the socket already connected before the .then() ran (race), the
+      // on('connect') handler above will never fire for that initial connect.
+      // Catch that case explicitly.
+      if (sock.connected) joinRooms();
+      sock.on('new-ride-offer', function(rideData) {
+        if (ride && ride.status === 'in_progress') {
+          setQueuedRide(rideData);
+          Alert.alert('Nouvelle course en attente', (rideData.driverEarnings ? rideData.driverEarnings.toLocaleString() : '0') + ' FCFA', [
+            { text: 'Refuser', style: 'cancel', onPress: function() { rejectQueuedRide(rideData); } },
+            { text: 'Accepter', onPress: function() { acceptQueuedRide(rideData); } }
+          ]);
+        }
+      });
+      sock.on('ride-cancelled', function() { handleRemoteCancel(false); });
+      if (deliveryMode) {
+        sock.on('delivery-cancelled', function() { handleRemoteCancel(true); });
+      }
+      sock.on('ride-status', function(data) {
+        if (data.status === 'cancelled') handleRemoteCancel(false);
+      });
+    }).catch(function(err) { console.log("Socket error:", err); });
+    return function() { if (socketRef.current) socketRef.current.disconnect(); };
+  }, [driver ? driver._id : null, ride ? ride.status : null]);
 
   // Check ride status + re-announce driver-online when app returns to foreground
   useEffect(function() {
