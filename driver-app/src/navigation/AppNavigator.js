@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import CAR_IMAGES from '../constants/carImages';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -34,15 +35,25 @@ function MainTabs() {
         return {
           headerShown: false,
           tabBarStyle: {
-            backgroundColor: 'rgba(212,175,55,0.85)',
+            backgroundColor: 'transparent',
             borderTopWidth: 0,
             paddingTop: 8,
             paddingBottom: 28,
             height: 80,
             elevation: 12,
+            position: 'absolute',
           },
-          tabBarActiveTintColor: COLORS.darkBg,
-          tabBarInactiveTintColor: COLORS.darkBg2,
+          tabBarBackground: function() {
+            return React.createElement(LinearGradient, {
+              colors: ['#000000', '#003322', '#00853F'],
+              locations: [0, 0.55, 1],
+              start: { x: 0, y: 0 },
+              end: { x: 1, y: 0 },
+              style: { flex: 1 },
+            });
+          },
+          tabBarActiveTintColor: COLORS.yellow,
+          tabBarInactiveTintColor: 'rgba(255,255,255,0.7)',
           tabBarLabelStyle: {
             fontFamily: 'LexendDeca_600SemiBold',
             fontSize: 11,
@@ -50,7 +61,7 @@ function MainTabs() {
           },
           tabBarIcon: function(props2) {
             var focused = props2.focused;
-            var iconBg = focused ? COLORS.darkCard : 'rgba(0,26,18,0.12)';
+            var iconBg = focused ? COLORS.yellow : 'rgba(255,255,255,0.12)';
             var inner;
             if (route.name === 'Courses') {
               inner = React.createElement(Image, {
@@ -62,7 +73,7 @@ function MainTabs() {
               inner = React.createElement(Text, { style: { fontSize: 24 } }, tabIcons[route.name]);
             }
             return React.createElement(View, {
-              style: { width: 46, height: 46, borderRadius: 23, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center' }
+              style: { width: 46, height: 46, borderRadius: 23, backgroundColor: iconBg, alignItems: 'center', justifyContent: 'center', borderWidth: focused ? 0 : 1, borderColor: 'rgba(255,255,255,0.18)' }
             }, inner);
           },
         };

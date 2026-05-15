@@ -762,7 +762,7 @@ function HomeScreen(props) {
       {activeTab === 'profile' && renderProfileTab()}
 
 
-        <View style={styles.bottomNav}>
+        <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.bottomNav}>
         <TouchableOpacity style={styles.navItem} onPress={function() { setActiveTab('home'); }}>
           <View style={activeTab === 'home' ? styles.navIconContainerActive : styles.navIconContainer}>
             <Text style={styles.navIconText}>{"🏠"}</Text>
@@ -790,7 +790,7 @@ function HomeScreen(props) {
           </View>
           <Text style={activeTab === 'profile' ? styles.navLabelActive : styles.navLabel}>Profil</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       {renderSaveModal()}
     </View>
@@ -896,27 +896,27 @@ var styles = StyleSheet.create({
   serviceCarImg: { width: 44, height: 32 },
   serviceLabel: { fontSize: 11, fontFamily: 'LexendDeca_600SemiBold', color: '#1A1A1A', textAlign: 'center' },
 
-  // Bottom nav — light theme, matches the rest
+  // Bottom nav — gradient green strip (same palette as the in-screen heroes)
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row',
-    backgroundColor: '#FFFFFF', paddingVertical: 10, paddingBottom: 30,
+    paddingVertical: 10, paddingBottom: 30,
     borderTopLeftRadius: 20, borderTopRightRadius: 20, elevation: 12,
-    borderTopWidth: 1, borderTopColor: '#EEF0F3',
-    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 8,
+    shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.2, shadowRadius: 8,
   },
   navItem: { flex: 1, alignItems: 'center' },
   navIconContainer: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: '#F2F4F7',
+    width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.12)',
     alignItems: 'center', justifyContent: 'center', marginBottom: 6,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)',
   },
   navIconContainerActive: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.green,
+    width: 44, height: 44, borderRadius: 22, backgroundColor: COLORS.yellow,
     alignItems: 'center', justifyContent: 'center', marginBottom: 6, elevation: 4,
-    shadowColor: COLORS.green, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 6,
+    shadowColor: COLORS.yellow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.35, shadowRadius: 6,
   },
   navIconText: { fontSize: 22, fontFamily: 'LexendDeca_400Regular' },
-  navLabel: { fontSize: 11, color: '#757575', fontFamily: 'LexendDeca_600SemiBold' },
-  navLabelActive: { fontSize: 11, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
+  navLabel: { fontSize: 11, color: 'rgba(255,255,255,0.7)', fontFamily: 'LexendDeca_600SemiBold' },
+  navLabelActive: { fontSize: 11, color: COLORS.yellow, fontFamily: 'LexendDeca_700Bold' },
 
   // Tab screens — light grey background to match the rest of the Yango pass
   tabScreen: { flex: 1, backgroundColor: '#F2F4F7', paddingHorizontal: 20, paddingTop: 70 },

@@ -15,6 +15,7 @@ import {
   Vibration,
 } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, Line } from 'react-native-svg';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as Location from 'expo-location';
@@ -609,8 +610,10 @@ const HomeScreen = ({ navigation }) => {
               <Text style={isOnline ? styles.goOfflinePillText : styles.goOnlinePillText}>{isOnline ? 'Hors ligne' : 'Passer en ligne'}</Text>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.pillSettingsBtn, showFilters && styles.pillSettingsBtnActive]} onPress={() => setShowFilters(!showFilters)}>
-            <Text style={styles.pillSettingsIcon}>{showFilters ? '✕' : '⚙'}</Text>
+          <TouchableOpacity onPress={() => setShowFilters(!showFilters)} activeOpacity={0.85}>
+            <LinearGradient colors={['#000000', '#003322', '#00853F']} locations={[0, 0.55, 1]} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.pillSettingsBtn, showFilters && styles.pillSettingsBtnActive]}>
+              <Text style={styles.pillSettingsIcon}>{showFilters ? '✕' : '⚙'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
         </View>
 
@@ -771,9 +774,9 @@ const styles = StyleSheet.create({
   pillLogoWrap: { width: 38, height: 38, borderRadius: 19, backgroundColor: COLORS.darkBg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   goOnlinePillText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginLeft: 10 },
   goOfflinePillText: { fontSize: 16, fontFamily: 'LexendDeca_700Bold', color: '#FFFFFF', marginLeft: 10 },
-  pillSettingsBtn: { width: 61, height: 61, borderRadius: 31, backgroundColor: '#F2F4F7', borderWidth: 1, borderColor: '#EEF0F3', alignItems: 'center', justifyContent: 'center' },
-  pillSettingsBtnActive: { backgroundColor: 'rgba(212,175,55,0.2)', borderColor: COLORS.yellow },
-  pillSettingsIcon: { fontSize: 24, color: '#1A1A1A' },
+  pillSettingsBtn: { width: 61, height: 61, borderRadius: 31, alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.2, shadowRadius: 6 },
+  pillSettingsBtnActive: { borderWidth: 2, borderColor: COLORS.yellow },
+  pillSettingsIcon: { fontSize: 24, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
 
   retryRow: { flexDirection: 'row', gap: 12, marginTop: 14, alignItems: 'center', justifyContent: 'center' },
   retryBtn: { paddingVertical: 10, paddingHorizontal: 20 },
