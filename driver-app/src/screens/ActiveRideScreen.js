@@ -391,7 +391,7 @@ function ActiveRideScreen(props) {
     lastDirectionsFetchTime.current = now;
 
     var osrmUrl='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
-    var googleUrl='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&mode=driving&key='+GOOGLE_DIRECTIONS_KEY;
+    var googleUrl='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&mode=driving&language=fr&region=sn&key='+GOOGLE_DIRECTIONS_KEY;
 
     function applyParsed(parsed) {
       directionsCacheSet(cacheKey,parsed);
@@ -834,6 +834,18 @@ function ActiveRideScreen(props) {
       {queuedRide&&queuedRide.accepted&&<View style={queueStyles.bannerContainer}><QueuedRideBanner queuedRide={queuedRide} onView={function(){}}/></View>}
       {navigationStarted&&currentStep&&(<View style={styles.turnInstruction}><View style={styles.turnIconContainer}><Text style={styles.turnIcon}>{getManeuverIcon(currentStep.maneuver)}</Text></View><View style={styles.turnTextContainer}><Text style={styles.turnDistance}>{distanceToStep}</Text><Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text></View></View>)}
       <View style={styles.topBar}>{!navigationStarted&&<TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}><Text style={styles.cancelIcon}>{"X"}</Text></TouchableOpacity>}{navigationStarted&&<TouchableOpacity style={styles.voiceButton} onPress={toggleVoice}><Text style={styles.voiceIcon}>{voiceEnabled?'\uD83D\uDD0A':'\uD83D\uDD07'}</Text></TouchableOpacity>}{!navigationStarted&&<TouchableOpacity activeOpacity={1} onPress={handleSilentPanic}><View style={styles.statusBadge}><Text style={styles.statusText}>{getStatusText()}</Text></View></TouchableOpacity>}</View>
+      {navigationStarted && ride && ride.rider && ride.rider.phone && (
+        <TouchableOpacity style={styles.navPhoneStrip} onPress={function(){Linking.openURL('tel:' + ride.rider.phone);}} activeOpacity={0.7}>
+          <Text style={styles.navPhoneLabel}>{deliveryMode ? 'CLIENT' : 'PASSAGER'}</Text>
+          <View style={styles.navPhoneBadgeWrap}>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { top: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: -1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+            <Text style={[styles.navPhoneText, styles.navPhoneStroke, { left: 1 }]} numberOfLines={1}>{ride.rider.phone}</Text>
+            <Text style={styles.navPhoneText} numberOfLines={1}>{ride.rider.phone}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
       {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
@@ -976,7 +988,12 @@ var styles = StyleSheet.create({
   turnTextContainer: { flex: 1 },
   turnDistance: { fontSize: 22, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg, marginBottom: 4 },
   turnText: { fontSize: 15, color: COLORS.darkBg2, fontFamily: 'LexendDeca_400Regular' },
-  wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: COLORS.darkCardBorder },
+  wazeBottomBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', backgroundColor: '#FFFFFF', paddingHorizontal: 24, paddingVertical: 20, alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: 20, borderTopRightRadius: 20, borderTopWidth: 1, borderTopColor: '#EEF0F3' },
+  navPhoneStrip: { position: 'absolute', bottom: 170, left: 16, right: 16, zIndex: 11, backgroundColor: '#001A12', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 8 },
+  navPhoneLabel: { fontSize: 10, fontFamily: 'LexendDeca_700Bold', color: 'rgba(255,255,255,0.65)', letterSpacing: 2, marginBottom: 4 },
+  navPhoneBadgeWrap: { alignItems: 'center', justifyContent: 'center' },
+  navPhoneText: { fontFamily: 'Anton_400Regular', fontSize: 24, color: '#FFFFFF', fontStyle: 'italic', letterSpacing: 1.2, textShadowColor: 'rgba(0,0,0,0.55)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 3 },
+  navPhoneStroke: { color: '#000000', position: 'absolute', textShadowRadius: 0 },
   etaContainer: { flex: 1 },
   etaTime: { fontSize: 32, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A', marginBottom: 4 },
   etaDistance: { fontSize: 16, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
