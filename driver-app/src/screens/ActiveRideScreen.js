@@ -1108,7 +1108,7 @@ var styles = StyleSheet.create({
   floatingChatBtn: { position: 'absolute', bottom: 300, right: 76, width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(30,30,40,0.85)', alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: 'rgba(66,133,244,0.4)' },
   floatingChatIcon: { fontSize: 22 },
   recenterButton: { position: 'absolute', bottom: 300, right: 20, width: 48, height: 48, borderRadius: 24, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
-  recenterButtonExpanded: { width: 'auto', paddingHorizontal: 16, flexDirection: 'row', gap: 8 },
+  recenterButtonExpanded: { width: 'auto', paddingHorizontal: 16, flexDirection: 'row', gap: 8, bottom: 370 },
   recenterText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
   recalculateButton: { position: 'absolute', bottom: 300, left: 20, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.backgroundWhite, alignItems: 'center', justifyContent: 'center', elevation: 8, borderWidth: 1, borderColor: COLORS.grayLight },
   recalculateText: { fontSize: 13, fontFamily: 'LexendDeca_600SemiBold', color: COLORS.darkBg },
