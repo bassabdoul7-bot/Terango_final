@@ -206,8 +206,10 @@ export default function FleetListingsPage() {
   async function load() {
     setLoading(true);
     try {
+      // axios interceptor already unwraps res.data, so the response IS the
+      // payload — NOT an axios response object.
       const res = await adminService.getFleetListings(status);
-      if (res && res.data && res.data.success) setListings(res.data.listings || []);
+      if (res && res.success) setListings(res.listings || []);
     } catch (e) {
       console.error('Fleet listings load error:', e);
     } finally { setLoading(false); }
@@ -221,9 +223,9 @@ export default function FleetListingsPage() {
         adminService.getFleetListings('rejected')
       ]);
       setCounts({
-        pending: (p.data && p.data.listings && p.data.listings.length) || 0,
-        approved: (a.data && a.data.listings && a.data.listings.length) || 0,
-        rejected: (r.data && r.data.listings && r.data.listings.length) || 0
+        pending: (p && p.listings && p.listings.length) || 0,
+        approved: (a && a.listings && a.listings.length) || 0,
+        rejected: (r && r.listings && r.listings.length) || 0
       });
     } catch (e) { /* ignore */ }
   }

@@ -53,8 +53,9 @@ export default function HeatmapPage() {
     if (!silent) setLoading(true);
     try {
       const res = await adminService.getHeatmap({ period, type });
-      if (res && res.data && res.data.success) {
-        setData({ points: res.data.points || [], count: res.data.count || 0, since: res.data.since });
+      // axios interceptor unwraps res.data, so `res` IS the payload here.
+      if (res && res.success) {
+        setData({ points: res.points || [], count: res.count || 0, since: res.since });
         setLastFetchedAt(new Date());
       }
     } catch (e) {
