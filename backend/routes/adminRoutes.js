@@ -93,4 +93,9 @@ router.post('/drivers/:id/warn', require('../controllers/adminController').warnD
 // Demand heatmap
 router.get('/heatmap', require('../controllers/adminController').getHeatmap);
 
+// Fleet / rental admin oversight
+router.get('/fleet/listings', require('../controllers/fleetController').adminGetListings);
+router.put('/fleet/listings/:id/verify', require('../controllers/fleetController').adminVerifyListing);
+router.get('/fleet/agreements', require('../controllers/fleetController').adminGetAgreements);
+
 module.exports = router;

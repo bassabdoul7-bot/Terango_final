@@ -289,6 +289,7 @@ app.use('/api/logs', logRoutes);
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/services', require('./routes/serviceRoutes'));
 app.use('/api/geocode', require('./routes/geocodeRoutes'));
+app.use('/api/fleet', require('./routes/fleetRoutes'));
 
 // Feedback endpoint (authenticated)
 app.post('/api/errors/feedback', protect, async (req, res) => {
