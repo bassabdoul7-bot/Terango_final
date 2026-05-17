@@ -90,6 +90,15 @@ export default function FleetBrowseScreen(props) {
         </TouchableOpacity>
       </View>
 
+      <TouchableOpacity style={styles.ownerCta} activeOpacity={0.85} onPress={function() { navigation.navigate('FleetMyListings'); }}>
+        <Text style={styles.ownerCtaIcon}>{'🔑'}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.ownerCtaTitle}>Vous avez un véhicule à louer?</Text>
+          <Text style={styles.ownerCtaSub}>Créez une annonce et gérez vos demandes</Text>
+        </View>
+        <Text style={styles.ownerCtaArrow}>{'›'}</Text>
+      </TouchableOpacity>
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingHorizontal: 16 }}>
         {TYPE_FILTERS.map(function(f) {
           var active = type === f.value;
@@ -134,6 +143,11 @@ var styles = StyleSheet.create({
   headerSub: { fontSize: 12, color: '#757575', marginTop: 2, fontFamily: 'LexendDeca_400Regular' },
   myAppsBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(0,133,63,0.08)', borderWidth: 1, borderColor: 'rgba(0,133,63,0.25)' },
   myAppsBtnText: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
+  ownerCta: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 12, padding: 14, borderRadius: 14, backgroundColor: 'rgba(212,175,55,0.10)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.30)' },
+  ownerCtaIcon: { fontSize: 24, marginRight: 12 },
+  ownerCtaTitle: { fontSize: 14, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
+  ownerCtaSub: { fontSize: 12, color: '#5a5a5a', marginTop: 2, fontFamily: 'LexendDeca_400Regular' },
+  ownerCtaArrow: { fontSize: 24, color: '#5a5a5a', fontFamily: 'LexendDeca_700Bold' },
   filterRow: { paddingVertical: 12, flexGrow: 0 },
   filterPill: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18, backgroundColor: '#F4F6F8', marginRight: 8, borderWidth: 1, borderColor: '#EEF0F3' },
   filterPillActive: { backgroundColor: COLORS.green, borderColor: COLORS.green },
