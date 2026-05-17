@@ -278,7 +278,7 @@ export default function HeatmapPage() {
 
         {/* Click hint when no spot has been clicked yet */}
         {!clickedAt && heatPoints.length > 0 && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-xs backdrop-blur-md pointer-events-none" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-xs backdrop-blur-md pointer-events-none" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 1000 }}>
             <span className="text-white font-semibold">Cliquez sur une zone</span>
             <span className="ml-2" style={{ color: 'rgba(255,255,255,0.55)' }}>pour voir les courses dans un rayon de {CLICK_RADIUS_M}m</span>
           </div>
@@ -286,7 +286,7 @@ export default function HeatmapPage() {
 
         {/* Side panel — list of rides within CLICK_RADIUS_M of the last click */}
         {clickedAt && (
-          <div className="absolute top-4 right-4 rounded-xl backdrop-blur-md flex flex-col" style={{ width: 360, maxHeight: 'calc(100vh - 220px)', background: 'rgba(0,20,14,0.94)', border: '1px solid rgba(255,255,255,0.12)' }}>
+          <div className="absolute top-4 right-4 rounded-xl backdrop-blur-md flex flex-col" style={{ width: 360, maxHeight: 'calc(100vh - 220px)', background: 'rgba(0,20,14,0.94)', border: '1px solid rgba(255,255,255,0.12)', zIndex: 1000 }}>
             <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
               <div>
                 <div className="text-sm font-bold text-white">{nearbyRides.length} course{nearbyRides.length === 1 ? '' : 's'} dans la zone</div>
@@ -311,7 +311,7 @@ export default function HeatmapPage() {
         )}
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="absolute bottom-4 left-4 rounded-lg px-3 py-2 text-xs" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.1)', zIndex: 1000 }}>
           <div className="text-white font-semibold mb-1">Intensité</div>
           <div className="flex items-center gap-1.5">
             <div style={{ width: 80, height: 8, borderRadius: 4, background: 'linear-gradient(to right, #3b82f6, #22c55e, #eab308, #f97316, #ef4444)' }}></div>
