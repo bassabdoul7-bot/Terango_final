@@ -141,6 +141,32 @@ exports.createDelivery = function(req, res) {
     .then(function(delivery) {
       if (!delivery) return;
 
+      // Telegram alert: operator visibility on every new delivery request.
+      // Fire-and-forget, never blocks the rider's response.
+      try {
+        var TG_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
+        var TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+        if (TG_BOT && TG_CHAT) {
+          var rName = (req.user && req.user.name) || 'Client';
+          var rPhone = (req.user && req.user.phone) || '';
+          var icon = delivery.serviceType === 'colis' ? '📦' : delivery.serviceType === 'commande' ? '🛒' : '🍽️';
+          var label = delivery.serviceType === 'colis' ? 'Colis' : delivery.serviceType === 'commande' ? 'Commande' : 'Restaurant';
+          var alertMsg = icon + ' Nouvelle livraison — ' + label
+            + '\n👤 ' + rName + (rPhone ? ' · ' + rPhone : '')
+            + '\n📍 ' + (delivery.pickup && delivery.pickup.address ? delivery.pickup.address : '?')
+            + '\n🏁 ' + (delivery.dropoff && delivery.dropoff.address ? delivery.dropoff.address : '?')
+            + '\n💰 ' + (delivery.fare || 0).toLocaleString('fr-FR') + ' FCFA · ' + (delivery.distance ? delivery.distance.toFixed(1) + ' km' : '?')
+            + ' · ' + (delivery.paymentMethod === 'wave' ? 'Wave' : 'Espèces');
+          var https = require('https');
+          var data = JSON.stringify({ chat_id: TG_CHAT, text: alertMsg });
+          var opts = { hostname: 'api.telegram.org', path: '/bot' + TG_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
+          var r = https.request(opts, function() {});
+          r.on('error', function() {});
+          r.write(data);
+          r.end();
+        }
+      } catch (e) {}
+
       // Find nearby drivers who accept this service type
       var serviceKey = delivery.serviceType;
 

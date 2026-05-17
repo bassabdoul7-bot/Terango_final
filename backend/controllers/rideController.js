@@ -89,6 +89,33 @@ exports.createRide = async (req, res) => {
       stops: validatedStops
     });
 
+    // Telegram alert: operator visibility on every new ride request.
+    // Fire-and-forget, never blocks the rider's response.
+    try {
+      var TG_BOT = process.env.TELEGRAM_BOT_TOKEN || '';
+      var TG_CHAT = process.env.TELEGRAM_CHAT_ID || '';
+      if (TG_BOT && TG_CHAT) {
+        var rName = (req.user && req.user.name) || 'Passager';
+        var rPhone = (req.user && req.user.phone) || '';
+        var header = isScheduled
+          ? '🗓 Course programmée — ' + new Date(scheduledTime).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : '🚗 Nouvelle course';
+        var alertMsg = header + '\n👤 ' + rName + (rPhone ? ' · ' + rPhone : '')
+          + '\n📍 ' + (ride.pickup && ride.pickup.address ? ride.pickup.address : '?')
+          + '\n🏁 ' + (ride.dropoff && ride.dropoff.address ? ride.dropoff.address : '?')
+          + '\n💰 ' + (ride.fare || 0).toLocaleString('fr-FR') + ' FCFA · ' + (ride.distance ? ride.distance.toFixed(1) + ' km' : '?')
+          + ' · ' + (ride.paymentMethod === 'wave' ? 'Wave' : 'Espèces')
+          + ' · ' + (ride.rideType || 'standard');
+        var https = require('https');
+        var data = JSON.stringify({ chat_id: TG_CHAT, text: alertMsg });
+        var opts = { hostname: 'api.telegram.org', path: '/bot' + TG_BOT + '/sendMessage', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } };
+        var r = https.request(opts, function() {});
+        r.on('error', function() {});
+        r.write(data);
+        r.end();
+      }
+    } catch (e) {}
+
     if (isScheduled) {
       // Scheduled ride: do NOT trigger matching, return success
       var scheduledDate = new Date(scheduledTime);
