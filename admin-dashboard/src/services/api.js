@@ -61,7 +61,11 @@ export var adminService = {
   getLogs: function(params) { return api.get('/admin/logs', { params: params }); },
   getLogStats: function() { return api.get('/admin/logs/stats'); },
   getHealth: function() { return api.get('/admin/health'); },
-  getHeatmap: function(params) { return api.get('/admin/heatmap', { params: params }); }
+  getHeatmap: function(params) { return api.get('/admin/heatmap', { params: params }); },
+  // Fleet / rental
+  getFleetListings: function(status) { return api.get('/admin/fleet/listings', { params: { status: status } }); },
+  verifyFleetListing: function(id, approved, reason) { return api.put('/admin/fleet/listings/' + id + '/verify', { approved: approved, reason: reason }); },
+  getFleetAgreements: function(status) { return api.get('/admin/fleet/agreements', { params: { status: status } }); }
 };
 
 export var partnerService = {
