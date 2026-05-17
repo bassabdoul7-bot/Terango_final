@@ -60,7 +60,8 @@ export var adminService = {
   getOnlineDrivers: function() { return api.get('/admin/live/drivers'); },
   getLogs: function(params) { return api.get('/admin/logs', { params: params }); },
   getLogStats: function() { return api.get('/admin/logs/stats'); },
-  getHealth: function() { return api.get('/admin/health'); }
+  getHealth: function() { return api.get('/admin/health'); },
+  getHeatmap: function(params) { return api.get('/admin/heatmap', { params: params }); }
 };
 
 export var partnerService = {

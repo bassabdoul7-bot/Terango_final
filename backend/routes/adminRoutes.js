@@ -90,4 +90,7 @@ router.put('/drivers/:id/suspend', require('../controllers/adminController').sus
 router.put('/drivers/:id/ban', require('../controllers/adminController').banDriver);
 router.post('/drivers/:id/warn', require('../controllers/adminController').warnDriver);
 
+// Demand heatmap
+router.get('/heatmap', require('../controllers/adminController').getHeatmap);
+
 module.exports = router;

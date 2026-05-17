@@ -1314,3 +1314,57 @@ exports.warnDriver = async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur' });
   }
 };
+
+// @desc    Demand heatmap data — recent pickup coordinates from rides + deliveries
+// @route   GET /api/admin/heatmap?period=1h|6h|24h|7d&type=all|rides|deliveries
+// @access  Admin / Moderator
+exports.getHeatmap = async (req, res) => {
+  try {
+    var period = req.query.period || '24h';
+    var type = req.query.type || 'all';
+    var ms = { '1h': 3600e3, '6h': 6 * 3600e3, '24h': 24 * 3600e3, '7d': 7 * 24 * 3600e3 }[period] || 24 * 3600e3;
+    var since = new Date(Date.now() - ms);
+    var projection = { 'pickup.coordinates.latitude': 1, 'pickup.coordinates.longitude': 1, fare: 1, status: 1, createdAt: 1 };
+
+    var rides = [];
+    var deliveries = [];
+    if (type === 'all' || type === 'rides') {
+      rides = await Ride.find({ createdAt: { $gte: since } }, projection).lean();
+    }
+    if (type === 'all' || type === 'deliveries') {
+      var Delivery = require('../models/Delivery');
+      deliveries = await Delivery.find({ createdAt: { $gte: since } }, Object.assign({ serviceType: 1 }, projection)).lean();
+    }
+
+    function toPoint(doc, kind, serviceType) {
+      var c = doc.pickup && doc.pickup.coordinates;
+      if (!c || typeof c.latitude !== 'number' || typeof c.longitude !== 'number') return null;
+      return {
+        lat: c.latitude,
+        lng: c.longitude,
+        kind: kind,                                   // 'ride' | 'delivery'
+        serviceType: serviceType || null,             // 'colis' | 'commande' | 'resto' for deliveries
+        fare: doc.fare || 0,
+        status: doc.status,
+        at: doc.createdAt
+      };
+    }
+
+    var points = []
+      .concat(rides.map(function(r) { return toPoint(r, 'ride'); }))
+      .concat(deliveries.map(function(d) { return toPoint(d, 'delivery', d.serviceType); }))
+      .filter(function(p) { return p; });
+
+    res.status(200).json({
+      success: true,
+      period: period,
+      type: type,
+      since: since,
+      count: points.length,
+      points: points
+    });
+  } catch (error) {
+    console.error('Get Heatmap Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur lors du chargement de la heatmap' });
+  }
+};

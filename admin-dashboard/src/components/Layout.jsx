@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Car, Users, MapPin, DollarSign, LogOut, Camera, Handshake, Wrench, ClipboardList, Menu, X, Activity, Radar, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Car, Users, MapPin, DollarSign, LogOut, Camera, Handshake, Wrench, ClipboardList, Menu, X, Activity, Radar, Megaphone, Flame } from 'lucide-react';
 
 var adminLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Tableau de bord' },
   { to: '/drivers', icon: Car, label: 'Chauffeurs' },
   { to: '/riders', icon: Users, label: 'Passagers' },
   { to: '/rides', icon: MapPin, label: 'Courses' },
+  { to: '/heatmap', icon: Flame, label: 'Demande' },
   { to: '/revenue', icon: DollarSign, label: 'Revenus' },
   { to: '/photos', icon: Camera, label: 'Photos' },
   { to: '/services', icon: Wrench, label: 'Prestataires' },
@@ -22,6 +23,7 @@ var moderatorLinks = [
   { to: '/drivers', icon: Car, label: 'Chauffeurs' },
   { to: '/riders', icon: Users, label: 'Passagers' },
   { to: '/rides', icon: MapPin, label: 'Courses' },
+  { to: '/heatmap', icon: Flame, label: 'Demande' },
   { to: '/photos', icon: Camera, label: 'Photos' },
   { to: '/operations', icon: Radar, label: 'Operations' },
   { to: '/monitoring', icon: Activity, label: 'Monitoring' },
