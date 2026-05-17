@@ -18,6 +18,11 @@ import CommandeScreen from '../screens/CommandeScreen';
 import RestaurantListScreen from '../screens/RestaurantListScreen';
 import RestaurantMenuScreen from '../screens/RestaurantMenuScreen';
 import ActiveDeliveryScreen from '../screens/ActiveDeliveryScreen';
+import FleetBrowseScreen from '../screens/FleetBrowseScreen';
+import FleetListingDetailScreen from '../screens/FleetListingDetailScreen';
+import FleetApplyScreen from '../screens/FleetApplyScreen';
+import FleetMyApplicationsScreen from '../screens/FleetMyApplicationsScreen';
+import FleetAgreementScreen from '../screens/FleetAgreementScreen';
 
 const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
@@ -56,6 +61,11 @@ const AppNavigator = () => {
             <Stack.Screen name="RestaurantList" component={RestaurantListScreen} />
             <Stack.Screen name="RestaurantMenuScreen" component={RestaurantMenuScreen} />
             <Stack.Screen name="ActiveDeliveryScreen" component={ActiveDeliveryScreen} />
+            <Stack.Screen name="FleetBrowse" component={FleetBrowseScreen} />
+            <Stack.Screen name="FleetListingDetail" component={FleetListingDetailScreen} />
+            <Stack.Screen name="FleetApply" component={FleetApplyScreen} />
+            <Stack.Screen name="FleetMyApplications" component={FleetMyApplicationsScreen} />
+            <Stack.Screen name="FleetAgreement" component={FleetAgreementScreen} />
           </>
         )}
       </Stack.Navigator>

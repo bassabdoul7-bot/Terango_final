@@ -711,11 +711,11 @@ function HomeScreen(props) {
                 <Text style={styles.serviceLabel}>Colis</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.serviceCard} onPress={function() { Alert.alert('Bient\u00f4t disponible', 'Les restaurants arrivent bient\u00f4t sur TeranGO!'); }}>
-                <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(255, 59, 48, 0.25)' }]}>
-                  <Text style={styles.serviceEmoji}>{"🍽️"}</Text>
+              <TouchableOpacity style={styles.serviceCard} onPress={function() { navigation.navigate('FleetBrowse'); }}>
+                <View style={[styles.serviceIconWrap, { backgroundColor: 'rgba(66, 133, 244, 0.25)' }]}>
+                  <Text style={styles.serviceEmoji}>{"🔑"}</Text>
                 </View>
-                <Text style={styles.serviceLabel}>Restaurant</Text>
+                <Text style={styles.serviceLabel}>Location</Text>
               </TouchableOpacity>
             </View>
           </View>

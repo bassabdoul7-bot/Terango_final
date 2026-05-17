@@ -87,4 +87,31 @@ export var restaurantService = {
   getRestaurantById: function(id) { return api.get('/restaurants/id/' + id); },
 };
 
+export var fleetService = {
+  // Browse / detail
+  browseListings: function(params) { return api.get('/fleet/listings', { params: params }); },
+  getListing: function(id) { return api.get('/fleet/listings/' + id); },
+  // Renter side
+  applyToListing: function(id, data) { return api.post('/fleet/listings/' + id + '/apply', data); },
+  getMyApplications: function() { return api.get('/fleet/my-applications'); },
+  payClosingFee: function(applicationId, waveRef) { return api.post('/fleet/applications/' + applicationId + '/pay-fee', { waveRef: waveRef }); },
+  getAgreement: function(id) { return api.get('/fleet/agreements/' + id); },
+  // Owner side (deferred to next slice — keeping the methods here so we don't
+  // have to bump versionCode again when we ship the owner UI)
+  createListing: function(data) { return api.post('/fleet/listings', data); },
+  getMyListings: function() { return api.get('/fleet/my-listings'); },
+  updateListing: function(id, data) { return api.put('/fleet/listings/' + id, data); },
+  deleteListing: function(id) { return api.delete('/fleet/listings/' + id); },
+  getListingApplications: function(id) { return api.get('/fleet/listings/' + id + '/applications'); },
+  acceptApplication: function(applicationId) { return api.put('/fleet/applications/' + applicationId + '/accept'); },
+  rejectApplication: function(applicationId, reason) { return api.put('/fleet/applications/' + applicationId + '/reject', { reason: reason }); },
+  // Photo upload — returns { success, url }. Used for both vehicle photos
+  // (owner side, next slice) and renter ID/license/selfie.
+  uploadPhoto: function(uri) {
+    var formData = new FormData();
+    formData.append('photo', { uri: uri, type: 'image/jpeg', name: 'fleet-' + Date.now() + '.jpg' });
+    return api.post('/fleet/upload-photo', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 });
+  }
+};
+
 export default api;
