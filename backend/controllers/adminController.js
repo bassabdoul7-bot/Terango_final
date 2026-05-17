@@ -1318,35 +1318,54 @@ exports.warnDriver = async (req, res) => {
 // @desc    Demand heatmap data — recent pickup coordinates from rides + deliveries
 // @route   GET /api/admin/heatmap?period=1h|6h|24h|7d&type=all|rides|deliveries
 // @access  Admin / Moderator
+// Each point ships with enough rider/trip detail that the dashboard can
+// open a "rides near this spot" side panel on map click without a second
+// round-trip per point.
 exports.getHeatmap = async (req, res) => {
   try {
     var period = req.query.period || '24h';
     var type = req.query.type || 'all';
     var ms = { '1h': 3600e3, '6h': 6 * 3600e3, '24h': 24 * 3600e3, '7d': 7 * 24 * 3600e3 }[period] || 24 * 3600e3;
     var since = new Date(Date.now() - ms);
-    var projection = { 'pickup.coordinates.latitude': 1, 'pickup.coordinates.longitude': 1, fare: 1, status: 1, createdAt: 1 };
+    var projection = {
+      'pickup.coordinates.latitude': 1,
+      'pickup.coordinates.longitude': 1,
+      'pickup.address': 1,
+      'dropoff.address': 1,
+      fare: 1, status: 1, createdAt: 1,
+      paymentMethod: 1,
+      riderId: 1
+    };
+    var populate = { path: 'riderId', populate: { path: 'userId', select: 'name phone' } };
 
     var rides = [];
     var deliveries = [];
     if (type === 'all' || type === 'rides') {
-      rides = await Ride.find({ createdAt: { $gte: since } }, projection).lean();
+      rides = await Ride.find({ createdAt: { $gte: since } }, projection).populate(populate).lean();
     }
     if (type === 'all' || type === 'deliveries') {
       var Delivery = require('../models/Delivery');
-      deliveries = await Delivery.find({ createdAt: { $gte: since } }, Object.assign({ serviceType: 1 }, projection)).lean();
+      deliveries = await Delivery.find({ createdAt: { $gte: since } }, Object.assign({ serviceType: 1 }, projection)).populate(populate).lean();
     }
 
     function toPoint(doc, kind, serviceType) {
       var c = doc.pickup && doc.pickup.coordinates;
       if (!c || typeof c.latitude !== 'number' || typeof c.longitude !== 'number') return null;
+      var u = doc.riderId && doc.riderId.userId ? doc.riderId.userId : null;
       return {
+        id: String(doc._id),
         lat: c.latitude,
         lng: c.longitude,
         kind: kind,                                   // 'ride' | 'delivery'
         serviceType: serviceType || null,             // 'colis' | 'commande' | 'resto' for deliveries
         fare: doc.fare || 0,
         status: doc.status,
-        at: doc.createdAt
+        paymentMethod: doc.paymentMethod || null,
+        at: doc.createdAt,
+        pickup: doc.pickup && doc.pickup.address ? doc.pickup.address : null,
+        dropoff: doc.dropoff && doc.dropoff.address ? doc.dropoff.address : null,
+        riderName: u ? u.name : null,
+        riderPhone: u ? u.phone : null
       };
     }
 

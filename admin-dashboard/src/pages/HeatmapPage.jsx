@@ -1,9 +1,24 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMap, useMapEvents, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet.heat';
 import { adminService } from '../services/api';
-import { Flame, RefreshCw, Car, Package, Clock } from 'lucide-react';
+import { Flame, RefreshCw, Car, Package, Clock, Phone, MapPin, X } from 'lucide-react';
+
+// Click-radius for the "rides near this spot" side panel. 750m = ~3 city
+// blocks in Dakar, tight enough to surface a real cluster, loose enough to
+// catch the rides at the edge of a heat blob.
+const CLICK_RADIUS_M = 750;
+
+function haversineMeters(a, b) {
+  const R = 6371000;
+  const dLat = (b.lat - a.lat) * Math.PI / 180;
+  const dLng = (b.lng - a.lng) * Math.PI / 180;
+  const la1 = a.lat * Math.PI / 180;
+  const la2 = b.lat * Math.PI / 180;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
 
 const DAKAR_CENTER = [14.7167, -17.4677];
 
@@ -11,6 +26,15 @@ const DAKAR_CENTER = [14.7167, -17.4677];
 // useMap() and attach an L.heatLayer to it. Removed + re-added when the points
 // or styling change, which is fine at the volumes we expect (hundreds, not
 // hundreds of thousands).
+// Captures clicks anywhere on the map and feeds back the lat/lng so the page
+// can compute which points fall within CLICK_RADIUS_M and show them in a
+// side panel. Separate component because useMapEvents must live inside the
+// MapContainer subtree.
+function MapClick({ onClick }) {
+  useMapEvents({ click: function(e) { onClick({ lat: e.latlng.lat, lng: e.latlng.lng }); } });
+  return null;
+}
+
 function HeatLayer({ points, radius, blur, max }) {
   const map = useMap();
   useEffect(() => {
@@ -48,6 +72,18 @@ export default function HeatmapPage() {
   const [loading, setLoading] = useState(false);
   const [lastFetchedAt, setLastFetchedAt] = useState(null);
   const refreshTimer = useRef(null);
+  const [clickedAt, setClickedAt] = useState(null);     // { lat, lng } of last map click
+  const [nearbyRides, setNearbyRides] = useState([]);   // points within CLICK_RADIUS_M, sorted newest first
+
+  // Compute nearby rides whenever a click lands OR the underlying data refreshes.
+  useEffect(() => {
+    if (!clickedAt) { setNearbyRides([]); return; }
+    const filtered = (data.points || [])
+      .map((p) => ({ ...p, _dist: haversineMeters(clickedAt, p) }))
+      .filter((p) => p._dist <= CLICK_RADIUS_M)
+      .sort((a, b) => new Date(b.at) - new Date(a.at));
+    setNearbyRides(filtered);
+  }, [clickedAt, data.points]);
 
   async function load(silent) {
     if (!silent) setLoading(true);
@@ -220,6 +256,14 @@ export default function HeatmapPage() {
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
           />
           {heatPoints.length > 0 && <HeatLayer points={heatPoints} />}
+          <MapClick onClick={setClickedAt} />
+          {clickedAt && (
+            <CircleMarker
+              center={[clickedAt.lat, clickedAt.lng]}
+              radius={6}
+              pathOptions={{ color: '#FFF', weight: 2, fillColor: '#22c55e', fillOpacity: 0.9 }}
+            />
+          )}
         </MapContainer>
 
         {/* Empty-state overlay when no data */}
@@ -228,6 +272,40 @@ export default function HeatmapPage() {
             <div className="rounded-xl px-6 py-4 backdrop-blur-md text-center" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="text-white font-bold mb-1">Aucune requête sur la période</div>
               <div className="text-xs" style={{ color: 'rgba(255,255,255,0.55)' }}>Essayez une plage plus large.</div>
+            </div>
+          </div>
+        )}
+
+        {/* Click hint when no spot has been clicked yet */}
+        {!clickedAt && heatPoints.length > 0 && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full px-4 py-2 text-xs backdrop-blur-md pointer-events-none" style={{ background: 'rgba(0,20,14,0.85)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <span className="text-white font-semibold">Cliquez sur une zone</span>
+            <span className="ml-2" style={{ color: 'rgba(255,255,255,0.55)' }}>pour voir les courses dans un rayon de {CLICK_RADIUS_M}m</span>
+          </div>
+        )}
+
+        {/* Side panel — list of rides within CLICK_RADIUS_M of the last click */}
+        {clickedAt && (
+          <div className="absolute top-4 right-4 rounded-xl backdrop-blur-md flex flex-col" style={{ width: 360, maxHeight: 'calc(100vh - 220px)', background: 'rgba(0,20,14,0.94)', border: '1px solid rgba(255,255,255,0.12)' }}>
+            <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+              <div>
+                <div className="text-sm font-bold text-white">{nearbyRides.length} course{nearbyRides.length === 1 ? '' : 's'} dans la zone</div>
+                <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>Rayon de {CLICK_RADIUS_M}m</div>
+              </div>
+              <button onClick={() => setClickedAt(null)} className="rounded-md p-1 text-white" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-3 py-3">
+              {nearbyRides.length === 0 ? (
+                <div className="text-xs text-center py-6" style={{ color: 'rgba(255,255,255,0.55)' }}>
+                  Aucune course dans cette zone pour la période choisie. Cliquez sur une zone plus chaude.
+                </div>
+              ) : (
+                nearbyRides.map((r) => (
+                  <RideRow key={r.id || (r.lat + ',' + r.lng + ',' + r.at)} ride={r} />
+                ))
+              )}
             </div>
           </div>
         )}
@@ -244,6 +322,51 @@ export default function HeatmapPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// One ride card inside the click-side-panel.
+function RideRow({ ride }) {
+  const status = ride.status || 'pending';
+  const statusColor = {
+    completed: '#22c55e', in_progress: '#22c55e', accepted: '#22c55e', delivered: '#22c55e',
+    pending: '#eab308', arrived: '#eab308',
+    cancelled: '#ef4444', no_drivers_available: '#ef4444', expired: '#ef4444'
+  }[status] || '#94a3b8';
+  const fmtTime = (d) => {
+    if (!d) return '';
+    const dt = new Date(d);
+    return dt.toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
+  const kindIcon = ride.kind === 'delivery'
+    ? (ride.serviceType === 'colis' ? '📦' : ride.serviceType === 'commande' ? '🛒' : '🍽️')
+    : '🚗';
+  const callTel = ride.riderPhone ? 'tel:' + String(ride.riderPhone).replace(/[^0-9+]/g, '') : null;
+  return (
+    <div className="rounded-lg p-3 mb-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="flex items-start justify-between mb-1">
+        <div className="text-xs font-bold text-white truncate flex-1">{kindIcon} {ride.riderName || 'Anonyme'}</div>
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: statusColor + '22', color: statusColor, border: '1px solid ' + statusColor + '55' }}>{status}</span>
+      </div>
+      <div className="text-[11px] mb-1.5" style={{ color: 'rgba(255,255,255,0.55)' }}>{fmtTime(ride.at)} · {(ride.fare || 0).toLocaleString('fr-FR')} FCFA · {ride.paymentMethod === 'wave' ? 'Wave' : 'Espèces'}</div>
+      {ride.pickup && (
+        <div className="flex gap-1.5 items-start text-[11px] mb-0.5" style={{ color: 'rgba(255,255,255,0.75)' }}>
+          <MapPin size={10} className="mt-0.5 flex-shrink-0 text-emerald-400" />
+          <span className="truncate">{ride.pickup}</span>
+        </div>
+      )}
+      {ride.dropoff && (
+        <div className="flex gap-1.5 items-start text-[11px]" style={{ color: 'rgba(255,255,255,0.55)' }}>
+          <MapPin size={10} className="mt-0.5 flex-shrink-0 text-red-400" />
+          <span className="truncate">{ride.dropoff}</span>
+        </div>
+      )}
+      {callTel && (
+        <a href={callTel} className="mt-2 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-white no-underline" style={{ background: 'rgba(0,133,63,0.5)', border: '1px solid rgba(0,133,63,0.65)' }}>
+          <Phone size={11} /> {ride.riderPhone}
+        </a>
+      )}
     </div>
   );
 }
