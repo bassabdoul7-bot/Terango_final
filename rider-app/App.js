@@ -5,6 +5,7 @@ import { Text, TextInput, ActivityIndicator, View } from 'react-native';
 import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Medium, LexendDeca_600SemiBold, LexendDeca_700Bold, LexendDeca_800ExtraBold } from '@expo-google-fonts/lexend-deca';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import OtaUpdater from './src/components/OtaUpdater';
 
 const defaultHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -35,6 +36,7 @@ export default function App() {
     <AuthProvider>
       <StatusBar style="dark" />
       <AppNavigator />
+      <OtaUpdater />
     </AuthProvider>
   );
 }
