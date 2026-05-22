@@ -30,7 +30,7 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": false,
-      "versionCode": 128,
+      "versionCode": 129,
       "package": "com.terango.rider",
       "googleServicesFile": "./google-services.json",
       "config": {
@@ -69,7 +69,7 @@
     ],
     "updates": {
       "url": "https://u.expo.dev/424c8f48-0e23-489f-9a51-4f6e28cd7e95",
-      "fallbackToCacheTimeout": 0,
+      "fallbackToCacheTimeout": 3000,
       "requestHeaders": {
         "expo-channel-name": "production"
       }
