@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState } from 'react-native';
+  Image, Dimensions, Modal, Linking, Animated, ScrollView, BackHandler, Alert, Easing, AppState, Share } from 'react-native';
 import { Map, Camera, Marker, GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 const TERANGO_STYLE = require('../constants/terangoMapStyle.json');
 import * as PolylineUtil from '@mapbox/polyline';
@@ -176,6 +176,31 @@ const ActiveRideScreen = ({ route, navigation }) => {
   const handleRetry = async () => { setRetrying(true); try { const r = await rideService.createRide({ pickup: { address: ride.pickup.address, coordinates: ride.pickup.coordinates }, dropoff: { address: ride.dropoff.address, coordinates: ride.dropoff.coordinates }, rideType: ride.rideType || 'standard', paymentMethod: ride.paymentMethod || 'cash' }); if (r.success) { setRideId(r.ride?.id || r.ride?._id); setShowNoDrivers(false); setSearchTime(0); alertShownRef.current = false; setLoading(true); if (pollInterval.current) clearInterval(pollInterval.current); pollInterval.current = setInterval(fetchRideDetails, 5000); } } catch (e) { Alert.alert('Erreur', 'Impossible de r\u00e9essayer.'); } finally { setRetrying(false); } };
   const handleCancelRide = async (reason) => { setCancelling(true); try { await rideService.cancelRide(rideId, reason); setShowCancelModal(false); navigation.replace('Home'); } catch (e) { setCancelling(false); } };
 
+  // Safety: share a live-tracking link to an emergency contact. Calls the
+  // existing /api/rides/:id/share endpoint which returns a public share URL,
+  // then hands it to the native share sheet (WhatsApp, SMS, etc.). The URL
+  // serves a no-auth HTML page on the backend that shows driver position +
+  // pickup/dropoff in real time via the /share socket namespace.
+  const [shareLoading, setShareLoading] = useState(false);
+  const handleShareTrip = async () => {
+    if (shareLoading) return;
+    setShareLoading(true);
+    try {
+      const r = await rideService.shareRide(rideId);
+      const url = r && r.shareUrl;
+      if (!url) { Alert.alert('Erreur', 'Lien indisponible'); return; }
+      const driverPart = ride && ride.driver && ride.driver.userId && ride.driver.userId.name
+        ? ' avec ' + ride.driver.userId.name : '';
+      const platePart = ride && ride.driver && ride.driver.vehicle && ride.driver.vehicle.licensePlate
+        ? ' (plaque ' + ride.driver.vehicle.licensePlate + ')' : '';
+      const message = 'Suivez mon trajet TeranGO en direct' + driverPart + platePart + ': ' + url;
+      await Share.share({ message: message, url: url, title: 'Mon trajet TeranGO' });
+    } catch (e) {
+      console.warn('Share trip error:', e && e.message);
+      Alert.alert('Erreur', 'Impossible de partager le trajet');
+    } finally { setShareLoading(false); }
+  };
+
   const [sosSending, setSosSending] = useState(false);
   const handleSOS = () => {
     Alert.alert(
@@ -283,6 +308,7 @@ const ActiveRideScreen = ({ route, navigation }) => {
                 <View style={styles.contactRow}>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Linking.openURL('tel:'+(ride?.driver?.userId?.phone || ''))}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4DE)}</Text><Text style={styles.contactLabel}>Appeler</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => setShowChat(true)}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4AC)}</Text><Text style={styles.contactLabel}>Chat</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.contactButton} onPress={handleShareTrip} disabled={shareLoading}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x1F4E4)}</Text><Text style={styles.contactLabel}>{shareLoading ? '...' : 'Partager'}</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={handleSOS} disabled={sosSending}><Text style={[styles.contactBtnIcon, { color: '#FF3B30' }]}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={[styles.contactLabel, { color: '#FF3B30', fontFamily: 'LexendDeca_700Bold' }]}>{sosSending ? 'Envoi...' : 'SOS'}</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x2139) + String.fromCodePoint(0xFE0F)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
