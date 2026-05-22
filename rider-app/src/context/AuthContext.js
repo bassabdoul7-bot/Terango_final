@@ -94,8 +94,23 @@ export const AuthProvider = ({ children }) => {
     } catch (error) { console.error('Delete account error:', error); throw error; }
   };
 
+  // Re-fetch /auth/me and persist the latest user (used after safety-settings
+  // updates so emergencyContacts + autoShare propagate to the active-ride
+  // screen without a full app restart).
+  const refreshUser = async () => {
+    try {
+      const r = await authService.getMe();
+      if (r && r.success && r.user) {
+        setUser(r.user);
+        await AsyncStorage.setItem('user', JSON.stringify(r.user));
+        return r.user;
+      }
+    } catch (e) { console.warn('refreshUser error:', e && e.message); }
+    return null;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isGuest, loading, login, loginWithPin, registerUser, logout, enterGuestMode, exitGuestMode, deleteAccount }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isGuest, loading, login, loginWithPin, registerUser, logout, enterGuestMode, exitGuestMode, deleteAccount, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

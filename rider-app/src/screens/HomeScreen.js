@@ -539,12 +539,18 @@ function HomeScreen(props) {
         <View style={styles.profileSection}>
           <Text style={styles.profileSectionTitle}>{'Sécurité'}</Text>
           <View style={styles.profileGroup}>
-            <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={toggleSecurityPin}>
+            <TouchableOpacity style={styles.profileRow} onPress={toggleSecurityPin}>
               <Text style={styles.profileEmoji}>{'\uD83D\uDD12'}</Text>
               <Text style={styles.profileLabel}>Code de sécurité</Text>
               <View style={[styles.pinToggle, securityPinEnabled && styles.pinToggleOn]}>
                 <View style={[styles.pinToggleDot, securityPinEnabled && styles.pinToggleDotOn]} />
               </View>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.profileRow, { borderBottomWidth: 0 }]} onPress={function() { navigation.navigate('SafetySettings'); }}>
+              <Text style={styles.profileEmoji}>{String.fromCodePoint(0x1F6E1, 0xFE0F)}</Text>
+              <Text style={styles.profileLabel}>Contacts de confiance</Text>
+              <Text style={styles.profileValue} numberOfLines={1}>{(user && user.autoShare && user.autoShare.enabled) ? 'Partage auto active' : 'Configurer'}</Text>
+              <Text style={styles.profileChevron}>{'›'}</Text>
             </TouchableOpacity>
           </View>
         </View>

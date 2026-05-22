@@ -180,6 +180,9 @@ router.put('/security-pin', protect, updateSecurityPin);
 // Emergency contacts
 router.put('/emergency-contacts', protect, updateEmergencyContacts);
 
+// Auto-share safety setting
+router.put('/auto-share', protect, require('../controllers/authController').updateAutoShare);
+
 // Delete account
 var { deleteAccount } = require('../controllers/authController');
 router.delete('/account', protect, deleteAccount);

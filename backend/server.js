@@ -128,20 +128,26 @@ app.get('/share/:token', async function(req, res) {
     var Ride = require('./models/Ride');
     var ride = await Ride.findOne({ shareToken: req.params.token, shareEnabled: true })
       .populate({ path: 'riderId', populate: { path: 'userId', select: 'name phone' } })
-      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone' } });
+      .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone profilePhoto rating' } });
 
     if (!ride) {
       return res.status(404).send('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TeranGO</title></head><body style="background:#001A12;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><div style="text-align:center"><h1>Lien invalide</h1><p>Ce lien de partage n\'existe pas ou a expire.</p></div></body></html>');
     }
 
     var riderName = (ride.riderId && ride.riderId.userId && ride.riderId.userId.name) ? ride.riderId.userId.name : 'Passager';
-    var driverName = (ride.driver && ride.driver.userId && ride.driver.userId.name) ? ride.driver.userId.name : 'Chauffeur';
+    var driverUser = ride.driver && ride.driver.userId ? ride.driver.userId : null;
+    var driverName = driverUser && driverUser.name ? driverUser.name : 'Chauffeur';
+    var driverPhoto = driverUser && driverUser.profilePhoto ? driverUser.profilePhoto : '';
+    var driverPhone = driverUser && driverUser.phone ? driverUser.phone : '';
+    var driverRating = driverUser && driverUser.rating != null ? Number(driverUser.rating).toFixed(1) : '';
+    var vehicleFrontPhoto = ride.driver && ride.driver.vehicleFrontPhoto ? ride.driver.vehicleFrontPhoto : '';
+    var licensePlate = ride.driver && ride.driver.vehicle && ride.driver.vehicle.licensePlate ? ride.driver.vehicle.licensePlate : '';
     var vehicleInfo = '';
     if (ride.driver && ride.driver.vehicle) {
       vehicleInfo = (ride.driver.vehicle.make || '') + ' ' + (ride.driver.vehicle.model || '');
       if (ride.driver.vehicle.color) vehicleInfo += ' - ' + ride.driver.vehicle.color;
-      if (ride.driver.vehicle.licensePlate) vehicleInfo += ' (' + ride.driver.vehicle.licensePlate + ')';
     }
+    vehicleInfo = vehicleInfo.trim();
 
     var isFinished = ['completed', 'cancelled'].indexOf(ride.status) !== -1;
     var statusLabel = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course en cours', completed: 'Course terminee', cancelled: 'Course annulee' }[ride.status] || ride.status;
@@ -171,10 +177,17 @@ app.get('/share/:token', async function(req, res) {
   .card { background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:14px; margin-bottom:12px; }
   .card-title { font-size:12px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px; }
   .driver-row { display:flex; align-items:center; gap:12px; }
-  .driver-avatar { width:44px; height:44px; border-radius:22px; background:#00853F; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:#fff; flex-shrink:0; }
-  .driver-info { flex:1; }
+  .driver-photos { display:flex; flex-direction:column; gap:6px; align-items:center; flex-shrink:0; }
+  .driver-avatar { width:54px; height:54px; border-radius:27px; background:#00853F; display:flex; align-items:center; justify-content:center; font-size:20px; font-weight:700; color:#fff; overflow:hidden; border:2px solid #D4AF37; }
+  .driver-avatar img { width:100%; height:100%; object-fit:cover; }
+  .vehicle-thumb { width:72px; height:48px; border-radius:10px; background:#FFFFFF; border:1px solid rgba(255,255,255,0.1); overflow:hidden; }
+  .vehicle-thumb img { width:100%; height:100%; object-fit:cover; }
+  .driver-info { flex:1; min-width:0; }
   .driver-name { font-size:16px; font-weight:700; }
-  .vehicle-info { font-size:13px; color:rgba(255,255,255,0.6); margin-top:2px; }
+  .driver-meta { font-size:12px; color:rgba(255,255,255,0.55); margin-top:2px; }
+  .vehicle-info { font-size:13px; color:rgba(255,255,255,0.7); margin-top:4px; }
+  .plate-badge { display:inline-block; margin-top:6px; padding:3px 10px; border-radius:8px; background:rgba(212,175,55,0.12); border:1px solid rgba(212,175,55,0.35); color:#D4AF37; font-weight:700; font-size:13px; letter-spacing:1px; }
+  .verified-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; background:rgba(0,133,63,0.15); color:#22c55e; border-radius:12px; font-size:11px; font-weight:600; margin-top:4px; border:1px solid rgba(34,197,94,0.35); }
   .address-row { display:flex; align-items:center; gap:10px; padding:8px 0; }
   .dot-green { width:12px; height:12px; border-radius:6px; background:#00853F; flex-shrink:0; }
   .dot-red { width:12px; height:12px; background:#FF3B30; flex-shrink:0; }
@@ -198,12 +211,18 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
   <div class="status-badge ${isFinished ? 'finished' : (ride.status === 'in_progress' ? 'in-progress' : '')}">${statusLabel}</div>
 
   <div class="card">
-    <div class="card-title">Chauffeur</div>
+    <div class="card-title">Chauffeur v&eacute;rifi&eacute; TeranGO</div>
     <div class="driver-row">
-      <div class="driver-avatar">${driverName.charAt(0)}</div>
+      <div class="driver-photos">
+        <div class="driver-avatar">${driverPhoto ? '<img src="' + driverPhoto + '" alt="">' : driverName.charAt(0)}</div>
+        ${vehicleFrontPhoto ? '<div class="vehicle-thumb"><img src="' + vehicleFrontPhoto + '" alt=""></div>' : ''}
+      </div>
       <div class="driver-info">
         <div class="driver-name">${driverName}</div>
+        ${driverRating ? '<div class="driver-meta">&#9733; ' + driverRating + ' &middot; ' + (driverPhone || '') + '</div>' : (driverPhone ? '<div class="driver-meta">' + driverPhone + '</div>' : '')}
         ${vehicleInfo ? '<div class="vehicle-info">' + vehicleInfo + '</div>' : ''}
+        ${licensePlate ? '<div class="plate-badge">' + licensePlate + '</div>' : ''}
+        <div class="verified-pill">&#10003; V&eacute;rifi&eacute;</div>
       </div>
     </div>
   </div>

@@ -8,6 +8,7 @@ import { createAuthSocket } from '../services/socket';
 import GlassButton from '../components/GlassButton';
 import COLORS from '../constants/colors';
 import { rideService } from '../services/api.service';
+import { useAuth } from '../context/AuthContext';
 import ChatScreen from './ChatScreen';
 import CAR_IMAGES from '../constants/carImages';
 import * as ImagePicker from 'expo-image-picker';
@@ -181,7 +182,53 @@ const ActiveRideScreen = ({ route, navigation }) => {
   // then hands it to the native share sheet (WhatsApp, SMS, etc.). The URL
   // serves a no-auth HTML page on the backend that shows driver position +
   // pickup/dropoff in real time via the /share socket namespace.
+  const auth = useAuth();
+  const userObj = (auth && auth.user) || {};
+  const trustedContacts = (userObj.emergencyContacts || []).filter(function(c) { return c && c.name && c.phone; });
+  const autoShareConfig = userObj.autoShare || {};
   const [shareLoading, setShareLoading] = useState(false);
+  const autoShareFiredRef = useRef(false);
+
+  // Build a share message for a specific driver context.
+  const buildShareMessage = (url) => {
+    const driverPart = ride && ride.driver && ride.driver.userId && ride.driver.userId.name
+      ? ' avec ' + ride.driver.userId.name : '';
+    const platePart = ride && ride.driver && ride.driver.vehicle && ride.driver.vehicle.licensePlate
+      ? ' (plaque ' + ride.driver.vehicle.licensePlate + ')' : '';
+    return 'Suivez mon trajet TeranGO en direct' + driverPart + platePart + ': ' + url;
+  };
+
+  // Open WhatsApp first (most-used in Senegal); fall back to SMS.
+  const openMessenger = async (phone, message) => {
+    const clean = String(phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
+    const waUrl = 'whatsapp://send?phone=' + clean + '&text=' + encodeURIComponent(message);
+    const smsUrl = 'sms:' + (String(phone).indexOf('+') === 0 ? phone : ('+' + clean)) + '?body=' + encodeURIComponent(message);
+    try {
+      const canWa = await Linking.canOpenURL(waUrl);
+      if (canWa) { await Linking.openURL(waUrl); return true; }
+      await Linking.openURL(smsUrl);
+      return true;
+    } catch (e) {
+      try { await Linking.openURL(smsUrl); return true; } catch (e2) { return false; }
+    }
+  };
+
+  // Share the live link to a specific trusted contact in one tap.
+  const handleShareToContact = async (contact) => {
+    if (shareLoading) return;
+    setShareLoading(true);
+    try {
+      const r = await rideService.shareRide(rideId);
+      const url = r && r.shareUrl;
+      if (!url) { Alert.alert('Erreur', 'Lien indisponible'); return; }
+      await openMessenger(contact.phone, buildShareMessage(url));
+    } catch (e) {
+      console.warn('Share to contact error:', e && e.message);
+      Alert.alert('Erreur', 'Impossible de partager');
+    } finally { setShareLoading(false); }
+  };
+
+  // Open the native share sheet for everything else.
   const handleShareTrip = async () => {
     if (shareLoading) return;
     setShareLoading(true);
@@ -189,16 +236,44 @@ const ActiveRideScreen = ({ route, navigation }) => {
       const r = await rideService.shareRide(rideId);
       const url = r && r.shareUrl;
       if (!url) { Alert.alert('Erreur', 'Lien indisponible'); return; }
-      const driverPart = ride && ride.driver && ride.driver.userId && ride.driver.userId.name
-        ? ' avec ' + ride.driver.userId.name : '';
-      const platePart = ride && ride.driver && ride.driver.vehicle && ride.driver.vehicle.licensePlate
-        ? ' (plaque ' + ride.driver.vehicle.licensePlate + ')' : '';
-      const message = 'Suivez mon trajet TeranGO en direct' + driverPart + platePart + ': ' + url;
-      await Share.share({ message: message, url: url, title: 'Mon trajet TeranGO' });
+      await Share.share({ message: buildShareMessage(url), url: url, title: 'Mon trajet TeranGO' });
     } catch (e) {
       console.warn('Share trip error:', e && e.message);
       Alert.alert('Erreur', 'Impossible de partager le trajet');
     } finally { setShareLoading(false); }
+  };
+
+  // Auto-share when the ride transitions to accepted and the user opted in.
+  // Checks the time window when alwaysOn is false. Fires once per screen mount
+  // via `autoShareFiredRef`.
+  useEffect(() => {
+    if (!ride || autoShareFiredRef.current) return;
+    if (!['accepted', 'arrived', 'in_progress'].includes(ride.status)) return;
+    if (!autoShareConfig.enabled) return;
+    if (!autoShareConfig.contactPhone) return;
+    // Hour window check (wraps midnight): start <= now < end OR (start > end AND (now >= start OR now < end))
+    if (!autoShareConfig.alwaysOn) {
+      const h = new Date().getHours();
+      const s = autoShareConfig.startHour;
+      const e = autoShareConfig.endHour;
+      const inWindow = s <= e ? (h >= s && h < e) : (h >= s || h < e);
+      if (!inWindow) return;
+    }
+    autoShareFiredRef.current = true;
+    handleShareToContact({ name: autoShareConfig.contactName, phone: autoShareConfig.contactPhone });
+  }, [ride && ride.status]);
+
+  // "Arrived safely" — pings every trusted contact with a quick reassurance
+  // message. Visible during in_progress; tap once, opens WhatsApp prefilled.
+  const handleArrivedSafely = async () => {
+    if (trustedContacts.length === 0) {
+      Alert.alert('Pas de contact', 'Ajoutez d\'abord un contact de confiance dans les parametres de securite.');
+      return;
+    }
+    const message = 'Bonne nouvelle: je suis arrive(e) sain(e) et sauf(ve). Merci de votre attention. — TeranGO';
+    for (let i = 0; i < trustedContacts.length; i++) {
+      await openMessenger(trustedContacts[i].phone, message);
+    }
   };
 
   const [sosSending, setSosSending] = useState(false);
@@ -312,6 +387,28 @@ const ActiveRideScreen = ({ route, navigation }) => {
                   <TouchableOpacity style={styles.contactButton} onPress={handleSOS} disabled={sosSending}><Text style={[styles.contactBtnIcon, { color: '#FF3B30' }]}>{String.fromCodePoint(0x1F6A8)}</Text><Text style={[styles.contactLabel, { color: '#FF3B30', fontFamily: 'LexendDeca_700Bold' }]}>{sosSending ? 'Envoi...' : 'SOS'}</Text></TouchableOpacity>
                   <TouchableOpacity style={styles.contactButton} onPress={() => Alert.alert('Support TeranGO', 'Comment pouvons-nous vous aider?', [{text:'Annuler',style:'cancel'},{text:'Appeler',onPress:()=>Linking.openURL('tel:+221338234567')},{text:'WhatsApp',onPress:()=>Linking.openURL('https://wa.me/221778234567')}])}><Text style={styles.contactBtnIcon}>{String.fromCodePoint(0x2139) + String.fromCodePoint(0xFE0F)}</Text><Text style={styles.contactLabel}>Support</Text></TouchableOpacity>
                 </View>
+
+                {/* One-tap share chips to trusted contacts (Safety > Contacts de confiance) */}
+                {trustedContacts.length > 0 && (
+                  <View style={styles.trustedChipsRow}>
+                    <Text style={styles.trustedChipsLabel}>Partager avec</Text>
+                    {trustedContacts.map(function(c, i) {
+                      return (
+                        <TouchableOpacity key={i} style={styles.trustedChip} onPress={function() { handleShareToContact(c); }} disabled={shareLoading}>
+                          <Text style={styles.trustedChipText}>{String.fromCodePoint(0x1F4E4) + ' ' + (c.name || 'Contact')}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* "Arrived safely" — visible only during in_progress so it
+                    doesn't compete with the pre-pickup UI. */}
+                {ride.status === 'in_progress' && trustedContacts.length > 0 && (
+                  <TouchableOpacity style={styles.arrivedSafelyBtn} onPress={handleArrivedSafely}>
+                    <Text style={styles.arrivedSafelyText}>{String.fromCodePoint(0x2705) + " J'arrive bien — prevenir mes proches"}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
             {ride.pinRequired && ride.securityPin && (
@@ -423,6 +520,12 @@ const styles = StyleSheet.create({
   contactButton: { alignItems: 'center', flex: 1 },
   contactBtnIcon: { fontSize: 22, marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   contactLabel: { fontSize: 11, fontFamily: 'LexendDeca_500Medium', color: '#5a5a5a' },
+  trustedChipsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)' },
+  trustedChipsLabel: { fontSize: 11, color: '#5a5a5a', fontFamily: 'LexendDeca_600SemiBold', marginRight: 8, marginBottom: 6 },
+  trustedChip: { backgroundColor: 'rgba(0,133,63,0.08)', borderWidth: 1, borderColor: 'rgba(0,133,63,0.25)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, marginRight: 6, marginBottom: 6 },
+  trustedChipText: { fontSize: 12, color: COLORS.green, fontFamily: 'LexendDeca_600SemiBold' },
+  arrivedSafelyBtn: { marginTop: 10, paddingVertical: 12, borderRadius: 10, backgroundColor: 'rgba(0,133,63,0.12)', borderWidth: 1, borderColor: 'rgba(0,133,63,0.3)', alignItems: 'center' },
+  arrivedSafelyText: { fontSize: 13, color: COLORS.green, fontFamily: 'LexendDeca_700Bold' },
   fareTag: { alignItems: 'flex-end' },
   fareTagAmount: { fontSize: 18, fontFamily: 'LexendDeca_700Bold', color: COLORS.yellow },
   fareTagCurrency: { fontSize: 11, color: '#757575', fontFamily: 'LexendDeca_400Regular' },

@@ -182,6 +182,8 @@ exports.getMe = async (req, res) => {
         profilePhoto: user.profilePhoto,
         rating: user.rating,
         totalRatings: user.totalRatings,
+        emergencyContacts: user.emergencyContacts || [],
+        autoShare: user.autoShare || { enabled: false, alwaysOn: false, startHour: 22, endHour: 6, contactPhone: '', contactName: '' },
         ...profileData?._doc
       }
     });
@@ -718,6 +720,28 @@ exports.updateEmergencyContacts = async (req, res) => {
     res.status(200).json({ success: true, contacts: valid });
   } catch (error) {
     console.error('Update emergency contacts error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
+// @route PUT /api/auth/auto-share
+// Configures the auto-share-on-ride-accept safety feature. Body shape:
+// { enabled, alwaysOn, startHour, endHour, contactPhone, contactName }.
+// All fields optional — only the ones present are updated.
+exports.updateAutoShare = async (req, res) => {
+  try {
+    var body = req.body || {};
+    var update = {};
+    if (typeof body.enabled === 'boolean') update['autoShare.enabled'] = body.enabled;
+    if (typeof body.alwaysOn === 'boolean') update['autoShare.alwaysOn'] = body.alwaysOn;
+    if (Number.isInteger(body.startHour) && body.startHour >= 0 && body.startHour <= 23) update['autoShare.startHour'] = body.startHour;
+    if (Number.isInteger(body.endHour) && body.endHour >= 0 && body.endHour <= 23) update['autoShare.endHour'] = body.endHour;
+    if (typeof body.contactPhone === 'string') update['autoShare.contactPhone'] = body.contactPhone.substring(0, 20);
+    if (typeof body.contactName === 'string') update['autoShare.contactName'] = body.contactName.substring(0, 50);
+    var u = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true });
+    res.status(200).json({ success: true, autoShare: u.autoShare });
+  } catch (error) {
+    console.error('Update auto-share error:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 };

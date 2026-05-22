@@ -27,6 +27,18 @@ var userSchema = new mongoose.Schema({
     name: { type: String },
     phone: { type: String }
   }],
+  // Auto-share live trip URL to a designated emergency contact when a ride
+  // is accepted. When alwaysOn=true the hour window is ignored. Otherwise
+  // auto-share only fires if the current local hour is in [startHour, endHour).
+  // Window can wrap midnight (e.g. 22 -> 6 means 22:00-06:00).
+  autoShare: {
+    enabled: { type: Boolean, default: false },
+    alwaysOn: { type: Boolean, default: false },
+    startHour: { type: Number, default: 22, min: 0, max: 23 },
+    endHour: { type: Number, default: 6, min: 0, max: 23 },
+    contactPhone: { type: String, default: '' },
+    contactName: { type: String, default: '' }
+  },
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

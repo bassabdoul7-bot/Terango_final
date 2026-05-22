@@ -26,6 +26,7 @@ import FleetAgreementScreen from '../screens/FleetAgreementScreen';
 import FleetMyListingsScreen from '../screens/FleetMyListingsScreen';
 import FleetCreateListingScreen from '../screens/FleetCreateListingScreen';
 import FleetListingApplicationsScreen from '../screens/FleetListingApplicationsScreen';
+import SafetySettingsScreen from '../screens/SafetySettingsScreen';
 
 const Stack = createNativeStackNavigator();
 const AppNavigator = () => {
@@ -72,6 +73,7 @@ const AppNavigator = () => {
             <Stack.Screen name="FleetMyListings" component={FleetMyListingsScreen} />
             <Stack.Screen name="FleetCreateListing" component={FleetCreateListingScreen} />
             <Stack.Screen name="FleetListingApplications" component={FleetListingApplicationsScreen} />
+            <Stack.Screen name="SafetySettings" component={SafetySettingsScreen} />
           </>
         )}
       </Stack.Navigator>

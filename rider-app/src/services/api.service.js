@@ -27,6 +27,8 @@ export var authService = {
   updateProfile: function(data) { return api.put('/auth/profile', data); },
   registerPushToken: function(token) { return api.put('/auth/push-token', { pushToken: token }); },
   deleteAccount: function() { return api.delete('/auth/account'); },
+  updateEmergencyContacts: function(contacts) { return api.put('/auth/emergency-contacts', { contacts: contacts }); },
+  updateAutoShare: function(settings) { return api.put('/auth/auto-share', settings); },
 };
 
 export var rideService = {
