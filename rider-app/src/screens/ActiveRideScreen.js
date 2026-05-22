@@ -102,7 +102,21 @@ const SearchingAnimation = ({ searchTime, rideType }) => {
   const carPulseAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => { Animated.loop(Animated.sequence([Animated.timing(pulseAnim, { toValue: 1.2, duration: 1500, useNativeDriver: true }), Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true })])).start(); Animated.loop(Animated.sequence([Animated.timing(orbitAnim, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }), Animated.timing(orbitAnim, { toValue: 0, duration: 2000, easing: Easing.inOut(Easing.ease), useNativeDriver: true })])).start(); Animated.loop(Animated.sequence([Animated.timing(carPulseAnim, { toValue: 1.15, duration: 800, useNativeDriver: true }), Animated.timing(carPulseAnim, { toValue: 1, duration: 800, useNativeDriver: true })])).start(); }, []);
   const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
-  const getStatus = () => { if (searchTime < 10) return 'Recherche de chauffeurs...'; if (searchTime < 20) return 'Expansion de la zone...'; if (searchTime < 40) return 'Rayon plus large...'; return 'Toujours en recherche...'; };
+  const getStatus = () => {
+    if (searchTime < 10) return 'Recherche de chauffeurs...';
+    if (searchTime < 25) return 'Expansion de la zone...';
+    if (searchTime < 60) return 'Notification envoyee a tous les chauffeurs...';
+    if (searchTime < 120) return 'Toujours en recherche, merci de patienter...';
+    return 'Recherche en cours - jusqu\'a 5 minutes max';
+  };
+  // Encourage the rider to wait — empirical pattern: most pre-1-minute cancels
+  // are pure impatience; the match would have landed within the next 30s.
+  const getReassurance = () => {
+    if (searchTime < 30) return null;
+    if (searchTime < 90) return "Ne quittez pas - un chauffeur peut accepter a tout moment.";
+    return "Plus long que d'habitude. Patientez ou reessayez dans quelques minutes.";
+  };
+  const reassurance = getReassurance();
   return (
     <View style={searchStyles.container}>
       <Animated.View style={[searchStyles.pulseCircle, searchStyles.pulseCircle1, { transform: [{ scale: pulseAnim }] }]} />
@@ -111,7 +125,7 @@ const SearchingAnimation = ({ searchTime, rideType }) => {
       <Animated.View style={[searchStyles.carContainer, { transform: [{ translateX: orbitAnim.interpolate({ inputRange: [0, 1], outputRange: [-35, 35] }) }, { translateY: orbitAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0, -8, 0] }) }, { scale: carPulseAnim }] }]}><View style={searchStyles.carIcon}><Image source={{ uri: (CAR_IMAGES[rideType] || CAR_IMAGES.standard).uri }} style={searchStyles.carImage} resizeMode="contain" /></View></Animated.View>
       <View style={searchStyles.timerContainer}><Text style={searchStyles.timerText}>{formatTime(searchTime)}</Text></View>
       <Text style={searchStyles.statusText}>{getStatus()}</Text>
-      {searchTime >= 30 && <Text style={searchStyles.tipText}>{"\uD83D\uDCA1 Essayez aux heures de pointe"}</Text>}
+      {reassurance && <Text style={searchStyles.tipText}>{reassurance}</Text>}
     </View>
   );
 };

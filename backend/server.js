@@ -593,6 +593,15 @@ io.on('connection', function(socket) {
             driverId: driverId,
             location: { latitude: latitude, longitude: longitude }
           });
+          // Poke the matching service so any pending ride waiting on supply
+          // re-runs its dispatch immediately instead of after the next 30s
+          // retry tick. No-op when no rides are pending.
+          try {
+            var ms = app.get('matchingService');
+            if (ms && typeof ms.onDriverCameOnline === 'function') {
+              ms.onDriverCameOnline(driverId).catch(function(){});
+            }
+          } catch (e) {}
         })
         .catch(function(err) {
           console.error('Driver online failed for ' + driverId + ':', err.message);

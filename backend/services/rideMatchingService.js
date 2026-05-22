@@ -17,7 +17,9 @@ class RideMatchingService {
     this.DRIVER_RESPONSE_TIMEOUT = 60000;
     this.MAX_SEARCH_TIME = 300000; // 5 minutes
     this.SEARCH_RETRY_INTERVAL = 30000; // 30 seconds
-    this.BLAST_NOTIFICATION_THRESHOLD = 60000; // Send blast after 60s with no match
+    // Blast at 25s — most riders rage-cancel under a minute. Earlier blast
+    // gives offline drivers more reaction window before the rider bails.
+    this.BLAST_NOTIFICATION_THRESHOLD = 25000;
   }
 
   setDriverLocationService(driverLocationService) {
@@ -163,6 +165,68 @@ class RideMatchingService {
     return this.searchTimeouts.has(String(rideId));
   }
 
+  /**
+   * Called from server.js when a driver flips online, so any pending ride
+   * search waiting on supply can fire immediately instead of waiting up to
+   * 30s for the next retry tick. Cheap: most of the time `searchTimeouts`
+   * is empty and this exits in microseconds.
+   */
+  async onDriverCameOnline(driverId) {
+    try {
+      if (!driverId || this.searchTimeouts.size === 0) return;
+      const driver = await Driver.findById(driverId).lean();
+      if (!driver || driver.verificationStatus !== 'approved' || driver.isSuspended || driver.isBanned) return;
+      const driverLoc = driver.currentLocation && driver.currentLocation.coordinates;
+      if (!driverLoc || typeof driverLoc.latitude !== 'number' || typeof driverLoc.longitude !== 'number') return;
+
+      for (const [rideId, searchData] of this.searchTimeouts.entries()) {
+        try {
+          const ride = await Ride.findById(rideId).lean();
+          if (!ride || ride.status !== 'pending' || !ride.pickup || !ride.pickup.coordinates) continue;
+
+          // Don't poke about rides this driver already rejected.
+          const offerData = this.pendingOffers.get(rideId);
+          if (offerData && offerData.rejectedDrivers && offerData.rejectedDrivers.includes(String(driverId))) continue;
+
+          // Make sure the driver type matches the ride. (Currently all
+          // passenger rides are car-only; if/when moto passenger rides exist
+          // this needs widening.)
+          if (!driver.acceptedServices || driver.acceptedServices.rides !== true) continue;
+          if (driver.vehicleType !== 'car') continue;
+
+          const dist = calculateDistance(
+            ride.pickup.coordinates.latitude, ride.pickup.coordinates.longitude,
+            driverLoc.latitude, driverLoc.longitude
+          );
+          // 20 km outer bound matches the final search-radius tier.
+          if (dist > 20) continue;
+
+          // Last-minute guard: don't kick off if there's already a live offer
+          // out to a different driver — let that one play out first.
+          if (offerData && offerData.currentDriverId) continue;
+
+          console.log(`?? Driver ${driverId} (${dist.toFixed(2)}km) came online — re-triggering match for ride ${rideId}`);
+          // Reset attempt to 0 so we use the tight 3km radius first.
+          this.searchAndOfferToDrivers(rideId, ride.pickup.coordinates, {
+            pickup: ride.pickup,
+            dropoff: ride.dropoff,
+            fare: ride.fare,
+            distance: ride.distance,
+            estimatedDuration: ride.estimatedDuration,
+            rideType: ride.rideType,
+            paymentMethod: ride.paymentMethod,
+            platformCommission: ride.platformCommission,
+            driverEarnings: ride.driverEarnings
+          }, 0).catch(function(err) { console.error('Re-trigger search error:', err); });
+        } catch (innerErr) {
+          console.error('onDriverCameOnline inner error:', innerErr);
+        }
+      }
+    } catch (err) {
+      console.error('onDriverCameOnline error:', err);
+    }
+  }
+
   async offerRideToDrivers(rideId, pickupCoords, rideData) {
     rideId = String(rideId);
     try {
@@ -186,14 +250,23 @@ class RideMatchingService {
       const ride = await Ride.findById(rideId);
       if (!ride || ride.status !== 'pending') return;
 
-      // Query ALL approved drivers (not just online) within 20km
-      const allDrivers = await Driver.find({
+      // Filter by vehicleType so we don't spam moto drivers for car rides
+      // (rideType standard/comfort/xl all = car; deliveries use a different
+      // dispatch path, this function is only called for passenger rides).
+      const rideType = rideData.rideType || 'standard';
+      const blastQuery = {
         verificationStatus: 'approved',
         isBlockedForPayment: { $ne: true },
         isSuspended: { $ne: true },
         isBanned: { $ne: true },
-        currentLocation: { $exists: true }
-      }).populate('userId', 'name phone');
+        currentLocation: { $exists: true },
+        // Only drivers who actually take passenger rides — moto drivers with
+        // acceptedServices.rides = false would just be annoyed by a push
+        // they can't act on.
+        'acceptedServices.rides': true,
+        vehicleType: 'car'
+      };
+      const allDrivers = await Driver.find(blastQuery).populate('userId', 'name phone');
 
       const nearbyApproved = allDrivers.filter(driver => {
         if (!driver.currentLocation || !driver.currentLocation.coordinates) return false;
