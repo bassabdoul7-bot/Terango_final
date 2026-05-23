@@ -183,6 +183,16 @@ const HomeScreen = ({ navigation }) => {
     }
   }, [location]);
 
+  // If a "Passer en ligne" tap is waiting for GPS and the location fetch
+  // gave up (gettingLocation became false but no location came in), don't
+  // strand the button on a forever-spinner.
+  useEffect(() => {
+    if (!gettingLocation && pendingGoOnline.current && !location) {
+      pendingGoOnline.current = false;
+      setLoading(false);
+    }
+  }, [gettingLocation, location]);
+
   // Re-register the driver in their socket room exactly once per online
   // session (not on every GPS poll). Fires when isOnline transitions to
   // true with socket + location + driverId all ready, so a freshly-mounted
@@ -300,29 +310,66 @@ const HomeScreen = ({ navigation }) => {
     s.on('disconnect', (reason) => { console.log('Socket disconnected:', reason); });
   };
 
-  const initializeLocation = () => {
+  // Wrap a promise in a timeout — Expo's getCurrentPositionAsync `timeout`
+  // option is unreliable in practice on Android (returns "Location request
+  // timed out" sometimes, hangs forever others, e.g. indoor / weak signal).
+  // This guarantees we never wait longer than `ms`.
+  const withTimeout = (p, ms) => new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    p.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+
+  const initializeLocation = async () => {
     setGettingLocation(true);
     setPermissionDenied(false);
-    Location.requestForegroundPermissionsAsync().then((result) => {
-      if (result.status !== 'granted') {
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== 'granted') {
         setPermissionDenied(true);
         Alert.alert('Permission requise', 'Localisation necessaire pour passer en ligne.', [
           { text: 'Reessayer', onPress: initializeLocation },
           { text: 'Ouvrir Parametres', onPress: () => Linking.openSettings() },
         ]);
-        setGettingLocation(false);
         return;
       }
-      return Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High, timeout: 15000 });
-    }).then((cur) => {
-      if (cur) setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude });
-    }).catch(() => {
-      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }).then((loc) => {
-        setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-      }).catch(() => {
+
+      // 1) Instant fast-path: last cached position. Skip if too stale.
+      try {
+        const last = await Location.getLastKnownPositionAsync({ maxAge: 5 * 60 * 1000 });
+        if (last && last.coords) {
+          setLocation({ latitude: last.coords.latitude, longitude: last.coords.longitude });
+          // Keep going to refine with a fresh High-accuracy fix in the
+          // background, but the screen is already past the loading state.
+        }
+      } catch (e) {}
+
+      // 2) High accuracy, hard 12s cap.
+      try {
+        const cur = await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High }), 12000);
+        if (cur && cur.coords) {
+          setLocation({ latitude: cur.coords.latitude, longitude: cur.coords.longitude });
+          return;
+        }
+      } catch (e) {}
+
+      // 3) Balanced fallback, hard 8s cap.
+      try {
+        const loc = await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }), 8000);
+        if (loc && loc.coords) {
+          setLocation({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+          return;
+        }
+      } catch (e) {}
+
+      // If we still have no location AND the cached fast-path didn't set one,
+      // we're really stuck — show the retry alert. If the fast-path already
+      // populated `location`, the user is unblocked and we just skip the alert.
+      if (!location) {
         Alert.alert('GPS non disponible', 'Verifiez que le GPS est active.', [{ text: 'Reessayer', onPress: initializeLocation }]);
-      });
-    }).finally(() => setGettingLocation(false));
+      }
+    } finally {
+      setGettingLocation(false);
+    }
   };
 
   const startLocationPolling = () => {
