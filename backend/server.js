@@ -210,6 +210,8 @@ app.get('/share/:token', async function(req, res) {
   .finished-overlay { position:absolute; top:0; left:0; right:0; bottom:0; background:rgba(0,26,18,0.85); display:flex; align-items:center; justify-content:center; z-index:1000; flex-direction:column; }
   .finished-overlay h2 { font-size:24px; margin-top:12px; }
   .finished-overlay p { color:rgba(255,255,255,0.6); margin-top:8px; }
+  .eta-line { font-size:14px; color:rgba(255,255,255,0.75); margin:6px 0 12px; min-height:18px; }
+  .eta-line strong { color:#D4AF37; font-weight:700; }
 </style>
 </head>
 <body>
@@ -217,6 +219,7 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
 <div id="map"></div>
 <div class="info-panel">
   <div id="status-badge" class="status-badge ${isFinished ? 'finished' : (ride.status === 'in_progress' ? 'in-progress' : '')}">${statusLabel}</div>
+  <div id="eta-line" class="eta-line"></div>
 
   <div class="card">
     <div class="card-title">Chauffeur v&eacute;rifi&eacute; TeranGO</div>
@@ -274,7 +277,36 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
   var bounds = L.latLngBounds([[pickupLat, pickupLng], [dropoffLat, dropoffLng], [driverLat, driverLng]]);
   map.fitBounds(bounds, { padding: [40, 40] });
 
+  // ETA via OSRM — driver → pickup before in_progress, → dropoff after.
+  // Refreshes on a 15s interval, on every status change, and on first load.
+  // Throttled (not per-location) to spare OSRM and battery.
+  var currentStatus = '${ride.status}';
+  var etaEl = document.getElementById('eta-line');
+  var etaTimer = null;
+  var etaFetching = false;
+  function etaTarget() {
+    if (currentStatus === 'in_progress') return [dropoffLat, dropoffLng, 'Arrivée à destination dans'];
+    return [pickupLat, pickupLng, 'Chauffeur arrive dans'];
+  }
+  function refreshEta() {
+    if (!etaEl) return;
+    if (currentStatus === 'arrived') { etaEl.innerHTML = 'Chauffeur arrivé au point de départ'; return; }
+    if (currentStatus === 'pending' || currentStatus === 'completed' || currentStatus === 'cancelled') { etaEl.textContent = ''; return; }
+    if (etaFetching) return;
+    etaFetching = true;
+    var t = etaTarget();
+    var url = 'https://osrm.terango.sn/route/v1/driving/' + driverLng + ',' + driverLat + ';' + t[1] + ',' + t[0] + '?overview=false&steps=false';
+    fetch(url).then(function(r) { return r.json(); }).then(function(d) {
+      if (d && d.code === 'Ok' && d.routes && d.routes[0]) {
+        var min = Math.max(1, Math.round(d.routes[0].duration / 60));
+        etaEl.innerHTML = t[2] + ' <strong>~' + min + ' min</strong>';
+      }
+    }).catch(function() {}).then(function() { etaFetching = false; });
+  }
+
   if (!isFinished) {
+    refreshEta();
+    etaTimer = setInterval(refreshEta, 15000);
     try {
       var socket = io(window.location.origin + '/share', { transports: ['websocket', 'polling'] });
       socket.on('connect', function() {
@@ -282,19 +314,24 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
       });
       socket.on('share-location-update', function(data) {
         if (data && typeof data.latitude === 'number' && typeof data.longitude === 'number') {
-          driverMarker.setLatLng([data.latitude, data.longitude]);
-          map.panTo([data.latitude, data.longitude]);
+          driverLat = data.latitude; driverLng = data.longitude;
+          driverMarker.setLatLng([driverLat, driverLng]);
+          map.panTo([driverLat, driverLng]);
         }
       });
       socket.on('share-status-update', function(data) {
         if (!data || !data.status) return;
+        currentStatus = data.status;
         var badge = document.getElementById('status-badge');
-        if (!badge) return;
-        var labels = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree' };
-        badge.textContent = labels[data.status] || data.status;
-        badge.className = 'status-badge' + (data.status === 'in_progress' ? ' in-progress' : '');
+        if (badge) {
+          var labels = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree' };
+          badge.textContent = labels[data.status] || data.status;
+          badge.className = 'status-badge' + (data.status === 'in_progress' ? ' in-progress' : '');
+        }
+        refreshEta();
       });
       socket.on('share-ride-ended', function(data) {
+        if (etaTimer) { clearInterval(etaTimer); etaTimer = null; }
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;background:#001A12;color:#fff;font-family:sans-serif"><div style="font-size:48px">' + (data.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2 style="margin-top:12px">Course terminee</h2><p style="color:rgba(255,255,255,0.6);margin-top:8px">' + (data.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>';
       });
     } catch(e) { console.log('Socket error:', e); }
