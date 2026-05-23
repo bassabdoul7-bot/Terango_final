@@ -265,6 +265,45 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
+// @desc    Logout — clear push token + flip driver offline/unavailable so
+// the matching service stops offering rides to a logged-out phone. Without
+// this, after the app deletes its local token the backend still has the
+// user marked online for up to 30 min (auto-offline window) and the Expo
+// push token stays registered, so offer notifications keep arriving.
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = async (req, res) => {
+  try {
+    // Clear all push token fields (role-specific + legacy mirror) so Expo
+    // stops getting hits for this phone until next login re-registers.
+    await User.findByIdAndUpdate(req.user._id, {
+      pushToken: null,
+      driverPushToken: null,
+      riderPushToken: null
+    });
+
+    // If this user has a driver profile, take them out of the matching pool.
+    if (req.user.role === 'driver') {
+      var Driver = require('../models/Driver');
+      var driver = await Driver.findOne({ userId: req.user._id });
+      if (driver) {
+        driver.isOnline = false;
+        driver.isAvailable = false;
+        await driver.save();
+        try {
+          var driverLocationService = req.app.get('driverLocationService');
+          if (driverLocationService) await driverLocationService.setDriverOffline(driver._id.toString());
+        } catch (e) { /* best-effort */ }
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Logout Error:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur' });
+  }
+};
+
 // @desc    Register push notification token
 // @route   PUT /api/auth/push-token
 // @access  Private

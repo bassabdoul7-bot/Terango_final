@@ -85,6 +85,7 @@ api.interceptors.response.use(
 
 export const authService = {
   registerPushToken: (pushToken) => api.put('/auth/push-token', { pushToken }),
+  logout: () => api.post('/auth/logout'),
 
   register: (phone, name, email, pin, role) => api.post('/auth/register', { phone, name, email, pin, role }),
   loginWithPin: (phone, pin) => api.post('/auth/login', { phone, pin, role: 'driver' }),

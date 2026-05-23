@@ -26,6 +26,7 @@ export var authService = {
   getMe: function() { return api.get('/auth/me'); },
   updateProfile: function(data) { return api.put('/auth/profile', data); },
   registerPushToken: function(token) { return api.put('/auth/push-token', { pushToken: token }); },
+  logout: function() { return api.post('/auth/logout'); },
   deleteAccount: function() { return api.delete('/auth/account'); },
   updateEmergencyContacts: function(contacts) { return api.put('/auth/emergency-contacts', { contacts: contacts }); },
   updateAutoShare: function(settings) { return api.put('/auth/auto-share', settings); },

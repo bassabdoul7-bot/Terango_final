@@ -149,6 +149,12 @@ export const AuthProvider = ({ children }) => {
 
     const logout = async () => {
     try {
+      // Tell the backend BEFORE clearing the local token — otherwise the
+      // request goes out unauthenticated. This clears the push token and
+      // flips the driver offline/unavailable so the matching service stops
+      // offering rides. Best-effort: a network failure shouldn't trap the
+      // user in a logged-in state, so we proceed with local cleanup either way.
+      try { await authService.logout(); } catch (e) { /* swallow */ }
       // Stop foreground-service heartbeat if it was running
       try { const { stopBackgroundOnline } = require('../services/backgroundOnline'); await stopBackgroundOnline(); } catch (e) {}
       await SecureStore.deleteItemAsync('token');

@@ -10,6 +10,7 @@ const {
   updateProfile,
   adminLogin,
   registerPushToken,
+  logout,
   register,
   loginWithPin,
   forgotPin,
@@ -133,6 +134,7 @@ router.post(
 
 // Push token
 router.put('/push-token', protect, registerPushToken);
+router.post('/logout', protect, logout);
 
 // Admin login
 router.post(

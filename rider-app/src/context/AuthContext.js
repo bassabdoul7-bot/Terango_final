@@ -81,6 +81,10 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      // Tell the backend BEFORE clearing the local token — otherwise the
+      // request goes out unauthenticated. Clears the rider's push token so
+      // notifications stop arriving on this phone after logout.
+      try { await authService.logout(); } catch (e) { /* swallow */ }
       await AsyncStorage.removeItem('token'); await AsyncStorage.removeItem('user');
       setUser(null); setIsAuthenticated(false); setIsGuest(false);
     } catch (error) { console.error('Logout error:', error); }
