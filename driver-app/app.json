@@ -30,7 +30,7 @@
         "backgroundColor": "#00853F"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 136,
+      "versionCode": 137,
       "package": "com.terango.driver",
       "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": false,
@@ -63,8 +63,19 @@
       "@maplibre/maplibre-react-native",
       "expo-secure-store",
       "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      "@react-native-firebase/messaging",
+      "expo-updates"
     ],
+    "updates": {
+      "url": "https://u.expo.dev/a5a7e340-92fd-41a2-a046-8d9941134dda",
+      "fallbackToCacheTimeout": 3000,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "a5a7e340-92fd-41a2-a046-8d9941134dda"
