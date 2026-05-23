@@ -440,6 +440,20 @@ class RideMatchingService {
       }
 
       const { driver, distance, driverId } = driversList[currentIndex];
+
+      // Re-check availability at the moment of emit. The driversList was
+      // fetched once; cycling through with 15s timeouts means a driver at
+      // index N may have accepted a different ride before we reach them.
+      // Skip them silently if so — no push, no vibration.
+      const freshDriver = await Driver.findById(driverId).select('isAvailable isBlockedForPayment');
+      if (!freshDriver || freshDriver.isAvailable !== true || freshDriver.isBlockedForPayment === true) {
+        console.log(`?? Skipping driver ${driverId} (no longer available) for ride ${rideId}`);
+        const skipData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
+        if (!skipData.rejectedDrivers.includes(driverId)) skipData.rejectedDrivers.push(driverId);
+        this.pendingOffers.set(rideId, skipData);
+        return await this.offerToNextDriver(rideId, driversList, currentIndex + 1, rideData, pickupCoords);
+      }
+
       console.log(`?? Offering ride ${rideId} to driver ${driverId} (${distance.toFixed(2)}km away)`);
 
       const offerData = this.pendingOffers.get(rideId) || { rejectedDrivers: [] };
@@ -575,6 +589,27 @@ class RideMatchingService {
 
       // Mark driver as unavailable
       await Driver.findByIdAndUpdate(driverId, { isAvailable: false });
+
+      // Cancel any OTHER ride currently being offered to this same driver.
+      // Without this, a driver accepting ride A still gets pushes/vibrations
+      // for ride B because its offer timeout (15s) is still running and the
+      // emit/push already fired. Each affected ride bumps to its next driver.
+      var driverIdStr = String(driverId);
+      var entries = Array.from(this.pendingOffers.entries());
+      for (var i = 0; i < entries.length; i++) {
+        var otherRideId = entries[i][0];
+        var otherOfferData = entries[i][1];
+        if (otherRideId === rideId) continue;
+        if (!otherOfferData) continue;
+        if (String(otherOfferData.currentDriverId || '') !== driverIdStr) continue;
+        console.log('Cancelling stale offer ' + otherRideId + ' for driver ' + driverIdStr + ' (just accepted ' + rideId + ')');
+        var staleTimeout = this.offerTimeouts.get(otherRideId);
+        if (staleTimeout) { clearTimeout(staleTimeout); this.offerTimeouts.delete(otherRideId); }
+        otherOfferData.rejectedDrivers = otherOfferData.rejectedDrivers || [];
+        if (otherOfferData.rejectedDrivers.indexOf(driverIdStr) === -1) otherOfferData.rejectedDrivers.push(driverIdStr);
+        this.io.to('driver-' + driverIdStr).emit('ride-taken', { rideId: otherRideId });
+        this.offerToNextDriver(otherRideId, otherOfferData.driversList, (otherOfferData.currentIndex || 0) + 1, otherOfferData.rideData, otherOfferData.pickupCoords);
+      }
 
       // FIXED: Notify rider via room
       this.io.to(rideId).emit('ride-accepted', {
