@@ -56,7 +56,7 @@ exports.calculateFare = function(distance, rideType, durationMinutes, pickupDist
   var totalFare = surgedCost + pickupFee;
 
   var fare = Math.ceil(totalFare / 100) * 100;
-  var minimums = { standard: 700, comfort: 700, xl: 1000 };
+  var minimums = { standard: 650, comfort: 700, xl: 1000 };
   fare = Math.max(fare, minimums[rideType] || 500);
 
   return {
