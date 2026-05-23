@@ -299,7 +299,9 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
     fetch(url).then(function(r) { return r.json(); }).then(function(d) {
       if (d && d.code === 'Ok' && d.routes && d.routes[0]) {
         var min = Math.max(1, Math.round(d.routes[0].duration / 60));
-        etaEl.innerHTML = t[2] + ' <strong>~' + min + ' min</strong>';
+        var meters = d.routes[0].distance;
+        var distStr = meters < 1000 ? Math.round(meters) + ' m' : (meters / 1000).toFixed(1) + ' km';
+        etaEl.innerHTML = t[2] + ' <strong>~' + min + ' min</strong> · ' + distStr;
       }
     }).catch(function() {}).then(function() { etaFetching = false; });
   }
