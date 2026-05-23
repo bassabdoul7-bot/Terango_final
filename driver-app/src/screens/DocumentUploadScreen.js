@@ -120,8 +120,8 @@ const DocumentUploadScreen = ({ onComplete }) => {
   // ===== STEP 1: VEHICLE TYPE =====
   if (step === 1) {
     return (
-      <View style={styles.container}>
-        <View style={styles.centered}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+        <View>
           <Text style={styles.title}>Bienvenue sur TeranGO</Text>
           <Text style={styles.subtitle}>Quel type de vehicule utilisez-vous ?</Text>
 
@@ -165,7 +165,7 @@ const DocumentUploadScreen = ({ onComplete }) => {
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
