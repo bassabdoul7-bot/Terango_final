@@ -588,6 +588,14 @@ class RideMatchingService {
         }
       });
 
+      // Live-update share-link viewers (Chauffeur en route).
+      if (ride.shareEnabled && ride.shareToken) {
+        var acceptShareRoom = 'share-' + ride.shareToken;
+        var acceptPayload = { status: 'accepted' };
+        this.io.to(acceptShareRoom).emit('share-status-update', acceptPayload);
+        this.io.of('/share').to(acceptShareRoom).emit('share-status-update', acceptPayload);
+      }
+
       // Push notify rider - driver found
       const acceptedRider = await require('../models/Rider').findById(ride.riderId);
       if (acceptedRider) {

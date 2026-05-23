@@ -124,6 +124,14 @@ app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'runnin
 
 // ========== SHARE MY RIDE — Public page ==========
 app.get('/share/:token', async function(req, res) {
+  // The default helmet() applied above sets a strict CSP + COEP/CORP that
+  // blocks the Leaflet JS, OSM tiles, inline script, and Cloudinary images
+  // this page needs. Strip those for the public share page only — the rest
+  // of the API keeps its security headers.
+  res.removeHeader('Content-Security-Policy');
+  res.removeHeader('Cross-Origin-Embedder-Policy');
+  res.removeHeader('Cross-Origin-Opener-Policy');
+  res.removeHeader('Cross-Origin-Resource-Policy');
   try {
     var Ride = require('./models/Ride');
     var ride = await Ride.findOne({ shareToken: req.params.token, shareEnabled: true })
@@ -150,7 +158,7 @@ app.get('/share/:token', async function(req, res) {
     vehicleInfo = vehicleInfo.trim();
 
     var isFinished = ['completed', 'cancelled'].indexOf(ride.status) !== -1;
-    var statusLabel = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course en cours', completed: 'Course terminee', cancelled: 'Course annulee' }[ride.status] || ride.status;
+    var statusLabel = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree', completed: 'Course terminee', cancelled: 'Course annulee' }[ride.status] || ride.status;
 
     var pickupLat = ride.pickup.coordinates.latitude;
     var pickupLng = ride.pickup.coordinates.longitude;
@@ -208,7 +216,7 @@ app.get('/share/:token', async function(req, res) {
 ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (ride.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2>Course terminee</h2><p>' + (ride.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>' : ''}
 <div id="map"></div>
 <div class="info-panel">
-  <div class="status-badge ${isFinished ? 'finished' : (ride.status === 'in_progress' ? 'in-progress' : '')}">${statusLabel}</div>
+  <div id="status-badge" class="status-badge ${isFinished ? 'finished' : (ride.status === 'in_progress' ? 'in-progress' : '')}">${statusLabel}</div>
 
   <div class="card">
     <div class="card-title">Chauffeur v&eacute;rifi&eacute; TeranGO</div>
@@ -232,10 +240,6 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
     <div class="address-row"><div class="dot-green"></div><div class="address-text">${ride.pickup.address}</div></div>
     <div class="divider"></div>
     <div class="address-row"><div class="dot-red"></div><div class="address-text">${ride.dropoff.address}</div></div>
-    <div class="fare-row">
-      <div class="fare-label">Tarif</div>
-      <div class="fare-amount">${(ride.fare || 0).toLocaleString()} FCFA</div>
-    </div>
   </div>
 </div>
 
@@ -281,6 +285,14 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
           driverMarker.setLatLng([data.latitude, data.longitude]);
           map.panTo([data.latitude, data.longitude]);
         }
+      });
+      socket.on('share-status-update', function(data) {
+        if (!data || !data.status) return;
+        var badge = document.getElementById('status-badge');
+        if (!badge) return;
+        var labels = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree' };
+        badge.textContent = labels[data.status] || data.status;
+        badge.className = 'status-badge' + (data.status === 'in_progress' ? ' in-progress' : '');
       });
       socket.on('share-ride-ended', function(data) {
         document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;background:#001A12;color:#fff;font-family:sans-serif"><div style="font-size:48px">' + (data.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2 style="margin-top:12px">Course terminee</h2><p style="color:rgba(255,255,255,0.6);margin-top:8px">' + (data.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>';

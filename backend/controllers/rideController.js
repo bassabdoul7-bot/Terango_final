@@ -9,6 +9,18 @@ const SafetyAlert = require('../models/SafetyAlert');
 const { calculateDistance, estimateDuration } = require('../utils/distance');
 const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils/fare');
 
+// Fan a mid-trip status change out to the public /share viewers so the
+// shared link updates live (Chauffeur en route → Chauffeur arrivé → Course
+// démarrée). End-of-trip is handled separately via `share-ride-ended`.
+function emitShareStatus(io, ride) {
+  if (!io || !ride || !ride.shareEnabled || !ride.shareToken) return;
+  var shareRoom = 'share-' + ride.shareToken;
+  var payload = { status: ride.status };
+  io.to(shareRoom).emit('share-status-update', payload);
+  io.of('/share').to(shareRoom).emit('share-status-update', payload);
+}
+exports._emitShareStatus = emitShareStatus;
+
 // @desc    Create a new ride request
 // @route   POST /api/rides
 // @access  Private (Rider only)
@@ -268,7 +280,24 @@ exports.getActiveRide = async (req, res) => {
       riderId: rider._id,
       status: { $in: ["pending", "accepted", "arrived", "in_progress"] }
     }).populate({ path: "driver", populate: { path: "userId", select: "name phone rating profilePhoto" } });
-    res.status(200).json({ success: !!ride, ride: ride || null });
+
+    // If no active ride, also surface a recently-completed unrated ride so the
+    // rider lands on RatingScreen on relaunch instead of skipping it (e.g.
+    // ride completed while app was backgrounded and OS killed the JS bundle).
+    var pendingRating = null;
+    if (!ride) {
+      var oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      pendingRating = await Ride.findOne({
+        riderId: rider._id,
+        status: 'completed',
+        completedAt: { $gte: oneHourAgo },
+        $or: [{ 'riderRating.rating': { $exists: false } }, { 'riderRating.rating': null }]
+      })
+        .sort({ completedAt: -1 })
+        .populate({ path: 'driver', populate: { path: 'userId', select: 'name phone rating profilePhoto' } });
+    }
+
+    res.status(200).json({ success: !!ride, ride: ride || null, pendingRating: pendingRating || null });
   } catch (e) { res.status(500).json({ success: false, message: e.message }); }
 };
 
@@ -461,6 +490,11 @@ exports.updateRideStatus = async (req, res) => {
       timestamp: new Date()
     });
 
+    // Live-update the public share page for mid-trip status changes.
+    if (status === 'arrived' || status === 'in_progress' || status === 'accepted') {
+      emitShareStatus(io, ride);
+    }
+
     if (ride.status === 'completed' && driver && driver.queuedJob && driver.queuedJob.refId) {
       const { promoteQueuedJob } = require('../services/tripQueueService');
       await promoteQueuedJob(driver._id, io);
@@ -533,6 +567,9 @@ exports.startRide = async (req, res) => {
       rideId: ride._id,
       startedAt: ride.startedAt
     });
+
+    // Live-update the public share page (Course démarrée).
+    emitShareStatus(io, ride);
 
     res.status(200).json({
       success: true,

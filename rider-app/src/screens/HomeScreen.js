@@ -96,7 +96,7 @@ function HomeScreen(props) {
     if (!isGuest) {
       loadRideHistory();
       loadFavoriteDrivers();
-      rideService.getActiveRide().then(function(res) { if (res && res.success && res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); } }).catch(function() {});
+      checkActiveOrPendingRide();
       // Resume in-flight deliveries too — without this, a colis/commande lasting
       // longer than the OS keeps the JS bundle alive (~30 min on most Android
       // phones) drops the rider on Home with no way back to tracking even though
@@ -145,6 +145,9 @@ function HomeScreen(props) {
             socketRef.current.connect();
           }
           fetchNearbyDrivers();
+          // Catch the case where the ride finished while we were backgrounded —
+          // without this the rider lands on Home and the rating step is lost.
+          checkActiveOrPendingRide();
         }
       }
       appStateRef.current = nextAppState;
@@ -177,6 +180,18 @@ function HomeScreen(props) {
     AsyncStorage.setItem('savedPlaces', JSON.stringify(places)).catch(function(err) {
       console.log('Save places error:', err);
     });
+  }
+
+  // Resume an in-flight ride OR pick up a recently-completed ride whose
+  // rating screen got skipped (app was backgrounded/killed at the moment of
+  // completion). Backend returns either `ride` (active) or `pendingRating`
+  // (completed in last hour, no riderRating yet).
+  function checkActiveOrPendingRide() {
+    rideService.getActiveRide().then(function(res) {
+      if (!res) return;
+      if (res.ride) { navigation.replace('ActiveRide', { rideId: res.ride._id }); return; }
+      if (res.pendingRating) { navigation.replace('Rating', { ride: res.pendingRating }); }
+    }).catch(function() {});
   }
 
   function loadRideHistory() {
