@@ -123,6 +123,27 @@ const logRoutes = require('./routes/logRoutes');
 app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
 
 // ========== SHARE MY RIDE — Public page ==========
+// JSON status poll for the share page. Mobile in-app browsers (WhatsApp
+// webview especially) kill idle WebSockets to save battery, so the socket
+// `share-status-update` push reaches no-one when the contact has the tab
+// in the background. The client polls this every ~10s as a safety net —
+// socket stays the fast path, polling guarantees freshness within 10s.
+app.get('/share/:token/state', async function(req, res) {
+  try {
+    var Ride = require('./models/Ride');
+    var ride = await Ride.findOne({ shareToken: req.params.token, shareEnabled: true })
+      .select('status driver shareToken')
+      .populate({ path: 'driver', select: 'currentLocation' });
+    if (!ride) return res.status(404).json({ ok: false });
+    var loc = ride.driver && ride.driver.currentLocation && ride.driver.currentLocation.coordinates
+      ? { lat: ride.driver.currentLocation.coordinates.latitude, lng: ride.driver.currentLocation.coordinates.longitude }
+      : null;
+    res.json({ ok: true, status: ride.status, driver: loc });
+  } catch (e) {
+    res.status(500).json({ ok: false });
+  }
+});
+
 app.get('/share/:token', async function(req, res) {
   // The default helmet() applied above sets a strict CSP + COEP/CORP that
   // blocks the Leaflet JS, OSM tiles, inline script, and Cloudinary images
@@ -306,9 +327,41 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
     }).catch(function() {}).then(function() { etaFetching = false; });
   }
 
+  // Apply a status change from either source (socket or polling). De-duped
+  // so a status the page is already showing doesn't trigger a needless DOM
+  // write or ETA refresh.
+  function applyStatus(newStatus) {
+    if (!newStatus || newStatus === currentStatus) return;
+    currentStatus = newStatus;
+    var badge = document.getElementById('status-badge');
+    if (badge) {
+      var labels = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree' };
+      badge.textContent = labels[newStatus] || newStatus;
+      badge.className = 'status-badge' + (newStatus === 'in_progress' ? ' in-progress' : '');
+    }
+    refreshEta();
+    if (newStatus === 'completed' || newStatus === 'cancelled') {
+      document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;background:#001A12;color:#fff;font-family:sans-serif"><div style="font-size:48px">' + (newStatus === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2 style="margin-top:12px">Course terminee</h2><p style="color:rgba(255,255,255,0.6);margin-top:8px">' + (newStatus === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>';
+    }
+  }
+
+  // Polling fallback for mobile browsers that kill idle WebSockets.
+  // Cheap (single Mongo lookup, no populates besides driver.currentLocation).
+  function pollState() {
+    fetch('/share/' + shareToken + '/state').then(function(r) { return r.json(); }).then(function(d) {
+      if (!d || !d.ok) return;
+      applyStatus(d.status);
+      if (d.driver && typeof d.driver.lat === 'number' && typeof d.driver.lng === 'number') {
+        driverLat = d.driver.lat; driverLng = d.driver.lng;
+        try { driverMarker.setLatLng([driverLat, driverLng]); } catch(e) {}
+      }
+    }).catch(function() {});
+  }
+
   if (!isFinished) {
     refreshEta();
     etaTimer = setInterval(refreshEta, 15000);
+    setInterval(pollState, 10000);
     try {
       var socket = io(window.location.origin + '/share', { transports: ['websocket', 'polling'] });
       socket.on('connect', function() {
@@ -322,19 +375,11 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
         }
       });
       socket.on('share-status-update', function(data) {
-        if (!data || !data.status) return;
-        currentStatus = data.status;
-        var badge = document.getElementById('status-badge');
-        if (badge) {
-          var labels = { pending: 'En attente', accepted: 'Chauffeur en route', arrived: 'Chauffeur arrive', in_progress: 'Course demarree' };
-          badge.textContent = labels[data.status] || data.status;
-          badge.className = 'status-badge' + (data.status === 'in_progress' ? ' in-progress' : '');
-        }
-        refreshEta();
+        if (data && data.status) applyStatus(data.status);
       });
       socket.on('share-ride-ended', function(data) {
         if (etaTimer) { clearInterval(etaTimer); etaTimer = null; }
-        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;background:#001A12;color:#fff;font-family:sans-serif"><div style="font-size:48px">' + (data.status === 'completed' ? '&#x2705;' : '&#x274C;') + '</div><h2 style="margin-top:12px">Course terminee</h2><p style="color:rgba(255,255,255,0.6);margin-top:8px">' + (data.status === 'completed' ? 'Le passager est arrive a destination.' : 'Cette course a ete annulee.') + '</p></div>';
+        applyStatus(data && data.status ? data.status : 'completed');
       });
     } catch(e) { console.log('Socket error:', e); }
   }
