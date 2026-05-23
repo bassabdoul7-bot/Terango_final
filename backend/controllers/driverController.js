@@ -90,9 +90,27 @@ exports.toggleOnlineStatus = function(req, res) {
 
       var driverLocationService = req.app.get('driverLocationService');
       driver.isOnline = isOnline;
-      driver.isAvailable = isOnline;
 
-      driver.save().then(function() {
+      // Do NOT blindly flip isAvailable=true when going online. ActiveRide
+      // screens call toggleOnlineStatus(true) periodically to refresh the
+      // online state — without this check each refresh resets the driver
+      // to available while they're mid-trip, and the matching service
+      // immediately offers them a new ride (push + vibration).
+      var Ride = require('../models/Ride');
+      var availabilityP;
+      if (isOnline) {
+        availabilityP = Ride.exists({
+          driver: driver._id,
+          status: { $in: ['accepted', 'arrived', 'in_progress'] }
+        }).then(function(activeRide) {
+          driver.isAvailable = !activeRide;
+        });
+      } else {
+        driver.isAvailable = false;
+        availabilityP = Promise.resolve();
+      }
+
+      availabilityP.then(function() { return driver.save(); }).then(function() {
         if (isOnline && latitude && longitude) {
           return driverLocationService.setDriverOnline(driver._id.toString(), latitude, longitude, {
             vehicle: driver.vehicle,
