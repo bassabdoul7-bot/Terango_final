@@ -13,9 +13,12 @@ const { calculateFare, calculateEarnings, getTierFromRides } = require('../utils
 // shared link updates live (Chauffeur en route → Chauffeur arrivé → Course
 // démarrée). End-of-trip is handled separately via `share-ride-ended`.
 function emitShareStatus(io, ride) {
-  if (!io || !ride || !ride.shareEnabled || !ride.shareToken) return;
+  if (!io || !ride) { console.log('[share-status] skip: no io or ride'); return; }
+  if (!ride.shareEnabled || !ride.shareToken) { console.log('[share-status] skip ride', ride._id && ride._id.toString(), 'shareEnabled=' + ride.shareEnabled + ' shareToken=' + (ride.shareToken ? 'yes' : 'no')); return; }
   var shareRoom = 'share-' + ride.shareToken;
   var payload = { status: ride.status };
+  var sharedRoomSize = (io.of('/share').adapter.rooms.get(shareRoom) || new Set()).size;
+  console.log('[share-status] emit', payload.status, 'to', shareRoom, '— /share viewers in room:', sharedRoomSize);
   io.to(shareRoom).emit('share-status-update', payload);
   io.of('/share').to(shareRoom).emit('share-status-update', payload);
 }
