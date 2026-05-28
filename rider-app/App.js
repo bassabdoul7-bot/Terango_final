@@ -6,6 +6,7 @@ import { useFonts, LexendDeca_300Light, LexendDeca_400Regular, LexendDeca_500Med
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import OtaUpdater from './src/components/OtaUpdater';
+import UpdateGate from './src/components/UpdateGate';
 
 const defaultHandler = ErrorUtils.getGlobalHandler();
 ErrorUtils.setGlobalHandler((error, isFatal) => {
@@ -37,6 +38,7 @@ export default function App() {
       <StatusBar style="dark" />
       <AppNavigator />
       <OtaUpdater />
+      <UpdateGate />
     </AuthProvider>
   );
 }

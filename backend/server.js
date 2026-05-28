@@ -122,6 +122,26 @@ const logRoutes = require('./routes/logRoutes');
 
 app.get('/', function(req, res) { res.json({ app: 'TeranGO API', status: 'running' }); });
 
+// Mandatory version check served from env vars so a force-update can ship
+// without redeploying code — bump DRIVER_MIN_VERSION_CODE / RIDER_MIN_VERSION_
+// CODE in .env and `pm2 restart`. The app reads this on every launch and
+// blocks with a full-screen "Mettre à jour" modal if its baked-in version
+// is below the minimum. No "Later" — that's the product call.
+app.get('/api/app-version/:role', function(req, res) {
+  var role = req.params.role;
+  if (role !== 'driver' && role !== 'rider') return res.status(400).json({ ok: false });
+  var prefix = role === 'driver' ? 'DRIVER' : 'RIDER';
+  var pkg = role === 'driver' ? 'com.terango.driver' : 'com.terango.rider';
+  res.json({
+    ok: true,
+    minVersionCode: parseInt(process.env[prefix + '_MIN_VERSION_CODE'] || '0', 10),
+    latestVersionCode: parseInt(process.env[prefix + '_LATEST_VERSION_CODE'] || '0', 10),
+    playStoreUrl: 'https://play.google.com/store/apps/details?id=' + pkg,
+    marketUrl: 'market://details?id=' + pkg,
+    message: process.env[prefix + '_UPDATE_MESSAGE'] || 'Une nouvelle version de TeranGO est disponible. Mettez à jour pour continuer.'
+  });
+});
+
 // ========== SHARE MY RIDE — Public page ==========
 // JSON status poll for the share page. Mobile in-app browsers (WhatsApp
 // webview especially) kill idle WebSockets to save battery, so the socket

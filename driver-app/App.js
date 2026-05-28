@@ -7,6 +7,7 @@ import { Anton_400Regular } from '@expo-google-fonts/anton';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import OtaUpdater from './src/components/OtaUpdater';
+import UpdateGate from './src/components/UpdateGate';
 // Register the background heartbeat task at module load so TaskManager
 // can resume it after cold start. Safe even for offline drivers — the
 // task only actually runs while location updates are active.
@@ -53,6 +54,7 @@ export default function App() {
       <StatusBar style="auto" />
       <AppNavigator />
       <OtaUpdater />
+      <UpdateGate />
     </AuthProvider>
   );
 }
