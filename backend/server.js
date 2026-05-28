@@ -153,6 +153,12 @@ app.get('/share/:token', async function(req, res) {
   res.removeHeader('Cross-Origin-Embedder-Policy');
   res.removeHeader('Cross-Origin-Opener-Policy');
   res.removeHeader('Cross-Origin-Resource-Policy');
+  // Force fresh fetch every time so an updated map/script/HTML reaches the
+  // viewer without them having to clear cache. Especially important inside
+  // WhatsApp's in-app browser, which caches aggressively.
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   try {
     var Ride = require('./models/Ride');
     var ride = await Ride.findOne({ shareToken: req.params.token, shareEnabled: true })
@@ -194,7 +200,7 @@ app.get('/share/:token', async function(req, res) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Suivre ma course - TeranGO</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#001A12; color:#fff; }
@@ -271,7 +277,7 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
   <p class="footer-text">Powered by <strong style="color:#00853F">TeranGO</strong> &mdash; <a href="https://play.google.com/store/apps/details?id=com.terango.rider" target="_blank">T&eacute;l&eacute;chargez l'app</a></p>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"><\/script>
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"><\/script>
 <script>
 (function() {
@@ -281,9 +287,28 @@ ${isFinished ? '<div class="finished-overlay"><div style="font-size:48px">' + (r
   var dropoffLat = ${dropoffLat}, dropoffLng = ${dropoffLng};
   var driverLat = ${driverLat}, driverLng = ${driverLng};
 
+  // Defensive guard: if Leaflet didn't load (CDN blocked / slow network), show
+  // a graceful fallback so the page is still useful instead of an empty box.
+  if (typeof L === 'undefined') {
+    var mapEl = document.getElementById('map');
+    if (mapEl) {
+      mapEl.style.display = 'flex';
+      mapEl.style.alignItems = 'center';
+      mapEl.style.justifyContent = 'center';
+      mapEl.style.padding = '20px';
+      mapEl.style.textAlign = 'center';
+      mapEl.innerHTML = '<div style="color:rgba(255,255,255,0.6);font-size:14px;line-height:1.5">Carte indisponible<br/><span style="font-size:12px;color:rgba(255,255,255,0.4)">Connexion lente — les informations du chauffeur restent visibles ci-dessous.</span></div>';
+    }
+    return;
+  }
   var map = L.map('map', { zoomControl: false }).setView([driverLat, driverLng], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap'
+  // CartoDB dark tiles via Cloudfront — much more reliable in West Africa than
+  // tile.openstreetmap.org which throttles foreign traffic. Tiles fall back
+  // through a/b/c/d subdomains automatically inside Leaflet.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 19
   }).addTo(map);
 
   var greenIcon = L.divIcon({ className: '', html: '<div style="width:16px;height:16px;border-radius:8px;background:#00853F;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
