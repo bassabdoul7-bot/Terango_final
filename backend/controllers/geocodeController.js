@@ -1,4 +1,5 @@
 var fetch = global.fetch;
+var placeSearchService = require('../services/placeSearchService');
 
 var UPSTREAM = process.env.GEOCODE_UPSTREAM || 'https://geocode.terango.sn';
 var DEFAULT_VIEWBOX = '-17.60,14.85,-17.10,14.55'; // Dakar metro
@@ -120,8 +121,9 @@ exports.search = async function(req, res) {
     });
     scored.sort(function(a, b) { return a.score - b.score; });
 
-    var results = scored.slice(0, 8).map(function(s) {
+    var osmResults = scored.slice(0, 8).map(function(s) {
       return {
+        source: 'osm',
         lat: s.rlat, lng: s.rlon,
         display_name: s.item.display_name || '',
         address: s.item.address || {},
@@ -131,6 +133,11 @@ exports.search = async function(req, res) {
         importance: typeof s.item.importance === 'number' ? s.item.importance : 0
       };
     });
+
+    // Cascade — partner DB first, OSM in the middle, Google as fallback
+    // when the combined hits don't reach the threshold (handles all the
+    // Senegalese SMBs that aren't on OpenStreetMap).
+    var results = await placeSearchService.merge(q, hasGps ? lat : null, hasGps ? lng : null, osmResults);
 
     lruSet(searchCache, cacheKey, results, SEARCH_CACHE_TTL, SEARCH_CACHE_MAX);
     return res.json({ success: true, results: results });
