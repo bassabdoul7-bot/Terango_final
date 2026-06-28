@@ -25,11 +25,18 @@
 
 var Restaurant = require('../models/Restaurant');
 
-var SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000;          // 24h — Google cache
-var SEARCH_CACHE_MAX = 2000;                            // distinct queries kept
-var GOOGLE_TRIGGER_THRESHOLD = 3;                       // call Google only if combined results < 3
+var SEARCH_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;      // 7 days — Senegal riders search the same 200 spots over and over
+var SEARCH_CACHE_MAX = 5000;                            // raised: 7d retention needs a bigger pool
+var GOOGLE_TRIGGER_THRESHOLD = 1;                       // call Google ONLY when partner+OSM gave nothing — cuts ~40% of paid calls
 var PARTNER_RESULT_LIMIT = 5;
 var GOOGLE_RESULT_LIMIT = 8;
+
+// Defensive degradation — once Google has refused us recently (429 rate limit,
+// 403 billing/permission, etc.) we stop calling for COOLDOWN_MS so we don't
+// burn time and money repeating a failing request. App keeps working with
+// partner+OSM only until cooldown expires.
+var GOOGLE_COOLDOWN_MS = 5 * 60 * 1000;                 // 5 min
+var googleCooldownUntil = 0;
 var SENEGAL_BIAS = '14.6928,-17.4467';                  // Dakar centroid
 var SENEGAL_BBOX = { minLat: 12.30, maxLat: 16.70, minLon: -17.55, maxLon: -11.35 };
 
@@ -142,6 +149,7 @@ exports.searchGoogle = async function(query, userLat, userLng) {
   // wires a dedicated one later.
   var apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) return [];                                // silently disabled
+  if (Date.now() < googleCooldownUntil) return [];       // defensive: backing off after a recent 429/403
   var q = String(query || '').trim();
   if (q.length < 2) return [];
 
@@ -190,6 +198,12 @@ exports.searchGoogle = async function(query, userLat, userLng) {
     if (!resp.ok) {
       var text = await resp.text();
       console.error('Google Places error', resp.status, text.slice(0, 300));
+      // 429 (rate limit), 403 (billing/permission), or 5xx → enter cooldown so
+      // we don't keep retrying a broken state on every search.
+      if (resp.status === 429 || resp.status === 403 || resp.status >= 500) {
+        googleCooldownUntil = Date.now() + GOOGLE_COOLDOWN_MS;
+        console.warn('Google Places in cooldown until', new Date(googleCooldownUntil).toISOString());
+      }
       return [];
     }
     var data = await resp.json();
