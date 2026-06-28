@@ -39,7 +39,8 @@ const RideSelectionScreen = ({ route, navigation }) => {
 
   const fetchNearbyDrivers = async () => { try { const r = await driverService.getNearbyDrivers(pickup.coordinates.latitude, pickup.coordinates.longitude, 10); if (r.success) setNearbyDrivers(r.drivers); } catch (e) {} };
 
-  const GOOGLE_MAPS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+  // Google Directions via backend proxy — key never leaves the server.
+  const DIRECTIONS_PROXY_URL = 'https://api.terango.sn/api/google/directions';
 
   const getDirections = async (currentStop) => {
     setCalculatingFare(true);
@@ -47,8 +48,8 @@ const RideSelectionScreen = ({ route, navigation }) => {
       // Try Google first
       try {
         var waypointParam = '';
-        if (currentStop) waypointParam = `&waypoints=${currentStop.coordinates.latitude},${currentStop.coordinates.longitude}`;
-        const gUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}${waypointParam}&key=${GOOGLE_MAPS_KEY}`;
+        if (currentStop) waypointParam = `&waypoint=${currentStop.coordinates.latitude},${currentStop.coordinates.longitude}`;
+        const gUrl = `${DIRECTIONS_PROXY_URL}?origin=${pickup.coordinates.latitude},${pickup.coordinates.longitude}&destination=${dropoff.coordinates.latitude},${dropoff.coordinates.longitude}${waypointParam}`;
         const gR = await fetch(gUrl);
         const gData = await gR.json();
         if (gData.status === 'OK' && gData.routes.length > 0) {

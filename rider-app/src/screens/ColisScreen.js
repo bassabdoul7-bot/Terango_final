@@ -122,7 +122,9 @@ function ColisScreen(props) {
 
   async function getRoadDistance() {
     try {
-      var gUrl = 'https://maps.googleapis.com/maps/api/directions/json?origin=' + pickup.coordinates.latitude + ',' + pickup.coordinates.longitude + '&destination=' + dropoff.coordinates.latitude + ',' + dropoff.coordinates.longitude + '&key=AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+      // Backend proxy — keeps the Google key off the device. Same response
+      // shape as Google Directions so the parsing below stays unchanged.
+      var gUrl = 'https://api.terango.sn/api/google/directions?origin=' + pickup.coordinates.latitude + ',' + pickup.coordinates.longitude + '&destination=' + dropoff.coordinates.latitude + ',' + dropoff.coordinates.longitude;
       var gR = await fetch(gUrl);
       var gData = await gR.json();
       if (gData.status === 'OK' && gData.routes.length > 0) return gData.routes[0].legs[0].distance.value / 1000;

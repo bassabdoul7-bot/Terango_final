@@ -32,7 +32,12 @@ var ARRIVAL_DISAPPEAR_THRESHOLD = 75;
 // 'osrm'   = self-hosted OSRM (free, OSM data — patchy in Senegal)
 // On Google error/timeout the code automatically falls back to OSRM.
 var ROUTING_PROVIDER = 'google';
-var GOOGLE_DIRECTIONS_KEY = 'AIzaSyCwm1J7ULt8EnKX-0Gyj6Y_AxISDkbRSkw';
+// Google Directions is now called via our backend proxy (key never leaves
+// the server). Mirrors the API_URL used by api.service.js so swapping
+// prod ↔ staging is a single point of change.
+var TERANGO_API_BASE_URL = 'https://api.terango.sn/api';
+var DIRECTIONS_PROXY_URL = TERANGO_API_BASE_URL + '/google/directions';
+var SPEEDLIMIT_PROXY_URL = TERANGO_API_BASE_URL + '/google/speedLimit';
 
 // LRU Cache for directions to avoid duplicate API calls
 var LRU_MAX = 20;
@@ -467,7 +472,7 @@ function ActiveRideScreen(props) {
     lastDirectionsFetchTime.current = now;
 
     var osrmUrl='https://osrm.terango.sn/route/v1/driving/'+driverLocation.longitude+','+driverLocation.latitude+';'+destination.longitude+','+destination.latitude+'?overview=full&geometries=polyline&steps=true';
-    var googleUrl='https://maps.googleapis.com/maps/api/directions/json?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude+'&mode=driving&language=fr&region=sn&key='+GOOGLE_DIRECTIONS_KEY;
+    var googleUrl=DIRECTIONS_PROXY_URL+'?origin='+driverLocation.latitude+','+driverLocation.longitude+'&destination='+destination.latitude+','+destination.longitude;
 
     function applyParsed(parsed) {
       directionsCacheSet(cacheKey,parsed);
