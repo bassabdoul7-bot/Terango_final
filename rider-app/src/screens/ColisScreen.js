@@ -170,7 +170,11 @@ function ColisScreen(props) {
 
   function renderStep1() {
     return (
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false} >
+      <ScrollView
+        style={styles.stepContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.stepTitle}>Adresses</Text>
         <Text style={styles.stepSub}>{"D'o\u00f9 \u00e0 o\u00f9 envoyez-vous?"}</Text>
         <View style={styles.addressCard}>
@@ -376,8 +380,10 @@ var styles = StyleSheet.create({
   addressCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#EEF0F3' },
   addressRow: { flexDirection: 'row', alignItems: 'flex-start', paddingVertical: 8 },
   dotGreen: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.green, marginRight: 12, marginTop: 4 },
-  dotRed: { width: 14, height: 14, backgroundColor: COLORS.red, marginRight: 12, marginTop: 4 },
-  dashedLine: { height: 30, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.15)', borderStyle: 'dashed', marginVertical: 4 },
+  dotRed: { width: 14, height: 14, borderRadius: 7, backgroundColor: COLORS.red, marginRight: 12, marginTop: 4 },
+  // Vertical dashed line connecting pickup→dropoff. Was rgba white on white
+  // before — invisible. Now light gray, visible on the white addressCard.
+  dashedLine: { height: 30, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: '#D0D5DD', borderStyle: 'dashed', marginVertical: 4 },
   addressInputWrap: { flex: 1 },
   addressLabel: { fontSize: 12, color: '#757575', marginBottom: 4, fontFamily: 'LexendDeca_400Regular' },
   addressSet: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A', backgroundColor: 'rgba(255,255,255,0.08)', padding: 12, borderRadius: 12, overflow: 'hidden' },
@@ -407,7 +413,7 @@ var styles = StyleSheet.create({
   summaryTextWrap: { flex: 1, marginLeft: 0 },
   summaryLabel: { fontSize: 12, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
-  summaryDivider: { height: 24, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', marginVertical: 6 },
+  summaryDivider: { height: 24, marginLeft: 7, borderLeftWidth: 2, borderLeftColor: '#D0D5DD', borderStyle: 'dashed', marginVertical: 6 },
   detailsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   detailLabel: { fontSize: 14, color: '#757575', fontFamily: 'LexendDeca_400Regular' },

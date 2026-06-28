@@ -137,7 +137,12 @@ const getIcon = (item) => {
   return '\uD83D\uDCCD';
 };
 
-const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange, userLocation, allowFreeText, styles: stylesOverride, inputStyle, placeholderTextColor }) => {
+// `allowFreeText` is accepted for backward compatibility with old call sites
+// but no longer does anything — the free-text fallback was removed when the
+// geocode cascade started returning useful results 100% of the time on real
+// queries. Stamping a synthetic entry with the rider's own GPS coords as
+// the destination was actively wrong (broke pricing + dropoff routing).
+const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defaultValue, onResultsChange, userLocation, allowFreeText: _ignoredAllowFreeText, styles: stylesOverride, inputStyle, placeholderTextColor }) => {
   const inputOverride = (stylesOverride && stylesOverride.textInput) || inputStyle;
   const [query, setQuery] = useState(defaultValue || '');
   const [results, setResults] = useState([]);
@@ -209,23 +214,6 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
         items = matchedPopular.concat(items);
         items = dedup(items);
 
-        // Free-text fallback — when allowed, append a synthetic option
-        // that the caller can detect by `freeText: true`. Used so the
-        // rider can proceed with informal addresses.
-        if (allowFreeText && items.length < 4) {
-          items.push({
-            address: text,
-            primary: text,
-            secondary: 'Utiliser ce texte',
-            description: text,
-            coordinates: lat != null && lng != null ? { latitude: lat, longitude: lng } : { latitude: 14.6928, longitude: -17.4467 },
-            geometry: { location: { lat: lat || 14.6928, lng: lng || -17.4467 } },
-            class: 'free', type: 'free',
-            confidence: 'approximate',
-            freeText: true,
-          });
-        }
-
         updateResults(items.slice(0, 10));
       } catch (e) {
         console.log('Geocode search error:', e);
@@ -234,7 +222,7 @@ const NominatimAutocomplete = ({ placeholder, onSelect, onPress, autoFocus, defa
         setLoading(false);
       }
     }, 300);
-  }, [userLocation, allowFreeText]);
+  }, [userLocation]);
 
   const handleSelect = (item) => {
     setQuery(item.address || item.primary);

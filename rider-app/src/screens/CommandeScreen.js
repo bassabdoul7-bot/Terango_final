@@ -82,7 +82,12 @@ function CommandeScreen(props) {
 
   function renderStep1() {
     return (
-      <ScrollView style={styles.stepContent} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+      <ScrollView
+        style={styles.stepContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.stepTitle}>Type de magasin</Text>
         <Text style={styles.stepSub}>{"O\u00f9 voulez-vous commander?"}</Text>
         <View style={styles.storeGrid}>
@@ -233,7 +238,7 @@ var styles = StyleSheet.create({
   summaryTextWrap: { flex: 1, marginLeft: 12 },
   summaryLabel: { fontSize: 12, color: '#757575', marginBottom: 2, fontFamily: 'LexendDeca_400Regular' },
   summaryAddr: { fontSize: 15, fontFamily: 'LexendDeca_500Medium', color: '#1A1A1A' },
-  summaryDivider: { height: 24, marginLeft: 6, borderLeftWidth: 2, borderLeftColor: 'rgba(255,255,255,0.1)', borderStyle: 'dashed', marginVertical: 6 },
+  summaryDivider: { height: 24, marginLeft: 6, borderLeftWidth: 2, borderLeftColor: '#D0D5DD', borderStyle: 'dashed', marginVertical: 6 },
   itemsCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#EEF0F3' },
   itemsTitle: { fontSize: 14, fontFamily: 'LexendDeca_600SemiBold', color: '#757575', marginBottom: 8 },
   itemsText: { fontSize: 14, color: '#1A1A1A', lineHeight: 22, fontFamily: 'LexendDeca_400Regular' },

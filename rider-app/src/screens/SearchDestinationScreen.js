@@ -72,7 +72,6 @@ const SearchDestinationScreen = ({ route, navigation }) => {
                 autoFocus={true}
                 defaultValue={pickup?.address}
                 userLocation={currentLocation}
-                allowFreeText={true}
               />
             )}
           </View>
@@ -89,7 +88,6 @@ const SearchDestinationScreen = ({ route, navigation }) => {
               onPress={handleDropoffSelect}
               autoFocus={!editingPickup}
               userLocation={currentLocation}
-              allowFreeText={true}
             />
           </View>
         </View>
