@@ -128,6 +128,11 @@ function ActiveRideScreen(props) {
   var driverLocState = useState(null); var driverLocation = driverLocState[0]; var setDriverLocation = driverLocState[1];
   var headingState = useState(0); var heading = headingState[0]; var setHeading = headingState[1];
   var speedState = useState(0); var currentSpeed = speedState[0]; var setCurrentSpeed = speedState[1];
+  // Posted speed limit (km/h) for the road the driver is currently on. null
+  // means we don't know — speedometer renders normally without a reference.
+  var speedLimitState = useState(null); var speedLimit = speedLimitState[0]; var setSpeedLimit = speedLimitState[1];
+  var lastSpeedLimitFetch = useRef({ t: 0, lat: 0, lng: 0 });
+  var lastOverspeedWarn = useRef(0);
   var offRouteCount = useRef(0);
   var [routeProgress, setRouteProgress] = useState(0);
   var lastProgress = useRef(0);
@@ -422,7 +427,42 @@ function ActiveRideScreen(props) {
     return (dist / elapsed) * 3.6;
   }
 
-  useEffect(function(){var mounted=true;function startWatcher(opts){currentWatchOptions.current=opts;Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:opts.timeInterval,distanceInterval:opts.distanceInterval},function(loc){if(!mounted)return;var curLoc={latitude:loc.coords.latitude,longitude:loc.coords.longitude};var now=Date.now();var sensorSpeed=(loc.coords.speed||0)*3.6;var calculatedSpeed=calcSpeedFromLocations(lastLocationRef.current,lastLocationTimeRef.current,curLoc,now);var speedKmh=Math.max(0,Math.round(sensorSpeed>0?sensorSpeed:calculatedSpeed));lastLocationRef.current=curLoc;lastLocationTimeRef.current=now;setDriverLocation(curLoc);setHeading(loc.coords.heading||heading);setCurrentSpeed(speedKmh);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(err){console.error('Location update API error:',err);});if(now-lastTrailPointTime.current>=5000){lastTrailPointTime.current=now;trailBufferRef.current.push({latitude:curLoc.latitude,longitude:curLoc.longitude,timestamp:new Date().toISOString()});}if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{driverId:driver&&driver._id,rideId:rideId,latitude:loc.coords.latitude,longitude:loc.coords.longitude,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}var newOpts=getAdaptiveLocationOptions(speedKmh);if(newOpts.timeInterval!==currentWatchOptions.current.timeInterval||newOpts.distanceInterval!==currentWatchOptions.current.distanceInterval){if(locationSubscription.current){locationSubscription.current.remove();}startWatcher(newOpts);}}).then(function(sub){locationSubscription.current=sub;});}function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);lastLocationRef.current={latitude:cur.coords.latitude,longitude:cur.coords.longitude};lastLocationTimeRef.current=Date.now();setInitializing(false);}startWatcher({timeInterval:1000,distanceInterval:5});});}).catch(function(err){console.error('Location permission/init error:',err);setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
+  // Fetch the posted speed limit for the driver's current segment. Cached
+  // server-side; we also debounce client-side: only re-fetch if the driver
+  // has moved ~100m OR 30s elapsed since last fetch. That keeps the cost
+  // negligible while still picking up limit changes when entering a new road.
+  function maybeFetchSpeedLimit(curLoc) {
+    var now = Date.now();
+    var last = lastSpeedLimitFetch.current;
+    var dLat = curLoc.latitude - last.lat;
+    var dLng = curLoc.longitude - last.lng;
+    var movedMeters = Math.sqrt(dLat * dLat + dLng * dLng) * 111000;
+    if (movedMeters < 100 && (now - last.t) < 30000) return;
+    lastSpeedLimitFetch.current = { t: now, lat: curLoc.latitude, lng: curLoc.longitude };
+    fetch(SPEEDLIMIT_PROXY_URL + '?lat=' + curLoc.latitude + '&lng=' + curLoc.longitude)
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data && typeof data.limit_kmh === 'number') setSpeedLimit(data.limit_kmh);
+        else setSpeedLimit(null);
+      })
+      .catch(function() { /* silent — speedometer stays unmarked */ });
+  }
+
+  // Overspeed warning — fires when current speed exceeds posted limit + 10
+  // km/h tolerance, or 100 km/h absolute fallback when no limit is known
+  // (Senegal highway max is 90; 100 leaves a small buffer for GPS noise).
+  // Rate-limited to once per 60s so we don't nag the driver every second.
+  useEffect(function() {
+    if (!voiceEnabled || currentSpeed < 30) return;
+    var threshold = (speedLimit ? speedLimit + 10 : 100);
+    if (currentSpeed <= threshold) return;
+    var now = Date.now();
+    if (now - lastOverspeedWarn.current < 60000) return;
+    lastOverspeedWarn.current = now;
+    speakAnnouncement('Ralentissez. ' + currentSpeed + ' kilomètres heure.');
+  }, [currentSpeed, speedLimit, voiceEnabled]);
+
+  useEffect(function(){var mounted=true;function startWatcher(opts){currentWatchOptions.current=opts;Location.watchPositionAsync({accuracy:Location.Accuracy.High,timeInterval:opts.timeInterval,distanceInterval:opts.distanceInterval},function(loc){if(!mounted)return;var curLoc={latitude:loc.coords.latitude,longitude:loc.coords.longitude};var now=Date.now();var sensorSpeed=(loc.coords.speed||0)*3.6;var calculatedSpeed=calcSpeedFromLocations(lastLocationRef.current,lastLocationTimeRef.current,curLoc,now);var speedKmh=Math.max(0,Math.round(sensorSpeed>0?sensorSpeed:calculatedSpeed));lastLocationRef.current=curLoc;lastLocationTimeRef.current=now;setDriverLocation(curLoc);setHeading(loc.coords.heading||heading);setCurrentSpeed(speedKmh);maybeFetchSpeedLimit(curLoc);driverService.updateLocation(loc.coords.latitude,loc.coords.longitude).catch(function(err){console.error('Location update API error:',err);});if(now-lastTrailPointTime.current>=5000){lastTrailPointTime.current=now;trailBufferRef.current.push({latitude:curLoc.latitude,longitude:curLoc.longitude,timestamp:new Date().toISOString()});}if(socketRef.current&&socketRef.current.connected){socketRef.current.emit('driver-location-update',{driverId:driver&&driver._id,rideId:rideId,latitude:loc.coords.latitude,longitude:loc.coords.longitude,location:{latitude:loc.coords.latitude,longitude:loc.coords.longitude,heading:loc.coords.heading||0}});}var newOpts=getAdaptiveLocationOptions(speedKmh);if(newOpts.timeInterval!==currentWatchOptions.current.timeInterval||newOpts.distanceInterval!==currentWatchOptions.current.distanceInterval){if(locationSubscription.current){locationSubscription.current.remove();}startWatcher(newOpts);}}).then(function(sub){locationSubscription.current=sub;});}function startTracking(){Location.requestForegroundPermissionsAsync().then(function(result){if(result.status!=='granted'){Alert.alert('Permission refusee','Localisation requise');setInitializing(false);return;}Location.getCurrentPositionAsync({accuracy:Location.Accuracy.High}).then(function(cur){if(mounted){setDriverLocation({latitude:cur.coords.latitude,longitude:cur.coords.longitude});setHeading(cur.coords.heading||0);lastLocationRef.current={latitude:cur.coords.latitude,longitude:cur.coords.longitude};lastLocationTimeRef.current=Date.now();setInitializing(false);}startWatcher({timeInterval:1000,distanceInterval:5});});}).catch(function(err){console.error('Location permission/init error:',err);setInitializing(false);});}startTracking();return function(){mounted=false;if(locationSubscription.current)locationSubscription.current.remove();};},[]);
 
   useEffect(function(){
     if(!ride||!driverLocation||hasFetchedRoute.current)return;
@@ -516,7 +556,11 @@ function ActiveRideScreen(props) {
       var steps=leg.steps.map(function(step,index){
         // Google instructions come as HTML — strip tags for plain text.
         var instr=(step.html_instructions||'').replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim()||'Continuer';
-        return{id:index,instruction:instr,distance:step.distance.value<1000?Math.round(step.distance.value)+' m':(step.distance.value/1000).toFixed(1)+' km',distanceValue:step.distance.value,maneuver:step.maneuver||'',startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};
+        // Lane guidance: Google Directions returns step.lanes = [{ directions: ['straight'], recommended: ['left','straight'] }, ...]
+        // We pass the raw array through; the turn banner renders one arrow
+        // per lane and highlights the recommended ones.
+        var lanes = Array.isArray(step.lanes) ? step.lanes : null;
+        return{id:index,instruction:instr,distance:step.distance.value<1000?Math.round(step.distance.value)+' m':(step.distance.value/1000).toFixed(1)+' km',distanceValue:step.distance.value,maneuver:step.maneuver||'',lanes:lanes,startLocation:{latitude:step.start_location.lat,longitude:step.start_location.lng},endLocation:{latitude:step.end_location.lat,longitude:step.end_location.lng}};
       });
       var coords=PolylineUtil.decode(rt.overview_polyline.points).map(function(p){return{latitude:p[0],longitude:p[1]};});
       var distText=leg.distance.value<1000?Math.round(leg.distance.value)+' m':(leg.distance.value/1000).toFixed(1)+' km';
@@ -1025,6 +1069,30 @@ function ActiveRideScreen(props) {
               <Text style={styles.turnText} numberOfLines={2}>{currentStep.instruction}</Text>
             </View>
           </View>
+          {/* Lane guidance — Google returns lane data for highway exits and
+              complex intersections. Recommended lanes show solid, others dim. */}
+          {currentStep.lanes && currentStep.lanes.length > 0 && (
+            <View style={styles.laneRow}>
+              {currentStep.lanes.map(function(lane, idx) {
+                var recommended = (lane.recommended && lane.recommended.length > 0);
+                var dirs = (recommended ? lane.recommended : (lane.directions || [])).join(',').toLowerCase();
+                var icon = '↑';
+                if (dirs.indexOf('left') !== -1 && dirs.indexOf('right') !== -1) icon = '↑↔';
+                else if (dirs.indexOf('sharp-left') !== -1) icon = '⬋';
+                else if (dirs.indexOf('sharp-right') !== -1) icon = '⬊';
+                else if (dirs.indexOf('slight-left') !== -1) icon = '⬉';
+                else if (dirs.indexOf('slight-right') !== -1) icon = '⬈';
+                else if (dirs.indexOf('left') !== -1) icon = '↰';
+                else if (dirs.indexOf('right') !== -1) icon = '↱';
+                else if (dirs.indexOf('uturn') !== -1) icon = '⤺';
+                return (
+                  <Text key={idx} style={[styles.laneIcon, !recommended && styles.laneIconDim]}>
+                    {icon}
+                  </Text>
+                );
+              })}
+            </View>
+          )}
           {allSteps && currentStep.id + 1 < allSteps.length && (
             <View style={styles.turnNextRow}>
               <Text style={styles.turnNextLabel}>Puis</Text>
@@ -1047,7 +1115,22 @@ function ActiveRideScreen(props) {
           </View>
         </TouchableOpacity>
       )}
-      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View><View style={styles.speedBubble}><Text style={styles.speedText}>{currentSpeed}</Text><Text style={styles.speedUnit}>km/h</Text></View><TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
+      {navigationStarted&&(<><View style={styles.progressBarFloat}><View style={styles.progressBarTrack}><View style={[styles.progressBarFill, {width: (routeProgress * 100) + '%'}]} /><View style={[styles.progressBarDot, {left: (routeProgress * 100) + '%'}]} /></View><View style={styles.progressBarLabels}><Text style={styles.progressBarEta}>{totalDistance}</Text><Text style={styles.progressBarArrival}>{totalDuration}</Text></View></View><View style={styles.wazeBottomBar}><View style={styles.etaContainer}><Text style={styles.etaTime}>{totalDuration}</Text><Text style={styles.etaDistance}>{totalDistance}</Text></View>{(function(){
+              var over = speedLimit ? currentSpeed > (speedLimit + 10) : currentSpeed > 100;
+              return (
+                <View style={{ alignItems: 'center', marginRight: 12 }}>
+                  <View style={[styles.speedBubble, over && { borderColor: '#E53935', backgroundColor: '#FFEBEE' }]}>
+                    <Text style={[styles.speedText, over && { color: '#E53935' }]}>{currentSpeed}</Text>
+                    <Text style={styles.speedUnit}>km/h</Text>
+                  </View>
+                  {speedLimit ? (
+                    <View style={styles.speedLimitSign}>
+                      <Text style={styles.speedLimitText}>{speedLimit}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })()}<TouchableOpacity style={styles.stopNavButton} onPress={function(){setNavigationStarted(false);if(mapRef.current){cameraRef.current.flyTo({pitch:0,zoom:15,duration:500});}}}><Text style={styles.stopNavText}>{String.fromCodePoint(0x1F5FA)}</Text></TouchableOpacity></View></>)}
       {!navigationStarted&&(<View style={styles.bottomSheet}>
         <View style={styles.etaCard}><View style={styles.etaRow}><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDuration}</Text><Text style={styles.etaLabel}>Temps</Text></View><View style={styles.etaDivider}/><View style={styles.etaItem}><Text style={styles.etaValue}>{totalDistance}</Text><Text style={styles.etaLabel}>Distance</Text></View></View></View>
         {riderPhone && (
@@ -1207,9 +1290,19 @@ var styles = StyleSheet.create({
   etaDistance: { fontSize: 16, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
   stopNavButton: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
   stopNavText: { fontSize: 20, color: '#5a5a5a', fontFamily: 'LexendDeca_400Regular' },
-  speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', marginRight: 12, borderWidth: 2, borderColor: COLORS.green },
+  speedBubble: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: COLORS.green },
   speedText: { fontSize: 20, fontFamily: 'LexendDeca_700Bold', color: COLORS.darkBg },
   speedUnit: { fontSize: 10, color: COLORS.gray, marginTop: -2, fontFamily: 'LexendDeca_400Regular' },
+  // Small French-style speed-limit roundel under the speedometer. Red border,
+  // white face, black number. Only shown when speedLimit is known.
+  speedLimitSign: { marginTop: 4, width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: '#E53935', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  speedLimitText: { fontSize: 11, fontFamily: 'LexendDeca_700Bold', color: '#1A1A1A' },
+  // Lane guidance row — small icons under the turn instruction. Recommended
+  // lanes render solid white, others render at 30% opacity so the driver
+  // sees at a glance which lanes lead to the upcoming turn.
+  laneRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingTop: 6, paddingBottom: 2, gap: 8 },
+  laneIcon: { fontSize: 22, color: '#FFFFFF', fontFamily: 'LexendDeca_700Bold' },
+  laneIconDim: { opacity: 0.3 },
   progressBarFloat: { position: 'absolute', bottom: 90, left: 16, right: 16, zIndex: 10, backgroundColor: '#FFFFFF', borderRadius: 14, padding: 12, paddingTop: 14, elevation: 6, borderWidth: 1, borderColor: '#EEF0F3' },
   progressBarTrack: { height: 8, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 4, overflow: 'visible', marginBottom: 8 },
   progressBarLabels: { flexDirection: 'row', justifyContent: 'space-between' },
