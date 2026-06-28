@@ -137,7 +137,10 @@ exports.searchPartners = async function(query, userLat, userLng) {
 /* -------------------------------------------------------------------- */
 
 exports.searchGoogle = async function(query, userLat, userLng) {
-  var apiKey = process.env.GOOGLE_PLACES_API_KEY;
+  // Reuse the shared GOOGLE_MAPS_API_KEY — single key for all Google Cloud
+  // needs on this project. Falls back to GOOGLE_PLACES_API_KEY if someone
+  // wires a dedicated one later.
+  var apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) return [];                                // silently disabled
   var q = String(query || '').trim();
   if (q.length < 2) return [];
