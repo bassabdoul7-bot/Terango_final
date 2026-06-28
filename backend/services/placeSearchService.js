@@ -217,14 +217,28 @@ exports.searchGoogle = async function(query, userLat, userLng) {
         if (!inSenegal(lat, lon)) return null;
         var name = (p.displayName && p.displayName.text) || p.shortFormattedAddress || '';
         var addr = p.shortFormattedAddress || p.formattedAddress || '';
+        // The rider app's formatAddress() reads OSM-style fields
+        // (addr.tourism, addr.amenity, addr.shop, addr.building, addr.aeroway)
+        // to pick the primary label, falling back to `road` then `display_name`.
+        // Google's response doesn't speak that vocabulary, so we synthesize
+        // it: stuff the place name into the field that matches its category,
+        // and put the formatted address in `road` so it surfaces as secondary.
+        // Without this the app showed "Cité Keur Gorgui…" for "Hôtel Bachou"
+        // because it never saw the name in a field it knew how to read.
+        var type = p.primaryType || (p.types && p.types[0]) || '';
+        var addressShape = { road: addr };
+        if (/hotel|lodging/i.test(type)) addressShape.tourism = name;
+        else if (/store|shop|market|supermarket/i.test(type)) addressShape.shop = name;
+        else if (/airport|aerodrome/i.test(type)) addressShape.aeroway = name;
+        else addressShape.amenity = name;               // restaurant, pharmacy, etc.
         return {
           source: 'google',
           lat: lat, lng: lon,
-          display_name: addr || name,
-          address: { road: addr },
+          display_name: name + ', ' + addr,
+          address: addressShape,
           name: name,
           class: 'place',
-          type: p.primaryType || (p.types && p.types[0]) || 'place',
+          type: type || 'place',
           confidence: 'exact',
           importance: 0.7,                              // ranks below partner, above osm-approximate
           google_place_id: p.id,
